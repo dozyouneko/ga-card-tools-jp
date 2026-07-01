@@ -1,0 +1,15 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Dependencies (将来 npm 等を使う場合)
+node_modules/
+
+# Logs / temp
+*.log
