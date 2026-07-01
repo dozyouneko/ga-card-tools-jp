@@ -12,6 +12,22 @@
 window.GA_I18N = {
   // --- 列挙値のラベル（ゲーム用語なので比較的安定） ---
   meta: {
+    // エキスパンション（製品ライン単位。prefixes は API の prefix パラメータへ複数送る）
+    // 新セットが出たら prefixes に追記、または新エントリを先頭付近に追加する。
+    sets: [
+      { label: "Fractured Crown", prefixes: ["FTC", "FTCA"] },
+      { label: "Mercurial Heart", prefixes: ["MRC", "MRC 1st", "MRC Alter"] },
+      { label: "Phantom Monarchs", prefixes: ["PTM", "PTM 1st", "PTMEVP"] },
+      { label: "Distorted Reflections", prefixes: ["DTR", "DTR 1st", "DTRSD"] },
+      { label: "Abyssal Heaven", prefixes: ["HVN", "HVN 1st"] },
+      { label: "Mortal Ambition", prefixes: ["AMB", "AMB 1st", "AMB Alter", "AMBSD", "AMBDP"] },
+      { label: "Alchemical Revolution", prefixes: ["ALC", "ALC 1st", "ALC Alter", "ALCSD"] },
+      { label: "Dawn of Ashes", prefixes: ["DOA 1st", "DOA Alter", "DOAp", "DOASD"] },
+      { label: "Radiant Origins", prefixes: ["RDO", "RDO 1st", "RDOA", "RDOP", "RDOPD", "RDOEVP"] },
+      { label: "Re:Collection", prefixes: ["ReC-AUR", "ReC-BRV", "ReC-HVF", "ReC-IDY", "ReC-SHD", "ReC-SLM"] },
+      { label: "Promotional（P22〜P26）", prefixes: ["P22", "P23", "P24", "P25", "P26"] },
+      { label: "Supporter / Pantheon Pack", prefixes: ["SP1", "SP2", "SP3", "PP1"] },
+    ],
     classes: {
       ANOMALY: "アノマリー", ASSASSIN: "アサシン", CLERIC: "クレリック",
       GUARDIAN: "ガーディアン", MAGE: "メイジ", RANGER: "レンジャー",

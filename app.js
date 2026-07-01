@@ -11,15 +11,39 @@ const I18N = window.GA_I18N || { meta: {}, terms: {}, cards: {} };
 
 const el = {
   q: document.getElementById("q"),
+  qtext: document.getElementById("qtext"),
   fClass: document.getElementById("f-class"),
   fElement: document.getElementById("f-element"),
   fType: document.getElementById("f-type"),
+  fSet: document.getElementById("f-set"),
+  sort: document.getElementById("f-sort"),
+  order: document.getElementById("order"),
   reset: document.getElementById("reset"),
   status: document.getElementById("status"),
   grid: document.getElementById("grid"),
+  loadMore: document.getElementById("load-more"),
   langEn: document.getElementById("lang-en"),
   modal: document.getElementById("modal"),
 };
+
+// エキスパンション定義（製品ライン → prefix 群）
+const SETS = (I18N.meta && I18N.meta.sets) || [];
+
+// 検索・ページングの状態
+const pager = { page: 1, total: 0, shown: 0, hasMore: false, shownSlugs: new Set() };
+
+function hasJapanese(s) {
+  return /[぀-ヿ㐀-鿿ｦ-ﾝ]/.test(s || "");
+}
+// 効果テキスト欄に日本語が含まれる → ローカル訳のみを検索するモード
+function isJpTextMode() {
+  const t = el.qtext.value.trim();
+  return !!t && hasJapanese(t);
+}
+function setPrefixes(val) {
+  const s = SETS[Number(val)];
+  return s ? s.prefixes : [];
+}
 
 // ---------- ユーティリティ ----------
 
@@ -76,52 +100,165 @@ function fillSelect(select, kind) {
   });
 }
 
+// エキスパンション選択肢（value は SETS のインデックス）
+function fillSetSelect() {
+  SETS.forEach((s, i) => {
+    const opt = document.createElement("option");
+    opt.value = String(i);
+    opt.textContent = s.label;
+    el.fSet.appendChild(opt);
+  });
+}
+
 // ---------- API 呼び出し ----------
 
 let reqSeq = 0; // 競合するリクエストの取り違え防止
 
-function buildQuery() {
+function buildQuery(page) {
   const p = new URLSearchParams();
   const q = el.q.value.trim();
   if (q) p.set("name", q);
+  const text = el.qtext.value.trim();
+  if (text) p.set("effect", text); // 効果テキスト検索（英語）。日本語は JP モードで別処理
   if (el.fClass.value) p.set("class", el.fClass.value);
   if (el.fElement.value) p.set("element", el.fElement.value);
   if (el.fType.value) p.set("type", el.fType.value);
-  p.set("sort", "name");
-  p.set("page", "1");
-  p.set("page_size", "40");
+  setPrefixes(el.fSet.value).forEach((pre) => p.append("prefix", pre)); // エキスパンション（複数prefix）
+  p.set("sort", el.sort.value || "name");
+  p.set("order", el.order.dataset.dir || "ASC");
+  p.set("page", String(page));
+  p.set("page_size", "50");
   return p.toString();
 }
 
-async function search() {
+// reset=true で新規検索（1ページ目・グリッド全消去）、false で「もっと見る」（追記）
+async function runSearch(reset) {
+  // 効果テキスト欄が日本語 → サーバーは英語のみのため、ローカル訳から検索するモードに切替
+  if (isJpTextMode()) { runLocalJpSearch(); return; }
+
   const seq = ++reqSeq;
-  el.status.textContent = "検索中…";
+  if (reset) { pager.page = 1; pager.shownSlugs = new Set(); }
+  el.status.textContent = reset ? "検索中…" : "読み込み中…";
+  el.loadMore.disabled = true;
   try {
-    const res = await fetch(`${API}/cards/search?${buildQuery()}`);
+    const res = await fetch(`${API}/cards/search?${buildQuery(pager.page)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     if (seq !== reqSeq) return; // 古いレスポンスは破棄
-    renderGrid(json.data || [], json.total_cards);
+    const cards = json.data || [];
+    pager.total = json.total_cards || 0;
+    pager.hasMore = !!json.has_more;
+    if (reset) el.grid.innerHTML = "";
+    appendGrid(cards);
+    updateSearchStatus();
   } catch (err) {
     if (seq !== reqSeq) return;
+    if (!reset && pager.page > 1) pager.page -= 1; // 追記失敗はページを戻して再試行可能に
     el.status.textContent = `読み込みに失敗しました（${err.message}）。時間をおいて再度お試しください。`;
-    el.grid.innerHTML = "";
+    if (reset) { el.grid.innerHTML = ""; el.loadMore.hidden = true; }
+  } finally {
+    if (seq === reqSeq) el.loadMore.disabled = false;
   }
+}
+
+// 日本語テキスト検索：ローカル訳（name/effect）の部分一致 → 該当カードを取得して表示
+async function runLocalJpSearch() {
+  const seq = ++reqSeq;
+  el.status.textContent = "日本語テキストで検索中…";
+  el.loadMore.hidden = true;
+  el.grid.innerHTML = "";
+  pager.shownSlugs = new Set();
+  pager.total = 0;
+  pager.hasMore = false;
+  try {
+    const cards = await fetchLocalJpMatches(seq);
+    if (seq !== reqSeq) return;
+    appendGrid(cards);
+    const n = el.grid.childElementCount;
+    el.status.textContent = n === 0
+      ? "日本語テキストに一致する翻訳済みカードが見つかりませんでした（未翻訳のカードは日本語検索できません。英語での検索もお試しください）。"
+      : `${n} 件を表示（日本語テキスト一致・翻訳済みのみ）`;
+  } catch (err) {
+    if (seq !== reqSeq) return;
+    el.status.textContent = `検索に失敗しました（${err.message}）。`;
+  }
+}
+
+// ローカル訳を部分一致検索して slug の配列を返す
+function localJpSlugs(query) {
+  const q = query.toLowerCase();
+  const cards = I18N.cards || {};
+  const out = [];
+  for (const slug in cards) {
+    const c = cards[slug];
+    const hay = `${c.name || ""}\n${c.effect || ""}`.toLowerCase();
+    if (hay.includes(q)) out.push(slug);
+  }
+  return out;
+}
+
+// ローカル一致した slug のカードを取得し、他の絞り込み条件で客側フィルタして返す
+async function fetchLocalJpMatches(seq) {
+  const q = el.qtext.value.trim();
+  const slugs = localJpSlugs(q).slice(0, 30);
+  const results = [];
+  for (const slug of slugs) {
+    try {
+      const res = await fetch(`${API}/cards/${encodeURIComponent(slug)}`);
+      if (seq !== reqSeq) return results;
+      if (!res.ok) continue;
+      const card = await res.json();
+      if (matchesActiveFilters(card)) results.push(card);
+    } catch { /* 個別失敗はスキップ */ }
+  }
+  return results;
+}
+
+// class/element/type/set/name の各絞り込みにカードが合致するか（JPモードの客側フィルタ用）
+function matchesActiveFilters(card) {
+  if (el.fClass.value && !(card.classes || []).includes(el.fClass.value)) return false;
+  if (el.fElement.value && !(card.elements || []).includes(el.fElement.value)) return false;
+  if (el.fType.value && !(card.types || []).includes(el.fType.value)) return false;
+  const pre = setPrefixes(el.fSet.value);
+  if (pre.length) {
+    const eds = card.editions || card.result_editions || [];
+    if (!eds.some((e) => e.set && pre.includes(e.set.prefix))) return false;
+  }
+  const nq = el.q.value.trim().toLowerCase();
+  if (nq) {
+    const nm = `${card.name || ""}\n${jpName(card)}`.toLowerCase();
+    if (!nm.includes(nq)) return false;
+  }
+  return true;
+}
+
+function updateSearchStatus() {
+  pager.shown = el.grid.childElementCount;
+  if (pager.shown === 0) {
+    el.status.textContent = "該当するカードがありません。条件を変えてお試しください。";
+    el.loadMore.hidden = true;
+    return;
+  }
+  const totalPart = pager.total > pager.shown ? ` / 全 ${pager.total} 件` : "";
+  el.status.textContent = `${pager.shown} 件を表示${totalPart}`;
+  el.loadMore.hidden = !pager.hasMore;
+}
+
+function loadMore() {
+  if (!pager.hasMore) return;
+  pager.page += 1;
+  runSearch(false);
 }
 
 // ---------- グリッド描画 ----------
 
-function renderGrid(cards, total) {
-  el.grid.innerHTML = "";
-  if (!cards.length) {
-    el.status.textContent = "該当するカードがありません。条件を変えてお試しください。";
-    return;
-  }
-  const shownTotal = typeof total === "number" ? `（全 ${total} 件中 ${cards.length} 件表示）` : "";
-  el.status.textContent = `${cards.length} 件のカード ${shownTotal}`;
-
+function appendGrid(cards) {
+  if (!cards.length) return;
   const frag = document.createDocumentFragment();
   cards.forEach((card) => {
+    const slug = card.slug || card.uuid;
+    if (slug && pager.shownSlugs.has(slug)) return; // 重複表示を防ぐ
+    if (slug) pager.shownSlugs.add(slug);
     const translated = !!tr(card);
     const img = imageUrl(card);
 
@@ -231,6 +368,7 @@ function openDetail(card) {
 
   el.modal.hidden = false;
   document.body.classList.add("no-scroll");
+  if (card.slug) history.replaceState(null, "", "#card/" + encodeURIComponent(card.slug));
 }
 
 // 効果文中に登場するゲーム用語を検出して解説を並べる（日本語DBの付加価値）
@@ -273,6 +411,33 @@ function renderEditions(card) {
 function closeDetail() {
   el.modal.hidden = true;
   document.body.classList.remove("no-scroll");
+  if (location.hash.startsWith("#card/")) {
+    history.replaceState(null, "", location.pathname + location.search);
+  }
+}
+
+// 共有可能URL（#card/<slug>）からカード詳細を開く
+async function openCardBySlug(slug) {
+  try {
+    const res = await fetch(`${API}/cards/${encodeURIComponent(slug)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    openDetail(await res.json());
+  } catch (err) {
+    console.error("カードの取得に失敗:", err);
+  }
+}
+
+// URLハッシュに応じて詳細を開閉（共有リンク・戻る/進む対応）
+function handleHash() {
+  const m = location.hash.match(/^#card\/(.+)$/);
+  if (m) {
+    const slug = decodeURIComponent(m[1]);
+    if (el.modal.hidden || !currentDetailCard || currentDetailCard.slug !== slug) {
+      openCardBySlug(slug);
+    }
+  } else if (!el.modal.hidden) {
+    closeDetail();
+  }
 }
 
 // ---------- 印刷リスト（カードDB → プロキシPDF 連携） ----------
@@ -413,7 +578,10 @@ function closeTray() {
 // ---------- 言語表示切替 ----------
 
 function applyLangPref() {
-  document.body.classList.toggle("show-en-primary", el.langEn.checked);
+  const en = el.langEn.checked;
+  document.body.classList.toggle("show-en-primary", en);
+  const state = document.querySelector(".lang-state");
+  if (state) state.textContent = en ? "英語" : "日本語";
 }
 
 // ---------- イベント配線 ----------
@@ -430,15 +598,29 @@ function init() {
   fillSelect(el.fClass, "classes");
   fillSelect(el.fElement, "elements");
   fillSelect(el.fType, "types");
+  fillSetSelect();
 
-  el.q.addEventListener("input", debounce(search, 350));
-  [el.fClass, el.fElement, el.fType].forEach((s) => s.addEventListener("change", search));
+  el.q.addEventListener("input", debounce(() => runSearch(true), 350));
+  el.qtext.addEventListener("input", debounce(() => runSearch(true), 350));
+  [el.fClass, el.fElement, el.fType, el.fSet, el.sort].forEach((s) => s.addEventListener("change", () => runSearch(true)));
+  el.order.addEventListener("click", () => {
+    const next = (el.order.dataset.dir || "ASC") === "ASC" ? "DESC" : "ASC";
+    el.order.dataset.dir = next;
+    el.order.textContent = next === "ASC" ? "▲ 昇順" : "▼ 降順";
+    runSearch(true);
+  });
+  el.loadMore.addEventListener("click", loadMore);
   el.reset.addEventListener("click", () => {
     el.q.value = "";
+    el.qtext.value = "";
     el.fClass.value = "";
     el.fElement.value = "";
     el.fType.value = "";
-    search();
+    el.fSet.value = "";
+    el.sort.value = "name";
+    el.order.dataset.dir = "ASC";
+    el.order.textContent = "▲ 昇順";
+    runSearch(true);
   });
   el.langEn.addEventListener("change", applyLangPref);
 
@@ -474,8 +656,11 @@ function init() {
     else if (!el.modal.hidden) closeDetail();
   });
 
+  window.addEventListener("hashchange", handleHash);
+
   updatePrintBar(); // localStorage から復元
-  search(); // 初期表示（名前順の先頭ページ）
+  runSearch(true); // 初期表示（名前順の先頭ページ）
+  handleHash(); // 共有リンク（#card/<slug>）で開かれた場合は該当カードを表示
 }
 
 init();

@@ -20,24 +20,44 @@
     </div>
     <div class="header-actions">
       <a class="tool-link" href="tools/print/index.html">🖨️ 印刷用PDFを作る</a>
-      <label class="lang-toggle">
-        <input type="checkbox" id="lang-en" />
-        <span>名前を英語で表示</span>
-      </label>
     </div>
   </header>
 
   <section class="controls">
-    <input type="search" id="q" placeholder="カード名で検索（日本語 / 英語）… 例: fire, ローレイン" autocomplete="off" />
+    <div class="controls-row">
+      <input type="search" id="q" placeholder="カード名で検索（英語）… 例: lorraine" autocomplete="off" />
+      <input type="search" id="qtext" placeholder="効果テキストで部分検索（英語 / 日本語）… 例: draw, 追放" autocomplete="off" />
+      <label class="lang-toggle" title="一覧・詳細でのカード名の表示言語を切り替えます">
+        <span>カード名の表示：</span>
+        <input type="checkbox" id="lang-en" />
+        <span class="lang-state">日本語</span>
+      </label>
+    </div>
+    <div class="controls-row">
     <select id="f-class"><option value="">クラス（全て）</option></select>
     <select id="f-element"><option value="">エレメント（全て）</option></select>
     <select id="f-type"><option value="">タイプ（全て）</option></select>
+    <select id="f-set"><option value="">エキスパンション（全て）</option></select>
+    <select id="f-sort" aria-label="並び替え">
+      <option value="name">名前順</option>
+      <option value="cost_memory">コスト順</option>
+      <option value="level">レベル順</option>
+      <option value="power">パワー順</option>
+      <option value="life">ライフ順</option>
+      <option value="rarity">レアリティ順</option>
+    </select>
+    <button id="order" type="button" data-dir="ASC" aria-label="昇順・降順を切替">▲ 昇順</button>
     <button id="reset" type="button">リセット</button>
+    </div>
   </section>
 
   <p id="status" class="status" role="status" aria-live="polite">読み込み中…</p>
 
   <main id="grid" class="grid" aria-label="カード一覧"></main>
+
+  <div class="load-more-wrap">
+    <button id="load-more" type="button" hidden>もっと見る</button>
+  </div>
 
   <!-- 詳細モーダル -->
   <div id="modal" class="modal" hidden>
