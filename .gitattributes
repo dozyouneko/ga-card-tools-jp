@@ -1,0 +1,8 @@
+# テキストは LF に正規化（改行差分のノイズを防ぐ）
+* text=auto eol=lf
+
+# バイナリ扱い（改行変換しない）
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
