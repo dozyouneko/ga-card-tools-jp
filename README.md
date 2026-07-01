@@ -1,88 +1,109 @@
-# カード印刷PDF生成 🃏
+# Grand Archive 日本語サポートサイト 🃏
 
-カード画像をアップロードすると、A4用紙に **3×3＝9枚** 並べた印刷用PDFを生成する静的Webアプリです。
-カードサイズは MTG / ポケモンカード等の標準（**63×88mm**）に対応。
+Grand Archive TCG を日本で遊ぶ人向けの、非公式ファンサイトです。
+**英語カードに日本語訳を重ねるカードDB**を中心に、**印刷用PDF生成**などのツールを内包します。
 
-- すべての処理は**ブラウザ内で完結**し、画像はサーバーに送信されません。
-- 外部依存は同梱の jsPDF のみ（CDN 非依存）。
+すべて**ビルド不要の静的サイト**（バニラ JS）。`index.html` をブラウザで開くだけで動きます。
 
-## ファイル構成
+## 構成
 
 ```
-index.html                 画面 / UI（CSPメタタグ入り）
-style.css                  スタイル
-app.js                     画像処理・PDF生成ロジック
-vendor/jspdf.umd.min.js    jsPDF 本体（ローカル同梱）
-_headers                   Netlify / Cloudflare Pages 用セキュリティヘッダ
-vercel.json                Vercel 用セキュリティヘッダ
-.nojekyll                  GitHub Pages で全ファイルをそのまま配信
-.github/workflows/deploy.yml  GitHub Pages 自動デプロイ
+/
+├─ index.html              カードDB（サイト本体）
+├─ app.js                  カードDB ロジック（公式APIを叩く / 翻訳レイヤー）
+├─ style.css               カードDB スタイル
+├─ data/
+│  └─ translations.js      日本語訳データ（辞書。ここに追記して訳を増やす）
+│
+├─ tools/
+│  └─ print/               印刷PDFツール（カード画像 → A4に3×3=9枚）
+│     ├─ index.html
+│     ├─ app.js            UI層（アップロード・オプション）
+│     └─ style.css
+│
+├─ shared/                 複数ツールで共有する部品
+│  ├─ vendor/
+│  │  └─ jspdf.umd.min.js  jsPDF 本体（ローカル同梱・CDN非依存）
+│  └─ pdf/
+│     └─ card-sheet.js     PDF生成の再利用コア（レイアウト/切り抜き/出力）
+│
+├─ _headers                Netlify / Cloudflare Pages 用（パス別CSP）
+├─ vercel.json             Vercel 用（パス別CSP）
+├─ .nojekyll               GitHub Pages で全ファイルをそのまま配信
+└─ .github/workflows/deploy.yml  GitHub Pages 自動デプロイ
 ```
 
-## セキュリティ対策（実施済み）
+## 機能
 
-| 項目 | 内容 |
-|---|---|
-| 依存の自己完結 | jsPDF を CDN からローカルへ同梱（供給網リスク排除） |
-| CSP | `script-src 'self'` 等。`eval`/`new Function` 不使用を確認済み |
-| 追加ヘッダ | `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy` |
-| プライバシー | 画像は端末内処理・外部送信なし |
+### カードDB（ルート `/`）
 
-> ホストがヘッダ非対応（GitHub Pages 等）でも、`index.html` 内の `<meta http-equiv="Content-Security-Policy">` で CSP が有効になります。ヘッダ対応ホスト（Netlify/Cloudflare/Vercel）ではファイル側の設定でより多くのヘッダが付与されます。
+- 公式API [api.gatcg.com](https://api.gatcg.com) からカードデータ・画像をその場で取得
+- 自前の日本語訳（[data/translations.js](data/translations.js)）を重ねて表示。訳が無いカードは英語原文＋「翻訳募集中」表示
+- 名前（日本語/英語）検索、クラス/エレメント/タイプでの絞り込み
+- 詳細表示：効果の日本語訳＋英語原文、メタ情報、効果文中のゲーム用語の自動解説
+- クラス/エレメント/タイプ/サブタイプは「英語（和訳）」形式で表示（例: `FIRE（火）`）
+- **印刷リスト（プロキシPDF）**: 一覧の「＋🖨️」やカード詳細から印刷リストへ追加 → 数量を指定して
+  A4に 3×3＝9枚 並べたPDFを生成（複数ページ対応）。リスト内容は `localStorage` に保存
 
----
+### 印刷PDFツール（`/tools/print/`）
+
+- カード画像をアップロード → A4用紙に 3×3＝9枚 並べた印刷用PDFを生成
+- カードサイズ（標準63×88mm ほか）、隙間、トンボ、枠線に対応
+- 画像は端末内で処理し、外部送信しません
+- 生成ロジックは [shared/pdf/card-sheet.js](shared/pdf/card-sheet.js) に分離済み
+
+> **カードDBとの連携（実装済み）**: カードDBの「印刷リスト」から選んだカードの画像を
+> `CardSheet.buildPdfPaged(images, options, jsPDF)` に渡し、「カードDB → 印刷用PDF（プロキシ/プレイテスト）」を実現しています。
+> レイアウト/切り抜き/PDF出力の共有コアは `shared/pdf/card-sheet.js`（`window.CardSheet`）にあり、
+> アップロード版ツールとカードDBの双方から利用しています。
+
+## 開発・確認
+
+Node.js 不要。`index.html` をブラウザで開くだけで動作します。
+（カードDBは公式APIへ `fetch` します。オフラインでは一覧が空になります。）
+
+## セキュリティ（CSP）
+
+パスごとに Content-Security-Policy を出し分けています（[_headers](_headers) / [vercel.json](vercel.json)）。
+
+- `/tools/print/*` … 外部通信なしの厳格な `self` のみ
+- それ以外（カードDB） … 公式API `https://api.gatcg.com` への `connect` / `img` のみ追加許可
+
+各 HTML にも `<meta http-equiv="Content-Security-Policy">` を入れており、
+ヘッダ非対応ホスト（GitHub Pages 等）でも最低限のCSPが効きます。
+
+## 翻訳の増やし方
+
+[data/translations.js](data/translations.js) の `cards` に、`card.slug` をキーとして追記します。
+
+```js
+"card-slug-here": {
+  name: "日本語カード名",
+  effect: "日本語の効果テキスト（**太字** / *斜体* / 改行 \\n が使えます）",
+  flavor: "フレーバーの訳（任意）",
+},
+```
 
 ## 公開方法
 
-### 方法A: Netlify Drop（最も簡単・1分）
+いずれもビルド不要。出力ディレクトリはリポジトリのルート（`/`）です。
 
-1. https://app.netlify.com/drop を開く
-2. このフォルダ全体をドラッグ＆ドロップ
-3. `https://<ランダム名>.netlify.app` が即発行（`_headers` も自動適用）
+- **Netlify Drop**: <https://app.netlify.com/drop> にフォルダごとドラッグ＆ドロップ（`_headers` 自動適用）
+- **Cloudflare Pages**: Git 連携。Build command 空欄 / Output directory `/`（`_headers` 自動適用）
+- **GitHub Pages**: Settings → Pages → Source を **GitHub Actions** に。`main` push で [deploy.yml](.github/workflows/deploy.yml) が自動公開
+- **Vercel**: Import → Framework Preset **Other**（`vercel.json` のヘッダ自動適用）
 
-### 方法B: Cloudflare Pages（高速・おすすめ）
+公開後は DevTools コンソールに **CSP 違反が出ていないこと**、カードDBの一覧表示と印刷PDF生成が動くことを確認してください。
 
-1. GitHub にこのリポジトリを push（下記「Git 初期化」参照）
-2. Cloudflare ダッシュボード → Workers & Pages → Create → Pages → Connect to Git
-3. ビルド設定は**なし**（Build command 空欄 / Output directory `/`）
-4. Deploy →  `https://<プロジェクト>.pages.dev` 発行（`_headers` 自動適用）
+## 留意点
 
-### 方法C: GitHub Pages（Actions 自動デプロイ）
+- 本プロジェクトは非公式のファンサイトです。カードデータ・画像の著作権は Weebs of the Shore に帰属します。
+- 日本語訳はコミュニティによる非公式訳です。公式が配布停止を求めた場合は従います。
 
-1. GitHub にこのリポジトリを push
-2. リポジトリ **Settings → Pages → Build and deployment → Source** を **GitHub Actions** に設定
-3. `main` へ push すると `.github/workflows/deploy.yml` が実行され自動公開
-4. `https://<ユーザー名>.github.io/<リポジトリ名>/` で公開
+## ロードマップ（候補）
 
-### 方法D: Vercel
-
-1. GitHub に push → Vercel で Import
-2. Framework Preset: **Other**（ビルド不要）
-3. Deploy →  `vercel.json` のヘッダが自動適用
-
----
-
-## Git 初期化（B/C/D で必要）
-
-このフォルダで以下を実行：
-
-```bash
-git init
-git add .
-git commit -m "Initial commit: card print PDF generator"
-git branch -M main
-git remote add origin https://github.com/<ユーザー名>/<リポジトリ名>.git
-git push -u origin main
-```
-
----
-
-## 公開後の確認
-
-- ブラウザの DevTools → Console に **CSP 違反エラーが出ていない**こと
-- PDF 生成が正常に動くこと（画像アップロード → プレビュー → PDF保存）
-- ヘッダ確認は https://securityheaders.com にURLを入力してスコアをチェック
-
-## 注意（著作権）
-
-カード画像は権利物であることが多いため、**私的利用の範囲**でご利用ください。
+- [x] カードDB → 印刷PDF の連携（印刷リスト / プロキシPDF）
+- [ ] カードDBの使い勝手強化（ページ送り / コスト・レベル等のフィルタ / カード個別URL）
+- [ ] 翻訳の拡充（最新セットのカバレッジ向上）
+- [ ] Node.js 導入 → Next.js へ移行し、カードごとの静的ページを生成（SEO流入の最大化）
+- [ ] デッキ構築ツールへの拡張

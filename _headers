@@ -1,5 +1,16 @@
-/*
+# Netlify / Cloudflare Pages 用セキュリティヘッダ（より具体的なパスを先に記述）
+
+# 印刷PDFツール: 外部通信なし。厳格な self-only CSP。
+/tools/print/*
   Content-Security-Policy: default-src 'self'; img-src 'self' data: blob:; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+# カードDB（ルート）: 公式API api.gatcg.com とのみ通信・画像取得を許可。
+/*
+  Content-Security-Policy: default-src 'self'; img-src 'self' data: blob: https://api.gatcg.com; connect-src 'self' https://api.gatcg.com; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   X-Frame-Options: DENY

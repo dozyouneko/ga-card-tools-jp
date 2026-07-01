@@ -1,95 +1,128 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- セキュリティ: ホストがヘッダ非対応でも効く CSP（GitHub Pages 等向け） -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<meta name="referrer" content="no-referrer">
-<title>カード印刷PDF生成 — A4に9枚並べる</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https://api.gatcg.com; connect-src 'self' https://api.gatcg.com; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <title>Grand Archive 日本語カードDB（非公式プロトタイプ）</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<div class="app">
-  <header>
-    <h1>🃏 カード印刷PDF生成</h1>
-    <p class="sub">カード画像をアップロードすると、A4用紙に <strong>3×3＝9枚</strong> 並べた印刷用PDFを作成します。<br>
-    カードサイズは MTG / ポケモンカード等の標準（<strong>63mm × 88mm</strong>）です。</p>
+  <header class="site-header">
+    <div class="brand">
+      <span class="brand-mark">GA</span>
+      <div>
+        <h1>Grand Archive 日本語カードDB</h1>
+        <p class="tagline">英語カードに日本語訳を重ねる非公式データベース（プロトタイプ）</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <a class="tool-link" href="tools/print/index.html">🖨️ 印刷用PDFを作る</a>
+      <label class="lang-toggle">
+        <input type="checkbox" id="lang-en" />
+        <span>名前を英語で表示</span>
+      </label>
+    </div>
   </header>
 
-  <main>
-    <section class="panel">
-      <h2>1. カード画像</h2>
+  <section class="controls">
+    <input type="search" id="q" placeholder="カード名で検索（日本語 / 英語）… 例: fire, ローレイン" autocomplete="off" />
+    <select id="f-class"><option value="">クラス（全て）</option></select>
+    <select id="f-element"><option value="">エレメント（全て）</option></select>
+    <select id="f-type"><option value="">タイプ（全て）</option></select>
+    <button id="reset" type="button">リセット</button>
+  </section>
 
-      <div id="dropzone" class="dropzone">
-        <input type="file" id="fileInput" accept="image/*" multiple hidden>
-        <div class="dz-inner">
-          <div class="dz-icon">⬆️</div>
-          <p>ここに画像をドラッグ＆ドロップ<br>または クリックして選択</p>
-          <p class="dz-hint">複数枚アップロードすると、各画像を均等に配置します</p>
-        </div>
-      </div>
+  <p id="status" class="status" role="status" aria-live="polite">読み込み中…</p>
 
-      <div id="cardList" class="card-list"></div>
-    </section>
+  <main id="grid" class="grid" aria-label="カード一覧"></main>
 
-    <section class="panel">
-      <h2>2. 印刷オプション</h2>
+  <!-- 詳細モーダル -->
+  <div id="modal" class="modal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-body" role="dialog" aria-modal="true" aria-labelledby="d-name">
+      <button class="modal-close" type="button" data-close aria-label="閉じる">×</button>
+      <div class="detail">
+        <div class="detail-image"><img id="d-img" crossorigin="anonymous" alt="" /></div>
+        <div class="detail-info">
+          <span id="d-badge" class="badge"></span>
+          <h2 id="d-name"></h2>
+          <p id="d-name-en" class="name-en"></p>
+          <dl id="d-meta" class="meta"></dl>
 
-      <div class="opt-grid">
-        <label class="opt">
-          <span>カードサイズ</span>
-          <select id="cardSize">
-            <option value="63,88">標準 (63 × 88 mm) — MTG / ポケカ</option>
-            <option value="59,86">小型 (59 × 86 mm) — 遊戯王</option>
-            <option value="custom">カスタム…</option>
-          </select>
-        </label>
+          <section class="effect-block">
+            <h3>効果（日本語訳）</h3>
+            <div id="d-effect-jp" class="effect"></div>
+            <details class="orig">
+              <summary>英語原文を表示</summary>
+              <div id="d-effect-en" class="effect effect-en"></div>
+            </details>
+          </section>
 
-        <div id="customSize" class="opt custom-size" hidden>
-          <span>幅 × 高さ (mm)</span>
-          <div class="cs-row">
-            <input type="number" id="cardW" value="63" min="10" max="200" step="0.5">
-            <span class="x">×</span>
-            <input type="number" id="cardH" value="88" min="10" max="280" step="0.5">
+          <section id="d-flavor-wrap" class="flavor-block" hidden>
+            <div id="d-flavor" class="flavor"></div>
+          </section>
+
+          <section id="d-terms-wrap" class="terms-block" hidden>
+            <h3>この効果に出てくる用語</h3>
+            <ul id="d-terms"></ul>
+          </section>
+
+          <section id="d-editions-wrap" class="editions-block">
+            <h3>収録</h3>
+            <ul id="d-editions"></ul>
+          </section>
+
+          <div class="detail-actions">
+            <button id="d-add-print" class="add-print" type="button">🖨️ 印刷リストに追加</button>
           </div>
         </div>
-
-        <label class="opt">
-          <span>裁ち落とし余白（カード間の隙間 mm）</span>
-          <input type="number" id="gap" value="0" min="0" max="20" step="0.5">
-        </label>
-
-        <label class="opt checkbox">
-          <input type="checkbox" id="cutMarks" checked>
-          <span>トンボ（カット線）を入れる</span>
-        </label>
-
-        <label class="opt checkbox">
-          <input type="checkbox" id="outline">
-          <span>各カードを枠線で囲む</span>
-        </label>
       </div>
-    </section>
+    </div>
+  </div>
 
-    <section class="panel preview-panel">
-      <h2>3. プレビュー & 生成</h2>
-      <div class="preview-wrap">
-        <canvas id="preview" width="420" height="594"></canvas>
-      </div>
-      <div class="actions">
-        <button id="generateBtn" class="btn primary" disabled>📄 PDFを生成する</button>
-        <span id="status" class="status"></span>
-      </div>
-    </section>
-  </main>
+  <!-- 印刷トレイ バー（1枚以上追加されると表示） -->
+  <div id="print-bar" class="print-bar" hidden>
+    <span id="print-bar-text"></span>
+    <button id="open-tray" type="button">印刷リストを開く ▶</button>
+  </div>
 
-  <footer>
-    <p>A4 (210 × 297 mm) ・ すべての処理はブラウザ内で完結し、画像はサーバーに送信されません。</p>
+  <!-- 印刷トレイ モーダル -->
+  <div id="tray" class="modal" hidden>
+    <div class="modal-backdrop" data-tray-close></div>
+    <div class="modal-body tray-body" role="dialog" aria-modal="true" aria-label="印刷リスト">
+      <button class="modal-close" type="button" data-tray-close aria-label="閉じる">×</button>
+      <h2>🖨️ 印刷リスト（プロキシPDF）</h2>
+      <p class="tray-note">選んだカードをA4に 3×3＝9枚 で並べ、印刷用PDFを生成します。カード画像は公式APIから取得します（非公式・私的利用の範囲でご利用ください）。</p>
+      <ul id="tray-list" class="tray-list"></ul>
+      <div class="tray-options">
+        <label class="opt-check"><input type="checkbox" id="t-cutmarks" checked> トンボ（カット線）</label>
+        <label class="opt-check"><input type="checkbox" id="t-outline" /> カード枠線</label>
+      </div>
+      <div class="tray-footer">
+        <span id="tray-summary" class="tray-summary"></span>
+        <span class="tray-actions">
+          <button id="tray-clear" type="button">全て削除</button>
+          <button id="tray-generate" class="btn-primary" type="button">📄 PDFを生成</button>
+        </span>
+      </div>
+      <p id="tray-status" class="tray-status" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <p>
+      本サイトは非公式のファンプロジェクトです。カードデータ・画像は
+      <a href="https://api.gatcg.com" target="_blank" rel="noopener">公式API (api.gatcg.com)</a>
+      から取得しており、著作権は Weebs of the Shore に帰属します。日本語訳はコミュニティによる非公式訳です。
+    </p>
   </footer>
-</div>
 
-<script src="vendor/jspdf.umd.min.js"></script>
-<script src="app.js"></script>
+  <script src="shared/vendor/jspdf.umd.min.js"></script>
+  <script src="shared/pdf/card-sheet.js"></script>
+  <script src="data/translations.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

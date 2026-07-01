@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- セキュリティ: ホストがヘッダ非対応でも効く CSP（GitHub Pages 等向け） -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>カード印刷PDF生成 — A4に9枚並べる</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header>
+    <p class="nav"><a href="../../index.html">← Grand Archive カードDBへ戻る</a></p>
+    <h1>🃏 カード印刷PDF生成</h1>
+    <p class="sub">カード画像をアップロードすると、A4用紙に <strong>3×3＝9枚</strong> 並べた印刷用PDFを作成します。<br>
+    カードサイズは MTG / ポケモンカード等の標準（<strong>63mm × 88mm</strong>）です。</p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>1. カード画像</h2>
+
+      <div id="dropzone" class="dropzone">
+        <input type="file" id="fileInput" accept="image/*" multiple hidden>
+        <div class="dz-inner">
+          <div class="dz-icon">⬆️</div>
+          <p>ここに画像をドラッグ＆ドロップ<br>または クリックして選択</p>
+          <p class="dz-hint">複数枚アップロードすると、各画像を均等に配置します</p>
+        </div>
+      </div>
+
+      <div id="cardList" class="card-list"></div>
+    </section>
+
+    <section class="panel">
+      <h2>2. 印刷オプション</h2>
+
+      <div class="opt-grid">
+        <label class="opt">
+          <span>カードサイズ</span>
+          <select id="cardSize">
+            <option value="63,88">標準 (63 × 88 mm) — MTG / ポケカ</option>
+            <option value="59,86">小型 (59 × 86 mm) — 遊戯王</option>
+            <option value="custom">カスタム…</option>
+          </select>
+        </label>
+
+        <div id="customSize" class="opt custom-size" hidden>
+          <span>幅 × 高さ (mm)</span>
+          <div class="cs-row">
+            <input type="number" id="cardW" value="63" min="10" max="200" step="0.5">
+            <span class="x">×</span>
+            <input type="number" id="cardH" value="88" min="10" max="280" step="0.5">
+          </div>
+        </div>
+
+        <label class="opt">
+          <span>裁ち落とし余白（カード間の隙間 mm）</span>
+          <input type="number" id="gap" value="0" min="0" max="20" step="0.5">
+        </label>
+
+        <label class="opt checkbox">
+          <input type="checkbox" id="cutMarks" checked>
+          <span>トンボ（カット線）を入れる</span>
+        </label>
+
+        <label class="opt checkbox">
+          <input type="checkbox" id="outline">
+          <span>各カードを枠線で囲む</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="panel preview-panel">
+      <h2>3. プレビュー & 生成</h2>
+      <div class="preview-wrap">
+        <canvas id="preview" width="420" height="594"></canvas>
+      </div>
+      <div class="actions">
+        <button id="generateBtn" class="btn primary" disabled>📄 PDFを生成する</button>
+        <span id="status" class="status"></span>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>A4 (210 × 297 mm) ・ すべての処理はブラウザ内で完結し、画像はサーバーに送信されません。</p>
+  </footer>
+</div>
+
+<script src="../../shared/vendor/jspdf.umd.min.js"></script>
+<script src="../../shared/pdf/card-sheet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
