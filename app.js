@@ -421,11 +421,12 @@ function openDetail(card) {
     metaRow("耐久", card.durability) +
     metaRow("スピード", speedLabel(card));
 
-  // 効果（日本語 / 英語原文）
+  // 効果（日本語 / 英語原文）。日本語文中の用語は強調表示する。
   const jpEffect = t && t.effect ? t.effect : null;
   const jpBox = document.getElementById("d-effect-jp");
+  const terms = matchedTerms(card);
   if (jpEffect) {
-    jpBox.innerHTML = renderEffect(jpEffect);
+    jpBox.innerHTML = highlightTerms(renderEffect(jpEffect), terms);
   } else {
     jpBox.innerHTML = '<span class="muted">日本語訳はまだありません（翻訳募集中）。下の英語原文をご覧ください。</span>';
   }
@@ -441,7 +442,7 @@ function openDetail(card) {
     flavorWrap.hidden = true;
   }
 
-  renderTerms(card);
+  renderTerms(card, terms);
   renderEditions(card);
 
   // 印刷リスト追加ボタンの状態
@@ -455,15 +456,38 @@ function openDetail(card) {
   if (card.slug) history.replaceState(null, "", "#card/" + encodeURIComponent(card.slug));
 }
 
-// 効果文中に登場するゲーム用語を検出して解説を並べる（日本語DBの付加価値）
-function renderTerms(card) {
-  const wrap = document.getElementById("d-terms-wrap");
-  const list = document.getElementById("d-terms");
+// 効果文中に登場するゲーム用語（terms辞書のキーが英語効果文に含まれるもの）を抽出
+function matchedTerms(card) {
   const haystack = `${card.effect || ""}`.toLowerCase();
   const found = [];
   Object.keys(I18N.terms || {}).forEach((key) => {
     if (haystack.includes(key)) found.push(I18N.terms[key]);
   });
+  return found;
+}
+
+function escapeRegExp(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// 日本語効果テキスト（レンダリング済みHTML）内の用語語句を強調する。
+// 用語の jp から「（…）」より前の見出し語を取り出して着色する。
+function highlightTerms(html, terms) {
+  if (!terms || !terms.length) return html;
+  const cores = [...new Set(
+    terms.map((t) => String(t.jp || "").split("（")[0].trim()).filter((c) => c.length >= 2)
+  )].sort((a, b) => b.length - a.length);
+  if (!cores.length) return html;
+  // katakana/漢字の見出し語のみを対象にするため、ASCIIのHTMLタグとは衝突しない
+  const re = new RegExp("(" + cores.map(escapeRegExp).join("|") + ")", "g");
+  return html.replace(re, '<span class="term-hl">$1</span>');
+}
+
+// 効果文中に登場するゲーム用語を検出して解説を並べる（日本語DBの付加価値）
+function renderTerms(card, terms) {
+  const wrap = document.getElementById("d-terms-wrap");
+  const list = document.getElementById("d-terms");
+  const found = terms || matchedTerms(card);
   if (!found.length) {
     wrap.hidden = true;
     return;

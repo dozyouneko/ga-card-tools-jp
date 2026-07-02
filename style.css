@@ -245,6 +245,8 @@ body.show-en-primary .card-name-en { font-size: .98rem; color: var(--text); font
 .effect { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
 .effect strong { color: var(--accent); }
 .effect-en { color: var(--muted); }
+/* 効果文中のゲーム用語ハイライト（詳細画面「この効果に出てくる用語」と対応） */
+.effect .term-hl { color: var(--accent-2); font-weight: 600; background: color-mix(in srgb, var(--accent-2) 14%, transparent); border-radius: 4px; padding: 0 2px; }
 .orig { margin-top: 8px; }
 .orig summary { cursor: pointer; color: var(--accent-2); font-size: .85rem; }
 
