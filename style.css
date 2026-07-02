@@ -126,6 +126,9 @@ a { color: var(--accent-2); }
 .controls .lang-toggle > span:first-child { color: var(--muted); font-size: .85rem; }
 .lang-state { font-weight: 700; color: var(--accent); }
 
+/* 絞り込みトグルは PC では非表示（フィルタは常時表示）。スマホでのみ出す */
+.filter-toggle { display: none; }
+
 .status { padding: 12px 24px 0; color: var(--muted); font-size: .9rem; }
 
 #order { white-space: nowrap; min-width: 84px; }
@@ -378,11 +381,26 @@ body.show-en-primary .card-name-en { font-size: .98rem; color: var(--text); font
   /* 検索入力は全幅で縦積み */
   #q, #qtext { flex: 1 1 100%; min-width: 0; }
   .controls .lang-toggle { margin-left: 0; width: 100%; justify-content: space-between; }
-  /* フィルタ・並び替え行：セレクトは全幅（長い日本語ラベルの見切れ防止）、
-     短い昇順/降順・リセットのボタンだけ 2 列に */
-  .controls-row:last-child { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .controls-row:last-child select { grid-column: 1 / -1; }
+  /* 絞り込み・並び替えはトグルで開閉し、sticky ヘッダーをコンパクトに保つ。
+     開いたときはセレクトを全幅（長い日本語ラベルの見切れ防止）、ボタンは 2 列に */
+  .filter-toggle {
+    display: block; width: 100%; text-align: left; cursor: pointer;
+    font-size: 16px; padding: 11px 12px; border-radius: 8px;
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+  }
+  .filter-row { display: none; }
+  .controls.filters-open .filter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .controls.filters-open .filter-row select { grid-column: 1 / -1; }
   #order, #reset { min-width: 0; }
+
+  /* タップ領域を広げる（44px 目安） */
+  .card-add { top: 6px; right: 6px; padding: 8px 10px; font-size: .9rem; }
+  .art-badge { padding: 6px 10px; font-size: .74rem; }
+  .qty button { width: 36px; height: 36px; font-size: 1.15rem; }
+  .qty-input { width: 44px; padding: 8px 4px; font-size: 16px; }
+  .tray-remove { font-size: 1.6rem; padding: 4px 8px; }
+  .tray-item { gap: 8px; }
+  .tray-actions button { padding: 12px 16px; }
 
   /* カード一覧：2 列固定（一覧性重視） */
   .grid { padding: 12px; gap: 10px; grid-template-columns: repeat(2, 1fr); }

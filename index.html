@@ -27,7 +27,7 @@
     ⚠️ 現在、日本語訳は順次追加中です。最新弾（Radiant Origins）を中心に翻訳を進めており、一部のカードやセットは未翻訳です。未翻訳のカードには「未翻訳」バッジが付き、英語原文で表示されます。
   </p>
 
-  <section class="controls">
+  <section class="controls" id="controls">
     <div class="controls-row">
       <input type="search" id="q" placeholder="カード名で検索（英語）… 例: lorraine" autocomplete="off" />
       <input type="search" id="qtext" placeholder="効果テキストで部分検索（英語 / 日本語）… 例: draw, 追放" autocomplete="off" />
@@ -37,7 +37,8 @@
         <span class="lang-state">日本語</span>
       </label>
     </div>
-    <div class="controls-row">
+    <button id="filter-toggle" class="filter-toggle" type="button" aria-expanded="false" aria-controls="filter-row">絞り込み・並び替え ▾</button>
+    <div class="controls-row filter-row" id="filter-row">
     <select id="f-class" autocomplete="off"><option value="">クラス（全て）</option></select>
     <select id="f-element" autocomplete="off"><option value="">エレメント（全て）</option></select>
     <select id="f-type" autocomplete="off"><option value="">タイプ（全て）</option></select>

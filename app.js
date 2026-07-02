@@ -24,6 +24,8 @@ const el = {
   loadMore: document.getElementById("load-more"),
   langEn: document.getElementById("lang-en"),
   modal: document.getElementById("modal"),
+  controls: document.getElementById("controls"),
+  filterToggle: document.getElementById("filter-toggle"),
 };
 
 // エキスパンション定義（製品ライン → prefix 群）
@@ -763,6 +765,15 @@ function init() {
     runSearch(true);
   });
   el.langEn.addEventListener("change", applyLangPref);
+
+  // 絞り込み・並び替えパネルの開閉（スマホのみトグル表示。PCでは常時表示）
+  if (el.filterToggle && el.controls) {
+    el.filterToggle.addEventListener("click", () => {
+      const open = el.controls.classList.toggle("filters-open");
+      el.filterToggle.setAttribute("aria-expanded", open ? "true" : "false");
+      el.filterToggle.textContent = "絞り込み・並び替え " + (open ? "▲" : "▾");
+    });
+  }
 
   el.modal.querySelectorAll("[data-close]").forEach((n) => n.addEventListener("click", closeDetail));
 
