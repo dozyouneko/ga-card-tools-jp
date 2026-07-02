@@ -64,6 +64,18 @@ a { color: var(--accent-2); }
 }
 .tool-link:hover { border-color: var(--accent); }
 
+/* 翻訳作業中の告知バナー */
+.wip-notice {
+  margin: 0;
+  padding: 10px 24px;
+  background: rgba(217, 164, 65, .12);
+  border-top: 1px solid rgba(217, 164, 65, .35);
+  border-bottom: 1px solid rgba(217, 164, 65, .35);
+  color: var(--accent);
+  font-size: .85rem;
+  line-height: 1.5;
+}
+
 /* ---------- 検索コントロール ---------- */
 .controls {
   display: flex;
