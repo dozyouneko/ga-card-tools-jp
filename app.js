@@ -100,9 +100,42 @@ function firstEdition(card) {
   return eds[0] || null;
 }
 
+// 使用禁止（legality の limit が 0）判定
+const FORMAT_JP = { STANDARD: "スタンダード", PANTHEON: "パンテオン", DRAFT: "ドラフト" };
+function bannedFormats(card) {
+  const leg = card.legality || {};
+  return Object.keys(leg).filter((f) => leg[f] && leg[f].limit === 0);
+}
+function isBannedStandard(card) {
+  const leg = card.legality || {};
+  return !!(leg.STANDARD && leg.STANDARD.limit === 0);
+}
+
 function imageUrl(card) {
   const ed = firstEdition(card);
   return ed && ed.image ? IMG_BASE + ed.image : null;
+}
+
+// カードの全イラスト/版を {url, label} で返す（画像URLで重複排除）
+function cardImages(card) {
+  const eds = card.editions || card.result_editions || [];
+  const seen = new Set();
+  const out = [];
+  eds.forEach((ed) => {
+    if (!ed.image || seen.has(ed.image)) return;
+    seen.add(ed.image);
+    const set = ed.set && ed.set.prefix ? ed.set.prefix : "";
+    const num = ed.collector_number ? ` #${ed.collector_number}` : "";
+    out.push({ url: IMG_BASE + ed.image, prefix: set || "?", label: (set + num).trim() || "版" });
+  });
+  return out;
+}
+
+// スピード: API は boolean（true=Fast / false=Slow）
+function speedLabel(card) {
+  if (card.speed === true) return "Fast";
+  if (card.speed === false) return "Slow";
+  return "";
 }
 
 // ---------- フィルタ選択肢の生成 ----------
@@ -271,7 +304,8 @@ function appendGrid(cards) {
     if (slug && pager.shownSlugs.has(slug)) return; // 重複表示を防ぐ
     if (slug) pager.shownSlugs.add(slug);
     const translated = isTranslated(card);
-    const img = imageUrl(card);
+    const imgs = cardImages(card);
+    const img = imgs.length ? imgs[0].url : null;
 
     const cardEl = document.createElement("div");
     cardEl.className = "card";
@@ -286,7 +320,9 @@ function appendGrid(cards) {
     cardEl.innerHTML = `
       <div class="card-img">
         ${img ? `<img loading="lazy" crossorigin="anonymous" src="${escapeHtml(img)}" alt="">` : `<div class="noimg">画像なし</div>`}
-        <span class="tl-badge ${translated ? "tl-yes" : "tl-no"}">${translated ? "日本語訳あり" : "翻訳募集中"}</span>
+        <span class="tl-badge ${translated ? "tl-yes" : "tl-no"}">${translated ? "日本語訳あり" : "未翻訳"}</span>
+        ${isBannedStandard(card) ? `<span class="banned-badge" title="スタンダードで使用禁止">🚫 禁止</span>` : ""}
+        ${imgs.length > 1 ? `<button class="art-badge" type="button" title="イラスト/版を切り替え（${imgs.length}種）" aria-label="イラストを切り替え">🎨 ${imgs.length}・${escapeHtml(imgs[0].prefix)}</button>` : ""}
         ${img ? `<button class="card-add" type="button" title="印刷リストに追加" aria-label="印刷リストに追加">＋🖨️</button>` : ""}
       </div>
       <div class="card-body">
@@ -304,6 +340,19 @@ function appendGrid(cards) {
     });
     const addBtn = cardEl.querySelector(".card-add");
     if (addBtn) addBtn.addEventListener("click", (e) => { e.stopPropagation(); addToPrint(card); });
+    // イラスト/版のその場切り替え
+    const artBadge = cardEl.querySelector(".art-badge");
+    const imgEl = cardEl.querySelector(".card-img img");
+    if (artBadge && imgEl) {
+      let ai = 0;
+      artBadge.addEventListener("click", (e) => {
+        e.stopPropagation();
+        ai = (ai + 1) % imgs.length;
+        imgEl.src = imgs[ai].url;
+        artBadge.textContent = `🎨 ${imgs.length}・${imgs[ai].prefix}`;
+        artBadge.title = `イラスト/版を切り替え（${ai + 1}/${imgs.length}：${imgs[ai].label}）`;
+      });
+    }
     frag.appendChild(cardEl);
   });
   el.grid.appendChild(frag);
@@ -319,17 +368,40 @@ function metaRow(label, value) {
 
 function openDetail(card) {
   const t = tr(card);
-  const img = imageUrl(card);
+  const imgs = cardImages(card);
+  const img = imgs.length ? imgs[0].url : null;
   document.getElementById("d-img").src = img || "";
   document.getElementById("d-img").alt = jpName(card);
 
+  // イラスト/版の切り替えサムネイル
+  const artsEl = document.getElementById("d-arts");
+  if (imgs.length > 1) {
+    artsEl.innerHTML = imgs
+      .map((im, i) => `<button class="art-thumb${i === 0 ? " active" : ""}" type="button" data-url="${escapeHtml(im.url)}" title="${escapeHtml(im.label)}"><img loading="lazy" crossorigin="anonymous" src="${escapeHtml(im.url)}" alt=""><span>${escapeHtml(im.label)}</span></button>`)
+      .join("");
+    artsEl.hidden = false;
+  } else {
+    artsEl.innerHTML = "";
+    artsEl.hidden = true;
+  }
+
   const translated = isTranslated(card);
   const badge = document.getElementById("d-badge");
-  badge.textContent = translated ? "日本語訳あり" : "翻訳募集中";
+  badge.textContent = translated ? "日本語訳あり" : "未翻訳";
   badge.className = "badge " + (translated ? "badge-yes" : "badge-no");
 
   document.getElementById("d-name").textContent = jpName(card);
   document.getElementById("d-name-en").textContent = card.name;
+
+  // 使用禁止フォーマットの表示
+  const banned = bannedFormats(card);
+  const bannedEl = document.getElementById("d-banned");
+  if (banned.length) {
+    bannedEl.textContent = `🚫 使用禁止：${banned.map((f) => FORMAT_JP[f] || f).join("・")}`;
+    bannedEl.hidden = false;
+  } else {
+    bannedEl.hidden = true;
+  }
 
   // メタ情報
   const classes = (card.classes || []).map((c) => label("classes", c)).join("・");
@@ -347,7 +419,7 @@ function openDetail(card) {
     metaRow("パワー", card.power) +
     metaRow("ライフ", card.life) +
     metaRow("耐久", card.durability) +
-    metaRow("スピード", card.speed);
+    metaRow("スピード", speedLabel(card));
 
   // 効果（日本語 / 英語原文）
   const jpEffect = t && t.effect ? t.effect : null;
@@ -643,6 +715,15 @@ function init() {
   el.langEn.addEventListener("change", applyLangPref);
 
   el.modal.querySelectorAll("[data-close]").forEach((n) => n.addEventListener("click", closeDetail));
+
+  // 詳細モーダルのイラスト/版サムネイル切り替え
+  document.getElementById("d-arts").addEventListener("click", (e) => {
+    const btn = e.target.closest(".art-thumb");
+    if (!btn) return;
+    document.getElementById("d-img").src = btn.dataset.url;
+    document.getElementById("d-arts").querySelectorAll(".art-thumb").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+  });
 
   // 印刷リスト関連の配線
   document.getElementById("d-add-print").addEventListener("click", () => {

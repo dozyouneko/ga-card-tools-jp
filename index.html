@@ -65,11 +65,15 @@
     <div class="modal-body" role="dialog" aria-modal="true" aria-labelledby="d-name">
       <button class="modal-close" type="button" data-close aria-label="閉じる">×</button>
       <div class="detail">
-        <div class="detail-image"><img id="d-img" crossorigin="anonymous" alt="" /></div>
+        <div class="detail-image">
+          <img id="d-img" crossorigin="anonymous" alt="" />
+          <div id="d-arts" class="arts" hidden></div>
+        </div>
         <div class="detail-info">
           <span id="d-badge" class="badge"></span>
           <h2 id="d-name"></h2>
           <p id="d-name-en" class="name-en"></p>
+          <p id="d-banned" class="banned-banner" hidden></p>
           <dl id="d-meta" class="meta"></dl>
 
           <section class="effect-block">
