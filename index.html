@@ -34,11 +34,11 @@
       </label>
     </div>
     <div class="controls-row">
-    <select id="f-class"><option value="">クラス（全て）</option></select>
-    <select id="f-element"><option value="">エレメント（全て）</option></select>
-    <select id="f-type"><option value="">タイプ（全て）</option></select>
-    <select id="f-set"><option value="">エキスパンション（全て）</option></select>
-    <select id="f-sort" aria-label="並び替え">
+    <select id="f-class" autocomplete="off"><option value="">クラス（全て）</option></select>
+    <select id="f-element" autocomplete="off"><option value="">エレメント（全て）</option></select>
+    <select id="f-type" autocomplete="off"><option value="">タイプ（全て）</option></select>
+    <select id="f-set" autocomplete="off"><option value="">エキスパンション（全て）</option></select>
+    <select id="f-sort" autocomplete="off" aria-label="並び替え">
       <option value="name">名前順</option>
       <option value="cost_memory">コスト順</option>
       <option value="level">レベル順</option>
@@ -143,6 +143,7 @@
   <script src="shared/vendor/jspdf.umd.min.js"></script>
   <script src="shared/pdf/card-sheet.js"></script>
   <script src="data/translations.js"></script>
+  <script src="data/tl/dtrsd.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

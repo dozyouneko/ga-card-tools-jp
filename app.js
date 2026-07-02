@@ -35,13 +35,23 @@ const pager = { page: 1, total: 0, shown: 0, hasMore: false, shownSlugs: new Set
 function hasJapanese(s) {
   return /[぀-ヿ㐀-鿿ｦ-ﾝ]/.test(s || "");
 }
-// 効果テキスト欄に日本語が含まれる → ローカル訳のみを検索するモード
-function isJpTextMode() {
+// 名前欄・効果テキスト欄のうち、日本語を含む入力を「日本語検索語」として返す（無ければ ""）
+// サーバーは英語データのみのため、日本語はローカル訳（name/effect）から検索する。
+function jpQueryText() {
   const t = el.qtext.value.trim();
-  return !!t && hasJapanese(t);
+  if (t && hasJapanese(t)) return t;
+  const n = el.q.value.trim();
+  if (n && hasJapanese(n)) return n;
+  return "";
+}
+// いずれかの欄に日本語が入っている → ローカル訳を検索するモード
+function isJpTextMode() {
+  return jpQueryText() !== "";
 }
 function setPrefixes(val) {
-  const s = SETS[Number(val)];
+  if (val === "" || val == null) return []; // 「全て」（Number("") が 0 になる罠を回避）
+  const i = Number(val);
+  const s = Number.isInteger(i) ? SETS[i] : null;
   return s ? s.prefixes : [];
 }
 
@@ -65,6 +75,13 @@ function renderEffect(text) {
 
 function tr(card) {
   return (I18N.cards && I18N.cards[card.slug]) || null;
+}
+
+// 訳データが存在し、かつ name か effect のどちらかが埋まっているか
+// （空欄スキャフォルドは「未訳＝翻訳募集中」として扱う）
+function isTranslated(card) {
+  const t = tr(card);
+  return !!(t && (t.name || t.effect));
 }
 
 function jpName(card) {
@@ -197,24 +214,23 @@ function localJpSlugs(query) {
   return out;
 }
 
-// ローカル一致した slug のカードを取得し、他の絞り込み条件で客側フィルタして返す
+// ローカル一致した slug のカードを取得し、他の絞り込み条件で客側フィルタして返す（並列取得）
 async function fetchLocalJpMatches(seq) {
-  const q = el.qtext.value.trim();
-  const slugs = localJpSlugs(q).slice(0, 30);
-  const results = [];
-  for (const slug of slugs) {
+  const q = jpQueryText();
+  if (!q) return [];
+  const slugs = localJpSlugs(q).slice(0, 40);
+  const cards = await Promise.all(slugs.map(async (slug) => {
     try {
       const res = await fetch(`${API}/cards/${encodeURIComponent(slug)}`);
-      if (seq !== reqSeq) return results;
-      if (!res.ok) continue;
-      const card = await res.json();
-      if (matchesActiveFilters(card)) results.push(card);
-    } catch { /* 個別失敗はスキップ */ }
-  }
-  return results;
+      return res.ok ? await res.json() : null;
+    } catch { return null; }
+  }));
+  if (seq !== reqSeq) return [];
+  return cards.filter((c) => c && matchesActiveFilters(c));
 }
 
-// class/element/type/set/name の各絞り込みにカードが合致するか（JPモードの客側フィルタ用）
+// class/element/type/set の絞り込みにカードが合致するか（JPモードの客側フィルタ用）
+// 名前/効果の一致は localJpSlugs 側で処理済みのため、ここでは再適用しない。
 function matchesActiveFilters(card) {
   if (el.fClass.value && !(card.classes || []).includes(el.fClass.value)) return false;
   if (el.fElement.value && !(card.elements || []).includes(el.fElement.value)) return false;
@@ -223,11 +239,6 @@ function matchesActiveFilters(card) {
   if (pre.length) {
     const eds = card.editions || card.result_editions || [];
     if (!eds.some((e) => e.set && pre.includes(e.set.prefix))) return false;
-  }
-  const nq = el.q.value.trim().toLowerCase();
-  if (nq) {
-    const nm = `${card.name || ""}\n${jpName(card)}`.toLowerCase();
-    if (!nm.includes(nq)) return false;
   }
   return true;
 }
@@ -259,7 +270,7 @@ function appendGrid(cards) {
     const slug = card.slug || card.uuid;
     if (slug && pager.shownSlugs.has(slug)) return; // 重複表示を防ぐ
     if (slug) pager.shownSlugs.add(slug);
-    const translated = !!tr(card);
+    const translated = isTranslated(card);
     const img = imageUrl(card);
 
     const cardEl = document.createElement("div");
@@ -312,9 +323,10 @@ function openDetail(card) {
   document.getElementById("d-img").src = img || "";
   document.getElementById("d-img").alt = jpName(card);
 
+  const translated = isTranslated(card);
   const badge = document.getElementById("d-badge");
-  badge.textContent = t ? "日本語訳あり" : "翻訳募集中";
-  badge.className = "badge " + (t ? "badge-yes" : "badge-no");
+  badge.textContent = translated ? "日本語訳あり" : "翻訳募集中";
+  badge.className = "badge " + (translated ? "badge-yes" : "badge-no");
 
   document.getElementById("d-name").textContent = jpName(card);
   document.getElementById("d-name-en").textContent = card.name;
@@ -594,11 +606,25 @@ function debounce(fn, ms) {
   };
 }
 
+// すべての検索コントロールを既定値へ戻す（ブラウザのフォーム状態復元対策も兼ねる）
+function resetControls() {
+  el.q.value = "";
+  el.qtext.value = "";
+  el.fClass.value = "";
+  el.fElement.value = "";
+  el.fType.value = "";
+  el.fSet.value = "";
+  el.sort.value = "name";
+  el.order.dataset.dir = "ASC";
+  el.order.textContent = "▲ 昇順";
+}
+
 function init() {
   fillSelect(el.fClass, "classes");
   fillSelect(el.fElement, "elements");
   fillSelect(el.fType, "types");
   fillSetSelect();
+  resetControls(); // 起動時は必ず「全て」から開始（前回選択の復元を打ち消す）
 
   el.q.addEventListener("input", debounce(() => runSearch(true), 350));
   el.qtext.addEventListener("input", debounce(() => runSearch(true), 350));
@@ -611,15 +637,7 @@ function init() {
   });
   el.loadMore.addEventListener("click", loadMore);
   el.reset.addEventListener("click", () => {
-    el.q.value = "";
-    el.qtext.value = "";
-    el.fClass.value = "";
-    el.fElement.value = "";
-    el.fType.value = "";
-    el.fSet.value = "";
-    el.sort.value = "name";
-    el.order.dataset.dir = "ASC";
-    el.order.textContent = "▲ 昇順";
+    resetControls();
     runSearch(true);
   });
   el.langEn.addEventListener("change", applyLangPref);
@@ -657,6 +675,8 @@ function init() {
   });
 
   window.addEventListener("hashchange", handleHash);
+  // bfcache 復帰時（戻る/進む等）にブラウザがフォームを復元することがあるため、初期化し直す
+  window.addEventListener("pageshow", (e) => { if (e.persisted) { resetControls(); runSearch(true); } });
 
   updatePrintBar(); // localStorage から復元
   runSearch(true); // 初期表示（名前順の先頭ページ）
