@@ -361,10 +361,40 @@ body.show-en-primary .card-name-en { font-size: .98rem; color: var(--text); font
 .btn-primary:disabled { opacity: .6; cursor: progress; }
 .tray-status { margin: 12px 0 0; color: var(--text); font-size: .9rem; min-height: 1.2em; }
 
-/* ---------- レスポンシブ ---------- */
+/* ---------- レスポンシブ（スマホ 〜640px） ---------- */
 @media (max-width: 640px) {
-  .detail { grid-template-columns: 1fr; }
+  /* 横方向のはみ出しを防ぐ */
+  html, body { overflow-x: hidden; }
+
+  /* 横余白を圧縮して有効幅を確保 */
+  .site-header { padding: 14px 12px; }
+  .controls { padding: 12px; }
+  .status { padding: 10px 12px 0; }
+  .site-footer { padding: 16px 12px 32px; }
+
+  /* iOS のフォーカス時ズーム防止（16px 以上）＋タップしやすさ */
+  .controls input, .controls select, .controls button { font-size: 16px; padding: 11px 12px; }
+
+  /* 検索入力は全幅で縦積み */
+  #q, #qtext { flex: 1 1 100%; min-width: 0; }
+  .controls .lang-toggle { margin-left: 0; width: 100%; justify-content: space-between; }
+  /* フィルタ・並び替え行は 2 列で整然と */
+  .controls-row:last-child { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #order, #reset { min-width: 0; }
+
+  /* カード一覧：2 列固定（一覧性重視） */
+  .grid { padding: 12px; gap: 10px; grid-template-columns: repeat(2, 1fr); }
+  .card-name { font-size: .92rem; }
+  .card-name-en { font-size: .72rem; }
+  .card-add { opacity: 1; }
+
+  /* 詳細モーダル：全画面シート＋縦積み */
+  .modal-body { margin: 0; max-width: none; min-height: 100%; max-height: 100vh; border-radius: 0; padding: 16px; }
+  .modal-close { top: 8px; right: 10px; font-size: 2rem; padding: 2px 6px; }
+  .detail { grid-template-columns: 1fr; gap: 16px; }
   .detail-image { max-width: 260px; margin: 0 auto; }
   .meta { grid-template-columns: 1fr; }
-  .card-add { opacity: 1; }
+
+  /* 印刷トレイのオプションは縦積み */
+  .tray-options { flex-direction: column; gap: 10px; }
 }
