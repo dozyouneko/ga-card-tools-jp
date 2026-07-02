@@ -370,8 +370,17 @@ function openDetail(card) {
   const t = tr(card);
   const imgs = cardImages(card);
   const img = imgs.length ? imgs[0].url : null;
-  document.getElementById("d-img").src = img || "";
-  document.getElementById("d-img").alt = jpName(card);
+  const dImg = document.getElementById("d-img");
+  // 空文字の src は現在ページURL（file://index.html 等）に解決され警告を出すため、
+  // 画像が無いときは src 属性ごと外して非表示にする。
+  if (img) {
+    dImg.src = img;
+    dImg.hidden = false;
+  } else {
+    dImg.removeAttribute("src");
+    dImg.hidden = true;
+  }
+  dImg.alt = jpName(card);
 
   // イラスト/版の切り替えサムネイル
   const artsEl = document.getElementById("d-arts");

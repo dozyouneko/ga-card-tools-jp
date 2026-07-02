@@ -627,4 +627,35 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
       "［コンミンボーナス］あなたの「移ろう潮流」が反対の方向を向くように変わるたび、あなたのデッキの一番上から3枚を公開し、プリザーブしてあなたのマテリアルデッキに置く。その後、あなたがコントロールしていない対象のユニットに6＋X点のダメージを与える。Xはあなたのマテリアルデッキにあるプリザーブされたカードの数。",
   },
 
+  // Dematerialize  [ACTION]  L- WIND
+  // EN: Return target regalia to its owner's material deck.
+  "dematerialize": {
+    name: "実体化解除",
+    effect: "対象のレガリアをオーナーのマテリアルデッキに戻す。",
+  },
+
+  // Gentle Respite  [ACTION]  L- NORM
+  // EN: If target opponent's influence is greater than yours, draw a card into your memory. *(...)* / Floating Memory
+  "gentle-respite": {
+    name: "穏やかな小休止",
+    effect:
+      "対象の対戦相手のインフルエンスがあなたのものより大きい場合、カードを1枚あなたのメモリーに引く。*（プレイヤーのインフルエンスは、その手札とメモリーのカードの合計枚数に等しい。）*\n\n" +
+      "フローティングメモリー",
+  },
+
+  // Prismatic Edge  [REGALIA/WEAPON]  L- CRUX
+  // EN: [Class Bonus] On Enter: Each player reveals all cards in their memory. If a fire element card was revealed, choose a unit and deal 3 damage to it. If a water element card was revealed, draw a card. If a wind element card was revealed, each opponent banishes a card at random from their memory.
+  "prismatic-edge": {
+    name: "プリズマティック・エッジ",
+    effect:
+      "［クラスボーナス］登場時：各プレイヤーは自分のメモリーのすべてのカードを公開する。火エレメントのカードが公開された場合、ユニットを1体選び、それに3点のダメージを与える。水エレメントのカードが公開された場合、カードを1枚引く。風エレメントのカードが公開された場合、各対戦相手は自分のメモリーからランダムにカードを1枚追放する。",
+  },
+
+  // Spurn to Ash  [ACTION]  L- FIRE
+  // EN: Destroy target regalia with memory cost 1 or less.
+  "spurn-to-ash": {
+    name: "灰への拒絶",
+    effect: "メモリーコスト1以下の対象のレガリアを破壊する。",
+  },
+
 });
