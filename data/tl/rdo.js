@@ -1474,547 +1474,1201 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
 
   // Imperial Countermeasure  [ACTION]  L- EXALTED,NORM
   // EN: (Exalted â This element is enabled for you as long as you have another advanced element enabled.) /  / Prevent the next 4 damage that would be dealt to target unit this turn. Draw a card into your memory.
-  "imperial-countermeasure": { name: "", effect: "" },
+  "imperial-countermeasure": {
+    name: "帝国の対抗策",
+    effect:
+      "*（エグザルテッド — このエレメントは、あなたが他のアドバンスドエレメントを有効にしているかぎり、あなたにとって有効となる。）*\n\n" +
+      "このターン、対象のユニットに与えられる次の4点のダメージを軽減する。カードを1枚あなたのメモリーに引く。",
+  },
 
   // Incarnate Majesty  [ACTION]  L- CRUX
   // EN: [Class Bonus] Efficiency /  / This card costs 1 less to activate for each regalia weapon card in your banishment. /  / Put a card named The Majestic Spirit from your material deck or banishment onto the field.
-  "incarnate-majesty": { name: "", effect: "" },
+  "incarnate-majesty": {
+    name: "顕現する威光",
+    effect:
+      "［クラスボーナス］エフィシェンシー\n\n" +
+      "このカードは、あなたの追放領域にあるレガリア武器カード1枚につき、起動コストが1少なくなる。\n\n" +
+      "あなたのマテリアルデッキまたは追放領域から「荘厳なる精霊」という名前のカードを1枚戦場に出す。",
+  },
 
   // Inferno Slime  [ALLY]  L- FIRE
   // EN: Pride 2 (This ally wonât obey you unless your champion is level 2 or higher. You canât attack with, intercept with, or activate abilities of allies that donât obey you.) /  / [Class Bonus] On Death: You may banish two fire element cards from your graveyard. If you do, deal 4 damage to each champion.
-  "inferno-slime": { name: "", effect: "" },
+  "inferno-slime": {
+    name: "業火のスライム",
+    effect:
+      "プライド2 *（このアライは、あなたのチャンピオンがレベル2以上でないかぎり、あなたに従わない。あなたに従わないアライで攻撃したり、インターセプトしたり、その能力を起動したりできない。）*\n\n" +
+      "［クラスボーナス］死亡時：あなたの墓地から火エレメントのカードを2枚追放してよい。そうしたなら、各チャンピオンに4点のダメージを与える。",
+  },
 
   // Innervate Agility  [ACTION]  L- WIND
   // EN: As an additional cost to activate this card, delevel your champion and recover 5. (To delevel your champion, return the top card of its lineage to its owner's material deck.) /  / Units you control gain your choice of stealth or spellshroud until end of turn.
-  "innervate-agility": { name: "", effect: "" },
+  "innervate-agility": {
+    name: "活力の敏捷",
+    effect:
+      "このカードを起動するための追加コストとして、あなたのチャンピオンをデレベルし、5リカバーする。*（チャンピオンをデレベルするには、そのリニージの一番上のカードをオーナーのマテリアルデッキに戻す。）*\n\n" +
+      "あなたがコントロールするユニットは、ターン終了時までステルスまたはスペルシュラウドのうちあなたが選んだものを得る。",
+  },
 
   // Innervate Fury  [ACTION]  L- FIRE
   // EN: As an additional cost to activate this card, delevel your champion and recover 5. (To delevel your champion, return the top card of its lineage to its owner's material deck.) /  / Deal 7 damage split among any amount of target allies.
-  "innervate-fury": { name: "", effect: "" },
+  "innervate-fury": {
+    name: "活力の憤怒",
+    effect:
+      "このカードを起動するための追加コストとして、あなたのチャンピオンをデレベルし、5リカバーする。*（チャンピオンをデレベルするには、そのリニージの一番上のカードをオーナーのマテリアルデッキに戻す。）*\n\n" +
+      "好きな数の対象のアライに7点のダメージを分割して与える。",
+  },
 
   // Innervate Knowledge  [ACTION]  L- WATER
   // EN: As an additional cost to activate this card, delevel your champion and recover 5. (To delevel your champion, return the top card of its lineage to its owner's material deck.) /  / Draw two cards.
-  "innervate-knowledge": { name: "", effect: "" },
+  "innervate-knowledge": {
+    name: "活力の知識",
+    effect:
+      "このカードを起動するための追加コストとして、あなたのチャンピオンをデレベルし、5リカバーする。*（チャンピオンをデレベルするには、そのリニージの一番上のカードをオーナーのマテリアルデッキに戻す。）*\n\n" +
+      "カードを2枚引く。",
+  },
 
   // Inspiring Aethercharge  [ACTION]  L- WIND
   // EN: Allies you control get +1POWER until end of turn. /  / You may load Inspiring Aethercharge into an Aetherwing weapon you control.
-  "inspiring-aethercharge": { name: "", effect: "" },
+  "inspiring-aethercharge": {
+    name: "鼓舞のエーテルチャージ",
+    effect:
+      "ターン終了時まで、あなたがコントロールするアライは＋1パワーを得る。\n\n" +
+      "あなたは「鼓舞のエーテルチャージ」を、あなたがコントロールするエーテルウィング武器にロードしてよい。",
+  },
 
   // Ionized Asceticism  [ACTION]  L- ARCANE
   // EN: [Rai Bonus] Efficiency  /  / Banish all cards from your hand and memory, then draw seven cards. Until the beginning of your next turn, your champion gets -10 level.
-  "ionized-asceticism": { name: "", effect: "" },
+  "ionized-asceticism": {
+    name: "電離の苦行",
+    effect:
+      "［ライボーナス］エフィシェンシー\n\n" +
+      "あなたの手札とメモリーからすべてのカードを追放し、その後カードを7枚引く。あなたの次のターンの開始時まで、あなたのチャンピオンは－10レベルを得る。",
+  },
 
   // Iridescent Resurgence  [ACTION]  L- CRUX
   // EN: Return target non-champion non-regalia crux element card from your banishment or graveyard to your memory. 
-  "iridescent-resurgence": { name: "", effect: "" },
+  "iridescent-resurgence": {
+    name: "虹色の再興",
+    effect:
+      "あなたの追放領域または墓地から、対象のチャンピオンでもレガリアでもないクラックスエレメントのカードを1枚あなたのメモリーに戻す。",
+  },
 
   // Iron Halo, Forcefield Node  [UNIQUE/DOMAIN]  L- NEOS
   // EN: If damage would be dealt to another object you control, prevent 2 of that damage. /  / At the beginning of your end phase, put a durability counter on Iron Halo for each of up to two tokens you control.
-  "iron-halo-forcefield-node": { name: "", effect: "" },
+  "iron-halo-forcefield-node": {
+    name: "アイアンヘイロー、力場ノード",
+    effect:
+      "あなたがコントロールする他のオブジェクトにダメージが与えられる場合、そのダメージのうち2点を軽減する。\n\n" +
+      "あなたのエンドフェイズの開始時に、あなたがコントロールする最大2体のトークンにつき、「アイアンヘイロー」に耐久カウンターを1個置く。",
+  },
 
   // Kraal, Stonescale Tyrant  [UNIQUE/ALLY]  L- TERA
   // EN: As an additional cost to activate this card, banish two preserved cards from your material deck. /  / Intercept, Spellshroud, True Sight, Vigor /  / [Class Bonus] On Attack: Reveal the top two cards of your deck and put them into your material deck preserved. 
-  "kraal-stonescale-tyrant": { name: "", effect: "" },
+  "kraal-stonescale-tyrant": {
+    name: "クラール、石鱗の暴君",
+    effect:
+      "このカードを起動するための追加コストとして、あなたのマテリアルデッキからプリザーブされたカードを2枚追放する。\n\n" +
+      "インターセプト、スペルシュラウド、トゥルーサイト、ヴィガー\n\n" +
+      "［クラスボーナス］攻撃時：あなたのデッキの一番上から2枚を公開し、プリザーブしてあなたのマテリアルデッキに置く。",
+  },
 
   // Krustallan Archer  [ALLY]  L- WATER
   // EN: [Class Bonus] Ranged 3 (As long as this unit is distant, its attacks get +3 POWER.) /  / On Attack: You may banish a card with floating memory from your graveyard. If you do, draw a card and Krustallan Archer becomes distant.
-  "krustallan-archer": { name: "", effect: "" },
+  "krustallan-archer": {
+    name: "クリスタランの射手",
+    effect:
+      "［クラスボーナス］レンジド3 *（このユニットがディスタントであるかぎり、その攻撃は＋3パワーを得る。）*\n\n" +
+      "攻撃時：あなたの墓地からフローティングメモリーを持つカードを1枚追放してよい。そうしたなら、カードを1枚引き、「クリスタランの射手」はディスタントになる。",
+  },
 
   // Lancelot, Goliath of Aesa  [UNIQUE/ALLY]  L- NORM
   // EN: Hindered (This ally enters the field rested.)  /  / [Class Bonus] [Level 2+] Lancelot gets +2 LIFE. /  / On Attack: You may pay (3). If you do, Lancelot gets +3 POWER until end of turn.
-  "lancelot-goliath-of-aesa": { name: "", effect: "" },
+  "lancelot-goliath-of-aesa": {
+    name: "ランスロット、アエサの巨人",
+    effect:
+      "ヒンダード *（このアライはレストして戦場に出る。）*\n\n" +
+      "［クラスボーナス］［レベル2以上］「ランスロット」は＋2ライフを得る。\n\n" +
+      "攻撃時：あなたは(3)を支払ってよい。そうしたなら、ターン終了時まで「ランスロット」は＋3パワーを得る。",
+  },
 
   // Lavastorm  [ACTION]  L- EXALTED,FIRE
   // EN: (Exalted â This element is enabled for you as long as you have another advanced element enabled.) /  / Destroy all allies.
-  "lavastorm": { name: "", effect: "" },
+  "lavastorm": {
+    name: "溶岩の嵐",
+    effect:
+      "*（エグザルテッド — このエレメントは、あなたが他のアドバンスドエレメントを有効にしているかぎり、あなたにとって有効となる。）*\n\n" +
+      "すべてのアライを破壊する。",
+  },
 
   // Legendary Saddle  [REGALIA/ITEM]  L- NORM
   // EN: On Enter: For the rest of the game, ignore the elemental requirements of non-advanced element Horse cards you activate. /  / Banish Legendary Saddle:  Draw a card into your memory. Activate this ability only if you control three or more Horse allies.
-  "legendary-saddle": { name: "", effect: "" },
+  "legendary-saddle": {
+    name: "伝説の鞍",
+    effect:
+      "登場時：このゲームの残りの間、あなたが起動する非アドバンスドエレメントの馬カードのエレメント条件を無視する。\n\n" +
+      "「伝説の鞍」を追放する：カードを1枚あなたのメモリーに引く。この能力は、あなたが3体以上の馬アライをコントロールしている場合のみ起動する。",
+  },
 
   // Lightveil Agent  [ALLY]  L- LUXEM
   // EN: [Class Bonus] Stealth (This unit can't be targeted by attacks unless permitted by true sight.) /  / Whenever you recover, put a buff counter on Lightveil Agent.
-  "lightveil-agent": { name: "", effect: "" },
+  "lightveil-agent": {
+    name: "光帷の工作員",
+    effect:
+      "［クラスボーナス］ステルス *（このユニットは、トゥルーサイトによって許可されないかぎり、攻撃の対象にできない。）*\n\n" +
+      "あなたがリカバーするたび、「光帷の工作員」にバフカウンターを1個置く。",
+  },
 
   // Liquidation  [ACTION]  L- WATER
   // EN: Deluge 10 â If there are ten or more water element cards in your graveyard, deal 7 damage to target unit.
-  "liquidation": { name: "", effect: "" },
+  "liquidation": {
+    name: "清算",
+    effect:
+      "デリュージ10 — あなたの墓地に水エレメントのカードが10枚以上ある場合、対象のユニットに7点のダメージを与える。",
+  },
 
   // Liturgy of Corruption  [ACTION]  L- NORM
   // EN: Put a buff counter on target ally. If that ally is fostered, put two additional buff counters on it and deal 6 unpreventable damage to your champion.
-  "liturgy-of-corruption": { name: "", effect: "" },
+  "liturgy-of-corruption": {
+    name: "堕落の典礼",
+    effect:
+      "対象のアライにバフカウンターを1個置く。そのアライがフォスターされている場合、それに追加でバフカウンターを2個置き、あなたのチャンピオンに6点の軽減不能のダメージを与える。",
+  },
 
   // Lotor Trinket  [REGALIA/ITEM]  L- NORM
   // EN: [Class Bonus] As long as an opponent has no cards in their graveyard, Raccoon allies you control get +1POWER. /  / On Enter: Scavenge 6 for a Raccoon ally card. /  / 
-  "lotor-trinket": { name: "", effect: "" },
+  "lotor-trinket": {
+    name: "ロトルの装飾品",
+    effect:
+      "［クラスボーナス］対戦相手の墓地にカードが1枚もないかぎり、あなたがコントロールするアライグマアライは＋1パワーを得る。\n\n" +
+      "登場時：アライグマアライカードを求めてスカベンジ6する。",
+  },
 
   // Luminous Surge  [ACTION]  L- LUXEM
   // EN: Target unit's next attack this turn gets +3POWER. Recover 3. /  / [Class Bonus] [Element Bonus] Whenever you reveal this card from your memory, target unit's next attack this turn gets +1POWER.
-  "luminous-surge": { name: "", effect: "" },
+  "luminous-surge": {
+    name: "光輝の奔流",
+    effect:
+      "このターン、対象のユニットの次の攻撃は＋3パワーを得る。3リカバーする。\n\n" +
+      "［クラスボーナス］［エレメントボーナス］あなたが自分のメモリーからこのカードを公開するたび、このターン、対象のユニットの次の攻撃は＋1パワーを得る。",
+  },
 
   // Lunete, Frostbinder Priest  [UNIQUE/ALLY]  L- WATER
   // EN: Allies your opponents control enter the field rested. /  / Balance â Lunete gets +3 LIFE as long as the amount of cards in your hand and memory are equal.
-  "lunete-frostbinder-priest": { name: "", effect: "" },
+  "lunete-frostbinder-priest": {
+    name: "ルネット、霜縛りの司祭",
+    effect:
+      "対戦相手がコントロールするアライはレストして戦場に出る。\n\n" +
+      "バランス — あなたの手札とメモリーのカード枚数が等しいかぎり、「ルネット」は＋3ライフを得る。",
+  },
 
   // Luxem Sight  [ACTION]  L- LUXEM
   // EN: [Element Bonus] Whenever you reveal this card from your memory, recover 3. (To recover, remove that many damage counters from your champion. Apply this effect only if your champion's element matches this card's element.) /  / Draw a card.
-  "luxem-sight": { name: "", effect: "" },
+  "luxem-sight": {
+    name: "ルクセムの視",
+    effect:
+      "［エレメントボーナス］あなたが自分のメモリーからこのカードを公開するたび、3リカバーする。*（リカバーするには、あなたのチャンピオンからその数のダメージカウンターを取り除く。この効果は、あなたのチャンピオンのエレメントがこのカードのエレメントと一致する場合のみ適用する。）*\n\n" +
+      "カードを1枚引く。",
+  },
 
   // Maiden of Waning Bloom  [PHANTASIA/ALLY]  L- TERA
   // EN: [Diao Chan Bonus] On Enter: Up to one target opponent summons two Flowerbud tokens. (Apply this effect only if your champion is Diao Chan.) /  / [Diao Chan Bonus] On Attack: The defending player sacrifices a Flowerbud. If they do, they summon your choice of an Acerbica, Floodbloom, Nightshade, or Washuru token.
-  "maiden-of-waning-bloom": { name: "", effect: "" },
+  "maiden-of-waning-bloom": {
+    name: "萎れゆく花の乙女",
+    effect:
+      "［貂蝉ボーナス］登場時：最大1体の対象の対戦相手は花のつぼみトークンを2つ召喚する。*（この効果は、あなたのチャンピオンが貂蝉の場合のみ適用する。）*\n\n" +
+      "［貂蝉ボーナス］攻撃時：防御プレイヤーは花のつぼみを1つサクリファイスする。そうしたなら、アセルビカ、フラッドブルーム、ナイトシェード、ワシュルのトークンのうちあなたが選んだものを1つ召喚する。",
+  },
 
   // Manaroot  [TOKEN/ITEM]  L- NORM
   // EN: Sacrifice Manaroot: Your champion gets +1 level until end of turn.
-  "manaroot": { name: "", effect: "" },
+  "manaroot": {
+    name: "マナルート",
+    effect: "「マナルート」をサクリファイスする：ターン終了時まで、あなたのチャンピオンは＋1レベルを得る。",
+  },
 
   // Manifest Threat  [ACTION]  L- NORM
   // EN: If target ally has a debuff counter on it, destroy that ally. Otherwise, put a debuff counter on it. /  / Floating Memory
-  "manifest-threat": { name: "", effect: "" },
+  "manifest-threat": {
+    name: "顕在する脅威",
+    effect:
+      "対象のアライにデバフカウンターが乗っている場合、そのアライを破壊する。そうでない場合、それにデバフカウンターを1個置く。\n\n" +
+      "フローティングメモリー",
+  },
 
   // Meiren of Verdancy  [ALLY]  L- TERA
   // EN: [Kongming Bonus] Whenever your Shifting Currents change from facing East to South, recover 4. /  / [Class Bonus] Floating Memory
-  "meiren-of-verdancy": { name: "", effect: "" },
+  "meiren-of-verdancy": {
+    name: "翠緑の美人",
+    effect:
+      "［孔明ボーナス］あなたの「移ろう潮流」が東から南を向くように変わるたび、4リカバーする。\n\n" +
+      "［クラスボーナス］フローティングメモリー",
+  },
 
   // Memorite Obelith  [TOKEN/ALLY]  L- NORM
   // EN: Memorite Obelith gets +1 POWER and +1 LIFE for each of up to five sheen counters on it. /  / On Leave: Put X sheen counters onto your Fractured Memories, where X is the amount of sheen counters that were on Memorite Obelith.
-  "memorite-obelith": { name: "", effect: "" },
+  "memorite-obelith": {
+    name: "メモライト・オベリス",
+    effect:
+      "「メモライト・オベリス」は、それの上の最大5個のシーンカウンターにつき、＋1パワーと＋1ライフを得る。\n\n" +
+      "退場時：あなたの「砕けた記憶」にシーンカウンターをX個置く。Xは「メモライト・オベリス」の上にあったシーンカウンターの数。",
+  },
 
   // Merlin, Kingslayer  [CHAMPION]  L3 CRUX
   // EN: Merlin Lineage /  / At the beginning of your recollection phase, put a level counter on Merlin. Then, if there's an even amount of level counters on Merlin, draw a card and Merlin's attacks get +2 POWER until end of turn.
-  "merlin-kingslayer": { name: "", effect: "" },
+  "merlin-kingslayer": {
+    name: "マーリン、王殺し",
+    effect:
+      "マーリンのリニージ\n\n" +
+      "あなたのリコレクションフェイズの開始時に、「マーリン」にレベルカウンターを1個置く。その後、「マーリン」の上のレベルカウンターが偶数個の場合、カードを1枚引き、ターン終了時まで「マーリン」の攻撃は＋2パワーを得る。",
+  },
 
   // Message in Shadows  [PHANTASIA]  L- WIND
   // EN: Ally Link /  / On Enter: Glimpse 2. /  / As long as linked ally has stealth, it gets +2POWER.
-  "message-in-shadows": { name: "", effect: "" },
+  "message-in-shadows": {
+    name: "影の中の伝言",
+    effect:
+      "アライリンク\n\n" +
+      "登場時：グリンプス2する。\n\n" +
+      "リンクされたアライがステルスを持っているかぎり、それは＋2パワーを得る。",
+  },
 
   // Meteoric Slime  [ALLY]  L- ASTRA
   // EN: Pride 3 /  / [Class Bonus] At the beginning of your end phase, glimpse 2. Then reveal the top two cards of your deck. When you do, as a Spell, deal X damage to target unit where X is the lowest reserve cost among the revealed cards.
-  "meteoric-slime": { name: "", effect: "" },
+  "meteoric-slime": {
+    name: "隕石のスライム",
+    effect:
+      "プライド3\n\n" +
+      "［クラスボーナス］あなたのエンドフェイズの開始時に、グリンプス2する。その後、あなたのデッキの一番上から2枚を公開する。そうしたとき、スペルとして、対象のユニットにX点のダメージを与える。Xは公開したカードのうち最も低いリザーブコスト。",
+  },
 
   // Miasmic Fog  [PHANTASIA]  L- UMBRA
   // EN: All allies get -1LIFE.
-  "miasmic-fog": { name: "", effect: "" },
+  "miasmic-fog": {
+    name: "瘴気の霧",
+    effect: "すべてのアライは－1ライフを得る。",
+  },
 
   // Mnemonic Charm  [ITEM]  L- NORM
   // EN: On Enter: Draw a card into your memory. /  / [Class Bonus] Sacrifice Mnemonic Charm: Empower 2. (The next Spell card you activate this turn activates and resolves as if your champion got +2 level. Activate this ability only if your champion's class matches this card's class.)
-  "mnemonic-charm": { name: "", effect: "" },
+  "mnemonic-charm": {
+    name: "記憶の護符",
+    effect:
+      "登場時：カードを1枚あなたのメモリーに引く。\n\n" +
+      "［クラスボーナス］「記憶の護符」をサクリファイスする：エンパワー2する。*（このターン、あなたが起動する次のスペルカードは、あなたのチャンピオンが＋2レベルを得たかのように起動し解決する。この能力は、あなたのチャンピオンのクラスがこのカードのクラスと一致する場合のみ起動する。）*",
+  },
 
   // Mob Vantage  [ACTION]  L- NORM
   // EN: [Class Bonus] As long as an opponent controls three or more units, this card costs 2 less to activate. /  / Your champion becomes distant. Draw a card into your memory.
-  "mob-vantage": { name: "", effect: "" },
+  "mob-vantage": {
+    name: "群衆の優位",
+    effect:
+      "［クラスボーナス］対戦相手が3体以上のユニットをコントロールしているかぎり、このカードは起動コストが2少なくなる。\n\n" +
+      "あなたのチャンピオンはディスタントになる。カードを1枚あなたのメモリーに引く。",
+  },
 
   // Morgan, Soul Guide  [UNIQUE/ALLY]  L- NORM
   // EN: [Level 1+] Prevent all non-combat damage that would be dealt to Morgan. /  / [Level 2+] Your opponents can't  recover. /  / [Class Bonus] At the beginning of your recollection phase, you may glimpse 1. If you don't, recover 1.
-  "morgan-soul-guide": { name: "", effect: "" },
+  "morgan-soul-guide": {
+    name: "モルガン、魂の導き手",
+    effect:
+      "［レベル1以上］「モルガン」に与えられる非戦闘ダメージをすべて軽減する。\n\n" +
+      "［レベル2以上］対戦相手はリカバーできない。\n\n" +
+      "［クラスボーナス］あなたのリコレクションフェイズの開始時に、あなたはグリンプス1してよい。しなかった場合、1リカバーする。",
+  },
 
   // Mystic Purifier  [ALLY]  L- NORM
   // EN: On Enter: You may pay (2). When you do, destroy target phantasia.
-  "mystic-purifier": { name: "", effect: "" },
+  "mystic-purifier": {
+    name: "神秘の浄化者",
+    effect:
+      "登場時：あなたは(2)を支払ってよい。そうしたとき、対象のファンタジアを破壊する。",
+  },
 
   // Nascent Barrier  [ACTION]  L- NORM
   // EN: [Class Bonus] Prevent the next 1+LV damage that would be dealt to your champion this turn. /  / [Level 3+] Glimpse 3. (To glimpse, look at that many cards from the top of your deck. Put those cards back on the top or on the bottom of your deck in any order.)
-  "nascent-barrier": { name: "", effect: "" },
+  "nascent-barrier": {
+    name: "萌芽の障壁",
+    effect:
+      "［クラスボーナス］このターン、あなたのチャンピオンに与えられる次の1＋LV点のダメージを軽減する。\n\n" +
+      "［レベル3以上］グリンプス3する。*（グリンプスするには、デッキの一番上からその枚数のカードを見る。それらのカードを好きな順番でデッキの一番上または一番下に戻す。）*",
+  },
 
   // Navigate the Streets  [ACTION]  L- NORM
   // EN: Glimpse 1+X, where X is the amount of domains you control. (To glimpse, look at that many cards from the top of your deck. Put those cards back on the top or on the bottom of your deck in any order.) /  / Floating Memory
-  "navigate-the-streets": { name: "", effect: "" },
+  "navigate-the-streets": {
+    name: "街路の踏破",
+    effect:
+      "グリンプス1＋Xする。Xはあなたがコントロールするドメインの数。*（グリンプスするには、デッキの一番上からその枚数のカードを見る。それらのカードを好きな順番でデッキの一番上または一番下に戻す。）*\n\n" +
+      "フローティングメモリー",
+  },
 
   // Neos Sight  [ACTION]  L- NEOS
   // EN: Draw a card. If you control eight or more objects, draw a card into your memory.
-  "neos-sight": { name: "", effect: "" },
+  "neos-sight": {
+    name: "ネオスの視",
+    effect:
+      "カードを1枚引く。あなたが8つ以上のオブジェクトをコントロールしている場合、カードを1枚あなたのメモリーに引く。",
+  },
 
   // Nia, Mistveiled Scout  [UNIQUE/ALLY]  L- WATER
   // EN: [Class Bonus] Stealth (This unit can't be targeted by attacks unless permitted by true sight.) /  / On Enter: Look at target opponent's memory, then choose any card name.  /  / Cards with the chosen name cost 1 more to play.
-  "nia-mistveiled-scout": { name: "", effect: "" },
+  "nia-mistveiled-scout": {
+    name: "ニア、霧隠れの斥候",
+    effect:
+      "［クラスボーナス］ステルス *（このユニットは、トゥルーサイトによって許可されないかぎり、攻撃の対象にできない。）*\n\n" +
+      "登場時：対象の対戦相手のメモリーを見て、その後任意のカード名を1つ選ぶ。\n\n" +
+      "選ばれた名前を持つカードはプレイコストが1多くなる。",
+  },
 
   // Nimble Court Assassin  [ALLY]  L- EXALTED,NORM
   // EN: Ambush, Vigor /  / On Enter: You gain agility 3 for this turn. (Agility 3 â Return three cards from your memory to your hand at the beginning of the end phase.)
-  "nimble-court-assassin": { name: "", effect: "" },
+  "nimble-court-assassin": {
+    name: "俊敏な宮廷暗殺者",
+    effect:
+      "アンブッシュ、ヴィガー\n\n" +
+      "登場時：このターン、あなたはアジリティ3を得る。*（アジリティ3 — エンドフェイズの開始時に、あなたのメモリーから3枚を手札に戻す。）*",
+  },
 
   // Nimble Longbowman  [ALLY]  L- NORM
   // EN: Fast Activation, Ranged 1 /  / [Class Bonus] Nimble Longbowman enters the field distant. /  / On Enter: Your champion becomes distant. (Units stay distant until the end of their controller's turn.)
-  "nimble-longbowman": { name: "", effect: "" },
+  "nimble-longbowman": {
+    name: "俊敏な長弓兵",
+    effect:
+      "ファスト起動、レンジド1\n\n" +
+      "［クラスボーナス］「俊敏な長弓兵」はディスタントの状態で戦場に出る。\n\n" +
+      "登場時：あなたのチャンピオンはディスタントになる。*（ユニットはコントローラーのターン終了までディスタントのままである。）*",
+  },
 
   // Nimue, Cursed Touch  [UNIQUE/ALLY]  L- NORM
   // EN: [Class Bonus] Whenever you activate an action card that targets an ally, destroy that ally. 
-  "nimue-cursed-touch": { name: "", effect: "" },
+  "nimue-cursed-touch": {
+    name: "ニムエ、呪いの手",
+    effect:
+      "［クラスボーナス］あなたがアライを対象とするアクションカードを起動するたび、そのアライを破壊する。",
+  },
 
   // Nipping Kicker  [ACTION]  L- WATER
   // EN: The next time target unit would take damage from a Suited Spell source you control this turn, it takes that much damage plus 3 instead. /  / Floating Memory
-  "nipping-kicker": { name: "", effect: "" },
+  "nipping-kicker": {
+    name: "刺すような蹴撃",
+    effect:
+      "このターン、あなたがコントロールするスートスペルの発生源から対象のユニットが次にダメージを受ける際、代わりにそれはそのダメージに3点を加えたダメージを受ける。\n\n" +
+      "フローティングメモリー",
+  },
 
   // Novice Healer  [ALLY]  L- NORM
   // EN: [Class Bonus] On Enter: Recover 3. (To recover, remove that many damage counters from your champion. Apply this effect only if your championâs class matches this cardâs class.)
-  "novice-healer": { name: "", effect: "" },
+  "novice-healer": {
+    name: "見習いの治癒者",
+    effect:
+      "［クラスボーナス］登場時：3リカバーする。*（リカバーするには、あなたのチャンピオンからその数のダメージカウンターを取り除く。この効果は、あなたのチャンピオンのクラスがこのカードのクラスと一致する場合のみ適用する。）*",
+  },
 
   // Numinous Monk  [ALLY]  L- CRUX
   // EN: Regalia you control have "REST: As a Spell, deal 1 damage to target unit."
-  "numinous-monk": { name: "", effect: "" },
+  "numinous-monk": {
+    name: "霊妙なる修道士",
+    effect:
+      "あなたがコントロールするレガリアは「レスト：スペルとして、対象のユニットに1点のダメージを与える。」を持つ。",
+  },
 
   // Nuriel, Seraphic Paladin  [UNIQUE/ALLY]  L- NORM
   // EN: Advanced Imbue 3 /  / On Enter:  If Nuriel is imbued, put a bulwark and a buff counter on it.  /  / Whenever your champion levels up, if Nuriel is imbued, put a bulwark counter on Nuriel.
-  "nuriel-seraphic-paladin": { name: "", effect: "" },
+  "nuriel-seraphic-paladin": {
+    name: "ヌリエル、熾天のパラディン",
+    effect:
+      "アドバンスド・インビュー3\n\n" +
+      "登場時：「ヌリエル」がインビュー状態の場合、それにバルワークカウンターとバフカウンターを1個ずつ置く。\n\n" +
+      "あなたのチャンピオンがレベルアップするたび、「ヌリエル」がインビュー状態の場合、「ヌリエル」にバルワークカウンターを1個置く。",
+  },
 
   // Ominous Shadow  [TOKEN/PHANTASIA/ALLY]  L- UMBRA
   // EN: Unblockable (This unitâs attacks canât be intercepted and ignores taunt.) /  / If damage would be dealt to Ominous Shadow, prevent 3 of that damage. /  / Ominous Shadow may only declare attacks against units your champion has dealt combat damage to this turn.
-  "ominous-shadow": { name: "", effect: "" },
+  "ominous-shadow": {
+    name: "不吉な影",
+    effect:
+      "アンブロッカブル *（このユニットの攻撃はインターセプトされず、タウントを無視する。）*\n\n" +
+      "「不吉な影」にダメージが与えられる場合、そのダメージのうち3点を軽減する。\n\n" +
+      "「不吉な影」は、このターンにあなたのチャンピオンが戦闘ダメージを与えたユニットに対してのみ攻撃を宣言できる。",
+  },
 
   // Optical Control  [PHANTASIA]  L- LUXEM
   // EN: As Optical Control enters the field, choose a card type.  /  / Cards of the chosen type your opponents activate cost (4) more to activate. /  / At the beginning of your recollection phase, sacrifice Optical Control and draw a card.
-  "optical-control": { name: "", effect: "" },
+  "optical-control": {
+    name: "視覚の制御",
+    effect:
+      "「視覚の制御」が戦場に出る際、カードタイプを1つ選ぶ。\n\n" +
+      "対戦相手が起動する、選ばれたタイプのカードは起動コストが(4)多くなる。\n\n" +
+      "あなたのリコレクションフェイズの開始時に、「視覚の制御」をサクリファイスし、カードを1枚引く。",
+  },
 
   // Ordained Charisma  [ACTION]  L- FIRE
   // EN: Gain control of target ally with 2POWER or less until end of turn. Wake up that ally.
-  "ordained-charisma": { name: "", effect: "" },
+  "ordained-charisma": {
+    name: "定められたカリスマ",
+    effect:
+      "ターン終了時まで、2パワー以下の対象のアライのコントロールを得る。そのアライをアウェイクにする。",
+  },
 
   // Otherworldly Possessions  [ACTION]  L- NORM
   // EN: For each different reserve cost among objects you control and cards in your graveyard, put an enlighten counter on your champion.
-  "otherworldly-possessions": { name: "", effect: "" },
+  "otherworldly-possessions": {
+    name: "異界の憑依",
+    effect:
+      "あなたがコントロールするオブジェクトおよびあなたの墓地のカードの中の異なるリザーブコスト1つにつき、あなたのチャンピオンに覚醒カウンターを1個置く。",
+  },
 
   // Parcenet, Royal Maid  [UNIQUE/ALLY]  L- WIND
   // EN: [Level 2+] Stealth (This unit can't be targeted by attacks unless permitted by true sight.) /  / REST: Glimpse 1. Reveal the top card of your deck. When you reveal a wind element card this way, another target ally you control gains stealth until end of turn.
-  "parcenet-royal-maid": { name: "", effect: "" },
+  "parcenet-royal-maid": {
+    name: "パーセネット、王室のメイド",
+    effect:
+      "［レベル2以上］ステルス *（このユニットは、トゥルーサイトによって許可されないかぎり、攻撃の対象にできない。）*\n\n" +
+      "レスト：グリンプス1する。あなたのデッキの一番上のカードを公開する。この方法で風エレメントのカードを公開したとき、あなたがコントロールする別の対象のアライは、ターン終了時までステルスを得る。",
+  },
 
   // Pawn Piece  [TOKEN/ALLY]  L- NORM
   // EN: [Alice Bonus] Commanded Will 1 (As long as this unit is attacking using a Command card, it gets +1POWER.) /  / [Alice Bonus] On Hit: If 7 or more damage was dealt, you may sacrifice Pawn Piece. If you do, summon a Queen Piece token.
-  "pawn-piece": { name: "", effect: "" },
+  "pawn-piece": {
+    name: "ポーンの駒",
+    effect:
+      "［アリスボーナス］コマンドウィル1 *（このユニットがコマンドカードを使って攻撃しているかぎり、それは＋1パワーを得る。）*\n\n" +
+      "［アリスボーナス］ヒット時：7点以上のダメージが与えられた場合、あなたは「ポーンの駒」をサクリファイスしてよい。そうしたなら、クイーンの駒トークンを1つ召喚する。",
+  },
 
   // Pearled Prayer  [ACTION]  L- EXALTED,WATER
   // EN: Draw a card into your memory. If you activated this card during your main phase, recover 7. Otherwise, recover 4.
-  "pearled-prayer": { name: "", effect: "" },
+  "pearled-prayer": {
+    name: "真珠の祈り",
+    effect:
+      "カードを1枚あなたのメモリーに引く。あなたがこのカードを自分のメインフェイズ中に起動した場合、7リカバーする。そうでない場合、4リカバーする。",
+  },
 
   // Pendant of Accrual  [ITEM]  L- NORM
   // EN: At the beginning of each opponent's recollection phase, they may pay (2). If they don't, put a debt counter on Pendant of Accrual. /  / REST, Remove two debt counters from Pendant of Accrual: Draw a card into your memory.
-  "pendant-of-accrual": { name: "", effect: "" },
+  "pendant-of-accrual": {
+    name: "累積のペンダント",
+    effect:
+      "各対戦相手のリコレクションフェイズの開始時に、その対戦相手は(2)を支払ってよい。支払わなかった場合、「累積のペンダント」に負債カウンターを1個置く。\n\n" +
+      "レスト、「累積のペンダント」から負債カウンターを2個取り除く：カードを1枚あなたのメモリーに引く。",
+  },
 
   // Pendant of Apsis Restraint  [REGALIA/ITEM]  L- NORM
   // EN: Ultimate cards cost (3) more to activate.
-  "pendant-of-apsis-restraint": { name: "", effect: "" },
+  "pendant-of-apsis-restraint": {
+    name: "アプシス抑制のペンダント",
+    effect: "アルティメットカードは起動コストが(3)多くなる。",
+  },
 
   // Perishing Florets  [PHANTASIA]  L- TERA
   // EN: On Enter: Destroy target non-champion object with reserve cost 3 or less or memory cost 0. /  / [Diao Chan Bonus] At the beginning of your recollection phase, up to one target opponent summons a Flowerbud token.
-  "perishing-florets": { name: "", effect: "" },
+  "perishing-florets": {
+    name: "枯れゆく小花",
+    effect:
+      "登場時：リザーブコスト3以下またはメモリーコスト0の対象のチャンピオンでないオブジェクトを破壊する。\n\n" +
+      "［貂蝉ボーナス］あなたのリコレクションフェイズの開始時に、最大1体の対象の対戦相手は花のつぼみトークンを1つ召喚する。",
+  },
 
   // Petalfall Embrace  [ACTION]  L- TERA
   // EN: Each player recovers 8+LV. 
-  "petalfall-embrace": { name: "", effect: "" },
+  "petalfall-embrace": {
+    name: "花びら舞う抱擁",
+    effect: "各プレイヤーは8＋LVリカバーする。",
+  },
 
   // Photic Blade  [REGALIA/WEAPON]  L- LUXEM
   // EN: Photic Blade gets +1POWER for each refinement counter on it. /  / [Class Bonus] Whenever you recover, put a refinement counter on Photic Blade.
-  "photic-blade": { name: "", effect: "" },
+  "photic-blade": {
+    name: "光子の刃",
+    effect:
+      "「光子の刃」は、それの上の精製カウンター1個につき、＋1パワーを得る。\n\n" +
+      "［クラスボーナス］あなたがリカバーするたび、「光子の刃」に精製カウンターを1個置く。",
+  },
 
   // Piquant Shieldbearer  [ALLY]  L- NORM
   // EN: Taunt (While awake, this unit must be targeted before other objects you control during your opponents' attack declarations if able.)
-  "piquant-shieldbearer": { name: "", effect: "" },
+  "piquant-shieldbearer": {
+    name: "威勢のよい盾持ち",
+    effect:
+      "タウント *（アウェイクの間、可能ならこのユニットは対戦相手の攻撃宣言時にあなたがコントロールする他のオブジェクトより先に対象にされなければならない。）*",
+  },
 
   // Plasma Vanguard  [ALLY]  L- EXIA
   // EN: Intercept /  / [Damage 25+] Vigor /  / [Class Bonus] On Enter: If your champion has ten or less damage counters on them, put three buff counters on Plasma Vanguard. / 
-  "plasma-vanguard": { name: "", effect: "" },
+  "plasma-vanguard": {
+    name: "プラズマの先鋒",
+    effect:
+      "インターセプト\n\n" +
+      "［ダメージ25以上］ヴィガー\n\n" +
+      "［クラスボーナス］登場時：あなたのチャンピオン上のダメージカウンターが10個以下の場合、「プラズマの先鋒」にバフカウンターを3個置く。",
+  },
 
   // Portly Raccoon  [ALLY]  L- NORM
   // EN: On Enter: You may reveal two Raccoon cards from your hand and/or memory. When you do, target opponent banishes a card from their graveyard.
-  "portly-raccoon": { name: "", effect: "" },
+  "portly-raccoon": {
+    name: "恰幅のよいアライグマ",
+    effect:
+      "登場時：あなたは手札および／またはメモリーからアライグマカードを2枚公開してよい。そうしたとき、対象の対戦相手は自分の墓地からカードを1枚追放する。",
+  },
 
   // Potion Infusion: Animate  [ACTION]  L- NORM
   // EN: [Arisanna Bonus] This card costs 2 less to activate.  /  / Rest target non-regalia Potion. If you do, it becomes an ally in addition to its other types with base power and life equal to its reserve cost. Each of its activated abilities becomes an on death triggered ability. (This effect lasts indefinitely.)
-  "potion-infusion-animate": { name: "", effect: "" },
+  "potion-infusion-animate": {
+    name: "ポーション注入：命の付与",
+    effect:
+      "［アリサンナボーナス］このカードは起動コストが2少なくなる。\n\n" +
+      "対象のレガリアでないポーションをレストする。そうしたなら、それは他のタイプに加えてアライになり、リザーブコストに等しい基本パワーとライフを持つ。その各起動型能力は「死亡時」誘発型能力になる。*（この効果は無期限に続く。）*",
+  },
 
   // Potion Infusion: Volatility  [ACTION]  L- NORM
   // EN: [Arisanna Bonus] Efficiency /  / Rest target Potion. If you do, it gains "On Sacrifice: Deal 4+D6 damage to each champion you don't control" until end of turn. (Roll a six-sided die to determine each instance of D6 as this effect resolves.)
-  "potion-infusion-volatility": { name: "", effect: "" },
+  "potion-infusion-volatility": {
+    name: "ポーション注入：揮発性",
+    effect:
+      "［アリサンナボーナス］エフィシェンシー\n\n" +
+      "対象のポーションをレストする。そうしたなら、それはターン終了時まで「サクリファイス時：あなたがコントロールしていない各チャンピオンに4＋D6点のダメージを与える」を得る。*（この効果が解決される際、6面ダイスを振って各D6の値を決定する。）*",
+  },
 
   // Prismatic Sanctuary  [UNIQUE/DOMAIN]  L- NORM
   // EN: Upkeep â At the beginning of your recollection phase, reveal a card at random from your memory. If that card is not fire, water, nor wind element, sacrifice Prismatic Sanctuary. /  / Fire, water, and wind elements are enabled for you.
-  "prismatic-sanctuary": { name: "", effect: "" },
+  "prismatic-sanctuary": {
+    name: "虹彩の聖域",
+    effect:
+      "アップキープ — あなたのリコレクションフェイズの開始時に、あなたのメモリーからランダムにカードを1枚公開する。そのカードが火・水・風エレメントのいずれでもない場合、「虹彩の聖域」をサクリファイスする。\n\n" +
+      "火・水・風エレメントがあなたにとって有効になる。",
+  },
 
   // Protector Raccoon  [ALLY]  L- NORM
   // EN: Fast Activation (You may activate this card at fast speed.) /  / REST: Prevent the next 2 damage that would be dealt to target Animal ally this turn. /  / REST: Target opponent banishes a card from their graveyard.
-  "protector-raccoon": { name: "", effect: "" },
+  "protector-raccoon": {
+    name: "守護者アライグマ",
+    effect:
+      "ファスト起動 *（あなたはこのカードをファストスピードで起動してよい。）*\n\n" +
+      "レスト：このターン、対象の動物アライに与えられる次の2点のダメージを軽減する。\n\n" +
+      "レスト：対象の対戦相手は自分の墓地からカードを1枚追放する。",
+  },
 
   // Proto Archive Scout  [ALLY]  L- NORM
   // EN: Proto Archive Scout has stealth as long as itâs awake. /  / As long as you control an object named Proto Key Crest, Proto Archive Scout gets +1POWER.
-  "proto-archive-scout": { name: "", effect: "" },
+  "proto-archive-scout": {
+    name: "プロトアーカイブの斥候",
+    effect:
+      "「プロトアーカイブの斥候」はアウェイクであるかぎりステルスを持つ。\n\n" +
+      "あなたが「プロトキー・クレスト」という名前のオブジェクトをコントロールしているかぎり、「プロトアーカイブの斥候」は＋1パワーを得る。",
+  },
 
   // Psychopomp's Gale  [ACTION]  L- EXALTED,WIND
   // EN: (Exalted â This element is enabled for you as long as you have another advanced element enabled.) /  / Target player banishes all cards in their graveyard.
-  "psychopomps-gale": { name: "", effect: "" },
+  "psychopomps-gale": {
+    name: "冥導者の疾風",
+    effect:
+      "*（エグザルテッド — このエレメントは、あなたが他のアドバンスドエレメントを有効にしているかぎり、あなたにとって有効となる。）*\n\n" +
+      "対象のプレイヤーは自分の墓地のすべてのカードを追放する。",
+  },
 
   // Pyretic Prognosis  [ACTION]  L- EXALTED,FIRE
   // EN: Draw three cards, then discard two cards. 
-  "pyretic-prognosis": { name: "", effect: "" },
+  "pyretic-prognosis": {
+    name: "熱病の予後",
+    effect: "カードを3枚引き、その後カードを2枚捨てる。",
+  },
 
   // Quicksilver Grail  [REGALIA/ITEM]  L- NORM
   // EN: Divine Relic (You can only have one card with this keyword in your material deck.) /  / On Enter: Banish a non-champion card from your material deck face down. /  / Banish Quicksilver Grail: You may play the banished card. (You still pay for its costs.)
-  "quicksilver-grail": { name: "", effect: "" },
+  "quicksilver-grail": {
+    name: "水銀の聖杯",
+    effect:
+      "ディヴァインレリック *（このキーワードを持つカードはマテリアルデッキに1枚しか入れられない。）*\n\n" +
+      "登場時：あなたのマテリアルデッキからチャンピオンでないカードを1枚裏向きに追放する。\n\n" +
+      "「水銀の聖杯」を追放する：あなたはその追放されたカードをプレイしてよい。*（あなたはそのコストを支払う。）*",
+  },
 
   // Quickstep Treads  [REGALIA/ITEM]  L- NORM
   // EN: On Enter: Draw a card. /  / [Class Bonus] As long as your champion is distant and it's your turn, cards your opponents activate cost (2) more to activate.
-  "quickstep-treads": { name: "", effect: "" },
+  "quickstep-treads": {
+    name: "疾歩のトレッド",
+    effect:
+      "登場時：カードを1枚引く。\n\n" +
+      "［クラスボーナス］あなたのチャンピオンがディスタントでありあなたのターンであるかぎり、対戦相手が起動するカードは起動コストが(2)多くなる。",
+  },
 
   // Quietus Blade  [REGALIA/WEAPON]  L- CRUX
   // EN: [Class Bonus] As long as there are no cards in your material deck, Quietus Blade gets +4POWER and has "(3),  REST: Quietus Blade gains spellshroud until end of turn."
-  "quietus-blade": { name: "", effect: "" },
+  "quietus-blade": {
+    name: "静寂の刃",
+    effect:
+      "［クラスボーナス］あなたのマテリアルデッキにカードが1枚もないかぎり、「静寂の刃」は＋4パワーを得て「(3)、レスト：「静寂の刃」はターン終了時までスペルシュラウドを得る。」を持つ。",
+  },
 
   // Radiant Origin of Assassin  [PHANTASIA]  L- NORM
   // EN: Omnishroud /  / Whenever you activate a prepared card, put a training counter on Radiant Origin of Assassin. /  / [Class Bonus] (5), Sacrifice Radiant Origin of Assassin: Level up your champion. Activate this ability only if there are four or more training counters on Radiant Origin of Assassin.
-  "radiant-origin-of-assassin": { name: "", effect: "" },
+  "radiant-origin-of-assassin": {
+    name: "アサシンの輝ける起源",
+    effect:
+      "オムニシュラウド\n\n" +
+      "あなたがプリペアされたカードを起動するたび、「アサシンの輝ける起源」に修練カウンターを1個置く。\n\n" +
+      "［クラスボーナス］(5)、「アサシンの輝ける起源」をサクリファイスする：あなたのチャンピオンをレベルアップする。この能力は、「アサシンの輝ける起源」の上に修練カウンターが4個以上ある場合のみ起動する。",
+  },
 
   // Radiant Origin of Cleric  [PHANTASIA]  L- NORM
   // EN: Omnishroud /  / Whenever you recover, put a training counter on Radiant Origin of Cleric. /  / [Class Bonus] (4), Sacrifice Radiant Origin of Cleric: Level up your champion. Activate this ability only if there are eight or more training counters on Radiant Origin of Cleric.
-  "radiant-origin-of-cleric": { name: "", effect: "" },
+  "radiant-origin-of-cleric": {
+    name: "クレリックの輝ける起源",
+    effect:
+      "オムニシュラウド\n\n" +
+      "あなたがリカバーするたび、「クレリックの輝ける起源」に修練カウンターを1個置く。\n\n" +
+      "［クラスボーナス］(4)、「クレリックの輝ける起源」をサクリファイスする：あなたのチャンピオンをレベルアップする。この能力は、「クレリックの輝ける起源」の上に修練カウンターが8個以上ある場合のみ起動する。",
+  },
 
   // Radiant Origin of Guardian  [PHANTASIA]  L- NORM
   // EN: Omnishroud /  / Whenever a unit source you control deals 4 or more damage, put a training counter on Radiant Origin of Guardian. /  / [Class Bonus] (3), Sacrifice Radiant Origin of Guardian: Level up your champion. Activate this ability only if there are five or more training counters on Radiant Origin of Guardian.
-  "radiant-origin-of-guardian": { name: "", effect: "" },
+  "radiant-origin-of-guardian": {
+    name: "ガーディアンの輝ける起源",
+    effect:
+      "オムニシュラウド\n\n" +
+      "あなたがコントロールするユニットの発生源が4点以上のダメージを与えるたび、「ガーディアンの輝ける起源」に修練カウンターを1個置く。\n\n" +
+      "［クラスボーナス］(3)、「ガーディアンの輝ける起源」をサクリファイスする：あなたのチャンピオンをレベルアップする。この能力は、「ガーディアンの輝ける起源」の上に修練カウンターが5個以上ある場合のみ起動する。",
+  },
 
   // Radiant Origin of Mage  [PHANTASIA]  L- NORM
   // EN: Omnishroud /  / Whenever you empower, put a training counter on Radiant Origin of Mage. /  / [Class Bonus] (4), Sacrifice Radiant Origin of Mage: Level up your champion. Activate this ability only if there are six or more training counters on Radiant Origin of Mage.
-  "radiant-origin-of-mage": { name: "", effect: "" },
+  "radiant-origin-of-mage": {
+    name: "メイジの輝ける起源",
+    effect:
+      "オムニシュラウド\n\n" +
+      "あなたがエンパワーするたび、「メイジの輝ける起源」に修練カウンターを1個置く。\n\n" +
+      "［クラスボーナス］(4)、「メイジの輝ける起源」をサクリファイスする：あなたのチャンピオンをレベルアップする。この能力は、「メイジの輝ける起源」の上に修練カウンターが6個以上ある場合のみ起動する。",
+  },
 
   // Radiant Origin of Ranger  [PHANTASIA]  L- NORM
   // EN: Omnishroud /  / Whenever a Ranger unit you control becomes distant, put a training counter on Radiant Origin of Ranger. /  / [Class Bonus] (3), Sacrifice Radiant Origin of Ranger: Level up your champion. Activate this ability only if there are six or more training counters on Radiant Origin of Ranger.
-  "radiant-origin-of-ranger": { name: "", effect: "" },
+  "radiant-origin-of-ranger": {
+    name: "レンジャーの輝ける起源",
+    effect:
+      "オムニシュラウド\n\n" +
+      "あなたがコントロールするレンジャーユニットがディスタントになるたび、「レンジャーの輝ける起源」に修練カウンターを1個置く。\n\n" +
+      "［クラスボーナス］(3)、「レンジャーの輝ける起源」をサクリファイスする：あなたのチャンピオンをレベルアップする。この能力は、「レンジャーの輝ける起源」の上に修練カウンターが6個以上ある場合のみ起動する。",
+  },
 
   // Radiant Origin of Tamer  [PHANTASIA]  L- NORM
   // EN: Omnishroud /  / Whenever you declare an attack with a non-Human ally, put a training counter on Radiant Origin of Tamer. /  / [Class Bonus] (3), Sacrifice Radiant Origin of Tamer: Level up your champion. Activate this ability only if there are seven or more training counters on Radiant Origin of Tamer.
-  "radiant-origin-of-tamer": { name: "", effect: "" },
+  "radiant-origin-of-tamer": {
+    name: "テイマーの輝ける起源",
+    effect:
+      "オムニシュラウド\n\n" +
+      "あなたが人間でないアライで攻撃を宣言するたび、「テイマーの輝ける起源」に修練カウンターを1個置く。\n\n" +
+      "［クラスボーナス］(3)、「テイマーの輝ける起源」をサクリファイスする：あなたのチャンピオンをレベルアップする。この能力は、「テイマーの輝ける起源」の上に修練カウンターが7個以上ある場合のみ起動する。",
+  },
 
   // Radiant Origin of Warrior  [PHANTASIA]  L- NORM
   // EN: Omnishroud /  / Whenever your champion attacks using a weapon, put a training counter on Radiant Origin of Warrior. /  / [Class Bonus] (3), Sacrifice Radiant Origin of Warrior: Level up your champion. Activate this ability only if there are four or more training counters on Radiant Origin of Warrior.
-  "radiant-origin-of-warrior": { name: "", effect: "" },
+  "radiant-origin-of-warrior": {
+    name: "ウォリアーの輝ける起源",
+    effect:
+      "オムニシュラウド\n\n" +
+      "あなたのチャンピオンが武器を使って攻撃するたび、「ウォリアーの輝ける起源」に修練カウンターを1個置く。\n\n" +
+      "［クラスボーナス］(3)、「ウォリアーの輝ける起源」をサクリファイスする：あなたのチャンピオンをレベルアップする。この能力は、「ウォリアーの輝ける起源」の上に修練カウンターが4個以上ある場合のみ起動する。",
+  },
 
   // Rapid Deployment Nexus  [DOMAIN]  L- NEOS
   // EN: (Siegeable â This domain can be attacked. It takes damage in the form of removing durability counters.) /  / [Class Bonus] REST, Remove three durability counters from Rapid Deployment Nexus: Wake up another target domain.
-  "rapid-deployment-nexus": { name: "", effect: "" },
+  "rapid-deployment-nexus": {
+    name: "急速展開ネクサス",
+    effect:
+      "*（シージアブル — このドメインは攻撃できる。耐久カウンターを取り除く形でダメージを受ける。）*\n\n" +
+      "［クラスボーナス］レスト、「急速展開ネクサス」から耐久カウンターを3個取り除く：別の対象のドメインをアウェイクにする。",
+  },
 
   // Ravaging Tempest  [ACTION]  L- WIND
   // EN: Efficiency (This card costs LV less to activate. LV refers to your champion's level.) /  / Banish all allies. For each ally banished this way, its controller draws a card.
-  "ravaging-tempest": { name: "", effect: "" },
+  "ravaging-tempest": {
+    name: "荒れ狂う大嵐",
+    effect:
+      "エフィシェンシー *（このカードは起動コストがLV少なくなる。LVはあなたのチャンピオンのレベルを指す。）*\n\n" +
+      "すべてのアライを追放する。この方法で追放した各アライにつき、そのコントローラーはカードを1枚引く。",
+  },
 
   // Raze the Land  [ACTION]  L- NORM
   // EN: Destroy target domain. /  / Floating Memory
-  "raze-the-land": { name: "", effect: "" },
+  "raze-the-land": {
+    name: "土地の破壊",
+    effect:
+      "対象のドメインを破壊する。\n\n" +
+      "フローティングメモリー",
+  },
 
   // Razorgale Calling  [PHANTASIA]  L- WIND
   // EN: [Class Bonus] This card costs 2 less to activate. (Apply this effect only if your champion's class matches this card's class.) /  / Whenever you activate a wind element card, deal 1 damage to target champion.
-  "razorgale-calling": { name: "", effect: "" },
+  "razorgale-calling": {
+    name: "レイザーゲイルの呼び声",
+    effect:
+      "［クラスボーナス］このカードは起動コストが2少なくなる。*（この効果は、あなたのチャンピオンのクラスがこのカードのクラスと一致する場合のみ適用する。）*\n\n" +
+      "あなたが風エレメントのカードを起動するたび、対象のチャンピオンに1点のダメージを与える。",
+  },
 
   // Razorvine  [TOKEN/ITEM]  L- NORM
   // EN: Sacrifice Razorvine: Put a card from your hand on the bottom of your deck. If you do, draw a card.
-  "razorvine": { name: "", effect: "" },
+  "razorvine": {
+    name: "レイザーヴァイン",
+    effect:
+      "「レイザーヴァイン」をサクリファイスする：あなたの手札からカードを1枚デッキの一番下に置く。そうしたなら、カードを1枚引く。",
+  },
 
   // Reactivate Drone  [ACTION]  L- NEOS
   // EN: Summon an Automaton Drone token rested with a buff counter on it. /  / Ephemerate â (2) (You may activate this card from your graveyard by paying this cost. Action cards played this way become ephemeral on the effects stack.)
-  "reactivate-drone": { name: "", effect: "" },
+  "reactivate-drone": {
+    name: "ドローン再起動",
+    effect:
+      "オートマトンドローントークンをバフカウンター1個を乗せてレストして召喚する。\n\n" +
+      "エフェメレート — (2) *（あなたはこのコストを支払うことでこのカードを墓地から起動してよい。この方法でプレイしたアクションカードは、エフェクトスタック上でエフェメラルになる。）*",
+  },
 
   // Reaping Legacy  [ATTACK]  L- CRUX
   // EN: [Class Bonus] Reaping Legacy gets +1POWER for each Sword regalia weapon card in your banishment.
-  "reaping-legacy": { name: "", effect: "" },
+  "reaping-legacy": {
+    name: "刈り取る遺産",
+    effect:
+      "［クラスボーナス］「刈り取る遺産」は、あなたの追放領域にある剣レガリア武器カード1枚につき、＋1パワーを得る。",
+  },
 
   // Reclaim  [ACTION]  L- WIND
   // EN: Return target ally you control to its owner's hand. /  / Floating Memory (While paying for a memory cost, you may banish this card from your graveyard to pay for 1 of that cost.)
-  "reclaim": { name: "", effect: "" },
+  "reclaim": {
+    name: "取り戻し",
+    effect:
+      "あなたがコントロールする対象のアライをオーナーの手札に戻す。\n\n" +
+      "フローティングメモリー *（メモリーコストを支払う際、あなたはこのカードを墓地から追放してそのコストの1分を支払ってよい。）*",
+  },
 
   // Recurring Aethercharge  [ACTION]  L- NORM
   // EN: You may load Recurring Aethercharge into an Aetherwing weapon you control.  /  / [Class Bonus] (3): Load this card from your graveyard into an Aetherwing weapon you control.
-  "recurring-aethercharge": { name: "", effect: "" },
+  "recurring-aethercharge": {
+    name: "回帰するエーテルチャージ",
+    effect:
+      "あなたは「回帰するエーテルチャージ」を、あなたがコントロールするエーテルウィング武器にロードしてよい。\n\n" +
+      "［クラスボーナス］(3)：このカードを墓地から、あなたがコントロールするエーテルウィング武器にロードする。",
+  },
 
   // Redirect Orbit  [ACTION]  L- ASTRA
   // EN: Shuffle any amount of cards from your hand and/or memory into your deck. Then draw that many cards into your memory. 
-  "redirect-orbit": { name: "", effect: "" },
+  "redirect-orbit": {
+    name: "軌道の変更",
+    effect:
+      "あなたの手札および／またはメモリーから好きな数のカードをあなたのデッキに切り混ぜる。その後、その枚数のカードをあなたのメモリーに引く。",
+  },
 
   // Reduce to Ash  [ACTION]  L- FIRE
   // EN: Destroy target item or weapon with memory cost 0 or reserve cost 4 or less.
-  "reduce-to-ash": { name: "", effect: "" },
+  "reduce-to-ash": {
+    name: "灰燼に帰す",
+    effect: "メモリーコスト0またはリザーブコスト4以下の対象のアイテムまたは武器を破壊する。",
+  },
 
   // Refracting Missile  [ACTION]  L- WATER
   // EN: Deal damage to target unit equal to the amount of Fractal objects you control plus 1. /  / Floating Memory (While paying for a memory cost, you may banish this card from your graveyard to pay for 1 of that cost.)
-  "refracting-missile": { name: "", effect: "" },
+  "refracting-missile": {
+    name: "屈折するミサイル",
+    effect:
+      "対象のユニットに、あなたがコントロールするフラクタルオブジェクトの数に1を加えた量のダメージを与える。\n\n" +
+      "フローティングメモリー *（メモリーコストを支払う際、あなたはこのカードを墓地から追放してそのコストの1分を支払ってよい。）*",
+  },
 
   // Reliable Cavalier  [ALLY]  L- NORM
   // EN: Equestrian â As long as you control a Horse ally, Reliable Cavalier gets +3POWER.
-  "reliable-cavalier": { name: "", effect: "" },
+  "reliable-cavalier": {
+    name: "頼れる騎兵",
+    effect:
+      "エクエストリアン — あなたが馬アライをコントロールしているかぎり、「頼れる騎兵」は＋3パワーを得る。",
+  },
 
   // Rending Flames  [ATTACK]  L- FIRE
   // EN: [Class Bonus] On Attack: You may banish three fire element cards from your graveyard. If you do, Rending Flames gains "If this attack would deal damage, it deals double that damage instead."
-  "rending-flames": { name: "", effect: "" },
+  "rending-flames": {
+    name: "引き裂く炎",
+    effect:
+      "［クラスボーナス］攻撃時：あなたの墓地から火エレメントのカードを3枚追放してよい。そうしたなら、「引き裂く炎」は「この攻撃がダメージを与える場合、代わりにそのダメージの2倍を与える。」を得る。",
+  },
 
   // Reverent Seraphim  [ALLY]  L- NORM
   // EN: Advanced Imbue 2 (You may reserve all cards revealed as you activate this card. If at least two of them are advanced element, this card becomes imbued.) /  / As long as Reverent Seraphim is imbued, other allies get -1POWER.
-  "reverent-seraphim": { name: "", effect: "" },
+  "reverent-seraphim": {
+    name: "敬虔なセラフィム",
+    effect:
+      "アドバンスド・インビュー2 *（あなたはこのカードを起動する際、公開したすべてのカードをリザーブしてよい。そのうち少なくとも2枚がアドバンスドエレメントの場合、このカードはインビュー状態になる。）*\n\n" +
+      "「敬虔なセラフィム」がインビュー状態であるかぎり、他のアライは－1パワーを得る。",
+  },
 
   // Reversal's Polarity  [PHANTASIA]  L- ARCANE
   // EN: Whenever an arcane element card activation you control is negated, deal X damage to target champion, where X is that card's reserve cost.
-  "reversals-polarity": { name: "", effect: "" },
+  "reversals-polarity": {
+    name: "反転の極性",
+    effect:
+      "あなたがコントロールするアーケインエレメントのカードの起動が打ち消されるたび、対象のチャンピオンにX点のダメージを与える。Xはそのカードのリザーブコスト。",
+  },
 
   // Right of Realm  [ITEM]  L- NORM
   // EN: Whenever you activate a domain card, you may sacrifice Right of Realm. If you do, that domain enters the field without any of its upkeep abilities. /  / Floating Memory (While paying for a memory cost, you may banish this card from your graveyard to pay for 1 of that cost.)
-  "right-of-realm": { name: "", effect: "" },
+  "right-of-realm": {
+    name: "王国の権利",
+    effect:
+      "あなたがドメインカードを起動するたび、あなたは「王国の権利」をサクリファイスしてよい。そうしたなら、そのドメインはアップキープ能力を持たずに戦場に出る。\n\n" +
+      "フローティングメモリー *（メモリーコストを支払う際、あなたはこのカードを墓地から追放してそのコストの1分を支払ってよい。）*",
+  },
 
   // Roots of Tomorrow  [ACTION]  L- TERA
   // EN: Reveal the top card of your deck and put it into your material deck preserved. /  / Draw a card into your memory. 
-  "roots-of-tomorrow": { name: "", effect: "" },
+  "roots-of-tomorrow": {
+    name: "明日への根",
+    effect:
+      "あなたのデッキの一番上のカードを公開し、プリザーブしてあなたのマテリアルデッキに置く。\n\n" +
+      "カードを1枚あなたのメモリーに引く。",
+  },
 
   // Rousing Slime  [ALLY]  L- WIND
   // EN: [Class Bonus] On Enter: You may rest Rousing Slime. If you do, wake up another Slime ally you control. (Apply this effect only if your championâs class matches this cardâs class.)
-  "rousing-slime": { name: "", effect: "" },
+  "rousing-slime": {
+    name: "鼓舞するスライム",
+    effect:
+      "［クラスボーナス］登場時：あなたは「鼓舞するスライム」をレストしてよい。そうしたなら、あなたがコントロールする別のスライムアライをアウェイクにする。*（この効果は、あなたのチャンピオンのクラスがこのカードのクラスと一致する場合のみ適用する。）*",
+  },
 
   // Royal Line Defense  [ACTION]  L- NORM
   // EN: [Alice Bonus] As long as you've activated a Command card this turn, this card costs 2 less to activate. /  / Choose oneâ / â¢ Target Chessman ally gets +3LIFE until end of turn. / â¢ Negate target card activation if a Chessman ally is attacking.
-  "royal-line-defense": { name: "", effect: "" },
+  "royal-line-defense": {
+    name: "王家の防衛線",
+    effect:
+      "［アリスボーナス］あなたがこのターンにコマンドカードを起動しているかぎり、このカードは起動コストが2少なくなる。\n\n" +
+      "1つ選ぶ——\n" +
+      "・対象のチェスマンアライは、ターン終了時まで＋3ライフを得る。\n" +
+      "・チェスマンアライが攻撃している場合、対象のカードの起動を打ち消す。",
+  },
 
   // Sabela, Gossamer Penance  [UNIQUE/ALLY]  L- CRUX
   // EN: [Class Bonus] On Enter: Choose a Sword regalia card with memory cost 1 or less from your banishment and put it onto the field. Put a bond counter on it. It gets +2POWER for as long as you control Sabela. /  / On Leave: Sacrifice each regalia with a bond counter on it. /  / 
-  "sabela-gossamer-penance": { name: "", effect: "" },
+  "sabela-gossamer-penance": {
+    name: "サベラ、繊細なる贖罪",
+    effect:
+      "［クラスボーナス］登場時：あなたの追放領域からメモリーコスト1以下の剣レガリアカードを1枚選び、それを戦場に出す。それにボンドカウンターを1個置く。あなたが「サベラ」をコントロールしているかぎり、それは＋2パワーを得る。\n\n" +
+      "退場時：ボンドカウンターが乗っている各レガリアをサクリファイスする。",
+  },
 
   // Sable Remnant  [ALLY]  L- NORM
   // EN: [Class Bonus] Sable Remnant gets +1 POWER. /  / Floating Memory (While paying for a memory cost, you may banish this card from your graveyard to pay for 1 of that cost.) 
-  "sable-remnant": { name: "", effect: "" },
+  "sable-remnant": {
+    name: "漆黒の残滓",
+    effect:
+      "［クラスボーナス］「漆黒の残滓」は＋1パワーを得る。\n\n" +
+      "フローティングメモリー *（メモリーコストを支払う際、あなたはこのカードを墓地から追放してそのコストの1分を支払ってよい。）*",
+  },
 
   // Sacred Barrier  [ACTION]  L- NORM
   // EN: The next time each ally would be dealt non-combat damage this turn, prevent 4 of that damage.
-  "sacred-barrier": { name: "", effect: "" },
+  "sacred-barrier": {
+    name: "聖なる障壁",
+    effect:
+      "このターン、各アライが次に非戦闘ダメージを受ける際、そのダメージのうち4点を軽減する。",
+  },
 
   // Sanctified Paladin  [ALLY]  L- NORM
   // EN: Foster /  / As long as Sanctified Paladin is fostered, it gets +3POWER and +3LIFE, and has vigor. /  / On Foster: Draw two cards.
-  "sanctified-paladin": { name: "", effect: "" },
+  "sanctified-paladin": {
+    name: "聖別されたパラディン",
+    effect:
+      "フォスター\n\n" +
+      "「聖別されたパラディン」がフォスターされているかぎり、それは＋3パワーと＋3ライフを得て、ヴィガーを持つ。\n\n" +
+      "フォスター時：カードを2枚引く。",
+  },
 
   // Saprotrophy  [PHANTASIA]  L- TERA
   // EN: On Enter:  Recover 2+X, where X is the amount of tera element cards in your banishment. /  / [Diao Chan Bonus] Objects your opponents control enter the field with an additional wither counter on them.
-  "saprotrophy": { name: "", effect: "" },
+  "saprotrophy": {
+    name: "腐生栄養",
+    effect:
+      "登場時：2＋Xリカバーする。Xはあなたの追放領域にあるテラエレメントのカードの数。\n\n" +
+      "［貂蝉ボーナス］対戦相手がコントロールするオブジェクトは、萎縮カウンターを1個追加で乗せて戦場に出る。",
+  },
 
   // Sasha, Purifying Acolyte  [UNIQUE/ALLY]  L- WIND
   // EN: Foster (At the beginning of your recollection phase, if this ally hasnât been dealt damage since the end of your previous turn, it becomes fostered.) /  / On Foster: Banish all cards in all graveyards. /  / If one or more cards would enter a player's graveyard while Sasha is fostered, banish them instead.
-  "sasha-purifying-acolyte": { name: "", effect: "" },
+  "sasha-purifying-acolyte": {
+    name: "サーシャ、浄化の侍者",
+    effect:
+      "フォスター *（あなたのリコレクションフェイズの開始時に、このアライが前のターンの終了以降ダメージを受けていない場合、それはフォスターされる。）*\n\n" +
+      "フォスター時：すべての墓地のすべてのカードを追放する。\n\n" +
+      "「サーシャ」がフォスターされている間に1枚以上のカードがプレイヤーの墓地に置かれる場合、代わりにそれらを追放する。",
+  },
 
   // Scatter Essence  [ACTION]  L- WIND
   // EN: Destroy target phantasia. /  / Floating Memory
-  "scatter-essence": { name: "", effect: "" },
+  "scatter-essence": {
+    name: "エッセンスの散布",
+    effect:
+      "対象のファンタジアを破壊する。\n\n" +
+      "フローティングメモリー",
+  },
 
   // Scavenging Raccoon  [ALLY]  L- NORM
   // EN: On Enter: Banish up to two target cards from a single graveyard.
-  "scavenging-raccoon": { name: "", effect: "" },
+  "scavenging-raccoon": {
+    name: "あさりアライグマ",
+    effect: "登場時：単一の墓地から対象のカードを最大2枚追放する。",
+  },
 
   // Schwartz Castler  [ALLY]  L- WIND
   // EN: Commanded Will 1 (As long as this unit is attacking using a Command card, it gets +1POWER.) /  / [Alice Bonus] On Enter: If an opponent controls a unit with an even life stat, summon a Pawn Piece token.
-  "schwartz-castler": { name: "", effect: "" },
+  "schwartz-castler": {
+    name: "シュヴァルツ・キャスラー",
+    effect:
+      "コマンドウィル1 *（このユニットがコマンドカードを使って攻撃しているかぎり、それは＋1パワーを得る。）*\n\n" +
+      "［アリスボーナス］登場時：対戦相手がライフ値が偶数のユニットをコントロールしている場合、ポーンの駒トークンを1つ召喚する。",
+  },
 
   // Scientific Discoveries  [ACTION]  L- NORM
   // EN: Glimpse 3. Then you may remove two enlighten counters from your champion. If you do, draw a card into your memory.
-  "scientific-discoveries": { name: "", effect: "" },
+  "scientific-discoveries": {
+    name: "科学的発見",
+    effect:
+      "グリンプス3する。その後、あなたのチャンピオンから覚醒カウンターを2個取り除いてよい。そうしたなら、カードを1枚あなたのメモリーに引く。",
+  },
 
   // Scorching Knowledge  [ACTION]  L- FIRE
   // EN: Empower 3. (The next Spell card you activate this turn activates and resolves as if your champion got +3 level.) /  / [Rai Bonus] You may remove an enlighten counter from your champion. If you do, empower 3.
-  "scorching-knowledge": { name: "", effect: "" },
+  "scorching-knowledge": {
+    name: "灼熱の知識",
+    effect:
+      "エンパワー3する。*（このターン、あなたが起動する次のスペルカードは、あなたのチャンピオンが＋3レベルを得たかのように起動し解決する。）*\n\n" +
+      "［ライボーナス］あなたのチャンピオンから覚醒カウンターを1個取り除いてよい。そうしたなら、エンパワー3する。",
+  },
 
   // Scry the Skies  [ACTION]  L- NORM
   // EN: Glimpse LV. Draw a card into your memory. (To glimpse, look at that many cards from the top of your deck. Put those cards back on the top or on the bottom of your deck in any order.)
-  "scry-the-skies": { name: "", effect: "" },
+  "scry-the-skies": {
+    name: "天空の占察",
+    effect:
+      "グリンプスLVする。カードを1枚あなたのメモリーに引く。*（グリンプスするには、デッキの一番上からその枚数のカードを見る。それらのカードを好きな順番でデッキの一番上または一番下に戻す。）*",
+  },
 
   // Second Wind  [ACTION]  L- WIND
   // EN: Wake up target ally. Class Bonus: That ally gets +1 POWER until end of turn. (Apply the additional effect only if your champion's class matches this card's class.)
-  "second-wind": { name: "", effect: "" },
+  "second-wind": {
+    name: "セカンドウィンド",
+    effect:
+      "対象のアライをアウェイクにする。クラスボーナス：そのアライは、ターン終了時まで＋1パワーを得る。*（追加効果は、あなたのチャンピオンのクラスがこのカードのクラスと一致する場合のみ適用する。）*",
+  },
 
   // Seething Intercession  [ACTION]  L- EXIA
   // EN: Banish the top three cards of your deck. For as long as they're banished, you may activate them. As an additional cost to activate each of those cards, deal 2 unpreventable damage to your champion. /  / [Jin Bonus] If your influence is four or less, the next three cards you activate from banishment this turn cost 1 less to activate.
-  "seething-intercession": { name: "", effect: "" },
+  "seething-intercession": {
+    name: "煮えたぎる嘆願",
+    effect:
+      "あなたのデッキの一番上から3枚を追放する。それらが追放されているかぎり、あなたはそれらを起動してよい。それらの各カードを起動するための追加コストとして、あなたのチャンピオンに2点の軽減不能のダメージを与える。\n\n" +
+      "［ジンボーナス］あなたのインフルエンスが4以下の場合、このターン、あなたが追放領域から起動する次の3枚のカードは起動コストが1少なくなる。",
+  },
 
   // Senaris, Six of Diamonds  [UNIQUE/ALLY]  L- WATER
   // EN: Spellshroud, Stealth /  / Cardistry â (6): The next three times a Suited Spell source you control would deal damage this turn, it deals that much plus 3 damage instead. This ability costs (1) less to activate for each Suited object you control with different reserve costs. Activate this ability only once.
-  "senaris-six-of-diamonds": { name: "", effect: "" },
+  "senaris-six-of-diamonds": {
+    name: "セナリス、ダイヤの6",
+    effect:
+      "スペルシュラウド、ステルス\n\n" +
+      "カーディストリ — (6)：このターン、あなたがコントロールするスートスペルの発生源が次の3回ダメージを与える際、代わりにそれはそのダメージに3点を加えたダメージを与える。この能力は、あなたがコントロールする異なるリザーブコストを持つスートオブジェクト1つにつき、起動コストが(1)少なくなる。この能力は1回のみ起動する。",
+  },
 
   // Shade Striker  [ALLY]  L- NORM
   // EN: Ambush (This ally may retaliate against attackers while not defending.)
-  "shade-striker": { name: "", effect: "" },
+  "shade-striker": {
+    name: "影の襲撃者",
+    effect: "アンブッシュ *（このアライは、防御していない間も攻撃者にリタリエイトしてよい。）*",
+  },
 
   // Shaded Doppelganger  [ALLY]  L- UMBRA
   // EN: Stealth /  / Shaded Doppelganger gets +XPOWER, where X is the highest base power stat among other allies you control.
-  "shaded-doppelganger": { name: "", effect: "" },
+  "shaded-doppelganger": {
+    name: "影のドッペルゲンガー",
+    effect:
+      "ステルス\n\n" +
+      "「影のドッペルゲンガー」は＋Xパワーを得る。Xはあなたがコントロールする他のアライの中で最も高い基本パワー値。",
+  },
 
   // Shademist Priestess  [ALLY]  L- WATER
   // EN: Stealth /  / Whenever your champion is dealt damage from a source you don't control,  you may recover 1. /  / Floating Memory
-  "shademist-priestess": { name: "", effect: "" },
+  "shademist-priestess": {
+    name: "影霧の女司祭",
+    effect:
+      "ステルス\n\n" +
+      "あなたのチャンピオンがあなたがコントロールしていない発生源からダメージを受けるたび、あなたは1リカバーしてよい。\n\n" +
+      "フローティングメモリー",
+  },
 
   // Shilowen, Peaceful Beginnings  [UNIQUE/DOMAIN]  L- NORM
   // EN: Whenever an ally enters the field, you may remove two durability counters from Shilowen. If you do, put a bulwark counter on that ally. (If combat damage would be dealt to an ally with any bulwark counters on it, remove one and prevent that damage instead.)
-  "shilowen-peaceful-beginnings": { name: "", effect: "" },
+  "shilowen-peaceful-beginnings": {
+    name: "シロウェン、平穏なる始まり",
+    effect:
+      "アライが戦場に出るたび、あなたは「シロウェン」から耐久カウンターを2個取り除いてよい。そうしたなら、そのアライにバルワークカウンターを1個置く。*（バルワークカウンターが乗っているアライに戦闘ダメージが与えられる場合、代わりにそれを1個取り除き、そのダメージを軽減する。）*",
+  },
 
   // Shimmercloak Assassin  [ALLY]  L- WIND
   // EN: Stealth (This unit can't be targeted by attacks unless permitted by true sight.)
-  "shimmercloak-assassin": { name: "", effect: "" },
+  "shimmercloak-assassin": {
+    name: "煌めきの外套の暗殺者",
+    effect:
+      "ステルス *（このユニットは、トゥルーサイトによって許可されないかぎり、攻撃の対象にできない。）*",
+  },
 
   // Shizun of the Ash  [ALLY]  L- FIRE
   // EN: On Enter: You may discard a card. If you do, draw a card.  /  / [Kongming Bonus] REST, Banish a fire element card from your graveyard: As a Spell, deal 4 damage to target ally. Activate this ability only if your Shifting Currents face North or South. 
-  "shizun-of-the-ash": { name: "", effect: "" },
+  "shizun-of-the-ash": {
+    name: "灰の師尊",
+    effect:
+      "登場時：あなたはカードを1枚捨ててよい。そうしたなら、カードを1枚引く。\n\n" +
+      "［孔明ボーナス］レスト、あなたの墓地から火エレメントのカードを1枚追放する：スペルとして、対象のアライに4点のダメージを与える。この能力は、あなたの「移ろう潮流」が北または南を向いている場合のみ起動する。",
+  },
 
   // Shock Therapy  [ACTION]  L- ARCANE
   // EN: [Class Bonus] [Element Bonus] Whenever this card is banished from your memory, put an enlighten counter on your champion. /  / Deal an amount of damage to target ally equal to the amount of enlighten counters on your champion.
-  "shock-therapy": { name: "", effect: "" },
+  "shock-therapy": {
+    name: "ショック療法",
+    effect:
+      "［クラスボーナス］［エレメントボーナス］このカードがあなたのメモリーから追放されるたび、あなたのチャンピオンに覚醒カウンターを1個置く。\n\n" +
+      "対象のアライに、あなたのチャンピオン上の覚醒カウンターの数に等しい量のダメージを与える。",
+  },
 
   // Shroud in Mist  [ACTION]  L- WATER
   // EN: [Class Bonus] This card costs 2 less to activate. (Apply this effect only if your champion's class matches this card's class.) /  / Units you control gain stealth until end of turn. (Units with stealth can't be targeted by attacks unless permitted by true sight.)
-  "shroud-in-mist": { name: "", effect: "" },
+  "shroud-in-mist": {
+    name: "霧に包む",
+    effect:
+      "［クラスボーナス］このカードは起動コストが2少なくなる。*（この効果は、あなたのチャンピオンのクラスがこのカードのクラスと一致する場合のみ適用する。）*\n\n" +
+      "あなたがコントロールするユニットは、ターン終了時までステルスを得る。*（ステルスを持つユニットは、トゥルーサイトによって許可されないかぎり、攻撃の対象にできない。）*",
+  },
 
   // Silver Soldier  [ALLY]  L- EXALTED,NORM
   // EN: (Exalted â This element is enabled for you as long as you have another advanced element enabled.) /  / Retort 2, Vigor
-  "silver-soldier": { name: "", effect: "" },
+  "silver-soldier": {
+    name: "銀の兵士",
+    effect:
+      "*（エグザルテッド — このエレメントは、あなたが他のアドバンスドエレメントを有効にしているかぎり、あなたにとって有効となる。）*\n\n" +
+      "リトート2、ヴィガー",
+  },
 
   // Silvergale Monstrosity's Call  [ACTION]  L- EXALTED,WIND
   // EN: Prepare 2 /  / Summon a Memorite Obelith token. If Silvergale Monstrosity's Call was prepared, move any amount of sheen counters from your Fractured Memories onto any amount of allies named Memorite Obelith you control.
-  "silvergale-monstrositys-call": { name: "", effect: "" },
+  "silvergale-monstrositys-call": {
+    name: "シルバーゲイルの怪物の呼び声",
+    effect:
+      "プリペア2\n\n" +
+      "メモライト・オベリストークンを1つ召喚する。「シルバーゲイルの怪物の呼び声」がプリペアされていた場合、あなたの「砕けた記憶」から好きな数のシーンカウンターを、あなたがコントロールする「メモライト・オベリス」という名前の好きな数のアライに移す。",
+  },
 
   // Silvergale Obelith's Call  [ACTION]  L- WIND
   // EN: Summon a Memorite Obelith token with a sheen counter on it.
-  "silvergale-obeliths-call": { name: "", effect: "" },
+  "silvergale-obeliths-call": {
+    name: "シルバーゲイルのオベリスの呼び声",
+    effect: "シーンカウンターを1個乗せたメモライト・オベリストークンを1つ召喚する。",
+  },
 
   // Silvershine  [TOKEN/ITEM]  L- NORM
   // EN: Sacrifice Silvershine: Recover 1.
-  "silvershine": { name: "", effect: "" },
+  "silvershine": {
+    name: "シルバーシャイン",
+    effect: "「シルバーシャイン」をサクリファイスする：1リカバーする。",
+  },
 
   // Simple Slime  [ALLY]  L- NORM
   // EN: Simple Slime can't attack. /  / If damage would be dealt to Simple Slime, prevent 3 of that damage.
-  "simple-slime": { name: "", effect: "" },
+  "simple-slime": {
+    name: "素朴なスライム",
+    effect:
+      "「素朴なスライム」は攻撃できない。\n\n" +
+      "「素朴なスライム」にダメージが与えられる場合、そのダメージのうち3点を軽減する。",
+  },
 
   // Sinister Composure  [ACTION]  L- UMBRA
   // EN: Draw a card, then put a preparation counter on your champion.  /  / [Tristan Bonus] If you have agility, put three more preparation counters on your champion.
-  "sinister-composure": { name: "", effect: "" },
+  "sinister-composure": {
+    name: "不気味な平静",
+    effect:
+      "カードを1枚引き、その後あなたのチャンピオンにプリペアレーションカウンターを1個置く。\n\n" +
+      "［トリスタンボーナス］あなたがアジリティを持っている場合、あなたのチャンピオンにさらにプリペアレーションカウンターを3個置く。",
+  },
 
   // Siphoning Stab  [ATTACK]  L- EXIA
   // EN: [Class Bonus] As long as the attacker is attacking using a Polearm weapon, Siphoning Stab has "On Hit: Recover X, where X is the amount of damage dealt by this hit."
-  "siphoning-stab": { name: "", effect: "" },
+  "siphoning-stab": {
+    name: "吸収の刺突",
+    effect:
+      "［クラスボーナス］攻撃者が長柄武器を使って攻撃しているかぎり、「吸収の刺突」は「ヒット時：Xリカバーする。Xはこのヒットで与えられたダメージの量。」を持つ。",
+  },
 
   // Slay the King  [ATTACK]  L- CRUX
   // EN: [Class Bonus] On Attack: You may banish a card from your material deck. If you do, Slay the King gains "On Kill: You may play the banished card."
-  "slay-the-king": { name: "", effect: "" },
+  "slay-the-king": {
+    name: "王を討つ",
+    effect:
+      "［クラスボーナス］攻撃時：あなたのマテリアルデッキからカードを1枚追放してよい。そうしたなら、「王を討つ」は「キル時：あなたはその追放されたカードをプレイしてよい。」を得る。",
+  },
 
   // Slice and Dice  [ATTACK]  L- NORM
   // EN: Prepare 3 /  / On Hit: If Slice and Dice was prepared, you may have the attacker declare an additional attack. If you do, create a copy of Slice and Dice in that attacker's intent except it isn't prepared and it gets +3 POWER.
-  "slice-and-dice": { name: "", effect: "" },
+  "slice-and-dice": {
+    name: "斬り刻み",
+    effect:
+      "プリペア3\n\n" +
+      "ヒット時：「斬り刻み」がプリペアされていた場合、あなたは攻撃者に追加の攻撃を宣言させてよい。そうしたなら、その攻撃者のインテントに「斬り刻み」のコピーを作成する。ただしそれはプリペアされておらず、＋3パワーを得る。",
+  },
 
   // Slime Calling  [ACTION]  L- WIND
   // EN: Activate this card only during an opponent's end phase. /  / [Class Bonus] Look at the top 3+LV cards of your deck. You may activate up to two Slime ally cards from among them. Cards you activate this way cost 1 less to activate. Put the rest of the cards on the bottom of your deck in any order.
-  "slime-calling": { name: "", effect: "" },
+  "slime-calling": {
+    name: "スライムの呼び声",
+    effect:
+      "このカードは対戦相手のエンドフェイズ中にのみ起動する。\n\n" +
+      "［クラスボーナス］あなたのデッキの一番上から3＋LV枚を見る。その中からスライムアライカードを最大2枚起動してよい。この方法で起動するカードは起動コストが1少なくなる。残りのカードを好きな順番でデッキの一番下に置く。",
+  },
 
   // Slime Party  [ACTION]  L- NORM
   // EN: [Silvie Bonus] This card costs 1 less to activate for each different element Slime ally you control. (Apply this effect only if your champion is Silvie.) /  / Put a buff counter on each Slime ally you control.
-  "slime-party": { name: "", effect: "" },
+  "slime-party": {
+    name: "スライムパーティー",
+    effect:
+      "［シルヴィボーナス］このカードは、あなたがコントロールする異なるエレメントのスライムアライ1体につき、起動コストが1少なくなる。*（この効果は、あなたのチャンピオンがシルヴィの場合のみ適用する。）*\n\n" +
+      "あなたがコントロールする各スライムアライにバフカウンターを1個置く。",
+  },
 
   // Slime Swarm  [ALLY]  L- NORM
   // EN: [Class Bonus] On Enter: Summon two Baby Slime tokens rested. (Apply this effect only if your champion's class matches this card's class.)
-  "slime-swarm": { name: "", effect: "" },
+  "slime-swarm": {
+    name: "スライムの群れ",
+    effect:
+      "［クラスボーナス］登場時：赤ちゃんスライムトークンを2体レストして召喚する。*（この効果は、あなたのチャンピオンのクラスがこのカードのクラスと一致する場合のみ適用する。）*",
+  },
 
   // Slimecall Cyclone  [PHANTASIA]  L- WIND
   // EN: [Class Bonus] At the beginning of your recollection phase, summon a Baby Slime token. (Apply this effect only if your championâs class matches this cardâs class.)
-  "slimecall-cyclone": { name: "", effect: "" },
+  "slimecall-cyclone": {
+    name: "スライムコールのサイクロン",
+    effect:
+      "［クラスボーナス］あなたのリコレクションフェイズの開始時に、赤ちゃんスライムトークンを1体召喚する。*（この効果は、あなたのチャンピオンのクラスがこのカードのクラスと一致する場合のみ適用する。）*",
+  },
 
   // Soothing Potion  [ITEM]  L- WATER
   // EN: Brew â Two Herbs with the same name (You may sacrifice the listed objects rather than pay this cardâs reserve cost.) /  / Sacrifice Soothing Potion: Draw a card and recover 3. If Soothing Potion was brewed, draw an additional card.
-  "soothing-potion": { name: "", effect: "" },
+  "soothing-potion": {
+    name: "癒しのポーション",
+    effect:
+      "ブリュー — 同じ名前のハーブ2つ *（このカードのリザーブコストを支払う代わりに、記載されたオブジェクトをサクリファイスしてよい。）*\n\n" +
+      "「癒しのポーション」をサクリファイスする：カードを1枚引き、3リカバーする。「癒しのポーション」がブリューされていた場合、追加でカードを1枚引く。",
+  },
 
   // Spark Fairy  [ALLY]  L- FIRE
   // EN: Stealth (This unit can't be targeted by attacks unless permitted by true sight.) /  / On Enter: Target non-champion object gains âAt the beginning of your recollection phase, deal 1 unpreventable damage to your championâ for as long as you control Spark Fairy.
-  "spark-fairy": { name: "", effect: "" },
+  "spark-fairy": {
+    name: "火花の妖精",
+    effect:
+      "ステルス *（このユニットは、トゥルーサイトによって許可されないかぎり、攻撃の対象にできない。）*\n\n" +
+      "登場時：あなたが「火花の妖精」をコントロールしているかぎり、対象のチャンピオンでないオブジェクトは「あなたのリコレクションフェイズの開始時に、あなたのチャンピオンに1点の軽減不能のダメージを与える」を得る。",
+  },
 
   // Sparkling Adornment  [ACTION]  L- NORM
   // EN: As an additional cost to activate this card, remove one or more sheen counters from an object on the field. /  / Put X sheen counters on target unit, where X is the amount of counters removed. /  / [Merlin Bonus] Floating Memory
