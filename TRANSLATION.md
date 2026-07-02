@@ -1,7 +1,7 @@
 # 翻訳ガイド（日本語訳の表記ルール）
 
 Grand Archive 日本語カードDB の非公式訳を、誰が書いても一貫するようにするためのルールです。
-まずは DTRSD（Distorted Reflections スターターデッキ）から着手しています。
+DTRSD（Distorted Reflections スターターデッキ）に続き、最新弾 RDO（Radiant Origins 基本セット・376枚）を訳出済みです。
 
 ## ワークフロー
 
@@ -41,17 +41,62 @@ Grand Archive 日本語カードDB の非公式訳を、誰が書いても一貫
 | On Hit | ヒット時 |
 | Inherited Effect | 継承効果 |
 | Class Bonus | クラスボーナス |
-| Spellshroud | 呪文耐性 |
+| Spellshroud | スペルシュラウド |
 | Floating Memory | フローティングメモリー |
 | Aethercharge / Aetherwing | エーテルチャージ / エーテルウィング |
-| load | 装填する |
-| Starcalling | スターコーリング |
+| load | ロードする |
+| Starcalling / Starcall | スターコーリング / スターコール |
 | omen counter | オーメンカウンター |
 | mastery | マスタリー |
-| Sacrifice | 生け贄に捧げる |
+| Sacrifice | サクリファイス（する） |
+| recover | リカバー |
+| empower | エンパワー |
 | target | 対象 |
 | unit / ally | ユニット / アライ |
 | draw a card | カードを1枚引く |
+| awake / rest | アウェイク / レスト |
+
+### RDO で追加した主なキーワード（カタカナ表記に統一）
+
+| English | 日本語 |
+|---|---|
+| Efficiency | エフィシェンシー |
+| Vigor | ヴィガー |
+| Steadfast | ステッドファスト |
+| Cleave | クリーブ |
+| Ephemerate / ephemeral | エフェメレート / エフェメラル |
+| Imbue / imbued | インビュー / インビュー状態 |
+| Advanced Imbue | アドバンスド・インビュー |
+| Brew / brewed | ブリュー / ブリューされた |
+| Gather | ギャザー |
+| Scavenge | スカベンジ |
+| Kindle | キンドル |
+| Deluge | デリュージ |
+| Pride | プライド |
+| Foster / fostered | フォスター / フォスターされた |
+| Retort | リトート |
+| Cardistry | カーディストリ |
+| Agility | アジリティ |
+| Preserve / preserved | プリザーブ / プリザーブされた |
+| Suppress | サプレス |
+| Ally Link | アライリンク |
+| Omnishroud | オムニシュラウド |
+| Exalted | エグザルテッド |
+| Harmonize | ハーモナイズ |
+| Divine Relic | ディヴァインレリック |
+| Siegeable | シージアブル |
+| Commanded Will | コマンドウィル |
+| Ranged | レンジド |
+| Ambush | アンブッシュ |
+| Stealth / True Sight | ステルス / トゥルーサイト |
+| bulwark counter | バルワークカウンター |
+| wither counter | 萎縮カウンター |
+| enlighten counter | 覚醒カウンター |
+| unpreventable | 軽減不能 |
+| \[X Bonus\] | ［Xボーナス］（キャラ名は既存の定訳・カタカナ） |
+
+- キーワード能力名は**カタカナ**、能力の動作（追放・破壊・打ち消す等）は**和訳**する。
+- `[Class Bonus]` などのボーナス表記は全角角括弧 `［…］`。`[Damage 20+]`＝［ダメージ20以上］、`[Level 2+]`＝［レベル2以上］。
 
 - 固有名（マスタリー名・特定の称号など）で定訳が無いものは「日本語（English）」の形で併記する。
 - 迷ったら英語カード名・効果を残し、`terms` に用語を足して解説で補う。
