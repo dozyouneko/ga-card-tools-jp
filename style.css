@@ -378,8 +378,10 @@ body.show-en-primary .card-name-en { font-size: .98rem; color: var(--text); font
   /* 検索入力は全幅で縦積み */
   #q, #qtext { flex: 1 1 100%; min-width: 0; }
   .controls .lang-toggle { margin-left: 0; width: 100%; justify-content: space-between; }
-  /* フィルタ・並び替え行は 2 列で整然と */
+  /* フィルタ・並び替え行：セレクトは全幅（長い日本語ラベルの見切れ防止）、
+     短い昇順/降順・リセットのボタンだけ 2 列に */
   .controls-row:last-child { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .controls-row:last-child select { grid-column: 1 / -1; }
   #order, #reset { min-width: 0; }
 
   /* カード一覧：2 列固定（一覧性重視） */
