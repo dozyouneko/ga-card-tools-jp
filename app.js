@@ -558,7 +558,10 @@ function matchedTerms(card) {
   const haystack = `${card.effect || ""}`.toLowerCase();
   const found = [];
   Object.keys(I18N.terms || {}).forEach((key) => {
-    if (haystack.includes(key)) found.push(I18N.terms[key]);
+    // 語頭のワード境界(\b)で判定して英単語の途中でのヒットを防ぐ。
+    // 例: "age counter" は "damage counter" に、"charge" は "discharge" に誤ヒットしない。
+    // 語尾は境界を課さないため、複数形・活用（banished / materializes 等）は引き続き一致する。
+    if (new RegExp("\\b" + escapeRegExp(key)).test(haystack)) found.push(I18N.terms[key]);
   });
   return found;
 }
