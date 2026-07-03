@@ -274,10 +274,10 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   // Zhao Yun, Dragonsblood  [UNIQUE/ALLY]  L- EXIA
   // EN: [Class Bonus] **On Attack:** You may have CARDNAME deal 2 unpreventable damage to your champion. If you do, this attack gets +2 [POWER]. /  / [Class Bonus] **On Kill:** CARDNAME gains **immortality**. *(This effect lasts indefinitely.)*
   "zhao-yun-dragonsblood": {
-    name: "ジャオ・ユン、竜の血脈",
+    name: "ジャオ・ユン、竜のリネージュ",
     effect:
-      "［クラスボーナス］攻撃時：あなたは「ジャオ・ユン、竜の血脈」にあなたのチャンピオンへ2点の軽減不能のダメージを与えさせてよい。そうしたなら、この攻撃は＋2パワーを得る。\n\n" +
-      "［クラスボーナス］キル時：「ジャオ・ユン、竜の血脈」はイモータリティを得る。*（この効果は無期限に続く。）*",
+      "［クラスボーナス］攻撃時：あなたは「ジャオ・ユン、竜のリネージュ」にあなたのチャンピオンへ2点の軽減不能のダメージを与えさせてよい。そうしたなら、この攻撃は＋2パワーを得る。\n\n" +
+      "［クラスボーナス］キル時：「ジャオ・ユン、竜のリネージュ」はイモータリティを得る。*（この効果は無期限に続く。）*",
   },
 
 });
