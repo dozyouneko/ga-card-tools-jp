@@ -15,7 +15,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   // Arcane Renunciation  [ACTION]  L- ARCANE
   // EN: Banish all cards in your hand and memory. Then return all non-champion non-regalia arcane element cards from your graveyard and banishment to your hand. **Empower 10**.  /  / [Rai Bonus] Until end of turn, whenever you activate a Spell card, **empower 10**.
   "arcane-renunciation": {
-    name: "秘術の放棄",
+    name: "アーケインの放棄",
     effect:
       "あなたの手札とメモリーのすべてのカードを追放する。その後、あなたの墓地と追放領域から、チャンピオンでもレガリアでもないアーケインエレメントのカードをすべてあなたの手札に戻す。エンパワー10する。\n\n" +
       "［ライボーナス］ターン終了時まで、あなたがスペルカードを起動するたび、エンパワー10する。",
@@ -24,7 +24,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   // Arcanist's Prism  [REGALIA/ITEM]  L- ARCANE
   // EN: At the beginning of your recollection phase, put all cards from your memory on the bottom of your deck in any order, then draw that many cards.
   "arcanists-prism": {
-    name: "秘術士のプリズム",
+    name: "アーケイニストのプリズム",
     effect:
       "あなたのリコレクションフェイズの開始時に、あなたのメモリーのすべてのカードを好きな順番でデッキの一番下に置き、その後その枚数のカードを引く。",
   },

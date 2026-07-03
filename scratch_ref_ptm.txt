@@ -1,0 +1,316 @@
+  // [abnegation] Abnegation | ACTION | UMBRA | lv
+  //   EN: **Recover 8+X**, where **X** is twice the amount of Curse cards in your champion's lineage. [Alice Bonus] As long as a card activation you controlled was **negated** this turn, this card in your graveyard has "**Ephemerate â **(2)".
+  // [advantageous-perch] Advantageous Perch | ACTION | EXALTED/WIND | lv
+  //   EN: *(Exalted â This element is enabled for you as long as you have another advanced element enabled.)* Your champion becomes **distant**. Then return up to one target Ranger action card from your graveyard to your hand. Banish CARDNAME.
+  // [aetherwings-ward] Aetherwing's Ward | ACTION | NORM | lv
+  //   EN: Target Aetherwing weapon you control gains **spellshroud** until end of turn. If your champion is **distant**, draw a card. *(Objects with **spellshroud** canât be targeted by Spells.)*
+  // [alizarin-longbowman] Alizarin Longbowman | ALLY | EXALTED/FIRE | lv
+  //   EN: *(Exalted â This element is enabled for you as long as you have another advanced element enabled.)* [Class Bonus] **Ranged 3** [Class Bonus] Whenever CARDNAME becomes **distant**, you may have each player draw a card.
+  // [betraying-blade] Betraying Blade | ATTACK | WIND | lv
+  //   EN: **On Attack:** You may pay (2). If you do, put a **preparation** counter on your champion. [Class Bonus] **Floating Memory** *(While paying for a memory cost, you may banish this card from your graveyard to pay for 1 of that cost.)* 
+  // [biding-cinquedea] Biding Cinquedea | REGALIA/WEAPON | NORM | lv
+  //   EN: [Class Bonus] **On Charge 2:** CARDNAME gets +1[POWER] until end of turn. Then put a **preparation** counter on your champion. *(At the beginning of your recollection phase, put a **charge** counter on each object you control with an untriggered **on charge** ability. Trigger this ability the first time two **charge** counters are on it.)*
+  // [bishops-cross] Bishop's Cross | ATTACK | WIND | lv
+  //   EN: **Command Chessman** *(A Chessman ally you control performs this attack.)* **On Kill:** If the killed unit had an odd life stat, draw a card.
+  // [bladed-riftseer] Bladed Riftseer | ALLY | NORM | lv
+  //   EN: [Level 1+] **True Sight** *(Units with** true sight** can attack objects with **stealth**. Apply this effect only if your champion is level 1 or higher.)*
+  // [briars-spindle] Briar's Spindle | REGALIA/ITEM | WIND | lv
+  //   EN: **Banish CARDNAME:** Wake up each Chessman ally you control. Activate this ability only during an opponent's turn. [REST]: The next Chessman card you activate this turn costs (2) less to activate. Activate this ability only if you control a Chessman King ally.
+  // [brookside-scout] Brookside Scout | ALLY | WATER | lv
+  //   EN: ***Deluge 3*** â **On Enter:** If you have three or more water element cards in your graveyard, you may load an Aethercharge card from your graveyard into an Aetherwing weapon you control. **Floating Memory**
+  // [buffeting-hurricane] Buffeting Hurricane | PHANTASIA | EXALTED/WIND | lv
+  //   EN: *(Exalted â This element is enabled for you as long as you have another advanced element enabled.)* [Class Bonus] **On Enter:** Draw a card into your memory. [Class Bonus] Whenever you **suppress** an object, deal 2 damage to target champion.
+  // [burning-aethercharge] Burning Aethercharge | ACTION | FIRE | lv
+  //   EN: [Class Bonus] **Kindle 2** *(You may banish up to two fire element cards from your graveyard as you activate this card. Each one pays for (1) of this cardâs cost.)* Deal 2 damage to target champion. Then you may load CARDNAME into an Aetherwing weapon you control.
+  // [burnished-obelith] Burnished Obelith | ALLY | WATER | lv
+  //   EN: [Sheen 8+] **Taunt** [Merlin Bonus] **On Enter:** Put two **sheen** counters on target unit you don't control. If that unit is a champion, the next card its controller activates this turn costs (2) more to activate.
+  // [calming-breeze] Calming Breeze | ACTION | WIND | lv
+  //   EN: Until end of turn, if 3 or less damage would be dealt to your champion, prevent that damage. [Level 1+]**Floating Memory** *(While paying for a memory cost, you may banish this card from your graveyard to pay for 1 of that cost.)*
+  // [castling] Castling | ACTION | NORM | lv
+  //   EN: This card costs 2 less to activate if you control a Chessman Rook ally. This card costs 2 less to activate if you control a Chessman King ally. Until end of turn, up to two target Chessman allies gain **spellshroud** and **taunt**, and get +2 [LIFE].
+  // [chamberlain-toad] Chamberlain Toad | ALLY | EXALTED/WATER | lv
+  //   EN: *(Exalted â This element is enabled for you as long as you have another advanced element enabled.)* [Class Bonus] (2): Wake up CARDNAME and it gains **taunt** until end of turn. Activate this ability only during an opponent's recollection phase. [Class Bonus] **Floating Memory**
+  // [claimed-from-beyond] Claimed From Beyond | ACTION | CRUX | lv
+  //   EN: Banish target non-champion object if one of its types matches one of the types among cards in your banishment. *(Types include: ally, domain, item, phantasia, and weapon. Supertypes and subtypes are excluded.)*
+  // [cleansing-reunion] Cleansing Reunion | ACTION | WIND | lv
+  //   EN: **Imbue 2** *(You may reserve all cards revealed as you activate this card. If at least two of them are wind element, this card becomes **imbued**.)* Target player banishes three cards from their graveyard. If CARDNAME is **imbued**, that player banishes six cards from their graveyard instead.
+  // [condemning-evisceration] Condemning Evisceration | ATTACK | EXALTED/WATER | lv
+  //   EN: [Class Bonus] **Prepare 1** **On Champion Hit:** If CARDNAME was **prepared**, you may banish a card with **floating memory** from your graveyard. If you do, deal 4 damage to the hit champion. 
+  // [conjuring-fluorescence] Conjuring Fluorescence | ACTION | EXALTED/WIND | lv
+  //   EN: [Merlin Bonus] [Sheen 8+] **Fast Activation** *(You may activate this card at fast speed.)* Materialize a regalia card from your material deck. *(You still pay for its costs.)*
+  // [cosmic-focus] Cosmic Focus | ACTION | ASTRA | lv
+  //   EN: **Starcalling â** (0) If your champion is **distant**, they gain **ranged 4** for as long as they remain **distant**. Otherwise, they become **distant**. You may put CARDNAME into its owner's deck fourth from the top.
+  // [crackling-incineration] Crackling Incineration | ACTION | FIRE | lv
+  //   EN: [Sheen 6+] This card costs 2 less to activate. Destroy target item or weapon with memory cost 0 or reserve cost 4 or less. Then its controller puts a **sheen** counter on a unit they control.
+  // [crumbling-reign] Crumbling Reign | ACTION | EXALTED/FIRE | lv
+  //   EN: *(Exalted â This element is enabled for you as long as you have another advanced element enabled.)* Destroy target item or weapon.
+  // [crystal-accretion] Crystal Accretion | ACTION | WATER | lv
+  //   EN: Put a **sheen** counter on each unit with a **sheen** counter on it. **Floating Memory** *(While paying for a memory cost, you may banish this card from your graveyard to pay for 1 of that cost.)*
+  // [crystallized-anthem] Crystallized Anthem | ACTION | EXALTED/WIND | lv
+  //   EN: Prevent the next 2 damage that would be dealt to each unit you control this turn. When damage is prevented this way, put two **sheen** counters on your Fractured Memories. At the beginning of your next recollection phase, Memorite objects you control get +1[POWER] for every six **sheen** counters on your Fractured Memories until end of turn.
+  // [crystalvein-awakening] Crystalvein Awakening | ACTION | WIND | lv
+  //   EN: [Merlin Bonus] **Imbue 2** *(You may reserve all cards revealed as you activate this card. If at least two of them are wind element, this card becomes **imbued**.)* **Summon** a Memorite Obelith token with a **sheen** counter on it. If CARDNAME is **imbued**, put an additional **sheen** counter on that token.
+  // [dichroic-scorch] Dichroic Scorch | ACTION | FIRE | lv
+  //   EN: As an additional cost to activate this card, discard a fire element card. Remove all **sheen** counters from all units on the field. Then deal **X** damage to each unit except for your champion, where **X** is the amount of counters removed this way.
+  // [doubled-pawns] Doubled Pawns | ACTION | WATER | lv
+  //   EN: **Summon** two Pawn Piece tokens. [Alice Bonus] If CARDNAME was activated during an opponent's recollection phase, those tokens also gain **taunt** until end of turn.
+  // [drifting-abysshell] Drifting Abysshell | ALLY | WATER | lv
+  //   EN: **[Alice Bonus]** **On Enter:** Put a **haunt** counter on your Phantasmagoria.
+  // [dropped-band] Dropped Band | REGALIA/ITEM | NORM | lv
+  //   EN: **Banish CARDNAME:** You may reveal three Chessman cards from your hand and/or memory. If you do, **summon** a Pawn Piece token.
+  // [drown-in-sorrow] Drown in Sorrow | ACTION | WATER | lv
+  //   EN: **Recover 1** and put a **haunt** counter on your Phantasmagoria. [Alice Bonus] **Ephemerate â (2)** *(You may activate this card from your graveyard by paying this cost. Action cards played this way become **ephemeral** on the effects stack.)*
+  // [ducal-seal] Ducal Seal | REGALIA/ITEM | EXALTED/NORM | lv
+  //   EN: *(Exalted â This element is enabled for you as long as you have another advanced element enabled.)* **Banish CARDNAME:** Until end of turn, players canât declare attacks unless they pay (3) for each attack declaration. Activate this ability only during an opponentâs recollection phase.
+  // [embrace-noir] Embrace Noir | ACTION | UMBRA | lv
+  //   EN: Until end of turn, all allies gain **stealth**. [Ciel Bonus] If you have one or more umbra element **omens**, draw a card into your memory.
+  // [eminent-lethargy] Eminent Lethargy | ACTION | EXALTED/WATER | lv
+  //   EN: Until end of turn, players canât declare attacks unless they pay (2) for each attack declaration. If a unit is attacking, end the combat phase. *(As a phase ends, banish all triggers, activations, and materializations on the effects stack.)*
+  // [enfeebling-orb] Enfeebling Orb | REGALIA/ITEM | NORM | lv
+  //   EN: **Banish CARDNAME: **Target opponent puts two cards from their hand into their memory.
+  // [en-passant] En Passant | ATTACK | WIND | lv
+  //   EN: **Command Chessman** *(A Chessman ally you control performs this attack.)* As long as a Chessman Pawn ally is attacking with CARDNAME, it has "**On Kill: **If there are no **buff** counters on this ally, put two **buff** counters on it."
+  // [enveloping-soulmist] Enveloping Soulmist | ACTION | CRUX | lv
+  //   EN: [Class Bonus] As long as your champion is awake, this card costs 2 less to activate. Your champion gains **stealth** until end of turn. Put a **preparation** counter on your champion.
+  // [equivalent-exchange] Equivalent Exchange | ACTION | NORM | lv
+  //   EN: **Summon** a Lost Being token rested. Then you may banish two ally cards from a single graveyard. If you do, wake up that token and put a **buff** counter on it.
+  // [ethereal-absorption] Ethereal Absorption | ACTION | CRUX | lv
+  //   EN: As an additional cost to activate this card, return a regalia you control to its owner's material deck. Draw a card, then put two **preparation** counters on your champion.
+  // [facet-together] Facet Together | ACTION | WIND | lv
+  //   EN: Activate this card only during an opponent's turn. Sacrifice any amount of Memorite objects. Target weapon you control gets +**X** [POWER] until the end of your next turn, where **X** is the amount of objects sacrificed this way. Then put **X** **sheen** counters on your Fractured Memories.
+  // [fellowships-gale] Fellowship's Gale | ACTION | WIND | lv
+  //   EN: Load CARDNAME into an Aetherwing weapon you control. CARDNAME gets +1 [POWER] for each ally you control.
+  // [feu-awakening] Feu Awakening | ACTION | FIRE | lv
+  //   EN: **Interdiction** *(As long as this card's activation is on the effects stack, players can't gain opportunity.)* [Ciel Bonus] Discard all cards from your hand and memory. Then banish up to two cards from your graveyard. Put an **omen** counter on each card banished this way. Until end of turn, card activations you control can't be **negated**. 
+  // [field-of-ranks-and-files] Field of Ranks and Files | UNIQUE/DOMAIN | NORM | lv
+  //   EN: The first time a Chessman ally enters the field under your control during each of your turns, that ally gets +2 [POWER] until end of turn. The first Chessman Command card you activate during each of your turns enters the intent with +2 [POWER].
+  // [flared-iridescence] Flared Iridescence | ACTION | EXALTED/FIRE | lv
+  //   EN: Deal 4 damage to target unit. [Merlin Bonus] [Sheen 10+] **Ephemerate â** (2) [Merlin Bonus] [Level 5+] **Ephemerate â** (2) 
+  // [flickering-afterglow] Flickering Afterglow | ATTACK | FIRE | lv
+  //   EN: [Merlin Bonus] This card costs 1 less to activate for each **sheen** counter on your Fractured Memories.
+  // [folded-shadows] Folded Shadows | REGALIA/ITEM | UMBRA | lv
+  //   EN: [Ciel Bonus] As long as the total reserve cost among your **omens** is 33 or greater, your champion has **spellshroud** and **stealth**.
+  // [fracturing-slash] Fracturing Slash | ATTACK | WIND | lv
+  //   EN: [Merlin Bonus] **On Attack: ** You may move up to three **sheen** counters from among units on the field onto the defender. 
+  // [freezing-gambit] Freezing Gambit | ACTION | WATER | lv
+  //   EN: As an additional cost to activate this card, sacrifice a Chessman ally. Choose one or bothâ â¢ **Negate** target card activation unless its controller pays (2). â¢ Target unit's attacks get -3 [POWER] until end of turn.
+  // [frog] Croaking Webfoot | ALLY | WATER | lv
+  //   EN: **Floating Memory** *(While paying for a memory cost, you may banish this card from your graveyard to pay for 1 of that cost.)*
+  // [gemini-starbearer] Gemini Starbearer | ALLY | ASTRA | lv
+  //   EN: **On Enter:** **Summon** an Astral Shard token. [REST]: As a Spell, deal **X** damage to target unit, where **X** is the amount of objects named Astral Shard you control.
+  // [genuflecting-execution] Genuflecting Execution | ACTION | EXALTED/WATER | lv
+  //   EN: [Class Bonus]**Efficiency** *(This card costs **LV** less to activate. **LV** refers to your championâs level.)* Destroy up to two target rested allies.
+  // [ghastly-slime] Ghastly Slime | ALLY | UMBRA | lv
+  //   EN: As long as CARDNAME is **ephemeral**, it gets +2 [POWER]. [Class Bonus] **Ephemerate â** (2) *(You may activate this card from your graveyard by paying this cost. Ally cards played this way become **ephemeral** as they enter the field.)*
+  // [gilded-pyre] Gilded Pyre | ACTION | FIRE | lv
+  //   EN: Deal 2 damage to target unit. If that unit has a **buff** counter on it, deal 4 damage to it instead.
+  // [glassgale-flock] Glassgale Flock | PHANTASIA | WIND | lv
+  //   EN: **On Enter: ****Summon** a Memorite Shardwing token. [Merlin Bonus] [Sheen 6+] (2), [REST]: If you don't control an ally named Memorite Shardwing, **summon** a Memorite Shardwing token.
+  // [gleaming-smolder] Gleaming Smolder | ACTION | FIRE | lv
+  //   EN: Draw a card and discard a card. [Merlin Bonus] If a fire element card was discarded, choose a unit and put two **sheen** counters on it. 
+  // [golden-bishop] Golden Bishop | ALLY | NORM | lv
+  //   EN: **On Hit:** If the hit unit has an odd life stat and if there are no **charge** counters on CARDNAME, put a **charge** counter on CARDNAME. **Remove a charge counter from CARDNAME:** Prevent the next 2 damage that would be dealt to target Chessman unit you control this turn.
+  // [golden-gambit] Golden Gambit | ACTION | NORM | lv
+  //   EN: [Alice Bonus] **Fast Activation** *(You may activate this card at fast speed.)* As an additional cost to activate this card, sacrifice a Chessman ally. Draw two cards.
+  // [golden-knight] Golden Knight | ALLY | NORM | lv
+  //   EN: [Alice Bonus] As long as CARDNAME is attacking a unit with **intercept** or **taunt**, CARDNAME gets +1 [POWER].
+  // [golden-pawn] Golden Pawn | ALLY | NORM | lv
+  //   EN: As long as you control another Chessman unit, CARDNAME has **taunt**. **On Death: **Draw a card. [Alice Bonus] **On Hit:** If 7 or more damage was dealt, you may sacrifice CARDNAME. If you do, **summon** a Queen Piece token. 
+  // [golden-rook] Golden Rook | ALLY | NORM | lv
+  //   EN: As long as CARDNAME is attacking a unit with an even life stat, CARDNAME gets +1[POWER].
+  // [grave-gateau] Grave Gateau | ITEM | NORM | lv
+  //   EN: **Hindered** *(This object enters the field rested.)* [REST], **Sacrifice CARDNAME: **Put a **buff** counter on target Specter ally. [Alice Bonus] **Ephemerate â** (1)
+  // [gustmark-gauge] Gustmark Gauge | REGALIA/ITEM | WIND | lv
+  //   EN: As long as CARDNAME is awake, Chessman allies you control get +1 [LIFE]. [Level 2+] As long as CARDNAME is rested, Chessman allies you control get +1 [POWER]. (2), [REST]: **Glimpse 1**.
+  // [harrow-the-saved] Harrow the Saved | ACTION | UMBRA | lv
+  //   EN: [Alice Bonus] As long as there's a Curse card in your champion's lineage, this card costs 3 less to activate. Put all non-champion non-regalia Specter cards from your banishment into your graveyard. Then **recover X**, where **X** is the amount of cards put into your graveyard this way.
+  // [ignition-draw] Ignition Draw | ACTION | FIRE | lv
+  //   EN: As long as your champion is **distant**, this card costs 2 less to activate. Look at the top six cards of your deck. Banish up to two Aethercharge cards from among them and put the rest on the bottom of your deck in any order. Until end of turn, you may activate the banished cards.
+  // [illusory-armsmaster] Illusory Armsmaster | ALLY | EXALTED/WATER | lv
+  //   EN: [Class Bonus] **Fast Activation** *(You may activate this card at fast speed.)* [Class Bonus] **On Enter:** Target Warrior weapon you control gains **spellshroud** until end of turn. Put two **durability** counters on it.
+  // [imperious-galebind] Imperious Galebind | ACTION | EXALTED/WIND | lv
+  //   EN: *(Exalted â This element is enabled for you as long as you have another advanced element enabled.)* **Suppress** up to three target allies, items, or weapons. *(To **suppress** an object, banish it and return it to the field under its ownerâs control at the beginning of the next end phase.)*
+  // [incapacitate] Incapacitate | ACTION | NORM | lv
+  //   EN: [Class Bonus] This card costs 2 less to activate. *(Apply this effect only if your champion's class matches this card's class.)* **Negate** target action card activation.
+  // [indissoluble-fractal] Indissoluble Fractal | PHANTASIA | WATER | lv
+  //   EN: **Reservable** *(While paying for a reserve cost, you may rest this object to pay for 1 of that cost.)* [Class Bonus] **Ephemerate â** (5) *(You may activate this card from your graveyard by paying this cost. Phantasia cards played this way become **ephemeral** as they enter the field.)*
+  // [infernal-vessel] Infernal Vessel | REGALIA/ITEM | FIRE | lv
+  //   EN: If a player would **recover** an amount, they **recover X** instead, where **X** is that amount minus 3. *(If a player would **recover 0** or less, they don't **recover**.)*
+  // [infinite-scintillation] Infinite Scintillation | ACTION | NORM | lv
+  //   EN: Move all **sheen** counters from target unit to your Fractured Memories. Then deal 1+**X** damage to that unit, where **X** is the amount of counters moved this way. [Sheen 6+] **Floating Memory**
+  // [inverted-pyroslash] Inverted Pyroslash | ATTACK | FIRE | lv
+  //   EN: [Ciel Bonus] This card costs 2 less to activate for each of up to two fire element **omens** you have. **On Attack:** Deal 5 damage to the attacker.
+  // [lagomorph-piece] Lagomorph Piece | REGALIA/ITEM | NORM | lv
+  //   EN: [Alice Bonus] This card costs 1 less to materialize. (3), **Banish CARDNAME: **Return target Chessman Command card from your graveyard to your memory.
+  // [lost-promises] Lost Promises | ACTION | UMBRA | lv
+  //   EN: [Alice Bonus] As long as your champion is defending, you may banish six cards from your graveyard to activate this card from your memory without paying its reserve cost. [Alice Bonus] Deal 3 damage to target attacking unit, then end the combat phase. 
+  // [lurking-assailant] Lurking Assailant | ALLY | NORM | lv
+  //   EN: CARDNAME has **stealth** as long as it's awake. [Level 1+] CARDNAME may retaliate against attackers while not defending. 
+  // [lusters-shroud] Luster's Shroud | ACTION | WIND | lv
+  //   EN: The next time target unit would be dealt damage this turn, prevent 3 of that damage. [Merlin Bonus] [Sheen 6+] **Ephemerate â** (3)
+  // [maledictum-vitae] Maledictum Vitae | ACTION | UMBRA | lv
+  //   EN: Put CARDNAME on the bottom of target champion's lineage. Whenever this card is put into a champion's lineage, that champion's controller **recovers 4**. [Alice Bonus] [Element Bonus] (2)**, Banish another card from your graveyard:** Put this card from your graveyard on the bottom of target champion's lineage. 
+  // [march-on] March On | ATTACK | NORM | lv
+  //   EN: **Command Chessman** *(A Chessman ally you control performs this attack.)* **Floating Memory** *(While paying for a memory cost, you may banish this card from your graveyard to pay for 1 of that cost.)*
+  // [mirrorbound-covenant] Mirrorbound Covenant | UNIQUE/PHANTASIA | EXALTED/NORM | lv
+  //   EN: **On Enter: **Draw a card into your memory. Each player's maximum **influence** is seven. *(As each player's end phase resolves, that player discards cards from their hand and/or memory until their **influence** is equal to their maximum influence.)*
+  // [mirrored-confrontation] Mirrored Confrontation | ACTION | NORM | lv
+  //   EN: Each player may reveal a champion card with base level 3 from their material deck. Each player that does draws a card into their memory and **recovers 2**.
+  // [mistral-ranger] Mistral Ranger | ALLY | WIND | lv
+  //   EN: [Class Bonus] As long as you've activated an Aethercharge card this turn, this card costs 1 less to activate. [Class Bonus] **Ranged 2** *(As long as this unit is **distant**, its attacks get +2 [POWER]. Apply this effect only if your championâs class matches this cardâs class.)*
+  // [misty-whispertail] Misty Whispertail | ALLY | WATER | lv
+  //   EN: **Sacrifice CARDNAME:** If CARDNAME was not **ephemeral**, draw a card into your memory. Otherwise, **recover 3**.
+  // [molten-echo] Molten Echo | ACTION | FIRE | lv
+  //   EN: [Merlin Bonus] **Kindle 2** Deal 1 damage to target unit. Then put a **sheen** counter on your Fractured Memories. [Merlin Bonus] **Ephemerate** â (2) *(You may activate this card from your graveyard by paying this cost. Action cards played this way become **ephemeral** on the effects stack.)*
+  // [mote-sear] Mote Sear | ACTION | FIRE | lv
+  //   EN: Deal 2 damage to target unit. Then you may remove two **sheen** counters from your Fractured Memories. If you do, deal an additional 2 damage to that unit. *(The damage is dealt in two separate instances.)*
+  // [mourning-veilbound] Mourning Veilbound | ALLY | NORM | lv
+  //   EN: **Stealth** *(This unit canât be targeted by attacks unless permitted by **true sight**.)* **Sacrifice CARDNAME**: Up to one target Specter ally gains **spellshroud** until end of turn. *(Objects with **spellshroud** canât be targeted by Spells.)*
+  // [myopic-lens] Myopic Lens | REGALIA/ITEM | NORM | lv
+  //   EN: [REST]: The next time target player would **glimpse** any amount this turn, that player **glimpses 2** instead.
+  // [nether-dodobird] Nether Dodobird | ALLY | FIRE | lv
+  //   EN: **Sacrifice CARDNAME:** If CARDNAME was not **ephemeral**, draw a card into your memory. Otherwise, deal 2 damage to each champion you don't control. 
+  // [night-barker] Night Barker | ALLY | NORM | lv
+  //   EN: **On Death: **Return CARDNAME from your graveyard to the field. It becomes **ephemeral**. *(If an **ephemeral** object would leave the field, banish it instead.)*
+  // [nullifying-lantern] Nullifying Lantern | REGALIA/ITEM | NORM | lv
+  //   EN: Cards in graveyards are norm element. *(They are not any other element.)*
+  // [obscured-offering] Obscured Offering | ACTION | NORM | lv
+  //   EN: As an additional cost to activate this card, banish two cards from your material deck. Target regalia gains **spellshroud** until end of turn. *(Objects with **spellshroud** canât be targeted by Spells.)*
+  // [off-with-her-head] Off With Her Head | ATTACK | NORM | lv
+  //   EN: As long as the attacker is attacking a unique ally, CARDNAME gets +3[POWER].
+  // [oneiric-key] Oneiric Key | REGALIA/ITEM | NORM | lv
+  //   EN: [Alice Bonus] **On Enter: **Put a **haunt** counter on your Phantasmagoria. (4), **Banish CARDNAME:** Draw a card into your memory.
+  // [orbiting-cosmos] Orbiting Cosmos | REGALIA/ITEM | ASTRA | lv
+  //   EN: If you would **glimpse** an amount, **glimpse X** instead, where **X** is that amount plus 1. (3)**, Banish CARDNAME: **Draw a card into your memory.
+  // [overflow-the-barrow] Overflow the Barrow | ACTION | UMBRA | lv
+  //   EN: As long as you have no cards in your graveyard, this card costs 2 less to activate. Put a **haunt** counter on your Phantasmagoria. Then put the top **X** cards from your deck into your graveyard, where **X** is the amount of **haunt** counters on your Phantasmagoria.
+  // [peer-beyond] Peer Beyond | ACTION | NORM | lv
+  //   EN: Target unit gains **true sight** until end of turn. *(Units with **true sight** can attack objects with **stealth**.)* **Ephemerate â** (1) *(You may activate this card from your graveyard by paying this cost. Action cards played this way become **ephemeral** on the effects stack.)*
+  // [perilous-mend] Perilous Mend | ACTION | UMBRA | lv
+  //   EN: [Class Bonus] Put any amount of Curse cards from your hand and/or memory on the bottom of your champion's lineage in any order. **Recover X**, where **X** is three times the amount of cards put this way. [Class Bonus] If your champion is **distant**, draw a card.
+  // [phantasmagoria] Phantasmagoria | MASTERY |  | lv
+  //   EN: Non-Specter cards in your graveyard lose all abilities. [Alice Bonus] Whenever a Specter ally you control dies, put a **haunt** counter on CARDNAME. [Alice Bonus] At the beginning of your end phase, you may put all cards from your graveyard on the bottom of your deck in any order. If you do, put the top **X** cards from your deck into your graveyard, where **X** is the amount of **haunt** counters on CARDNAME.
+  // [plage-aux-homards] Plage aux Homards | UNIQUE/DOMAIN | WATER | lv
+  //   EN: **On Enter:** Put the top two cards of your deck into your graveyard. [Class Bonus] ***Deluge 4 â*** As long as you have four or more water element cards in your graveyard, Animal and Beast allies you control get +1 [LIFE].
+  // [plea-for-peace] Plea for Peace | ACTION | NORM | lv
+  //   EN: Until the beginning of your next turn, players can't declare attacks unless they pay (1) for each attack declaration.
+  // [polishing-flourish] Polishing Flourish | ACTION | NORM | lv
+  //   EN: Remove all **sheen** counters from units you control. **Floating Memory** *(While paying for a memory cost, you may banish this card from your graveyard to pay for 1 of that cost.)*
+  // [purifying-thurible] Purifying Thurible | REGALIA/ITEM | WIND | lv
+  //   EN: (X)**, Banish CARDNAME:** Target opponent banishes **X** cards from their graveyard. If **X **is 3 or greater, draw a card into your memory. 
+  // [queen-piece] Queen Piece | TOKEN/ALLY | NORM | lv
+  //   EN: [Alice Bonus] As long as you control one or more Chessman Pawn allies, prevent all damage that would be dealt to CARDNAME. [Alice Bonus] **Commanded Will 6** *(As long as this unit is attacking using a Command card, it gets +6[POWER].)* 
+  // [queens-cinderhog] Queen's Cinderhog | ALLY | EXALTED/FIRE | lv
+  //   EN: *(Exalted â This element is enabled for you as long as you have another advanced element enabled.)* [Class Bonus]**Stealth** *(This unit canât be targeted by attacks unless permitted by **true sight**.)*
+  // [queens-gambit] Queen's Gambit | UNIQUE/PHANTASIA | NORM | lv
+  //   EN: As an additional cost to activate this card, sacrifice a Chessman ally. **On Enter:** Draw a card into your memory. If the sacrificed ally was a Queen, **summon** three Pawn Piece tokens. [Alice Bonus] Chessman allies you control have "**On Enter:** This ally gets +1 [POWER] until end of turn."
+  // [rainwoven-crysalis] Rainwoven Crysalis | ACTION | WATER | lv
+  //   EN: The next time damage would be dealt to your champion this turn, prevent all but 1 of that damage. [Merlin Bonus] Put two **sheen** counters on your Fractured Memories.
+  // [ranger-healer-ally] Balmshot Nurse | ALLY | WATER | lv
+  //   EN: [REST]: **Recover 3**. Activate this ability only if CARDNAME is **distant**. *(To **recover**, remove that many damage counters from your champion.)*
+  // [recursive-confidant] Recursive Confidant | ALLY | CRUX | lv
+  //   EN: [Class Bonus] **On Enter:** Until end of turn, you may activate target Warrior attack card in your banishment. *(You still pay its costs.)*
+  // [reflected-blight] Reflected Blight | ACTION | UMBRA | lv
+  //   EN: Return target card from your graveyard to your memory. Then put CARDNAME on the bottom of your champion's lineage. When you do, deal 1 unpreventable damage to your champion for each Curse card in your championâs lineage. 
+  // [refreshing-charge] Refreshing Charge | ACTION | WATER | lv
+  //   EN: **Recover 3**. Then you may load CARDNAME into an Aetherwing weapon you control. [Class Bonus] **Floating Memory** *(While paying for a memory cost, you may banish this card from your graveyard to pay for 1 of that cost.)*
+  // [remnant-of-will] Remnant of Will | ACTION | UMBRA | lv
+  //   EN: Put two **haunt** counters on your Phantasmagoria and **recover 4**. [Alice Bonus] **Ephemerate â** (1) *(You may activate this card from your graveyard by paying this cost. Action cards played this way become **ephemeral** on the effects stack.)*
+  // [return-to-the-depths] Return to the Depths | ACTION | WATER | lv
+  //   EN: The next time damage would be dealt to your champion this turn, prevent all but 1 of that damage. [Ciel Bonus] When 3 or more damage is prevented this way, you may banish a card from your graveyard and put an **omen** counter on it.
+  // [reveal-the-hidden] Reveal the Hidden | ACTION | NORM | lv
+  //   EN: Each unit loses **stealth** until end of turn. Those units can't gain **stealth** this turn. [Level 1+] Draw a card.
+  // [righteous-retribution] Righteous Retribution | ACTION | EXALTED/FIRE | lv
+  //   EN: [Class Bonus] This card costs 2 less to activate. The next time damage would be dealt to your champion this turn, prevent 5 of that damage. Your championâs first attack during your next turn gets +**X** [POWER], where **X** is the amount of damage prevented this way. 
+  // [rosewinged-hollow] Rosewinged Hollow | ALLY | FIRE | lv
+  //   EN: [Alice Bonus] [Element Bonus] (2), **Banish this card from your graveyard:** Put a **haunt** counter on your Phantasmagoria. Then if there are six or more **haunt** counters on it, choose a Specter ally you control and it gets +2[POWER] until end of turn. *(Activate this ability only if your championâs element matches this cardâs element.)*
+  // [royal-oathguard] Royal Oathguard | ALLY | EXALTED/NORM | lv
+  //   EN: *(Exalted â This element is enabled for you as long as you have another advanced element enabled.)* **Intercept**, **Vigor**
+  // [sacred-engulfment] Sacred Engulfment | ACTION | EXALTED/FIRE | lv
+  //   EN: [Class Bonus] This card costs 2 less to activate. Banish any amount of fire element cards from your graveyard. Then **empower** **4+X**, where **X** is the amount of fire element cards banished this way.
+  // [sacrifice-play] Sacrifice Play | ATTACK | NORM | lv
+  //   EN: As an additional cost to activate this card, sacrifice up to two awake Chessman allies. **Command Chessman** CARDNAME enters the intent with +2[POWER] for each ally sacrificed this way.
+  // [seven-of-hearts] Seven of Hearts | ALLY | FIRE | lv
+  //   EN: **Kindle 7** ***Cardistry â*** (7): Deal 2 damage to each unit target opponent controls. This ability costs (1) less to activate for each Suited object you control with different reserve costs. Activate this ability only once.
+  // [siege-mauler] Siege Mauler | ALLY | NORM | lv
+  //   EN: As long as CARDNAME is attacking a domain, it gets +2 [POWER].
+  // [sighing-crownwing] Sighing Crownwing | ALLY | EXALTED/WIND | lv
+  //   EN: *(Exalted â This element is enabled for you as long as you have another advanced element enabled.)* [Class Bonus] **Stealth** [Class Bonus] **On Attack:** Put a **buff** counter on target Animal or Beast ally you control without a **buff** counter on it.
+  // [singeing-leap] Singeing Leap | ACTION | FIRE | lv
+  //   EN: Deal 1 damage to your champion. Then your champion becomes **distant**. [Class Bonus] **Ephemerate â** (2) *(You may activate this card from your graveyard by paying this cost. Action cards played this way become **ephemeral** on the effects stack.)*
+  // [six-of-spades] Six of Spades | ALLY | NORM | lv
+  //   EN: **Stealth** ***Cardistry â*** (6): CARDNAME loses **stealth** and gets +2 [LIFE] until end of turn. You may change the target of an attack to CARDNAME. This ability costs (1) less to activate for each Suited object you control with different reserve costs. Activate this ability only once.
+  // [smoke-bombs] Smoke Bombs | REGALIA/ITEM | NORM | lv
+  //   EN: **Banish CARDNAME:** Target ally gains **stealth** until end of turn. Draw a card. *(Units with **stealth** can't be targeted by attacks unless permitted by **true sight**.)*
+  // [soultrace-tessellation] Soultrace Tessellation | ACTION | CRUX | lv
+  //   EN: **Prepare 1** Put three **sheen** counters on target unit. If CARDNAME was **prepared**, put an additional **sheen** counter on that unit for every three cards in your banishment.
+  // [spalling-cleanse] Spalling Cleanse | ACTION | WATER | lv
+  //   EN: If your Fractured Memories has six or less **sheen** counters on it, put two **sheen** counters on it. Otherwise, **recover 3**. *(If you don't have the mastery, **recover 3**.)* **Floating Memory**
+  // [spark-link] Spark Link | ACTION | FIRE | lv
+  //   EN: Each player draws a card into their memory. [Level 1+] **Floating Memory** *(While paying for a memory cost, you may banish this card from your graveyard to pay for 1 of that cost.)*
+  // [spectral-haunting] Spectral Haunting | ACTION | UMBRA | lv
+  //   EN: [Alice Bonus] This card costs 4 less to activate if it targets a Specter card. Return target ally card from your graveyard to the field. It becomes **ephemeral**. *(If an **ephemeral** object would leave the field, banish it instead.)*
+  // [spirit-of-purity] Spirit of Purity | CHAMPION | NORM | lv0
+  //   EN: **On Enter:** Draw seven cards. **Lineage Release â** Each player banishes two cards from their graveyard. *(Activate this ability by banishing this card from your championâs inner lineage.)*
+  // [squallsnare] Squallsnare | ACTION | WIND | lv
+  //   EN: **Suppress** two target allies with the same reserve costs. *(To **suppress** an object, banish it and return it to the field under its ownerâs control at the beginning of the next end phase.)*
+  // [stardust-oracle] Stardust Oracle | ALLY | ASTRA | lv
+  //   EN: **Imbue 2** *(You may reserve all cards revealed as you activate this card. If at least two of them are astra element, this card becomes **imbued**.)* As long as CARDNAME is **imbued**, it has **stealth**. [Class Bonus] At the beginning of your end phase, **summon** an Astral Shard token.
+  // [starstrung-reading] Starstrung Reading | ACTION | ASTRA | lv
+  //   EN: Aethercharge cards you look at while **glimpsing** the next three times this turn have **aethercalling**. If your champion is **distant**, **glimpse 4**.
+  // [stillshard-strike] Stillshard Strike | ATTACK | WATER | lv
+  //   EN: **Prepare 1** **On Attack:** If CARDNAME was **prepared**, **recover 1+X**, where **X** is the total amount of **sheen** counters on each defending unit.
+  // [stolen-chance] Stolen Chance | ACTION | NORM | lv
+  //   EN: Remove a **preparation** counter from target champion. If a **preparation** counter was removed this way, draw a card.
+  // [suffocating-ash] Suffocating Ash | ACTION | EXALTED/FIRE | lv
+  //   EN: [Class Bonus] This card costs 2 less to activate. **Negate** target card activation unless its controller has CARDNAME deal 3+**LV** unpreventable damage to their champion.
+  // [summon-pawn] Summon Pawn | ACTION | NORM | lv
+  //   EN: You may reveal three Chessman cards from your hand and/or memory. If you do, **summon** a Pawn Piece token. **Floating Memory** *(While paying for a memory cost, you may banish this card from your graveyard to pay for 1 of that cost.)*
+  // [surveil-the-winds] Surveil the Winds | ACTION | WIND | lv
+  //   EN: [Class Bonus] **Fast Activation** *(You may activate this card at fast speed.)* Draw a card, then put a **preparation** counter on your champion.
+  // [sworn-windhand] Sworn Windhand | ALLY | WIND | lv
+  //   EN: [Class Bonus] **Taunt** CARDNAME has **retort 2+X**, where **X** is the amount of **omens** you have. (*As long as this ally is retaliating, it gets that much [POWER].)*
+  // [teardrop-diadem] Teardrop Diadem | REGALIA/ITEM | EXALTED/WATER | lv
+  //   EN: *(Exalted â This element is enabled for you as long as you have another advanced element enabled.)* Pay only using **floating memory** for this cardâs memory cost. **Banish CARDNAME:** Draw three cards into your memory.
+  // [tempestuous-conviction] Tempestuous Conviction | ACTION | EXALTED/WIND | lv
+  //   EN: *(Exalted â This element is enabled for you as long as you have another advanced element enabled.)* [Class Bonus] This card costs 2 less to activate. Target unit gains **spellshroud** until end of turn. Then if your **influence** is five or less, draw a card into your memory.
+  // [thieving-cut] Thieving Cut | ATTACK | NORM | lv
+  //   EN: **Prepare 1** *(You may remove a **preparation** counter from your champion as you activate this card.)* **On Hit:** If CARDNAME was prepared, draw a card.
+  // [topsy-decree] Topsy Decree | ACTION | NORM | lv
+  //   EN: **Imbue 3** Choose one. If CARDNAME is **imbued**, choose two insteadâ â¢ Your champion gains **spellshroud** until end of turn. â¢ Up to one target opponent discards a card from their hand or memory. â¢ Choose up to two cards from a single graveyard and banish them.
+  // [tricastles-of-lucenia] Tricastles of Lucenia | UNIQUE/DOMAIN | EXALTED/NORM | lv
+  //   EN: Players can't activate non-advanced element cards. **Banish a norm or advanced element card from your hand: ** CARDNAME loses all abilities until end of turn. Any player may activate this ability. Activate this ability only once per turn. 
+  // [tweedledee-contrarian-poet] Tweedledee, Contrarian Poet | UNIQUE/ALLY | WATER | lv
+  //   EN: [Class Bonus] **Taunt** **On Hit:** CARDNAME gets -3 [POWER].* (This effect lasts indefinitely.)*
+  // [tweedledum-rattled-dancer] Tweedledum, Rattled Dancer | UNIQUE/ALLY | FIRE | lv
+  //   EN: [Class Bonus] **Stealth** Choose an opponent as you declare an attack with CARDNAME rather than a target defender. That opponent chooses a valid unit they control as the target defender.
+  // [twisted-verdict] Twisted Verdict | ACTION | NORM | lv
+  //   EN: Target opponent looks at the top five cards of your deck. They choose two cards from among them and put them into your memory. Then they put the rest on the bottom of your deck in any order.
+  // [tyrannical-denigration] Tyrannical Denigration | ATTACK | EXALTED/FIRE | lv
+  //   EN: **Kindle 7** *(You may banish up to seven fire element cards from your graveyard as you activate this card. Each one pays for (1) of this cardâs cost.)* [Class Bonus] CARDNAME gets +4 [POWER] and can't be retaliated.
+  // [unmake-duality] Unmake Duality | ACTION | NORM | lv
+  //   EN: As an additional cost to activate this card, sacrifice a regalia with **divine relic**. Draw two cards.
+  // [unmoored-call] Unmoored Call | ACTION | WATER | lv
+  //   EN: Activate this card only during an opponent's recollection phase. Choose a number. Until end of turn, objects with reserve cost equal to that number enter the field rested. Draw a card into your memory.
+  // [vacuous-call] Vacuous Call | PHANTASIA | WIND | lv
+  //   EN: **On Enter:** **Summon** a Vacuous Servant token. [Ciel Bonus] (2)**, Discard an ally card, sacrifice CARDNAME:** **Summon** a Vacuous Servant token.
+  // [veiled-gambit] Veiled Gambit | ACTION | WIND | lv
+  //   EN: As an additional cost to activate this card, sacrifice a Chessman ally. Prevent the next 4 damage that would be dealt to your champion and up to one other target unit until end of turn.
+  // [vestal-priestess] Vestal Priestess | ALLY | EXALTED/NORM | lv
+  //   EN: *(Exalted â This element is enabled for you as long as you have another advanced element enabled.)* **Intercept** *(Whenever your champion is attacked while this ally is awake, you may redirect that attack to this ally.)* **On Enter:** **Recover 4**.
+  // [visages-strike] Visage's Strike | ATTACK | WIND | lv
+  //   EN: [Ciel Bonus] **On Hit: ** If you have two or less **omens**, banish CARDNAME and put an **omen** counter on it.
+  // [waited-accord] Waited Accord | UNIQUE/PHANTASIA | NORM | lv
+  //   EN: **On Enter:** You may reveal three advanced element cards from your material deck. If you do, CARDNAME gains "The first advanced element card each player activates each turn costs 2 more to activate." [Level 2+]** Sacrifice CARDNAME: **Draw a card.
+  // [wavekeepers-bond] Wavekeeper's Bond | ITEM | WATER | lv
+  //   EN: Whenever your champion levels up, **recover 2**. [Level 3+] At the beginning of your end phase, you may sacrifice CARDNAME. If you do, draw a card into your memory.
+  // [weiss-bishop] Weiss Bishop | ALLY | WATER | lv
+  //   EN: As long as you control one or more Pawn allies, CARDNAME has **stealth**. [Alice Bonus] CARDNAME gets +1 [POWER] as long as it's attacking a unit with an odd life stat.
+  // [weiss-knight] Weiss Knight | ALLY | WATER | lv
+  //   EN: **Commanded Will 1** *(As long as this unit is attacking using a Command card, it gets +1 [POWER].)* Whenever you activate a Chessman Command card, CARDNAME gains **unblockable** until end of turn. *(The attacks of a unit with **unblockable** canât be intercepted and ignores **taunt**.)*
+  // [whisperwind-compass] Whisperwind Compass | ITEM | WIND | lv
+  //   EN: **On Enter: **Draw a card into your memory. [Class Bonus] Whenever a Ranger ally you control becomes **distant**, if that ally has no **buff** counters on it, put a **buff** counter on it.
+  // [windfall-check] Windfall Check | ATTACK | WIND | lv
+  //   EN: **Command Chessman** *(A Chessman ally you control performs this attack.)* **On Champion Hit:** That opponent banishes three cards from their graveyard.
+  // [wool-brook] Wool Brook | DOMAIN | NORM | lv
+  //   EN: CARDNAME enters the field with a **refinement** counter on it. **On Enter:** Draw a card into your memory. (6)**, Remove a refinement counter from CARDNAME: **Draw a card into your memory.
