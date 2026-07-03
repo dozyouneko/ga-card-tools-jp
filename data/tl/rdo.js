@@ -613,8 +613,8 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   "dawn-of-ashes": {
     name: "灰燼の夜明け",
     effect:
-      "アップキープ ― あなたのリコレクションフェイズの開始時に、あなたのメモリーからランダムにカードを1枚公開する。そのカードが無エレメントでないなら、「灰燼の夜明け」を生け贄に捧げる。\n\n" +
-      "無エレメント以外のカードの起動コストが1多くなる。",
+      "アップキープ ― あなたのリコレクションフェイズの開始時に、あなたのメモリーからランダムにカードを1枚公開する。そのカードがノームエレメントでないなら、「灰燼の夜明け」を生け贄に捧げる。\n\n" +
+      "ノームエレメント以外のカードの起動コストが1多くなる。",
   },
 
   // Dazzling Courtesan  [ALLY]  L- FIRE
@@ -1664,7 +1664,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   // Luxem Sight  [ACTION]  L- LUXEM
   // EN: [Element Bonus] Whenever you reveal this card from your memory, recover 3. (To recover, remove that many damage counters from your champion. Apply this effect only if your champion's element matches this card's element.) /  / Draw a card.
   "luxem-sight": {
-    name: "ルクセムの視",
+    name: "ラクサムの視",
     effect:
       "［エレメントボーナス］あなたが自分のメモリーからこのカードを公開するたび、リカバー3する。*（リカバーするには、あなたのチャンピオンからその数のダメージカウンターを取り除く。この効果は、あなたのチャンピオンのエレメントがこのカードのエレメントと一致する場合のみ適用する。）*\n\n" +
       "カードを1枚引く。",

@@ -78,8 +78,8 @@ window.GA_I18N = {
     },
     elements: {
       ARCANE: "アーケイン", ASTRA: "アストラ", CRUX: "クラックス", EXALTED: "エクザルテッド",
-      EXIA: "エクシア", FIRE: "火", LUXEM: "光", NEOS: "ネオス",
-      NORM: "無", TERA: "地", UMBRA: "闇", WATER: "水", WIND: "風",
+      EXIA: "エクシア", FIRE: "火", LUXEM: "ラクサム", NEOS: "ネオス",
+      NORM: "ノーム", TERA: "テラ", UMBRA: "アンブラ", WATER: "水", WIND: "風",
     },
     types: {
       ACTION: "アクション", ALLY: "アライ", ATTACK: "アタック",
@@ -193,7 +193,7 @@ window.GA_I18N = {
     "charge":      { jp: "チャージカウンター（charge counter）", desc: "リコレクションフェイズ開始時に、未誘発の「オンチャージ」能力を持つオブジェクトへ置かれるカウンター。規定数に達すると能力が誘発する。" },
     "command chessman": { jp: "コマンド：チェスマン（Command Chessman）", desc: "あなたがコントロールするチェスマン・アライがこの攻撃を行うキーワード。" },
     "phantasmagoria": { jp: "ファンタスマゴリア（Phantasmagoria）", desc: "アリスが獲得するマスタリー。ハウントカウンターを蓄積し、血脈解放などの条件に使う。" },
-    "advanced element": { jp: "アドバンスドエレメント（advanced element）", desc: "NORM（無）以外の上位エレメント（火・水・風・光・闇・地・アストラ・クラックス・アーケイン・エクシア・ネオス・エクザルテッド）の総称。" },
+    "advanced element": { jp: "アドバンスドエレメント（advanced element）", desc: "ノーム（NORM）以外の上位エレメント（火・水・風・ラクサム・アンブラ・テラ・アストラ・クラックス・アーケイン・エクシア・ネオス・エクザルテッド）の総称。" },
     "durability":  { jp: "耐久カウンター（durability counter）", desc: "ウェポン等に置かれ、その耐久値を表すカウンター。攻撃や効果で減り、無くなると破壊される。" },
     "fractured memories": { jp: "フラクチャード・メモリーズ（Fractured Memories）", desc: "マーリンが獲得するマスタリー領域。シーンカウンターを蓄積し、[シーンN+] の条件やコスト軽減の参照に使う。" },
     "fractal":     { jp: "フラクタル（Fractal）", desc: "水・歪み系のトークン／オブジェクト。サクリファイスして追加効果を得るものが多い。" },

@@ -148,7 +148,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
     effect:
       "モードレッドのリネージュ\n\n" +
       "登場時：このターン、「モードレッド」の次の攻撃は＋3パワーを得て、「ヒット時：リカバー3する。」を得る。\n\n" +
-      "あなたが光エレメントのカードを起動するたび、「モードレッド」をデレベルする。",
+      "あなたがラクサムエレメントのカードを起動するたび、「モードレッド」をデレベルする。",
   },
 
   // Mordred, Burnished Avenger  [CHAMPION]  L1 WATER

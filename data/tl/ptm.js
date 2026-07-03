@@ -214,7 +214,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
     name: "闇の抱擁",
     effect:
       "ターン終了時まで、すべてのアライは**ステルス**を得る。\n\n" +
-      "[シエルボーナス] あなたが闇エレメントの**オーメン**を1個以上持っているなら、カードを1枚あなたのメモリーに引く。",
+      "[シエルボーナス] あなたがアンブラエレメントの**オーメン**を1個以上持っているなら、カードを1枚あなたのメモリーに引く。",
   },
   // Eminent Lethargy
   "eminent-lethargy": {
@@ -586,7 +586,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   "nullifying-lantern": {
     name: "無効化のランタン",
     effect:
-      "墓地にあるカードはノーム（無）エレメントになる。*（それらは他のいかなるエレメントでもない。）*",
+      "墓地にあるカードはノームエレメントになる。*（それらは他のいかなるエレメントでもない。）*",
   },
   // Obscured Offering
   "obscured-offering": {
