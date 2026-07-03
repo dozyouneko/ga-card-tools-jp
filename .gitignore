@@ -13,3 +13,4 @@ node_modules/
 
 # Logs / temp
 *.log
+scratch_ref_*.txt
