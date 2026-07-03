@@ -146,10 +146,10 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
 
   // Huaji of Heaven's Rise  [REGALIA/WEAPON]  NORM  ※両面（表）
   "huaji-of-heavens-rise": {
-    name: "天昇のホアジー",
+    name: "天昇の方天画戟",
     effect:
       "[クラスボーナス] あなたがコントロールするユニークなウォリアーアライは、このウェポンを使って攻撃できる。\n\n" +
-      "[クラスボーナス] あなたのエンドフェイズ開始時に、あなたのチャンピオンがエクシアエレメントなら、あなたは(3)を支払ってよい。そうしたなら、「天昇のホアジー」をトランスフォームする。",
+      "[クラスボーナス] あなたのエンドフェイズ開始時に、あなたのチャンピオンがエクシアエレメントなら、あなたは(3)を支払ってよい。そうしたなら、「天昇の方天画戟」をトランスフォームする。",
   },
 
   // Jianyu, Fate's Premonition  [UNIQUE/PHANTASIA]  WATER
@@ -259,10 +259,10 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
 
   // Huaji of Abyssal Fall  [REGALIA/WEAPON]  EXIA  ※裏面（front: huaji-of-heavens-rise）
   "huaji-of-abyssal-fall": {
-    name: "天淵のホアジー",
+    name: "天淵の方天画戟",
     effect:
       "[クラスボーナス] あなたがコントロールするユニークなウォリアーアライは、このウェポンを使って攻撃できる。\n\n" +
-      "**攻撃時：** あなたは「天淵のホアジー」に攻撃者へ10点の軽減不能のダメージを与えさせてよい。そうしたなら、この攻撃は+3[パワー]を得る。",
+      "**攻撃時：** あなたは「天淵の方天画戟」に攻撃者へ10点の軽減不能のダメージを与えさせてよい。そうしたなら、この攻撃は+3[パワー]を得る。",
   },
 
   // Lu Bu, Wrath Incarnate  [CHAMPION]  EXIA  ※裏面（front: lu-bu-indomitable-titan）
