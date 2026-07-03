@@ -125,7 +125,8 @@ function imageUrl(card) {
   return ed && ed.image ? IMG_BASE + ed.image : null;
 }
 
-// カードの全イラスト/版を {url, label} で返す（画像URLで重複排除）
+// カードの全イラスト/版を {url, label, back} で返す（画像URLで重複排除）。
+// back は両面カードで、その版に対応する裏面画像URL（無ければ null）。
 function cardImages(card) {
   const eds = card.editions || card.result_editions || [];
   const seen = new Set();
@@ -135,9 +136,48 @@ function cardImages(card) {
     seen.add(ed.image);
     const set = ed.set && ed.set.prefix ? ed.set.prefix : "";
     const num = ed.collector_number ? ` #${ed.collector_number}` : "";
-    out.push({ url: IMG_BASE + ed.image, prefix: set || "?", label: (set + num).trim() || "版" });
+    const bo = ed.other_orientations && ed.other_orientations[0];
+    const backUrl = bo && bo.edition && bo.edition.image ? IMG_BASE + bo.edition.image : null;
+    out.push({ url: IMG_BASE + ed.image, prefix: set || "?", label: (set + num).trim() || "版", back: backUrl });
   });
   return out;
+}
+
+// ---------- 両面（flip）カード ----------
+// 公式APIは常に「表面」のカードを返し、裏面は edition.other_orientations[0] に格納する。
+// 画像は other_orientations[0].edition.image、裏面は独自の slug/name/effect を持つ。
+
+// flip 構成（表面）を持つ edition を返す。無ければ null。
+function flipEdition(card) {
+  const eds = card.editions || card.result_editions || [];
+  return eds.find((ed) => ed.configuration === "flip" && ed.other_orientations && ed.other_orientations.length) || null;
+}
+function isFlip(card) {
+  return !!flipEdition(card);
+}
+// 裏面を card 形状に正規化して返す（既存の tr/jpName/label/speedLabel/matchedTerms を流用可能に）。
+function backFace(card) {
+  const ed = flipEdition(card);
+  const b = ed && ed.other_orientations[0];
+  if (!b) return null;
+  const bed = b.edition || {};
+  return {
+    slug: b.slug,
+    name: b.name,
+    effect: b.effect,
+    classes: b.classes || [],
+    elements: b.elements || [],
+    types: b.types || [],
+    subtypes: b.subtypes || [],
+    cost: b.cost,
+    level: b.level,
+    power: b.power,
+    life: b.life,
+    durability: b.durability,
+    speed: b.speed,
+    flavor: b.flavor || bed.flavor || null,
+    image: bed.image ? IMG_BASE + bed.image : null,
+  };
 }
 
 // スピード: API は boolean（true=Fast / false=Slow）
@@ -315,6 +355,7 @@ function appendGrid(cards) {
     const translated = isTranslated(card);
     const imgs = cardImages(card);
     const img = imgs.length ? imgs[0].url : null;
+    const back = backFace(card); // 両面カードなら裏面（無ければ null）
 
     const cardEl = document.createElement("div");
     cardEl.className = "card";
@@ -336,6 +377,7 @@ function appendGrid(cards) {
           ? `<span class="banned-badge" title="スタンダードで使用禁止">🚫 禁止</span>`
           : ""}
         ${imgs.length > 1 ? `<button class="art-badge" type="button" title="イラスト/版を切り替え（${imgs.length}種）" aria-label="イラストを切り替え">🎨 ${imgs.length}・${escapeHtml(imgs[0].prefix)}</button>` : ""}
+        ${back ? `<button class="flip-badge" type="button" title="両面カード：表裏を切り替え" aria-label="裏面を表示">🔄 両面</button>` : ""}
         ${img ? `<button class="card-add" type="button" title="印刷リストに追加" aria-label="印刷リストに追加">＋🖨️</button>` : ""}
       </div>
       <div class="card-body">
@@ -353,18 +395,37 @@ function appendGrid(cards) {
     });
     const addBtn = cardEl.querySelector(".card-add");
     if (addBtn) addBtn.addEventListener("click", (e) => { e.stopPropagation(); addToPrint(card); });
-    // イラスト/版のその場切り替え
+    // イラスト切替（🎨）と表裏切替（🔄）は同じ <img> を共有するため、
+    // 状態（表面アート番号 ai / 裏面表示 showingBack）を一元管理して衝突を防ぐ。
     const artBadge = cardEl.querySelector(".art-badge");
+    const flipBadge = cardEl.querySelector(".flip-badge");
     const imgEl = cardEl.querySelector(".card-img img");
-    if (artBadge && imgEl) {
-      let ai = 0;
-      artBadge.addEventListener("click", (e) => {
-        e.stopPropagation();
-        ai = (ai + 1) % imgs.length;
-        imgEl.src = imgs[ai].url;
-        artBadge.textContent = `🎨 ${imgs.length}・${imgs[ai].prefix}`;
-        artBadge.title = `イラスト/版を切り替え（${ai + 1}/${imgs.length}：${imgs[ai].label}）`;
-      });
+    if (imgEl && (artBadge || flipBadge)) {
+      let ai = 0;              // 選択中の版（イラスト）番号
+      let showingBack = false; // 裏面を表示中か
+      const syncImg = () => {
+        const cur = imgs[ai] || imgs[0];
+        if (!cur) return;
+        // 裏面画像は選択中の版に紐づく（例：CSR表面→CSR裏面）。無ければ表面にフォールバック。
+        imgEl.src = showingBack && cur.back ? cur.back : cur.url;
+        if (flipBadge) flipBadge.textContent = showingBack ? "🔄 裏面" : "🔄 両面";
+      };
+      if (artBadge) {
+        artBadge.addEventListener("click", (e) => {
+          e.stopPropagation();
+          ai = (ai + 1) % imgs.length; // 版を切替。表裏の状態(showingBack)は保持
+          syncImg();
+          artBadge.textContent = `🎨 ${imgs.length}・${imgs[ai].prefix}`;
+          artBadge.title = `イラスト/版を切り替え（${ai + 1}/${imgs.length}：${imgs[ai].label}）`;
+        });
+      }
+      if (flipBadge && back) {
+        flipBadge.addEventListener("click", (e) => {
+          e.stopPropagation();
+          showingBack = !showingBack; // 選択中の版 ai は保持したまま表裏だけ切替
+          syncImg();
+        });
+      }
     }
     frag.appendChild(cardEl);
   });
@@ -399,7 +460,7 @@ function openDetail(card) {
   const artsEl = document.getElementById("d-arts");
   if (imgs.length > 1) {
     artsEl.innerHTML = imgs
-      .map((im, i) => `<button class="art-thumb${i === 0 ? " active" : ""}" type="button" data-url="${escapeHtml(im.url)}" title="${escapeHtml(im.label)}"><img loading="lazy" crossorigin="anonymous" src="${escapeHtml(im.url)}" alt=""><span>${escapeHtml(im.label)}</span></button>`)
+      .map((im, i) => `<button class="art-thumb${i === 0 ? " active" : ""}" type="button" data-url="${escapeHtml(im.url)}" data-back="${escapeHtml(im.back || "")}" title="${escapeHtml(im.label)}"><img loading="lazy" crossorigin="anonymous" src="${escapeHtml(im.url)}" alt=""><span>${escapeHtml(im.label)}</span></button>`)
       .join("");
     artsEl.hidden = false;
   } else {
@@ -472,6 +533,7 @@ function openDetail(card) {
 
   renderTerms(card, terms);
   renderEditions(card);
+  renderBackFace(card);
 
   // 印刷リスト追加ボタンの状態
   currentDetailCard = card;
@@ -542,6 +604,62 @@ function renderEditions(card) {
       return `<li>${escapeHtml(set + num + rarity + illus)}</li>`;
     })
     .join("");
+}
+
+// 両面カードの裏面を詳細モーダル下部にスタック表示（表面と同じ体裁）。
+function renderBackFace(card) {
+  const wrap = document.getElementById("d-back-wrap");
+  const box = document.getElementById("d-back");
+  const back = backFace(card);
+  if (!back) { wrap.hidden = true; box.innerHTML = ""; return; }
+
+  const t = tr(back);
+  const translated = isTranslated(back);
+  const classes = back.classes.map((c) => label("classes", c)).join("・");
+  const elements = back.elements.map((e) => label("elements", e)).join("・");
+  const types = back.types.map((x) => label("types", x)).join("・");
+  const subtypes = back.subtypes.map((x) => label("subtypes", x)).join("・");
+  const cost = back.cost ? `${back.cost.value}（${back.cost.type}）` : "";
+  const meta =
+    metaRow("タイプ", types) +
+    metaRow("クラス", classes) +
+    metaRow("エレメント", elements) +
+    metaRow("サブタイプ", subtypes) +
+    metaRow("レベル", back.level) +
+    metaRow("コスト", cost) +
+    metaRow("パワー", back.power) +
+    metaRow("ライフ", back.life) +
+    metaRow("耐久", back.durability) +
+    metaRow("スピード", speedLabel(back));
+
+  const terms = matchedTerms(back);
+  const jpEffect = t && t.effect ? t.effect : null;
+  const jpHtml = jpEffect
+    ? highlightTerms(renderEffect(jpEffect), terms)
+    : '<span class="muted">日本語訳はまだありません（翻訳募集中）。下の英語原文をご覧ください。</span>';
+  const imgHtml = back.image
+    ? `<img id="d-back-img" crossorigin="anonymous" src="${escapeHtml(back.image)}" alt="${escapeHtml(jpName(back))}">`
+    : `<div class="noimg">画像なし</div>`;
+
+  box.innerHTML = `
+    <div class="detail back-detail">
+      <div class="detail-image">${imgHtml}</div>
+      <div class="detail-info">
+        <span class="badge ${translated ? "badge-yes" : "badge-no"}">${translated ? "日本語訳あり" : "未翻訳"}</span>
+        <h2>${escapeHtml(jpName(back))}</h2>
+        <p class="name-en">${escapeHtml(back.name || "")}</p>
+        <dl class="meta">${meta}</dl>
+        <section class="effect-block">
+          <h3>効果（日本語訳）</h3>
+          <div class="effect">${jpHtml}</div>
+          <details class="orig">
+            <summary>英語原文を表示</summary>
+            <div class="effect effect-en">${renderEffect(back.effect)}</div>
+          </details>
+        </section>
+      </div>
+    </div>`;
+  wrap.hidden = false;
 }
 
 function closeDetail() {
@@ -782,6 +900,9 @@ function init() {
     const btn = e.target.closest(".art-thumb");
     if (!btn) return;
     document.getElementById("d-img").src = btn.dataset.url;
+    // 両面カード：裏面画像も選択した版に追従させる
+    const backImg = document.getElementById("d-back-img");
+    if (backImg && btn.dataset.back) backImg.src = btn.dataset.back;
     document.getElementById("d-arts").querySelectorAll(".art-thumb").forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
   });

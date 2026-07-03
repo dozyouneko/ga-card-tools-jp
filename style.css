@@ -208,6 +208,16 @@ a { color: var(--accent-2); }
 }
 .art-badge:hover { background: var(--accent-2); }
 
+/* 両面カード：一覧の表裏切替バッジ（左下） */
+.flip-badge {
+  position: absolute; left: 8px; bottom: 8px;
+  border: none; border-radius: 999px;
+  background: rgba(15, 17, 21, .82);
+  color: #fff; font-size: .7rem; line-height: 1;
+  padding: 4px 8px; cursor: pointer; font-weight: 700;
+}
+.flip-badge:hover { background: var(--accent-2); }
+
 .card-body { padding: 10px 12px 14px; }
 .card-name { margin: 0; font-weight: 700; font-size: .98rem; }
 .card-name-en { margin: 2px 0 0; color: var(--muted); font-size: .78rem; }
@@ -284,6 +294,14 @@ body.show-en-primary .card-name-en { font-size: .98rem; color: var(--text); font
 .term-desc { color: var(--muted); font-size: .88rem; }
 
 .editions-block ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; }
+
+/* 両面カード：詳細モーダルの裏面セクション（表面の下にスタック表示） */
+.back-block { margin-top: 24px; border-top: 2px solid var(--border); padding-top: 8px; }
+.back-block[hidden] { display: none; }
+.back-title { font-size: 1rem; margin: 12px 0 14px; color: var(--accent-2); }
+.back-detail { grid-template-columns: 220px 1fr; }
+.back-detail .detail-image > img { width: 100%; border-radius: 12px; border: 1px solid var(--border); }
+.back-detail .badge { margin-bottom: 6px; }
 
 .muted { color: var(--muted); }
 
