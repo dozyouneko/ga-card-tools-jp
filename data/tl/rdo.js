@@ -140,7 +140,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   // Arcane Sight  [ACTION]  L- ARCANE
   // EN: Your champion gets +1 level until end of turn. / Draw a card.
   "arcane-sight": {
-    name: "アーケインの視界",
+    name: "アーケイン・サイト",
     effect:
       "ターン終了時まで、あなたのチャンピオンは+1レベルを得る。\n\n" +
       "カードを1枚引く。",
@@ -913,7 +913,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   // Exia Sight  [ACTION]  L- EXIA
   // EN: Draw a card. /  / [Damage 20+] The next card you activate this turn costs 1 less to activate. (Apply this effect only if there are twenty or more damage counters on your champion.)
   "exia-sight": {
-    name: "エクシアの視",
+    name: "エクシア・サイト",
     effect:
       "カードを1枚引く。\n\n" +
       "［ダメージ20以上］このターン、あなたが起動する次のカードは起動コストが1少なくなる。*（この効果は、あなたのチャンピオン上にダメージカウンターが20個以上ある場合のみ適用する。）*",
@@ -1664,7 +1664,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   // Luxem Sight  [ACTION]  L- LUXEM
   // EN: [Element Bonus] Whenever you reveal this card from your memory, recover 3. (To recover, remove that many damage counters from your champion. Apply this effect only if your champion's element matches this card's element.) /  / Draw a card.
   "luxem-sight": {
-    name: "ラクサムの視",
+    name: "ラクサム・サイト",
     effect:
       "［エレメントボーナス］あなたが自分のメモリーからこのカードを公開するたび、リカバー3する。*（リカバーするには、あなたのチャンピオンからその数のダメージカウンターを取り除く。この効果は、あなたのチャンピオンのエレメントがこのカードのエレメントと一致する場合のみ適用する。）*\n\n" +
       "カードを1枚引く。",
@@ -1805,7 +1805,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   // Neos Sight  [ACTION]  L- NEOS
   // EN: Draw a card. If you control eight or more objects, draw a card into your memory.
   "neos-sight": {
-    name: "ネオスの視",
+    name: "ネオス・サイト",
     effect:
       "カードを1枚引く。あなたが8つ以上のオブジェクトをコントロールしている場合、カードを1枚あなたのメモリーに引く。",
   },
@@ -2923,7 +2923,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   // Tera Sight  [ACTION]  L- TERA
   // EN: Preserve (Put this card into its owner's material deck preserved as it resolves. As you materialize, you may instead return a preserved card to your hand.) /  / Draw a card.
   "tera-sight": {
-    name: "テラの視",
+    name: "テラ・サイト",
     effect:
       "プリザーブ *（このカードは解決される際、プリザーブしてオーナーのマテリアルデッキに置く。マテリアライズする際、代わりにプリザーブされたカードを1枚手札に戻してよい。）*\n\n" +
       "カードを1枚引く。",
@@ -3099,7 +3099,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   // Umbra Sight  [ACTION]  L- UMBRA
   // EN: Draw a card. /  / You may draw a card into your memory and put Umbra Sight on the bottom of your champion's lineage. When you do, deal 2 unpreventable damage to your champion for each Curse card in your champion's lineage.
   "umbra-sight": {
-    name: "アンブラの視",
+    name: "アンブラ・サイト",
     effect:
       "カードを1枚引く。\n\n" +
       "あなたはカードを1枚あなたのメモリーに引き、「アンブラの視」をあなたのチャンピオンのリネージュの一番下に置いてよい。そうしたとき、あなたのチャンピオンのリネージュにある呪いカード1枚につき、あなたのチャンピオンに2点の軽減不能のダメージを与える。",
