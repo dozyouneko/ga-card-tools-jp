@@ -104,7 +104,7 @@ window.GA_I18N = {
       RABBIT: "兎", RACCOON: "アライグマ", RANGER: "レンジャー", REACTION: "リアクション",
       RING: "指輪", RIVER: "川", ROBE: "ローブ", ROOT: "根", SCRIPTURE: "聖典",
       SHARD: "破片", SHIELD: "盾", SIEGEABLE: "攻城可能", SKILL: "スキル", SLIME: "スライム",
-      SOLVENT: "溶剤", SPECTER: "亡霊", SPELL: "呪文", SPIRIT: "スピリット", STAFF: "杖",
+      SOLVENT: "溶剤", SPECTER: "スペクター", SPELL: "呪文", SPIRIT: "スピリット", STAFF: "杖",
       SUITED: "スーツ持ち", SWORD: "剣", TAMER: "テイマー", TIGER: "虎", TURTLE: "亀",
       ULTIMATE: "アルティメット", WARRIOR: "ウォリアー", WOLF: "狼",
     },
