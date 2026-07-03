@@ -182,6 +182,11 @@ window.GA_I18N = {
     "commanded will": { jp: "コマンドウィル（Commanded Will N）", desc: "コマンドカードを使って攻撃している限り、+Nパワーを得る。" },
     "wither counter": { jp: "萎縮カウンター（wither counter）", desc: "一部の効果の条件・参照に使うカウンター。" },
     "enlighten counter": { jp: "覚醒カウンター（enlighten counter）", desc: "アーケイン系の効果で蓄積し、条件・参照に使うカウンター。" },
+    "upkeep":      { jp: "アップキープ（Upkeep）", desc: "自分のリコレクションフェイズ開始時に誘発する効果を示すキーワード。多くはドメインの維持コスト（条件を満たさなければサクリファイス等）に使われる。" },
+    "reservable":  { jp: "リザーバブル（Reservable）", desc: "リザーブコストの支払い中に、このオブジェクトをレストして、そのコストの(1)分を支払える。" },
+    "negate":      { jp: "ネゲート（Negate）", desc: "対象のカードの起動やアビリティを無効化し、効果を発生させずに解決させる。" },
+    "sheen":       { jp: "シーンカウンター（sheen counter）", desc: "フラクチャード・メモリーズ等に蓄積し、[シーンN+] の条件やコスト軽減に使うカウンター。" },
+    "haunt":       { jp: "ハウントカウンター（haunt counter）", desc: "アリス系の効果の条件・参照に使うカウンター。" },
   },
 
   // --- カード個別訳（キー = card.slug）。まずは代表的なカードから ---
