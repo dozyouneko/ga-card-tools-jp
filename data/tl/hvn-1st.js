@@ -220,4 +220,58 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
       "・7枚以上——各対戦相手は自分のメモリーからランダムに1枚のカードを捨てる。",
   },
 
+  // ===== 両面カードの裏面（Fabled運命石の変身先＝四神ほか。表面は上記） =====
+
+  // Byakko, White Tiger  [ALLY]  WIND  ※裏面（front: fabled-emerald-fatestone）
+  "byakko-white-tiger": {
+    name: "白虎、白き虎",
+    effect:
+      "**スペルシュラウド**、**ヴィガー**\n\n" +
+      "[グオ・ジアボーナス] あなたが各ターンに最初に起動する動物または獣のアライカードは、起動コストが2少なくなる。\n\n" +
+      "[グオ・ジアボーナス] あなたがコントロールする獣アライは**プライド**を失う。",
+  },
+
+  // Genbu, Black Tortoise  [ALLY]  WATER  ※裏面（front: fabled-sapphire-fatestone）
+  "genbu-black-tortoise": {
+    name: "玄武、黒き亀",
+    effect:
+      "**スペルシュラウド**、**タウント**\n\n" +
+      "[グオ・ジアボーナス] (3)：「玄武、黒き亀」は、ターン終了時まで+**X**[ライフ]を得る。**X**は、あなたの墓地にある水エレメントのカードの枚数である。この能力はターンに1回のみ起動する。",
+  },
+
+  // Suzaku, Vermillion Phoenix  [ALLY]  FIRE  ※裏面（front: fabled-ruby-fatestone）
+  "suzaku-vermillion-phoenix": {
+    name: "朱雀、朱き不死鳥",
+    effect:
+      "**スペルシュラウド**\n\n" +
+      "[グオ・ジアボーナス] **追放時：** あなたは自分の墓地から火エレメントのカードを3枚追放してよい。そうしたなら、「朱雀、朱き不死鳥」をトランスフォームした状態で場に戻す。*（それは「朱雀、朱き不死鳥」として場に出る。）*",
+  },
+
+  // Seiryuu, Azure Dragon  [ALLY]  ARCANE  ※裏面（front: fabled-azurite-fatestone）
+  "seiryuu-azure-dragon": {
+    name: "青龍、蒼き龍",
+    effect:
+      "**スペルシュラウド**、**タウント**\n\n" +
+      "[グオ・ジアボーナス] **攻撃時：** 1つ選ぶ——\n" +
+      "・「アーケインの爆発」カードを1枚生成し、それを追放する。それが追放されている限り、あなたはそのエレメント条件を無視してそれを起動してよい。\n" +
+      "・**エンパワーX**+2する。**X**は、あなたの追放領域にあるアーケインエレメントのカードの枚数である。",
+  },
+
+  // Huaji of Abyssal Fall  [REGALIA/WEAPON]  EXIA  ※裏面（front: huaji-of-heavens-rise）
+  "huaji-of-abyssal-fall": {
+    name: "天淵のホアジー",
+    effect:
+      "[クラスボーナス] あなたがコントロールするユニークなウォリアーアライは、このウェポンを使って攻撃できる。\n\n" +
+      "**攻撃時：** あなたは「天淵のホアジー」に攻撃者へ10点の軽減不能のダメージを与えさせてよい。そうしたなら、この攻撃は+3[パワー]を得る。",
+  },
+
+  // Lu Bu, Wrath Incarnate  [CHAMPION]  EXIA  ※裏面（front: lu-bu-indomitable-titan）
+  "lu-bu-wrath-incarnate": {
+    name: "リュ・ブ、怒りの化身",
+    effect:
+      "**ヴィガー**\n\n" +
+      "他のチャンピオンは-3レベルを得て、すべてのアライは-3[パワー]を得る。\n\n" +
+      "**アライキル時：** 他の各チャンピオンに**X**点の軽減不能のダメージを与える。**X**は、キルしたアライのパワー値とライフ値の合計である。",
+  },
+
 });

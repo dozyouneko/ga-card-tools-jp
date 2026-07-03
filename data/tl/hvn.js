@@ -1341,4 +1341,70 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
       "[クラスボーナス] あなたのリコレクションフェイズ開始時に、あなたが書物または聖典のオブジェクトをコントロールしている場合、あなたのチャンピオンに**エンライトンカウンター**を1個置く。",
   },
 
+  // ===== 両面カードの裏面（運命石の変身先など。表面は上記／hvn-1st.js） =====
+
+  // Daunting Panda  [ALLY]  WIND  ※裏面（front: beseeched-fatestone）
+  "daunting-panda": {
+    name: "威圧するパンダ",
+    effect:
+      "**ヴィガー** *（あなたのエンドフェイズ開始時に、このユニットをアウェイクにする。）*",
+  },
+
+  // Serpentine Judicator  [ALLY]  FIRE  ※裏面（front: coiled-fatestone）
+  "serpentine-judicator": {
+    name: "蛇の裁定者",
+    effect:
+      "あなたの対戦相手は**リカバー**できない。",
+  },
+
+  // Windstalker Wolf  [ALLY]  WIND  ※裏面（front: cyclonic-fatestone）
+  "windstalker-wolf": {
+    name: "風追いの狼",
+    effect:
+      "**プライド5** *（このアライは、あなたのチャンピオンがレベル5以上でない限りあなたに従わない。あなたに従わないアライで攻撃・インターセプトすること、およびその能力を起動することはできない。）*",
+  },
+
+  // Woodland Shoats  [ALLY]  NORM  ※裏面（front: fatestone-of-balance）
+  "woodland-shoats": {
+    name: "森の子豚",
+    effect:
+      "**ステッドファスト** *（このアライはレスト中でもリタリエイトでき、そのためにレストしない。）*",
+  },
+
+  // Airborne Squirrel  [ALLY]  NORM  ※裏面（front: fatestone-of-progress）／バニラ
+  "airborne-squirrel": { name: "滑空するリス", effect: "" },
+
+  // Mocking Otter  [ALLY]  WATER  ※裏面（front: fluvial-fatestone）
+  "mocking-otter": {
+    name: "あざけるカワウソ",
+    effect:
+      "**タウント** *（アウェイクの間、相手の攻撃宣言時に、可能なら、あなたがコントロールする他のユニットより先に対象にされなければならない。）*\n\n" +
+      "**リトルト2** *（このアライがリタリエイトしている限り、+2[パワー]を得る。）*",
+  },
+
+  // Bolstered Boar  [ALLY]  NORM  ※裏面（front: idle-fatestone）
+  "bolstered-boar": {
+    name: "増強されたイノシシ",
+    effect:
+      "「増強されたイノシシ」にバフカウンターが2個以上ある限り、それは**ステッドファスト**、**タウント**、**ヴィガー**、および**リトルト2**を持つ。",
+  },
+
+  // Slick Torrentrider  [ALLY]  WATER  ※裏面（front: pelagic-fatestone）
+  "slick-torrentrider": {
+    name: "巧みな激流乗り",
+    effect:
+      "あなたのリコレクションフェイズ開始時に、あなたのデッキの一番上のカードを墓地に置く。",
+  },
+
+  // Commanding Sea Titan  [ALLY]  WATER  ※裏面（front: submerged-fatestone）
+  "commanding-sea-titan": {
+    name: "威風の海の巨人",
+    effect:
+      "あなたがコントロールしていないチャンピオンは-1レベルを得る。\n\n" +
+      "**タウント** *（アウェイクの間、相手の攻撃宣言時に、可能なら、あなたがコントロールする他のユニットより先に対象にされなければならない。）*",
+  },
+
+  // Elder Mandrill  [ALLY]  WIND  ※裏面（front: wildgrowth-fatestone）／バニラ
+  "elder-mandrill": { name: "長老マンドリル", effect: "" },
+
 });
