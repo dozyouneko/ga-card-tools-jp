@@ -102,6 +102,13 @@ function firstEdition(card) {
   return eds[0] || null;
 }
 
+// レアリティ番号 → 略号（gatcg 準拠）。C/UC/R/SR/UR/PR/CSR/CUR/CPR
+const RARITY_CODE = { 1: "C", 2: "U", 3: "R", 4: "SR", 5: "UR", 6: "PR", 7: "CSR", 8: "CUR", 9: "CPR" };
+function rarityCode(r) {
+  if (r == null) return "";
+  return RARITY_CODE[r] || `R${r}`; // 未知の番号は R+数値でフォールバック
+}
+
 // 使用禁止（legality の limit が 0）判定
 const FORMAT_JP = { STANDARD: "スタンダード", PANTHEON: "パンテオン", DRAFT: "ドラフト" };
 function bannedFormats(card) {
@@ -599,7 +606,7 @@ function renderEditions(card) {
     .map((ed) => {
       const set = ed.set ? `${ed.set.name}（${ed.set.prefix}）` : "";
       const num = ed.collector_number ? ` #${ed.collector_number}` : "";
-      const rarity = ed.rarity != null ? ` ・レアリティ${ed.rarity}` : "";
+      const rarity = ed.rarity != null ? ` ・${rarityCode(ed.rarity)}` : "";
       const illus = ed.illustrator ? ` ・絵：${ed.illustrator}` : "";
       return `<li>${escapeHtml(set + num + rarity + illus)}</li>`;
     })
