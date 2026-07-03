@@ -14,7 +14,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
     name: "アリス、歪みの女王",
     effect:
       "**登場時：** あなたはファンタスマゴリア・マスタリーを得る。その後、それに**ハウント**カウンターを2個置く。\n\n" +
-      "**リネージュ解放 → リカバー2＋X**。**X**は、アリス・リネージュにあるカードの枚数。",
+      "**リネージュ・リリース → リカバー2＋X**。**X**は、アリス・リネージュにあるカードの枚数。",
   },
   // Alice, Phantom Monarch
   "alice-phantom-monarch": {
