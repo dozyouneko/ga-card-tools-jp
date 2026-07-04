@@ -37,18 +37,19 @@ const pager = { page: 1, total: 0, shown: 0, hasMore: false, shownSlugs: new Set
 function hasJapanese(s) {
   return /[぀-ヿ㐀-鿿ｦ-ﾝ]/.test(s || "");
 }
-// 名前欄・効果テキスト欄のうち、日本語を含む入力を「日本語検索語」として返す（無ければ ""）
+// 名前欄・効果テキスト欄それぞれの日本語入力を返す（無ければ ""）
 // サーバーは英語データのみのため、日本語はローカル訳（name/effect）から検索する。
-function jpQueryText() {
-  const t = el.qtext.value.trim();
-  if (t && hasJapanese(t)) return t;
+function jpNameQuery() {
   const n = el.q.value.trim();
-  if (n && hasJapanese(n)) return n;
-  return "";
+  return n && hasJapanese(n) ? n : "";
+}
+function jpEffectQuery() {
+  const t = el.qtext.value.trim();
+  return t && hasJapanese(t) ? t : "";
 }
 // いずれかの欄に日本語が入っている → ローカル訳を検索するモード
 function isJpTextMode() {
-  return jpQueryText() !== "";
+  return jpNameQuery() !== "" || jpEffectQuery() !== "";
 }
 function setPrefixes(val) {
   if (val === "" || val == null) return []; // 「全て」（Number("") が 0 になる罠を回避）
@@ -290,24 +291,26 @@ async function runLocalJpSearch() {
   }
 }
 
-// ローカル訳を部分一致検索して slug の配列を返す
-function localJpSlugs(query) {
-  const q = query.toLowerCase();
+// ローカル訳を検索して slug の配列を返す。
+// 名前欄の日本語は name のみ、効果欄の日本語は effect のみに一致させる（両方あれば AND）。
+function localJpSlugs() {
+  const nq = jpNameQuery().toLowerCase();
+  const eq = jpEffectQuery().toLowerCase();
   const cards = I18N.cards || {};
   const out = [];
   for (const slug in cards) {
     const c = cards[slug];
-    const hay = `${c.name || ""}\n${c.effect || ""}`.toLowerCase();
-    if (hay.includes(q)) out.push(slug);
+    if (nq && !String(c.name || "").toLowerCase().includes(nq)) continue;
+    if (eq && !String(c.effect || "").toLowerCase().includes(eq)) continue;
+    out.push(slug);
   }
   return out;
 }
 
 // ローカル一致した slug のカードを取得し、他の絞り込み条件で客側フィルタして返す（並列取得）
 async function fetchLocalJpMatches(seq) {
-  const q = jpQueryText();
-  if (!q) return [];
-  const slugs = localJpSlugs(q).slice(0, 40);
+  if (!isJpTextMode()) return [];
+  const slugs = localJpSlugs().slice(0, 40);
   const cards = await Promise.all(slugs.map(async (slug) => {
     try {
       const res = await fetch(`${API}/cards/${encodeURIComponent(slug)}`);
