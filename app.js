@@ -67,9 +67,11 @@ function escapeHtml(s) {
 }
 
 // 効果テキストの簡易マークダウン（**太字** / *斜体* / 改行）を安全にHTML化
-function renderEffect(text) {
+// name を渡すと、API 原文中のプレースホルダ CARDNAME を実カード名に置換する。
+function renderEffect(text, name) {
   if (!text) return '<span class="muted">（効果テキストなし）</span>';
-  let html = escapeHtml(text);
+  const raw = name ? String(text).split("CARDNAME").join(name) : text;
+  let html = escapeHtml(raw);
   html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
   html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
   html = html.replace(/\n/g, "<br>");
@@ -529,7 +531,7 @@ function openDetail(card) {
   } else {
     jpBox.innerHTML = '<span class="muted">日本語訳はまだありません（翻訳募集中）。下の英語原文をご覧ください。</span>';
   }
-  document.getElementById("d-effect-en").innerHTML = renderEffect(card.effect);
+  document.getElementById("d-effect-en").innerHTML = renderEffect(card.effect, card.name);
 
   // フレーバー
   const flavor = (t && t.flavor) || card.flavor;
@@ -667,7 +669,7 @@ function renderBackFace(card) {
           <div class="effect">${jpHtml}</div>
           <details class="orig">
             <summary>英語原文を表示</summary>
-            <div class="effect effect-en">${renderEffect(back.effect)}</div>
+            <div class="effect effect-en">${renderEffect(back.effect, back.name)}</div>
           </details>
         </section>
       </div>
