@@ -422,10 +422,10 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   // Portentous Tanggu  [REGALIA/ITEM]  L- NORM
   // EN: [Guo Jia Bonus] **On Enter**: Put a **quest** counter on your champion. *(Apply this effect only if your champion is Guo Jia.)* /  / (3), **Banish CARDNAME**: Draw a card into your memory.
   "portentous-tanggu": {
-    name: "前兆のタンググ",
+    name: "先触れの堂鼓",
     effect:
       "［グオ・ジアボーナス］登場時：あなたのチャンピオンにクエストカウンターを1個置く。*（この効果は、あなたのチャンピオンがグオ・ジアの場合のみ適用する。）*\n\n" +
-      "(3)、「前兆のタンググ」を追放する：カードを1枚あなたのメモリーに引く。",
+      "(3)、「先触れの堂鼓」を追放する：カードを1枚あなたのメモリーに引く。",
   },
 
   // Pouvoir Absolu  [ACTION]  L- UMBRA
