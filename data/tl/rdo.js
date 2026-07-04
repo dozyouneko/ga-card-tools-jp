@@ -28,7 +28,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   // Aella, Zephyr's Hand  [UNIQUE/ALLY]  L- EXALTED,WIND
   // EN: Fast Activation /  / (3): As a Spell, suppress another target ally, item, or weapon. This ability costs (3) less to activate the first time you activate it.
   "aella-zephyrs-hand": {
-    name: "アエラ、ゼファーの手",
+    name: "アエラ、西風の使徒",
     effect:
       "高速起動\n\n" +
       "(3)：スペルとして、別の対象のアライ・アイテム・ウェポン1つをサプレスする。この能力を最初に起動するときは、起動コストが(3)少なくなる。",
