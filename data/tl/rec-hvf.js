@@ -169,7 +169,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
     name: "運命縛りのカラカル",
     effect:
       "**インターセプト** *（このアライがアウェイクの間にあなたのチャンピオンが攻撃されるたび、対象をこのアライに変更してもよい。）*\n\n" +
-      "**リトルト2** *（このアライがリタリエイトしている限り、+2[パワー]を得る。）*",
+      "**リトルト2** *（このアライが反撃している限り、+2[パワー]を得る。）*",
   },
 
   // Firebird Trailblazer  [ALLY]  FIRE  ※裏面（front: lavaplume-fatestone）

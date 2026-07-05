@@ -560,7 +560,10 @@ function openDetail(card) {
 
 // 効果文中に登場するゲーム用語（terms辞書のキーが英語効果文に含まれるもの）を抽出
 function matchedTerms(card) {
-  const haystack = `${card.effect || ""}`.toLowerCase();
+  // マークダウンの強調記号(*)を除去してから判定する。
+  // API原文は "**buff** counter" のように語の一部だけを太字化するため、
+  // 除去しないと "buff counter" 等の複数語キーが分断されて一致しない。
+  const haystack = `${card.effect || ""}`.replace(/\*/g, "").toLowerCase();
   const found = [];
   Object.keys(I18N.terms || {}).forEach((key) => {
     // 語頭のワード境界(\b)で判定して英単語の途中でのヒットを防ぐ。

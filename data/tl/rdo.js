@@ -801,7 +801,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   "elusive-headhunter": {
     name: "神出鬼没のヘッドハンター",
     effect:
-      "「神出鬼没のヘッドハンター」の攻撃はリタリエイトされない。\n\n" +
+      "「神出鬼没のヘッドハンター」の攻撃は反撃されない。\n\n" +
       "［クラスボーナス］キル時：このターン、あなたはアジリティ3を得る。*（アジリティ3 — エンドフェイズの開始時に、あなたのメモリーから3枚を手札に戻す。）*",
   },
 
@@ -2478,7 +2478,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   // EN: Ambush (This ally may retaliate against attackers while not defending.)
   "shade-striker": {
     name: "影の襲撃者",
-    effect: "アンブッシュ *（このアライは、防御していない間も攻撃者にリタリエイトしてよい。）*",
+    effect: "アンブッシュ *（このアライは、防御していない間も攻撃者に反撃してよい。）*",
   },
 
   // Shaded Doppelganger  [ALLY]  L- UMBRA
@@ -3179,7 +3179,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   "vaporjet-shieldbearer": {
     name: "蒸気噴射の盾持ち",
     effect:
-      "ステッドファスト *（このアライはレスト中にリタリエイトでき、そのためにレストしない。）*\n\n" +
+      "ステッドファスト *（このアライはレスト中に反撃でき、そのためにレストしない。）*\n\n" +
       "［クラスボーナス］ヒット時：あなたのデッキの一番上のカードを見る。あなたはそのカードをあなたの墓地に置いてよい。",
   },
 
