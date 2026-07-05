@@ -16,6 +16,9 @@ node_modules/
 out/
 dist/
 
+# Cloudflare wrangler ローカルキャッシュ
+.wrangler/
+
 # Logs / temp
 *.log
 # スキャフォルドの参照ファイル（.txt 有無どちらも無視）
