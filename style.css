@@ -49,7 +49,6 @@ a { color: var(--accent-2); }
 }
 .site-header h1 { margin: 0; font-size: 1.25rem; }
 .tagline { margin: 2px 0 0; color: var(--muted); font-size: .85rem; }
-.lang-toggle { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .85rem; cursor: pointer; }
 .header-actions { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
 .tool-link {
   display: inline-block;
@@ -111,20 +110,6 @@ a { color: var(--accent-2); }
 .controls button { cursor: pointer; }
 .controls button:hover { border-color: var(--accent); }
 .controls input:focus, .controls select:focus { outline: 2px solid var(--accent-2); outline-offset: 1px; }
-
-/* カード名の表示言語トグル（検索行の右側に配置） */
-.controls .lang-toggle {
-  margin-left: auto;
-  gap: 8px;
-  padding: 6px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--panel);
-  color: var(--text);
-  white-space: nowrap;
-}
-.controls .lang-toggle > span:first-child { color: var(--muted); font-size: .85rem; }
-.lang-state { font-weight: 700; color: var(--accent); }
 
 /* 絞り込みトグルは PC では非表示（フィルタは常時表示）。スマホでのみ出す */
 .filter-toggle { display: none; }
@@ -224,10 +209,6 @@ a { color: var(--accent-2); }
 .card-chips { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { font-size: .72rem; background: var(--panel-2); border: 1px solid var(--border); padding: 2px 8px; border-radius: 999px; color: var(--muted); }
 .chip-elem { color: var(--accent); border-color: #3a3320; }
-
-/* 名前を英語優先で表示 */
-body.show-en-primary .card-name { display: none; }
-body.show-en-primary .card-name-en { font-size: .98rem; color: var(--text); font-weight: 700; }
 
 /* ---------- モーダル ---------- */
 .modal { position: fixed; inset: 0; z-index: 20; }
@@ -398,7 +379,6 @@ body.show-en-primary .card-name-en { font-size: .98rem; color: var(--text); font
 
   /* 検索入力は全幅で縦積み */
   #q, #qtext { flex: 1 1 100%; min-width: 0; }
-  .controls .lang-toggle { margin-left: 0; width: 100%; justify-content: space-between; }
   /* 絞り込み・並び替えはトグルで開閉し、sticky ヘッダーをコンパクトに保つ。
      開いたときはセレクトを全幅（長い日本語ラベルの見切れ防止）、ボタンは 2 列に */
   .filter-toggle {

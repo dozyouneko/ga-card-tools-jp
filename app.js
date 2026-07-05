@@ -22,7 +22,6 @@ const el = {
   status: document.getElementById("status"),
   grid: document.getElementById("grid"),
   loadMore: document.getElementById("load-more"),
-  langEn: document.getElementById("lang-en"),
   modal: document.getElementById("modal"),
   controls: document.getElementById("controls"),
   filterToggle: document.getElementById("filter-toggle"),
@@ -442,7 +441,6 @@ function appendGrid(cards) {
     frag.appendChild(cardEl);
   });
   el.grid.appendChild(frag);
-  applyLangPref();
 }
 
 // ---------- 詳細モーダル ----------
@@ -847,15 +845,6 @@ function closeTray() {
   document.body.classList.remove("no-scroll");
 }
 
-// ---------- 言語表示切替 ----------
-
-function applyLangPref() {
-  const en = el.langEn.checked;
-  document.body.classList.toggle("show-en-primary", en);
-  const state = document.querySelector(".lang-state");
-  if (state) state.textContent = en ? "英語" : "日本語";
-}
-
 // ---------- イベント配線 ----------
 
 function debounce(fn, ms) {
@@ -900,7 +889,6 @@ function init() {
     resetControls();
     runSearch(true);
   });
-  el.langEn.addEventListener("change", applyLangPref);
 
   // 絞り込み・並び替えパネルの開閉（スマホのみトグル表示。PCでは常時表示）
   if (el.filterToggle && el.controls) {
