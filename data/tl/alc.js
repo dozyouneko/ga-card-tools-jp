@@ -1,8 +1,8 @@
 "use strict";
 // Alchemical Revolution（ALC 本体）日本語訳。translations.js の後に読み込む。
-// テーマ：アリサンナ（錬金/ギャザー/ブリュー）、飛空艇・オートマトン（レンジド）、
+// テーマ：アリサナ（錬金/ギャザー/ブリュー）、飛空艇・オートマトン（レンジド）、
 //         スターコーリング（アストラ）、Neos/トークン等。※大型セットのため複数バッチで追記。
-// ※Arisanna は本ファイルで「アリサンナ」に統一（rdo.js に旧「アリサナ」表記の揺れあり）。
+// ※Arisanna=「アリサナ」で統一（rdo/rdo-ext/mrc-alter と一致。ゲーム上の正式表記）。
 window.GA_I18N = window.GA_I18N || { meta: {}, terms: {}, cards: {} };
 window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
 
@@ -82,32 +82,32 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
 
   // Arisanna, Astral Zenith  [CHAMPION]  L3 ASTRA
   "arisanna-astral-zenith": {
-    name: "アリサンナ、星天の頂",
+    name: "アリサナ、星天の頂",
     effect:
-      "**アリサンナ・リネージュ**\n\n" +
+      "**アリサナ・リネージュ**\n\n" +
       "1ターンに1回、あなたはカードの**スターコーリング**コストを支払う代わりに(0)を支払ってよい。",
   },
 
   // Arisanna, Herbalist Prodigy  [CHAMPION]  L1 NORM
   "arisanna-herbalist-prodigy": {
-    name: "アリサンナ、薬草の申し子",
+    name: "アリサナ、薬草の申し子",
     effect:
       "**登場時：** **ギャザー**を2回行う。*（ギャザーするには、ブライトルート、マナルート、シルバーシャイン、フレイシア、レイザーヴァイン、スプリングリーフのトークンをランダムに1つ選んで召喚する。）*",
   },
 
   // Arisanna, Lucent Arbiter  [CHAMPION]  L3 ASTRA
   "arisanna-lucent-arbiter": {
-    name: "アリサンナ、光輝の裁定者",
+    name: "アリサナ、光輝の裁定者",
     effect:
-      "**アリサンナ・リネージュ**\n\n" +
+      "**アリサナ・リネージュ**\n\n" +
       "(3)、[レスト]：あなたのデッキの一番上のカードを公開する。対象のカードの起動を、そのリザーブコストが公開したカードのリザーブコストと等しい場合、**ネゲート**する。",
   },
 
   // Arisanna, Master Alchemist  [CHAMPION]  L2 NORM
   "arisanna-master-alchemist": {
-    name: "アリサンナ、熟達の錬金術師",
+    name: "アリサナ、熟達の錬金術師",
     effect:
-      "**アリサンナ・リネージュ** *（「アリサンナ、熟達の錬金術師」は、前のレベルの「アリサンナ」チャンピオンからレベルアップさせなければならない。）*\n\n" +
+      "**アリサナ・リネージュ** *（「アリサナ、熟達の錬金術師」は、前のレベルの「アリサナ」チャンピオンからレベルアップさせなければならない。）*\n\n" +
       "**登場時：** **ギャザー**を2回行う。\n\n" +
       "**継承効果**——あなたのエンドフェイズ開始時に、あなたは同じ名前の薬草を2つサクリファイスしてよい。そうした場合、カードを1枚引く。",
   },
