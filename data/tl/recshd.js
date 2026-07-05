@@ -55,7 +55,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
 
   // Malignant Athame  [REGALIA/WEAPON]  UMBRA
   "malignant-athame": {
-    name: "邪儀の短剣",
+    name: "邪儀の祭儀剣",
     effect:
       "[クラスボーナス] **チャンピオンヒット時：** その対戦相手に、自分の手札とメモリーのカードを入れ替えさせてよい。その後、その対戦相手のメモリーにカードが4枚以上あるなら、ヒットしたチャンピオンに2点の軽減不能のダメージを与える。",
   },
