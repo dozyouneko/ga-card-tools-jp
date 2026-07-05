@@ -1,0 +1,15 @@
+{
+  "name": "ga-card-tools-jp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Grand Archive TCG 日本語カードDB（非公式）— 静的サイト＋翻訳ツールチェーン",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "scaffold": "node scripts/scaffold.mjs",
+    "validate": "node scripts/validate.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

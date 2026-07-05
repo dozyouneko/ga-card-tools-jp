@@ -1,0 +1,32 @@
+{
+  // Grand Archive 日本語カードDB — Dev Container 定義
+  // 純静的サイト（現状）＋ 将来の Next.js 移行を見据えた Node LTS 環境。
+  "name": "ga-card-tools-jp",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:20-bookworm",
+
+  // 3000 = 静的プレビュー（scripts/serve.mjs）／将来の `next dev`
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": { "label": "static / next dev", "onAutoForward": "notify" }
+  },
+
+  // 依存が増えたら自動で入るように（現状は devDependencies 空なので実質no-op）
+  "postCreateCommand": "npm install --no-audit --no-fund || true",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-vscode.live-server"
+      ],
+      "settings": {
+        "files.eol": "\n",
+        "editor.formatOnSave": false,
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+
+  "remoteUser": "node"
+}

@@ -11,6 +11,12 @@ desktop.ini
 # Dependencies (将来 npm 等を使う場合)
 node_modules/
 
+# Build output (将来 Next.js 等)
+.next/
+out/
+dist/
+
 # Logs / temp
 *.log
-scratch_ref_*.txt
+# スキャフォルドの参照ファイル（.txt 有無どちらも無視）
+scratch_ref_*
