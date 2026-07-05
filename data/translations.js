@@ -98,7 +98,7 @@ window.GA_I18N = {
       DEER: "鹿", DEVICE: "装置", DISTORTION: "歪み", ELEMENTAL: "エレメンタル",
       FATEBOUND: "運命縛り", FATESTONE: "運命石", FLOWER: "花", FOX: "狐", FRACTAL: "フラクタル",
       FROG: "蛙", GOLEM: "ゴーレム", GUARDIAN: "ガーディアン", GUN: "銃", HAMMER: "鎚",
-      HARMONY: "調和", HERB: "薬草", HORSE: "馬", HUMAN: "人間", ISLE: "島", KING: "キング",
+      HARMONY: "ハーモニー", HERB: "薬草", HORSE: "馬", HUMAN: "人間", ISLE: "島", KING: "キング",
       LIZARD: "トカゲ", MAGE: "メイジ", MAP: "地図", MELODY: "旋律", MEMORITE: "メモライト",
       PHOENIX: "不死鳥", POLEARM: "長柄武器", POTION: "ポーション", QUEEN: "クイーン",
       RABBIT: "兎", RACCOON: "アライグマ", RANGER: "レンジャー", REACTION: "リアクション",
