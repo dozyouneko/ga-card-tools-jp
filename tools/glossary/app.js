@@ -14,7 +14,11 @@
       : entries;
 
     list.innerHTML = shown
-      .map((t) => `<li><span class="term-jp">${escapeHtml(t.jp)}</span><span class="term-desc">${escapeHtml(t.desc)}</span></li>`)
+      .map((t) => {
+        const core = t.jp.split("（")[0].trim();
+        const href = `../../index.html?qtext=${encodeURIComponent(core)}`;
+        return `<li><a class="term-jp" href="${escapeHtml(href)}" title="効果テキスト検索でこの用語を検索">${escapeHtml(t.jp)}</a><span class="term-desc">${escapeHtml(t.desc)}</span></li>`;
+      })
       .join("");
     empty.hidden = shown.length !== 0;
     count.textContent = `${shown.length} / ${entries.length} 件`;

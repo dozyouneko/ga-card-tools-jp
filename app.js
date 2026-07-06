@@ -868,12 +868,19 @@ function resetControls() {
   el.order.textContent = "▲ 昇順";
 }
 
+// 他ページ（キーワード集など）からのリンクで ?qtext=... が付いていれば、効果テキスト検索欄に反映する
+function applyUrlQuery() {
+  const qtext = new URLSearchParams(location.search).get("qtext");
+  if (qtext) el.qtext.value = qtext;
+}
+
 function init() {
   fillSelect(el.fClass, "classes");
   fillSelect(el.fElement, "elements");
   fillSelect(el.fType, "types");
   fillSetSelect();
   resetControls(); // 起動時は必ず「全て」から開始（前回選択の復元を打ち消す）
+  applyUrlQuery();
 
   el.q.addEventListener("input", debounce(() => runSearch(true), 350));
   el.qtext.addEventListener("input", debounce(() => runSearch(true), 350));
