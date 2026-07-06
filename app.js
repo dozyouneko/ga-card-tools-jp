@@ -242,7 +242,7 @@ function buildQuery(page) {
 // reset=true で新規検索（1ページ目・グリッド全消去）、false で「もっと見る」（追記）
 async function runSearch(reset) {
   // 効果テキスト欄が日本語 → サーバーは英語のみのため、ローカル訳から検索するモードに切替
-  if (isJpTextMode()) { runLocalJpSearch(); return; }
+  if (isJpTextMode()) { runLocalJpSearch(reset); return; }
 
   const seq = ++reqSeq;
   if (reset) { pager.page = 1; pager.shownSlugs = new Set(); }
@@ -270,25 +270,35 @@ async function runSearch(reset) {
 }
 
 // 日本語テキスト検索：ローカル訳（name/effect）の部分一致 → 該当カードを取得して表示
-async function runLocalJpSearch() {
+// English/API検索と同じ pager（page/total/hasMore）を使い、"もっと見る" でページ送りできるようにする。
+const JP_PAGE_SIZE = 40;
+
+async function runLocalJpSearch(reset) {
   const seq = ++reqSeq;
-  el.status.textContent = "日本語テキストで検索中…";
-  el.loadMore.hidden = true;
-  el.grid.innerHTML = "";
-  pager.shownSlugs = new Set();
-  pager.total = 0;
-  pager.hasMore = false;
+  if (reset) {
+    pager.page = 1;
+    pager.shownSlugs = new Set();
+    el.grid.innerHTML = "";
+    el.loadMore.hidden = true;
+  }
+  el.status.textContent = reset ? "日本語テキストで検索中…" : "読み込み中…";
+  el.loadMore.disabled = true;
   try {
-    const cards = await fetchLocalJpMatches(seq);
+    const slugs = localJpSlugs();
+    pager.total = slugs.length; // class/element/type/set の絞り込みはこの後クライアント側で適用されるため、この総数には反映されない
+    const from = (pager.page - 1) * JP_PAGE_SIZE;
+    const batch = slugs.slice(from, from + JP_PAGE_SIZE);
+    const cards = await fetchLocalJpMatches(seq, batch);
     if (seq !== reqSeq) return;
+    pager.hasMore = from + JP_PAGE_SIZE < pager.total;
     appendGrid(cards);
-    const n = el.grid.childElementCount;
-    el.status.textContent = n === 0
-      ? "日本語テキストに一致する翻訳済みカードが見つかりませんでした（未翻訳のカードは日本語検索できません。英語での検索もお試しください）。"
-      : `${n} 件を表示（日本語テキスト一致・翻訳済みのみ）`;
+    updateSearchStatus("（日本語テキスト一致・翻訳済みのみ）", "日本語テキストに一致する翻訳済みカードが見つかりませんでした（未翻訳のカードは日本語検索できません。英語での検索もお試しください）。");
   } catch (err) {
     if (seq !== reqSeq) return;
+    if (!reset && pager.page > 1) pager.page -= 1;
     el.status.textContent = `検索に失敗しました（${err.message}）。`;
+  } finally {
+    if (seq === reqSeq) el.loadMore.disabled = false;
   }
 }
 
@@ -308,10 +318,8 @@ function localJpSlugs() {
   return out;
 }
 
-// ローカル一致した slug のカードを取得し、他の絞り込み条件で客側フィルタして返す（並列取得）
-async function fetchLocalJpMatches(seq) {
-  if (!isJpTextMode()) return [];
-  const slugs = localJpSlugs().slice(0, 40);
+// ローカル一致した slug（1ページ分）のカードを取得し、他の絞り込み条件で客側フィルタして返す（並列取得）
+async function fetchLocalJpMatches(seq, slugs) {
   const cards = await Promise.all(slugs.map(async (slug) => {
     try {
       const res = await fetch(`${API}/cards/${encodeURIComponent(slug)}`);
@@ -336,15 +344,16 @@ function matchesActiveFilters(card) {
   return true;
 }
 
-function updateSearchStatus() {
+// suffix: 件数表示の末尾に添える注記（JP検索モード用）。emptyMessage: 0件時の文言差し替え（省略時は既定文言）。
+function updateSearchStatus(suffix, emptyMessage) {
   pager.shown = el.grid.childElementCount;
   if (pager.shown === 0) {
-    el.status.textContent = "該当するカードがありません。条件を変えてお試しください。";
+    el.status.textContent = emptyMessage || "該当するカードがありません。条件を変えてお試しください。";
     el.loadMore.hidden = true;
     return;
   }
   const totalPart = pager.total > pager.shown ? ` / 全 ${pager.total} 件` : "";
-  el.status.textContent = `${pager.shown} 件を表示${totalPart}`;
+  el.status.textContent = `${pager.shown} 件を表示${totalPart}${suffix || ""}`;
   el.loadMore.hidden = !pager.hasMore;
 }
 
