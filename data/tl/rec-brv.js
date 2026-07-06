@@ -48,7 +48,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
     name: "迷い子を探して",
     effect:
       "**プレパレーション1**\n\n" +
-      "このカードが**プレパレーション**されていた限り、それは**ブロック不能**を持つ。",
+      "このカードが**プレパレーション**されていた限り、それは**アンブロッカブル**を持つ。",
   },
   // Fractured Memories (Mastery)
   "fractured-memories": {

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>キーワード集 — Grand Archive 日本語カードDB</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header>
+    <p class="nav"><a href="../../index.html">← Grand Archive カードDBへ戻る</a></p>
+    <h1>📖 キーワード集</h1>
+    <p class="sub">カード効果に登場するキーワード・用語をまとめた一覧です。カード詳細画面の「登場する用語」欄と同じ辞書を使っています。</p>
+  </header>
+
+  <main>
+    <input type="search" id="q" class="search" placeholder="キーワードで絞り込み… 例: ステルス, link" autocomplete="off">
+    <p id="count" class="count"></p>
+    <ul id="list" class="term-list"></ul>
+    <p id="empty" class="empty" hidden>一致するキーワードが見つかりません。</p>
+  </main>
+
+  <footer>
+    <p>非公式のファンサイトです。用語の解釈に誤りがある場合は原文（英語）を優先してください。</p>
+  </footer>
+</div>
+
+<script src="../../data/translations.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

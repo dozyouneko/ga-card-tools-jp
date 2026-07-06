@@ -15,7 +15,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   "endura-scepter-of-ignition": {
     name: "エンデュラ、着火の笏",
     effect:
-      "[レスト]、**あなたのチャンピオンから覚醒カウンターを1個取り除く：** 対象のユニットに1点のダメージを与える。この能力はスロースピードでのみ起動できる。",
+      "[レスト]、**あなたのチャンピオンからエンライト・カウンターを1個取り除く：** 対象のユニットに1点のダメージを与える。この能力はスロースピードでのみ起動できる。",
   },
 
   // Flute of Taming  [REGALIA/ITEM]  NORM
