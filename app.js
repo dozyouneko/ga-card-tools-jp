@@ -112,21 +112,52 @@ function rarityCode(r) {
 }
 
 // 使用禁止（legality の limit が 0）判定
+const ALL_FORMATS = ["STANDARD", "DRAFT", "PANTHEON"];
 const FORMAT_JP = { STANDARD: "スタンダード", PANTHEON: "パンテオン", DRAFT: "ドラフト" };
+const FORMAT_SHORT = { STANDARD: "スタン", PANTHEON: "パンテオン", DRAFT: "ドラフト" };
+
+// 使用禁止（limit 0）になっているフォーマット一覧
 function bannedFormats(card) {
   const leg = card.legality || {};
-  return Object.keys(leg).filter((f) => leg[f] && leg[f].limit === 0);
+  return ALL_FORMATS.filter((f) => leg[f] && leg[f].limit === 0);
 }
-function isBannedStandard(card) {
-  const leg = card.legality || {};
-  return !!(leg.STANDARD && leg.STANDARD.limit === 0);
+// まだ使用できる（禁止されていない）フォーマット一覧
+function legalFormats(card) {
+  const banned = bannedFormats(card);
+  return ALL_FORMATS.filter((f) => !banned.includes(f));
 }
-// Pantheon 専用カード判定：スタンダードもドラフトも使用不可（limit 0）だが
-// Pantheon は制限リストに載らない＝Pantheonでのみ使用できるカード。
-// （通常の禁止カードはスタンダードのみ limit 0 で、ドラフト/Pantheonでは使える）
-function isPantheonOnly(card) {
-  const leg = card.legality || {};
-  return !!(leg.STANDARD && leg.STANDARD.limit === 0 && leg.DRAFT && leg.DRAFT.limit === 0);
+// 残り1フォーマットでしか使用できない場合、そのフォーマット名を返す（例：スタンダード・ドラフト禁止 → "PANTHEON"）。
+// 該当しなければ null。
+function exclusiveFormat(card) {
+  const legal = legalFormats(card);
+  return legal.length === 1 ? legal[0] : null;
+}
+
+// 専用フォーマットのアイコン・クラス名・説明文（検索結果バッジ／詳細モーダルの両方で使う）
+const EXCLUSIVE_FORMAT_INFO = {
+  PANTHEON: { icon: "🏛", cls: "pantheon", label: "Pantheon専用" },
+  DRAFT:    { icon: "🎴", cls: "draft", label: "ドラフト専用" },
+  STANDARD: { icon: "⭐", cls: "standard", label: "スタンダード専用" },
+};
+function exclusiveNote(format) {
+  const others = ALL_FORMATS.filter((f) => f !== format).map((f) => FORMAT_JP[f]).join("・");
+  return `（${others}では使用不可）`;
+}
+
+// 検索結果カードに表示するフォーマットバッジ（専用フォーマット／禁止フォーマットのどちらか。無ければ空文字）
+function formatBadgeHtml(card) {
+  const excl = exclusiveFormat(card);
+  if (excl) {
+    const info = EXCLUSIVE_FORMAT_INFO[excl];
+    return `<span class="format-badge format-${info.cls}" title="${info.label}${exclusiveNote(excl)}">${info.icon} ${info.label}</span>`;
+  }
+  const banned = bannedFormats(card);
+  if (banned.length) {
+    const short = banned.map((f) => FORMAT_SHORT[f]).join("・");
+    const full = banned.map((f) => FORMAT_JP[f]).join("・");
+    return `<span class="format-badge format-banned" title="${full}で使用禁止">🚫 ${short}禁止</span>`;
+  }
+  return "";
 }
 
 function imageUrl(card) {
@@ -401,11 +432,7 @@ function appendGrid(cards) {
       <div class="card-img">
         ${img ? `<img loading="lazy" crossorigin="anonymous" src="${escapeHtml(img)}" alt="">` : `<div class="noimg">画像なし</div>`}
         <span class="tl-badge ${translated ? "tl-yes" : "tl-no"}">${translated ? "日本語訳あり" : "未翻訳"}</span>
-        ${isPantheonOnly(card)
-          ? `<span class="pantheon-badge" title="Pantheon専用（スタンダード・ドラフトでは使用不可）">🏛 Pantheon</span>`
-          : isBannedStandard(card)
-          ? `<span class="banned-badge" title="スタンダードで使用禁止">🚫 禁止</span>`
-          : ""}
+        ${formatBadgeHtml(card)}
         ${imgs.length > 1 ? `<button class="art-badge" type="button" title="イラスト/版を切り替え（${imgs.length}種）" aria-label="イラストを切り替え">🎨 ${imgs.length}・${escapeHtml(imgs[initialAi].prefix)}</button>` : ""}
         ${back ? `<button class="flip-badge" type="button" title="両面カード：表裏を切り替え" aria-label="裏面を表示">🔄 両面</button>` : ""}
         ${img ? `<button class="card-add" type="button" title="印刷リストに追加" aria-label="印刷リストに追加">＋🖨️</button>` : ""}
@@ -506,19 +533,21 @@ function openDetail(card) {
   document.getElementById("d-name").textContent = jpName(card);
   document.getElementById("d-name-en").textContent = card.name;
 
-  // 使用可否の表示（Pantheon専用カードは禁止ではなくPantheon表示にする）
+  // 使用可否の表示（特定フォーマット専用カードは禁止ではなく専用フォーマット表示にする）
   const banned = bannedFormats(card);
+  const excl = exclusiveFormat(card);
   const bannedEl = document.getElementById("d-banned");
-  if (isPantheonOnly(card)) {
-    bannedEl.textContent = "🏛 Pantheon専用（スタンダード・ドラフトでは使用不可）";
-    bannedEl.classList.add("pantheon-banner");
+  if (excl) {
+    const info = EXCLUSIVE_FORMAT_INFO[excl];
+    bannedEl.textContent = `${info.icon} ${info.label}${exclusiveNote(excl)}`;
+    bannedEl.className = `banned-banner format-banner-${info.cls}`;
     bannedEl.hidden = false;
   } else if (banned.length) {
     bannedEl.textContent = `🚫 使用禁止：${banned.map((f) => FORMAT_JP[f] || f).join("・")}`;
-    bannedEl.classList.remove("pantheon-banner");
+    bannedEl.className = "banned-banner";
     bannedEl.hidden = false;
   } else {
-    bannedEl.classList.remove("pantheon-banner");
+    bannedEl.className = "banned-banner";
     bannedEl.hidden = true;
   }
 

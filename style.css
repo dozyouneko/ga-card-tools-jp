@@ -160,11 +160,17 @@ a { color: var(--accent-2); }
 }
 .tl-yes { background: var(--yes); }
 .tl-no  { background: var(--no); }
-.banned-badge {
+/* フォーマット別バッジ（検索結果カード）：禁止フォーマット／専用フォーマットのどちらかを表示 */
+.format-badge {
   position: absolute; left: 8px; bottom: 8px;
   font-size: .7rem; padding: 2px 8px; border-radius: 999px;
-  background: #b91c1c; color: #fff; font-weight: 700;
+  color: #fff; font-weight: 700;
 }
+.format-banned   { background: #b91c1c; }
+.format-pantheon { background: #7c3aed; }
+.format-draft    { background: #0e7490; }
+.format-standard { background: #b45309; }
+
 .banned-banner {
   margin: 0 0 12px; padding: 8px 12px;
   background: rgba(185, 28, 28, .15);
@@ -172,17 +178,9 @@ a { color: var(--accent-2); }
   color: #fca5a5; font-weight: 700; font-size: .9rem;
 }
 .banned-banner[hidden] { display: none; }
-/* Pantheon 専用カード（禁止ではなくフォーマット表示） */
-.pantheon-badge {
-  position: absolute; left: 8px; bottom: 8px;
-  font-size: .7rem; padding: 2px 8px; border-radius: 999px;
-  background: #7c3aed; color: #fff; font-weight: 700;
-}
-.pantheon-banner {
-  background: rgba(124, 58, 237, .15);
-  border-color: #7c3aed;
-  color: #c4b5fd;
-}
+.format-banner-pantheon { background: rgba(124, 58, 237, .15); border-color: #7c3aed; color: #c4b5fd; }
+.format-banner-draft    { background: rgba(14, 116, 144, .15); border-color: #0e7490; color: #67e8f9; }
+.format-banner-standard { background: rgba(180, 83, 9, .15); border-color: #b45309; color: #fcd34d; }
 
 .art-badge {
   position: absolute; right: 8px; bottom: 8px;
