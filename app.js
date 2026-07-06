@@ -152,6 +152,15 @@ function cardImages(card) {
   return out;
 }
 
+// エキスパンション（版）で絞り込み検索している場合、その版のイラストを初期表示にする。
+// 絞り込みが無い、または一致する版が無い場合は先頭（imgs[0]）にフォールバック。
+function preferredArtIndex(imgs) {
+  const pre = setPrefixes(el.fSet.value);
+  if (!pre.length) return 0;
+  const idx = imgs.findIndex((im) => pre.includes(im.prefix));
+  return idx >= 0 ? idx : 0;
+}
+
 // ---------- 両面（flip）カード ----------
 // 公式APIは常に「表面」のカードを返し、裏面は edition.other_orientations[0] に格納する。
 // 画像は other_orientations[0].edition.image、裏面は独自の slug/name/effect を持つ。
@@ -374,7 +383,8 @@ function appendGrid(cards) {
     if (slug) pager.shownSlugs.add(slug);
     const translated = isTranslated(card);
     const imgs = cardImages(card);
-    const img = imgs.length ? imgs[0].url : null;
+    const initialAi = preferredArtIndex(imgs);
+    const img = imgs.length ? imgs[initialAi].url : null;
     const back = backFace(card); // 両面カードなら裏面（無ければ null）
 
     const cardEl = document.createElement("div");
@@ -396,7 +406,7 @@ function appendGrid(cards) {
           : isBannedStandard(card)
           ? `<span class="banned-badge" title="スタンダードで使用禁止">🚫 禁止</span>`
           : ""}
-        ${imgs.length > 1 ? `<button class="art-badge" type="button" title="イラスト/版を切り替え（${imgs.length}種）" aria-label="イラストを切り替え">🎨 ${imgs.length}・${escapeHtml(imgs[0].prefix)}</button>` : ""}
+        ${imgs.length > 1 ? `<button class="art-badge" type="button" title="イラスト/版を切り替え（${imgs.length}種）" aria-label="イラストを切り替え">🎨 ${imgs.length}・${escapeHtml(imgs[initialAi].prefix)}</button>` : ""}
         ${back ? `<button class="flip-badge" type="button" title="両面カード：表裏を切り替え" aria-label="裏面を表示">🔄 両面</button>` : ""}
         ${img ? `<button class="card-add" type="button" title="印刷リストに追加" aria-label="印刷リストに追加">＋🖨️</button>` : ""}
       </div>
@@ -421,7 +431,7 @@ function appendGrid(cards) {
     const flipBadge = cardEl.querySelector(".flip-badge");
     const imgEl = cardEl.querySelector(".card-img img");
     if (imgEl && (artBadge || flipBadge)) {
-      let ai = 0;              // 選択中の版（イラスト）番号
+      let ai = initialAi;      // 選択中の版（イラスト）番号
       let showingBack = false; // 裏面を表示中か
       const syncImg = () => {
         const cur = imgs[ai] || imgs[0];
@@ -462,7 +472,8 @@ function metaRow(label, value) {
 function openDetail(card) {
   const t = tr(card);
   const imgs = cardImages(card);
-  const img = imgs.length ? imgs[0].url : null;
+  const initialAi = preferredArtIndex(imgs);
+  const img = imgs.length ? imgs[initialAi].url : null;
   const dImg = document.getElementById("d-img");
   // 空文字の src は現在ページURL（file://index.html 等）に解決され警告を出すため、
   // 画像が無いときは src 属性ごと外して非表示にする。
@@ -479,7 +490,7 @@ function openDetail(card) {
   const artsEl = document.getElementById("d-arts");
   if (imgs.length > 1) {
     artsEl.innerHTML = imgs
-      .map((im, i) => `<button class="art-thumb${i === 0 ? " active" : ""}" type="button" data-url="${escapeHtml(im.url)}" data-back="${escapeHtml(im.back || "")}" title="${escapeHtml(im.label)}"><img loading="lazy" crossorigin="anonymous" src="${escapeHtml(im.url)}" alt=""><span>${escapeHtml(im.label)}</span></button>`)
+      .map((im, i) => `<button class="art-thumb${i === initialAi ? " active" : ""}" type="button" data-url="${escapeHtml(im.url)}" data-back="${escapeHtml(im.back || "")}" title="${escapeHtml(im.label)}"><img loading="lazy" crossorigin="anonymous" src="${escapeHtml(im.url)}" alt=""><span>${escapeHtml(im.label)}</span></button>`)
       .join("");
     artsEl.hidden = false;
   } else {
