@@ -11,7 +11,8 @@
   },
 
   // 依存が増えたら自動で入るように（現状は devDependencies 空なので実質no-op）
-  "postCreateCommand": "npm install --no-audit --no-fund || true",
+  // + Claude Code CLI をコンテナ作成時にグローバルインストール
+  "postCreateCommand": "npm install --no-audit --no-fund || true; npm install -g @anthropic-ai/claude-code || true",
 
   "customizations": {
     "vscode": {
