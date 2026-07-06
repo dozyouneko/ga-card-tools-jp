@@ -26,7 +26,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   "chrysalis-hazy-caterpillar": {
     name: "クリサリス、朧げな芋虫",
     effect:
-      "**高速起動**\n\n" +
+      "**ファスト・アクティベーション**\n\n" +
       "[シエルボーナス] **登場時：** スペルとして、あなたが風エレメントの**オーメン**を2個以上持っているなら、別の対象のアライ、アイテム、またはウェポンを**サプレス**する。",
   },
   // Devouring Malice

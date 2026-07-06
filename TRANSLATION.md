@@ -27,7 +27,7 @@ DTRSD（Distorted Reflections スターターデッキ）に続き、最新弾 R
 
 | English | 日本語 |
 |---|---|
-| materialize | マテリアライズ（実体化） |
+| materialize | マテリアライズ |
 | activate | 起動する |
 | summon | 召喚する |
 | generate | 生成する |
@@ -63,7 +63,7 @@ DTRSD（Distorted Reflections スターターデッキ）に続き、最新弾 R
 | Efficiency | エフィシェンシー |
 | Vigor | ヴィガー |
 | Steadfast | ステッドファスト |
-| Cleave | クリーブ |
+| Cleave | クリーヴ |
 | Ephemerate / ephemeral | エフェメレート / エフェメラル |
 | Imbue / imbued | インビュー / インビュー状態 |
 | Advanced Imbue | アドバンスド・インビュー |
@@ -90,8 +90,8 @@ DTRSD（Distorted Reflections スターターデッキ）に続き、最新弾 R
 | Ambush | アンブッシュ |
 | Stealth / True Sight | ステルス / トゥルーサイト |
 | bulwark counter | バルワークカウンター |
-| wither counter | 萎縮カウンター |
-| enlighten counter | 覚醒カウンター |
+| wither counter | ウィザーカウンター |
+| enlighten counter | エンライトカウンター |
 | unpreventable | 軽減不能 |
 | \[X Bonus\] | ［Xボーナス］（キャラ名は既存の定訳・カタカナ） |
 

@@ -877,7 +877,7 @@ function resetControls() {
   el.order.textContent = "▲ 昇順";
 }
 
-// 他ページ（キーワード集など）からのリンクで ?qtext=... が付いていれば、効果テキスト検索欄に反映する
+// 他ページ（ひとくちキーワード解説など）からのリンクで ?qtext=... が付いていれば、効果テキスト検索欄に反映する
 function applyUrlQuery() {
   const qtext = new URLSearchParams(location.search).get("qtext");
   if (qtext) el.qtext.value = qtext;

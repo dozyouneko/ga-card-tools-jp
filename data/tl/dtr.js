@@ -327,7 +327,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   "expeditious-opening": {
     name: "迅速な布石",
     effect:
-      "このターン、あなたが次に起動するアライカードは、**高速起動**を持つかのように起動できる。カードを1枚あなたのメモリーに引く。",
+      "このターン、あなたが次に起動するアライカードは、**ファスト・アクティベーション**を持つかのように起動できる。カードを1枚あなたのメモリーに引く。",
   },
   // Exploit Vulnerability
   "exploit-vulnerability": {
@@ -391,7 +391,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   "flamebreak-chorus": {
     name: "炎裂の合唱",
     effect:
-      "[クラスボーナス] **高速起動** *（このカードをファストスピードで起動してよい。）*\n\n" +
+      "[クラスボーナス] **ファスト・アクティベーション** *（このカードをファストスピードで起動してよい。）*\n\n" +
       "対象のアライは、ターン終了時まで+2[パワー]を得る。それが防御しているなら、それをアウェイクにし、ターン終了時までさらに+**LV**[パワー]を得る。",
   },
   // Fleeting Guard
@@ -574,7 +574,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   "longtail-grovesward": {
     name: "ロングテイル・グローヴスワード",
     effect:
-      "**高速起動** *（このカードをファストスピードで起動してよい。）*\n\n" +
+      "**ファスト・アクティベーション** *（このカードをファストスピードで起動してよい。）*\n\n" +
       "[レベル1+] 「ロングテイル・グローヴスワード」は+1[ライフ]を得る。",
   },
   // Lucenia's Reign
