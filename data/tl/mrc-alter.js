@@ -171,7 +171,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   "regal-expulsion": {
     name: "荘厳なる追放",
     effect:
-      "対象のカードがマテリアルデッキから起動されたものである場合、そのカードの起動を**ネゲート**する。",
+      "対象のカードがマテリアルデッキから起動されている場合、そのカードの起動を**ネゲート**する。",
   },
 
   // Scathing Seminary  [ALLY]  FIRE

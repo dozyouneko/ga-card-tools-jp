@@ -166,7 +166,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   "imperious-highlander": {
     name: "傲慢な高地人",
     effect:
-      "**登場時：**「傲慢な高地人」は、ターン終了時まで+**X**[パワー]を得る。**X**は、対象の対戦相手がコントロールするアライの数が、あなたがコントロールするアライの数を上回っている数。",
+      "**登場時：**「傲慢な高地人」は、ターン終了時まで+**X**[パワー]を得る。**X**は、対象の対戦相手があなたより多くコントロールしているアライの数。",
   },
 
   // Incendiary Fractal  [PHANTASIA]  FIRE
