@@ -1,0 +1,8 @@
+name = "ga-card-tools-jp"
+pages_build_output_dir = "."
+compatibility_date = "2025-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ga-deck-builder"
+database_id = "d1adb924-6b9e-432e-9a30-e814be1e7102"

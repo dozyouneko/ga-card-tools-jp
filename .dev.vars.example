@@ -1,0 +1,9 @@
+# ローカル開発用の環境変数（wrangler pages dev が読み込む）。
+# このファイルをコピーして .dev.vars を作成し、実際の値を入れてください（.dev.vars は git 管理外）。
+#
+# 使い方: cp .dev.vars.example .dev.vars
+
+# Discord Developer Portal（https://discord.com/developers/applications）で
+# 作成したアプリケーションの OAuth2 設定から取得
+DISCORD_CLIENT_ID=
+DISCORD_CLIENT_SECRET=

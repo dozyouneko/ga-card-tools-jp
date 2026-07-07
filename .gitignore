@@ -22,7 +22,12 @@ dist/
 # Cloudflare wrangler ローカルキャッシュ
 .wrangler/
 
+# ローカル開発用シークレット（Discord Client Secret 等。.dev.vars.example を参照して各自作成）
+.dev.vars
+
 # Logs / temp
 *.log
 # スキャフォルドの参照ファイル（.txt 有無どちらも無視）
 scratch_ref_*
+# 作業用ファイル置き場（計画メモ・スクリーンショット等。コミット対象外）
+tmp/
