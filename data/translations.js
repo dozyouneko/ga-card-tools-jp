@@ -106,7 +106,7 @@ window.GA_I18N = {
       LIZARD: "トカゲ", MAGE: "メイジ", MAP: "地図", MARKET: "市場", MAUL: "大槌", MELODY: "旋律",
       MEMORITE: "メモライト", MONKEY: "猿", MOUSE: "鼠", MUSHROOM: "キノコ", OBELISK: "オベリスク",
       OCEAN: "大海", PARTY: "パーティ", PAWN: "ポーン", PHOENIX: "不死鳥", POLEARM: "長柄武器",
-      POTION: "ポーション", POWERCELL: "パワーセル", QUEEN: "クイーン", RABBIT: "兎", RACCOON: "アライグマ",
+      POTION: "ポーション", POWERCELL: "パワーセル", QUEEN: "クイーン", RABBIT: "兎", RACCOON: "ラクーン",
       RANGER: "レンジャー", REACTION: "リアクション", RHINO: "サイ", RING: "指輪", RIVER: "川", ROBE: "ローブ",
       ROOK: "ルーク", ROOT: "根", RUINS: "遺跡", SCEPTER: "笏", SCRIPTURE: "聖典", SELKIE: "セルキー",
       SERPENT: "大蛇", SHADOW: "影", SHARD: "破片", SHEEP: "羊", SHENJU: "神獣", SHIELD: "盾",

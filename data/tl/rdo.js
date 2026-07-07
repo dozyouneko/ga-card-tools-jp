@@ -2008,7 +2008,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   "portly-raccoon": {
     name: "恰幅のよいアライグマ",
     effect:
-      "登場時：あなたは手札またはメモリーからアライグマカードを2枚公開してよい。そうしたとき、対象の対戦相手は自分の墓地からカードを1枚追放する。",
+      "登場時：あなたは手札またはメモリーからラクーン・カードを2枚公開してよい。そうしたとき、対象の対戦相手は自分の墓地からカードを1枚追放する。",
   },
 
   // Potion Infusion: Animate  [ACTION]  L- NORM

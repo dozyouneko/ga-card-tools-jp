@@ -7,6 +7,7 @@
   --muted: #9aa2b1;
   --accent: #d9a441;
   --accent-2: #6ea8fe;
+  --accent-3: #e07bd0;
   --yes: #2f9e6b;
   --no: #7a6320;
   --radius: 12px;
@@ -262,6 +263,10 @@ a { color: var(--accent-2); }
 .effect-en { color: var(--muted); }
 /* 効果文中のゲーム用語ハイライト（詳細画面「この効果に出てくる用語」と対応） */
 .effect .term-hl { color: var(--accent-2); font-weight: 600; background: color-mix(in srgb, var(--accent-2) 14%, transparent); border-radius: 4px; padding: 0 2px; }
+/* 効果文中のサブタイプハイライト（そのカード自身が持つサブタイプの和訳のみが対象） */
+.effect .subtype-hl { color: var(--accent); font-weight: 600; background: color-mix(in srgb, var(--accent) 14%, transparent); border-radius: 4px; padding: 0 2px; }
+/* 効果文中のカード自己参照ハイライト（「カード名」への自己参照のみが対象） */
+.effect .card-name-hl { color: var(--accent-3); font-weight: 600; background: color-mix(in srgb, var(--accent-3) 14%, transparent); border-radius: 4px; padding: 0 2px; }
 .orig { margin-top: 8px; }
 .orig summary { cursor: pointer; color: var(--accent-2); font-size: .85rem; }
 
@@ -269,7 +274,7 @@ a { color: var(--accent-2); }
 
 .terms-block ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .terms-block li { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; }
-.term-jp { display: block; font-weight: 700; color: var(--accent); }
+.term-jp { display: block; font-weight: 700; color: var(--accent-2); }
 .term-desc { color: var(--muted); font-size: .88rem; }
 
 .editions-block ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; }

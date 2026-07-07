@@ -572,12 +572,19 @@ function openDetail(card) {
     metaRow("耐久", card.durability) +
     metaRow("スピード", speedLabel(card));
 
-  // 効果（日本語 / 英語原文）。日本語文中の用語は強調表示する。
+  // 効果（日本語 / 英語原文）。日本語文中の用語・サブタイプ・カード自身の名前は強調表示する。
   const jpEffect = t && t.effect ? t.effect : null;
   const jpBox = document.getElementById("d-effect-jp");
   const terms = matchedTerms(card);
   if (jpEffect) {
-    jpBox.innerHTML = highlightTerms(renderEffect(jpEffect), terms);
+    let html = renderEffect(jpEffect);
+    html = highlightCardName(html, card);
+    html = applyOutsideSpans(html, "card-name-hl", (seg) => highlightTerms(seg, terms));
+    html = applyOutsideSpans(html, "card-name-hl", (seg) => highlightSubtypes(seg, card));
+    jpBox.innerHTML = html;
+  } else if (!card.effect) {
+    // バニラ（そもそも英語原文にも効果テキストが無い）カードは「未訳」ではない
+    jpBox.innerHTML = '<span class="muted">（効果テキストなし）</span>';
   } else {
     jpBox.innerHTML = '<span class="muted">日本語訳はまだありません（翻訳募集中）。下の英語原文をご覧ください。</span>';
   }
@@ -641,6 +648,36 @@ function highlightTerms(html, terms) {
   return html.replace(re, '<span class="term-hl">$1</span>');
 }
 
+// 日本語効果テキスト（レンダリング済みHTML）内で、そのカード自身のサブタイプの和訳を強調する。
+// 用語ハイライトとは別枠（このカードが実際に持つサブタイプのみが対象）。
+function highlightSubtypes(html, card) {
+  const map = (I18N.meta && I18N.meta.subtypes) || {};
+  const cores = [...new Set(
+    (card.subtypes || []).map((code) => map[code]).filter((jp) => jp && jp.length >= 2)
+  )].sort((a, b) => b.length - a.length);
+  if (!cores.length) return html;
+  const re = new RegExp("(" + cores.map(escapeRegExp).join("|") + ")", "g");
+  return html.replace(re, '<span class="subtype-hl">$1</span>');
+}
+
+// 日本語効果テキスト内で、カード自身の名前への自己参照（「カード名」）を強調する。
+// 用語・サブタイプのハイライトより先に適用し、名前がそれらに分断されないようにする。
+function highlightCardName(html, card) {
+  const name = jpName(card).trim();
+  if (name.length < 2 || !hasJapanese(name)) return html;
+  const re = new RegExp(escapeRegExp(name), "g");
+  return html.replace(re, '<span class="card-name-hl">$&</span>');
+}
+
+// html を「保護区間（既に挿入済みの <span class="…">…</span>）」とそれ以外に分割し、
+// 保護区間はそのまま残しつつ、それ以外の部分にだけ fn を適用する。
+// カード名がサブタイプ名を含む場合（例:「青のベビースライム」）に、カード名ハイライトの
+// 内側を用語・サブタイプハイライトが後から分断してしまわないようにするために使う。
+function applyOutsideSpans(html, className, fn) {
+  const re = new RegExp(`(<span class="${className}">.*?</span>)`, "g");
+  return html.split(re).map((seg, i) => (i % 2 === 1 ? seg : fn(seg))).join("");
+}
+
 // 効果文中に登場するゲーム用語を検出して解説を並べる（日本語DBの付加価値）
 function renderTerms(card, terms) {
   const wrap = document.getElementById("d-terms-wrap");
@@ -702,9 +739,17 @@ function renderBackFace(card) {
 
   const terms = matchedTerms(back);
   const jpEffect = t && t.effect ? t.effect : null;
-  const jpHtml = jpEffect
-    ? highlightTerms(renderEffect(jpEffect), terms)
-    : '<span class="muted">日本語訳はまだありません（翻訳募集中）。下の英語原文をご覧ください。</span>';
+  let jpHtml;
+  if (jpEffect) {
+    jpHtml = highlightCardName(renderEffect(jpEffect), back);
+    jpHtml = applyOutsideSpans(jpHtml, "card-name-hl", (seg) => highlightTerms(seg, terms));
+    jpHtml = applyOutsideSpans(jpHtml, "card-name-hl", (seg) => highlightSubtypes(seg, back));
+  } else if (!back.effect) {
+    // バニラ（そもそも英語原文にも効果テキストが無い）カードは「未訳」ではない
+    jpHtml = '<span class="muted">（効果テキストなし）</span>';
+  } else {
+    jpHtml = '<span class="muted">日本語訳はまだありません（翻訳募集中）。下の英語原文をご覧ください。</span>';
+  }
   const imgHtml = back.image
     ? `<img id="d-back-img" crossorigin="anonymous" src="${escapeHtml(back.image)}" alt="${escapeHtml(jpName(back))}">`
     : `<div class="noimg">画像なし</div>`;
