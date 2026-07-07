@@ -8,6 +8,9 @@ desktop.ini
 .idea/
 *.swp
 
+# マシン固有の証明書（Norton等のHTTPS検査ルートCA）— 各自の環境で生成
+.devcontainer/certs/
+
 # Dependencies (将来 npm 等を使う場合)
 node_modules/
 
