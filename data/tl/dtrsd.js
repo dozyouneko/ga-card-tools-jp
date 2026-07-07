@@ -37,7 +37,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   // EN: Sacrifice Astral Shard: Glimpse 2.
   "astral-shard": {
     name: "アストラルシャード",
-    effect: "「アストラルシャード」を生け贄に捧げる：グリンプス2。",
+    effect: "「アストラルシャード」をサクリファイスする：グリンプス2。",
   },
 
   // Backstep  [ACTION]  NORM
