@@ -8,9 +8,9 @@
   X-Frame-Options: DENY
   Permissions-Policy: camera=(), microphone=(), geolocation=()
 
-# カードDB（ルート）: 公式API api.gatcg.com とのみ通信・画像取得を許可。
+# カードDB（ルート）: 公式API api.gatcg.com と Cloudflare Web Analytics のみ通信を許可。
 /*
-  Content-Security-Policy: default-src 'self'; img-src 'self' data: blob: https://api.gatcg.com; connect-src 'self' https://api.gatcg.com; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; img-src 'self' data: blob: https://api.gatcg.com; connect-src 'self' https://api.gatcg.com; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   X-Frame-Options: DENY
