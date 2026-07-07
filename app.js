@@ -15,6 +15,7 @@ const el = {
   fClass: document.getElementById("f-class"),
   fElement: document.getElementById("f-element"),
   fType: document.getElementById("f-type"),
+  fSubtype: document.getElementById("f-subtype"),
   fSet: document.getElementById("f-set"),
   sort: document.getElementById("f-sort"),
   order: document.getElementById("order"),
@@ -271,6 +272,7 @@ function buildQuery(page) {
   if (el.fClass.value) p.set("class", el.fClass.value);
   if (el.fElement.value) p.set("element", el.fElement.value);
   if (el.fType.value) p.set("type", el.fType.value);
+  if (el.fSubtype.value) p.set("subtype", el.fSubtype.value);
   setPrefixes(el.fSet.value).forEach((pre) => p.append("prefix", pre)); // エキスパンション（複数prefix）
   p.set("sort", el.sort.value || "name");
   p.set("order", el.order.dataset.dir || "ASC");
@@ -370,12 +372,13 @@ async function fetchLocalJpMatches(seq, slugs) {
   return cards.filter((c) => c && matchesActiveFilters(c));
 }
 
-// class/element/type/set の絞り込みにカードが合致するか（JPモードの客側フィルタ用）
+// class/element/type/subtype/set の絞り込みにカードが合致するか（JPモードの客側フィルタ用）
 // 名前/効果の一致は localJpSlugs 側で処理済みのため、ここでは再適用しない。
 function matchesActiveFilters(card) {
   if (el.fClass.value && !(card.classes || []).includes(el.fClass.value)) return false;
   if (el.fElement.value && !(card.elements || []).includes(el.fElement.value)) return false;
   if (el.fType.value && !(card.types || []).includes(el.fType.value)) return false;
+  if (el.fSubtype.value && !(card.subtypes || []).includes(el.fSubtype.value)) return false;
   const pre = setPrefixes(el.fSet.value);
   if (pre.length) {
     const eds = card.editions || card.result_editions || [];
@@ -911,6 +914,7 @@ function resetControls() {
   el.fClass.value = "";
   el.fElement.value = "";
   el.fType.value = "";
+  el.fSubtype.value = "";
   el.fSet.value = "";
   el.sort.value = "name";
   el.order.dataset.dir = "ASC";
@@ -927,13 +931,14 @@ function init() {
   fillSelect(el.fClass, "classes");
   fillSelect(el.fElement, "elements");
   fillSelect(el.fType, "types");
+  fillSelect(el.fSubtype, "subtypes");
   fillSetSelect();
   resetControls(); // 起動時は必ず「全て」から開始（前回選択の復元を打ち消す）
   applyUrlQuery();
 
   el.q.addEventListener("input", debounce(() => runSearch(true), 350));
   el.qtext.addEventListener("input", debounce(() => runSearch(true), 350));
-  [el.fClass, el.fElement, el.fType, el.fSet, el.sort].forEach((s) => s.addEventListener("change", () => runSearch(true)));
+  [el.fClass, el.fElement, el.fType, el.fSubtype, el.fSet, el.sort].forEach((s) => s.addEventListener("change", () => runSearch(true)));
   el.order.addEventListener("click", () => {
     const next = (el.order.dataset.dir || "ASC") === "ASC" ? "DESC" : "ASC";
     el.order.dataset.dir = next;
