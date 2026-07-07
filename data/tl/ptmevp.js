@@ -89,7 +89,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
     name: "ヴァルック、燻る尖塔",
     effect:
       "***アップキープ →*** あなたがカードをマテリアライズするたび、ヴァルックを生け贄に捧げる。\n\n" +
-      "あなたがコントロールする火エレメントの発生源が与えるダメージは、軽減できない。",
+      "あなたがコントロールする火エレメントの発生源が与えるダメージは軽減不能である。",
   },
   // Water Resonance Bauble
   "water-resonance-bauble": {
