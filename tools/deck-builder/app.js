@@ -291,39 +291,26 @@ function sortedDecks() {
   return decks;
 }
 
-function countPill(label, n, max) {
-  const full = n === max;
-  return `<span class="count-pill${full ? " full" : ""}">${label} ${n}/${max}</span>`;
-}
-
 function renderDeckList() {
   const frag = document.createDocumentFragment();
-
-  const newBtn = document.createElement("button");
-  newBtn.className = "deck-new";
-  newBtn.textContent = "＋ 新しいデッキを作る";
-  newBtn.addEventListener("click", createDeck);
-  frag.appendChild(newBtn);
 
   sortedDecks().forEach((d) => {
     const item = document.createElement("article");
     item.className = "deck-item";
     item.innerHTML = `
-      <div class="top">
-        <span class="champ-thumb" data-thumb>🂠</span>
+      <div class="thumb-wrap" data-thumb-wrap><span class="champ-thumb-ph" data-thumb>🂠</span></div>
+      <div class="deck-info">
         <h3>${escapeHtml(d.name)}</h3>
-        <span class="${d.is_public ? "badge-pub" : "badge-priv"}">${d.is_public ? "公開" : "非公開"}</span>
-      </div>
-      <div class="deck-meta">
-        ${countPill("メイン", d.main_count, MAIN_MAX)}
-        ${countPill("マテリアル", d.material_count, MATERIAL_MAX)}
-        <span>更新: ${escapeHtml(relativeTime(d.updated_at))}</span>
-      </div>
-      <div class="deck-actions">
-        <a class="btn btn-sm btn-primary" href="#edit/${escapeHtml(d.id)}">編集</a>
-        <button class="btn btn-sm" data-share>🔗 共有</button>
-        <button class="btn btn-sm" data-rename>リネーム</button>
-        <button class="btn btn-sm btn-danger" data-delete>削除</button>
+        <p class="deck-sub">
+          <span class="${d.is_public ? "badge-pub" : "badge-priv"}">${d.is_public ? "公開" : "非公開"}</span>
+          <span class="upd">更新: ${escapeHtml(relativeTime(d.updated_at))}</span>
+        </p>
+        <div class="deck-actions">
+          <a class="btn btn-sm btn-primary" href="#edit/${escapeHtml(d.id)}">✏️ 編集</a>
+          <button class="btn btn-sm" data-share>🔗 共有</button>
+          <button class="btn btn-sm" data-rename>リネーム</button>
+          <button class="btn btn-sm btn-danger" data-delete>削除</button>
+        </div>
       </div>`;
 
     // サムネイル(champion_slug のカード画像)。無ければプレースホルダーのまま
@@ -332,8 +319,9 @@ function renderDeckList() {
         const url = card && imageUrl(card);
         if (!url) return;
         const img = document.createElement("img");
-        img.className = "champ-thumb";
+        img.className = "champ-thumb-img";
         img.alt = "";
+        img.loading = "lazy";
         img.src = url;
         const ph = item.querySelector("[data-thumb]");
         if (ph) ph.replaceWith(img);
@@ -376,7 +364,7 @@ async function createDeck() {
   const name = prompt("デッキ名を入力してください", "新しいデッキ");
   if (!name || !name.trim()) return;
   try {
-    const res = await api("/api/decks", { method: "POST", body: { name: name.trim() } });
+    const res = await api("/api/decks", { method: "POST", body: { name: name.trim(), is_public: false } });
     location.hash = `#edit/${res.deck.id}`;
   } catch (err) { showToast(`作成に失敗しました(${err.message})`, true); }
 }
@@ -425,6 +413,31 @@ function renderEditorBar() {
   el.edPub.className = d.is_public ? "badge-pub" : "badge-priv";
 }
 
+// ゾーン内の並び順: 属性(第1エレメント)順 → 英名アルファベット順。
+// マテリアルデッキのみ、チャンピオンをレベル順で先頭に置く。
+function zoneComparator(zone, bySlug) {
+  return (a, b) => {
+    const ca = bySlug.get(a.card_slug);
+    const cb = bySlug.get(b.card_slug);
+    if (zone === "material") {
+      const champA = ca && (ca.types || []).includes("CHAMPION");
+      const champB = cb && (cb.types || []).includes("CHAMPION");
+      if (champA !== champB) return champA ? -1 : 1;
+      if (champA && champB) {
+        const la = ca.level != null ? ca.level : 99;
+        const lb = cb.level != null ? cb.level : 99;
+        if (la !== lb) return la - lb;
+      }
+    }
+    const ea = (ca && ca.elements && ca.elements[0]) || "ZZZ";
+    const eb = (cb && cb.elements && cb.elements[0]) || "ZZZ";
+    if (ea !== eb) return ea.localeCompare(eb);
+    const na = (ca && ca.name) || a.card_slug;
+    const nb = (cb && cb.name) || b.card_slug;
+    return na.localeCompare(nb);
+  };
+}
+
 async function renderZones() {
   const seq = deckSeq;
   const cards = deckData.cards;
@@ -436,7 +449,7 @@ async function renderZones() {
     const grid = zoneEl.querySelector(".zone-grid");
     const rows = cards
       .filter((c) => c.board === zone)
-      .sort((a, b) => a.card_slug.localeCompare(b.card_slug));
+      .sort(zoneComparator(zone, bySlug));
 
     grid.innerHTML = "";
     if (!rows.length) {
@@ -459,7 +472,7 @@ async function renderZones() {
         ${zone === "side" && card && isMaterialCard(card) ? `<span class="pt-tag">3pt</span>` : ""}
         <div class="ctrl-strip">
           <button data-step="-1" aria-label="減らす">−</button>
-          <span class="qv">${row.qty}</span>
+          <input class="qv-input" type="number" inputmode="numeric" min="0" max="99" value="${row.qty}" aria-label="枚数を直接入力">
           <button data-step="1" aria-label="増やす">＋</button>
           <button data-menu aria-label="その他">⋯</button>
         </div>`;
@@ -613,12 +626,28 @@ document.addEventListener("click", (e) => {
   if (!tile) return;
   const { slug, board } = tile.dataset;
   const btn = e.target.closest(".ctrl-strip button");
-  if (!btn) { openDetail(slug); return; } // 操作バー以外のクリック → カード詳細
+  if (!btn) {
+    if (e.target.closest(".ctrl-strip")) return; // 数値入力など操作バー内のクリックは無視
+    openDetail(slug); // 操作バー以外のクリック → カード詳細
+    return;
+  }
   if (btn.dataset.menu !== undefined) { openTileMenu(btn, slug, board); return; }
   const step = Number(btn.dataset.step);
   const entry = findEntry(slug, board);
   if (!entry) return;
   setQty(slug, board, entry.qty + step).catch((err) => showToast(`保存に失敗しました(${err.message})`, true));
+});
+
+// 枚数の直接入力(タイル)。0にするとデッキから削除(「元に戻す」トースト付き)
+document.addEventListener("change", (e) => {
+  const input = e.target.closest(".gtile .qv-input");
+  if (!input) return;
+  const tile = input.closest(".gtile");
+  const { slug, board } = tile.dataset;
+  let q = parseInt(input.value, 10);
+  if (Number.isNaN(q)) { renderZones(); return; }
+  q = Math.max(0, Math.min(99, q));
+  setQty(slug, board, q).catch((err) => showToast(`保存に失敗しました(${err.message})`, true));
 });
 
 // ---------- タイルの「⋯」メニュー ----------
@@ -816,7 +845,7 @@ function renderAddRow(item, card) {
           <span class="cs-label">${ZONE_SHORT[zone]}</span>
           <span class="cs-ctrl">
             <button data-dec="${zone}" aria-label="${ZONE_SHORT[zone]}から1枚減らす">−</button>
-            <b>${entry.qty}</b>
+            <input class="cs-input" type="number" inputmode="numeric" min="0" max="99" value="${entry.qty}" data-zone="${zone}" aria-label="${ZONE_SHORT[zone]}の枚数を直接入力">
             <button data-target="${zone}" aria-label="${ZONE_SHORT[zone]}に1枚追加">＋</button>
           </span>
         </div>`;
@@ -939,6 +968,24 @@ el.resultGrid.addEventListener("click", async (e) => {
   if (e.target.closest(".cardph") || e.target.closest(".rname")) openDetail(slug);
 });
 
+// 枚数の直接入力(検索結果ダイアログ)
+el.resultGrid.addEventListener("change", async (e) => {
+  const input = e.target.closest(".cs-input");
+  if (!input) return;
+  const item = input.closest(".result");
+  const slug = item.dataset.slug;
+  const zone = input.dataset.zone;
+  const card = await getCard(slug);
+  let q = parseInt(input.value, 10);
+  if (Number.isNaN(q)) { renderAddRow(item, card); return; }
+  q = Math.max(0, Math.min(99, q));
+  try {
+    await setQty(slug, zone, q);
+    renderAddRow(item, card);
+    updateResultBadge(item, slug);
+  } catch (err) { showToast(`保存に失敗しました(${err.message})`, true); }
+});
+
 el.sSearch.addEventListener("click", () => runSearch(true));
 [el.sName, el.sText].forEach((input) => {
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") runSearch(true); });
@@ -1003,7 +1050,7 @@ async function renderDeckView() {
 
   el.vZones.innerHTML = "";
   VIEW_ZONES.forEach((zone) => {
-    const rows = cards.filter((c) => c.board === zone).sort((a, b) => a.card_slug.localeCompare(b.card_slug));
+    const rows = cards.filter((c) => c.board === zone).sort(zoneComparator(zone, bySlug));
     if (!rows.length) return;
     const total = rows.reduce((s, r) => s + r.qty, 0);
     let heading = `${ZONE_LABEL[zone]} <b>${total}枚</b>`;
@@ -1070,7 +1117,7 @@ async function copyDeckToMine(id) {
     const src = await api(`/api/decks/${encodeURIComponent(id)}`);
     const created = await api("/api/decks", {
       method: "POST",
-      body: { name: `${src.deck.name} のコピー`, champion_slug: src.deck.champion_slug || undefined },
+      body: { name: `${src.deck.name} のコピー`, champion_slug: src.deck.champion_slug || undefined, is_public: false },
     });
     await Promise.all(src.cards.map((c) =>
       api(`/api/decks/${created.deck.id}/cards`, {
@@ -1096,6 +1143,7 @@ async function resumePendingCopy() {
 // ---------- 初期化 ----------
 
 el.deckSort.addEventListener("change", renderDeckList);
+$("deck-new-btn").addEventListener("click", createDeck);
 $("login-btn").addEventListener("click", (e) => { e.currentTarget.href = loginUrl(); });
 $("v-cta-login").addEventListener("click", (e) => { e.currentTarget.href = loginUrl(); });
 window.addEventListener("hashchange", route);
