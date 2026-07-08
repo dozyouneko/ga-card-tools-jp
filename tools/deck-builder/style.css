@@ -136,7 +136,6 @@ img.champ-thumb-img { display: block; }
 .deck-sub { margin: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .76rem; color: var(--muted); }
 .deck-actions { display: flex; flex-direction: column; gap: 6px; margin-top: auto; }
 .deck-actions .btn { text-align: center; }
-.lc-spacer { flex: 1; }
 
 /* ---------- デッキ編集 ---------- */
 .editor-bar {
@@ -168,6 +167,7 @@ img.champ-thumb-img { display: block; }
 }
 .search-top input { flex: 1 1 240px; min-width: 180px; }
 .search-top input:focus, .search-top select:focus { outline: 2px solid var(--accent-2); outline-offset: 1px; }
+.search-top .filter-toggle { display: none; } /* 絞り込みの折りたたみトグルはスマホのみ */
 
 .deck-pane { padding: 16px 24px 56px; }
 .zone { margin-bottom: 26px; }
@@ -271,6 +271,13 @@ img.champ-thumb-img { display: block; }
 .modal-close:hover { color: var(--text); }
 .modal-body h2 { margin: 0 0 4px; font-size: 1.05rem; }
 .result-count { margin: 0 0 14px; font-size: .8rem; color: var(--muted); }
+/* 結果ダイアログ内の並び替え(名前順/昇順) */
+.result-sort { display: flex; align-items: center; gap: 8px; margin: 6px 0 8px; }
+.result-sort label { font-size: .78rem; color: var(--muted); }
+.result-sort select {
+  background: var(--panel-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: .85rem;
+}
 .result-more-wrap { display: flex; justify-content: center; padding: 16px 0 4px; }
 
 .resultgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; }
@@ -340,6 +347,24 @@ img.champ-thumb-img { display: block; }
   padding: 4px 8px; cursor: pointer;
 }
 .result .art-badge:hover { background: var(--accent-2); }
+
+/* ---------- イラスト選択ダイアログ ---------- */
+.art-body { max-width: 640px; }
+.artgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.art-opt {
+  background: none; border: none; padding: 0; text-align: center;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.art-opt .cardph { display: block; }
+.art-opt:hover .cardph { border-color: var(--accent); }
+.art-opt.current .cardph { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: -1px; }
+.art-opt .art-check {
+  position: absolute; top: 8px; left: 8px;
+  background: var(--accent); color: #201a0a;
+  font-size: .68rem; font-weight: 800; border-radius: 999px; padding: 2px 8px;
+}
+.art-opt .art-label { font-size: .74rem; color: var(--muted); }
+.art-opt.current .art-label { color: var(--accent); font-weight: 700; }
 
 /* ---------- 共有閲覧 ---------- */
 .view-head { padding: 22px 24px 8px; }
@@ -437,6 +462,20 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
 /* ---------- スマホ ---------- */
 @media (max-width: 860px) {
   .gtile .ctrl-strip { opacity: 1; } /* タッチ端末: 操作バー常時表示 */
+
+  /* 絞り込みセレクトはトグルで開閉(トップページの検索ツールと同じ挙動)。
+     iOSのフォーカス時ズーム防止のため16px以上にする */
+  .search-top input, .search-top select, .search-top .btn { font-size: 16px; }
+  .search-top .filter-toggle {
+    display: block; width: 100%; text-align: left; cursor: pointer;
+    font-size: 16px; padding: 11px 12px; border-radius: 8px;
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+  }
+  .search-top .filter-row { display: none; }
+  .search-top.filters-open .filter-row { display: flex; }
+  .search-top .filter-row select { flex: 1 1 100%; }
+
+  .artgrid { grid-template-columns: 1fr 1fr; gap: 10px; }
 
   /* ダイアログは全画面シート */
   .modal-body {

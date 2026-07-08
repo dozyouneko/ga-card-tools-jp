@@ -1,9 +1,9 @@
 // /api/decks/:deckId/cards/:cardSlug（所有者のみ）
-//   PATCH  — 枚数変更（body: { qty, board? }）
+//   PATCH  — 枚数・イラスト変更（body: { qty?, art_image?, board? } — qty/art_image のどちらかは必須）
 //   DELETE — カード削除（クエリ ?board=... 省略時 'main'）
 
 import { one, run } from "../../../../_lib/db.js";
-import { getDeck } from "../../../../_lib/decks.js";
+import { getDeck, isValidArtImage } from "../../../../_lib/decks.js";
 import { error, json, readJson } from "../../../../_lib/http.js";
 import { getSessionUser } from "../../../../_lib/session.js";
 
@@ -20,7 +20,7 @@ async function authorize({ request, env, params }) {
 function findCard(env, deckId, cardSlug, board) {
   return one(
     env.DB,
-    `SELECT card_slug, board, qty FROM deck_cards WHERE deck_id = ? AND card_slug = ? AND board = ?`,
+    `SELECT card_slug, board, qty, art_image FROM deck_cards WHERE deck_id = ? AND card_slug = ? AND board = ?`,
     deckId,
     cardSlug,
     board
@@ -33,23 +33,36 @@ export async function onRequestPatch(context) {
   const { request, env, params } = context;
 
   const body = await readJson(request);
-  const qty = body?.qty;
-  if (!Number.isInteger(qty) || qty < 1 || qty > 99) return error(400, "invalid_qty");
-  const board = typeof body.board === "string" && body.board.trim() ? body.board.trim() : "main";
+  const board = typeof body?.board === "string" && body.board.trim() ? body.board.trim() : "main";
+
+  // 変更を許すフィールドだけ動的に組み立てる（qty / art_image。art_image は null で解除）
+  const sets = [];
+  const values = [];
+  if (body && "qty" in body) {
+    if (!Number.isInteger(body.qty) || body.qty < 1 || body.qty > 99) return error(400, "invalid_qty");
+    sets.push("qty = ?");
+    values.push(body.qty);
+  }
+  if (body && "art_image" in body) {
+    if (body.art_image !== null && !isValidArtImage(body.art_image)) return error(400, "invalid_art_image");
+    sets.push("art_image = ?");
+    values.push(body.art_image);
+  }
+  if (sets.length === 0) return error(400, "no_fields");
 
   const card = await findCard(env, deck.id, params.cardSlug, board);
   if (!card) return error(404, "card_not_found");
 
   await run(
     env.DB,
-    `UPDATE deck_cards SET qty = ? WHERE deck_id = ? AND card_slug = ? AND board = ?`,
-    qty,
+    `UPDATE deck_cards SET ${sets.join(", ")} WHERE deck_id = ? AND card_slug = ? AND board = ?`,
+    ...values,
     deck.id,
     params.cardSlug,
     board
   );
   await run(env.DB, `UPDATE decks SET updated_at = datetime('now') WHERE id = ?`, deck.id);
-  return json({ card: { ...card, qty } });
+  return json({ card: await findCard(env, deck.id, params.cardSlug, board) });
 }
 
 export async function onRequestDelete(context) {

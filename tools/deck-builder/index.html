@@ -59,7 +59,6 @@
       <option value="created">作成が新しい順</option>
       <option value="name">名前順</option>
     </select>
-    <span class="lc-spacer"></span>
     <button class="btn btn-sm btn-primary" id="deck-new-btn">＋ 新しいデッキ</button>
   </div>
   <div id="deck-list" class="deck-list"></div>
@@ -77,12 +76,13 @@
     <button class="btn btn-sm" id="ed-copy-link">🔗 共有リンクをコピー</button>
   </div>
 
-  <div class="search-top">
+  <div class="search-top" id="search-top">
     <div class="row">
       <input type="search" id="s-name" placeholder="カード名で検索（英語 / 日本語）" autocomplete="off">
       <input type="search" id="s-text" placeholder="効果テキストで部分検索（英語 / 日本語）" autocomplete="off">
     </div>
-    <div class="row">
+    <button id="s-toggle" class="filter-toggle" type="button" aria-expanded="false" aria-controls="s-filter-row">絞り込み ▾</button>
+    <div class="row filter-row" id="s-filter-row">
       <select id="s-class"><option value="">クラス（全て）</option></select>
       <select id="s-element"><option value="">エレメント（全て）</option></select>
       <select id="s-type"><option value="">タイプ（全て）</option></select>
@@ -90,15 +90,6 @@
       <select id="s-set"><option value="">エキスパンション（全て）</option></select>
     </div>
     <div class="row">
-      <select id="s-sort" aria-label="並び替え">
-        <option value="name">名前順</option>
-        <option value="cost_memory">コスト順</option>
-        <option value="level">レベル順</option>
-        <option value="power">パワー順</option>
-        <option value="life">ライフ順</option>
-        <option value="rarity">レアリティ順</option>
-      </select>
-      <button id="s-order" class="btn" type="button" data-dir="ASC" aria-label="昇順・降順を切替">▲ 昇順</button>
       <button id="s-reset" class="btn" type="button">リセット</button>
       <button class="btn btn-primary" id="s-search">🔍 検索</button>
     </div>
@@ -108,7 +99,6 @@
     <div class="zone" data-zone="material">
       <h3>マテリアルデッキ <span class="cnt"></span></h3>
       <div class="meter"><i></i></div>
-      <p class="zone-note">チャンピオンもここに含まれます。</p>
       <div class="zone-grid"></div>
     </div>
     <div class="zone" data-zone="main">
@@ -119,7 +109,6 @@
     <div class="zone" data-zone="side">
       <h3>サイドボード <span class="cnt"></span></h3>
       <div class="meter"><i></i></div>
-      <p class="zone-note">ポイント制: チャンピオン・レガリア＝3pt、メインデッキのカード＝1pt。合計15ptかつ15枚まで。</p>
       <div class="zone-grid"></div>
     </div>
     <div class="zone" data-zone="maybe">
@@ -130,7 +119,7 @@
 
     <div class="memo-block">
       <h3>📝 メモ <span class="memo-note">自分にだけ表示されます（大会・戦績・プレイメモなど）</span></h3>
-      <textarea id="ed-memo" rows="5" placeholder="例: ○○大会で使用、3勝2敗。対アグロ戦はサイドから烈火の一閃を投入…"></textarea>
+      <textarea id="ed-memo" rows="5"></textarea>
       <p class="memo-status" id="memo-status" role="status" aria-live="polite"></p>
     </div>
   </div>
@@ -162,6 +151,18 @@
   <div class="modal-body" role="dialog" aria-modal="true" aria-label="検索結果">
     <button class="modal-close" type="button" data-close aria-label="閉じる">×</button>
     <h2 id="result-title">検索結果</h2>
+    <div class="result-sort">
+      <label for="s-sort">並び替え</label>
+      <select id="s-sort" aria-label="並び替え">
+        <option value="name">名前順</option>
+        <option value="cost_memory">コスト順</option>
+        <option value="level">レベル順</option>
+        <option value="power">パワー順</option>
+        <option value="life">ライフ順</option>
+        <option value="rarity">レアリティ順</option>
+      </select>
+      <button id="s-order" class="btn btn-sm" type="button" data-dir="ASC" aria-label="昇順・降順を切替">▲ 昇順</button>
+    </div>
     <p class="result-count" id="result-count"></p>
     <div class="resultgrid" id="result-grid"></div>
     <div class="result-more-wrap"><button class="btn" id="result-more" hidden>もっと見る</button></div>
@@ -182,6 +183,17 @@
   </div>
 </div>
 
+<!-- イラスト選択ダイアログ（タイルの⋯メニュー「イラストを変更」から開く） -->
+<div class="modal" id="art-modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-body art-body" role="dialog" aria-modal="true" aria-label="イラストを選択">
+    <button class="modal-close" type="button" data-close aria-label="閉じる">×</button>
+    <h2 id="art-title">🎨 イラストを選択</h2>
+    <p class="result-count">タップしたイラストにすぐ変更されます。</p>
+    <div class="artgrid" id="art-grid"></div>
+  </div>
+</div>
+
 <!-- タイルの「⋯」メニュー -->
 <div class="tile-menu" id="tile-menu" hidden>
   <button data-move="material">→ マテリアルへ移動</button>
@@ -189,6 +201,7 @@
   <button data-move="side">→ サイドへ移動</button>
   <button data-move="maybe">→ 検討中へ移動</button>
   <div class="sep"></div>
+  <button data-act="art">🎨 イラストを変更</button>
   <button data-act="thumb">🖼️ デッキ一覧のサムネイルに設定</button>
   <div class="sep"></div>
   <button data-act="delete" class="danger">デッキから削除</button>

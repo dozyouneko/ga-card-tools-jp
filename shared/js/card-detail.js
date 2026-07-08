@@ -9,6 +9,7 @@
  *     fetchCard(slug),          // openBySlug用のカード取得(省略時は公式APIをfetch)
  *     preferredArtIndex(imgs),  // 初期表示するイラスト番号(省略時は0)
  *     action: { label(card), disabled(card), onClick(card) }, // 右下のアクションボタン(省略可)
+ *     backAction: { label(back), disabled(back), onClick(back) }, // 両面カードの裏面用アクション(省略可)
  *     onAfterOpen(card), onAfterClose(),  // ハッシュ連動などページ固有の後処理
  *   });
  *   GA_CARD_DETAIL.open(card) / openBySlug(slug) / close() / isOpen() / current()
@@ -293,6 +294,7 @@ window.GA_CARD_DETAIL = (() => {
       ? `<img id="d-back-img" crossorigin="anonymous" src="${escapeHtml(back.image)}" alt="${escapeHtml(jpName(back))}">`
       : `<div class="noimg">画像なし</div>`;
 
+    const act = opts.backAction || null;
     box.innerHTML = `
       <div class="detail back-detail">
         <div class="detail-image">${imgHtml}</div>
@@ -309,8 +311,16 @@ window.GA_CARD_DETAIL = (() => {
               <div class="effect effect-en">${renderEffect(back.effect, back.name)}</div>
             </details>
           </section>
+          ${act ? `<div class="detail-actions"><button id="d-back-action" class="add-print" type="button"></button></div>` : ""}
         </div>
       </div>`;
+    if (act) {
+      // box.innerHTML を開くたびに作り直すため、リスナーの重複登録は起きない
+      const btn = $("d-back-action");
+      btn.textContent = act.label ? act.label(back) : "";
+      btn.disabled = act.disabled ? !!act.disabled(back) : false;
+      btn.addEventListener("click", () => { if (act.onClick) act.onClick(back); });
+    }
     wrap.hidden = false;
   }
 

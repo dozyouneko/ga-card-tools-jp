@@ -234,10 +234,15 @@ function totalCards() {
 function addToPrint(card) {
   const image = imageUrl(card);
   if (!image) return; // 画像なしは追加不可
-  const id = card.slug || card.uuid;
+  addToPrintItem(card.slug || card.uuid, jpName(card), image);
+}
+
+// 印刷リストへの追加の共通部。両面カードの裏面(card形状に正規化済み)からも使う
+function addToPrintItem(id, name, image) {
+  if (!id || !image) return;
   const existing = printList.find((x) => x.id === id);
   if (existing) existing.qty = Math.min(existing.qty + 1, 99);
-  else printList.push({ id, name: jpName(card), image, qty: 1 });
+  else printList.push({ id, name, image, qty: 1 });
   savePrintList();
   updatePrintBar();
   renderTray();
@@ -416,6 +421,11 @@ function init() {
       label: (card) => (imageUrl(card) ? "🖨️ 印刷リストに追加" : "画像がないため追加できません"),
       disabled: (card) => !imageUrl(card),
       onClick: (card) => addToPrint(card),
+    },
+    backAction: {
+      label: (back) => (back.image ? "🖨️ 裏面を印刷リストに追加" : "画像がないため追加できません"),
+      disabled: (back) => !back.image,
+      onClick: (back) => addToPrintItem(back.slug, jpName(back), back.image),
     },
     onAfterOpen: (card) => {
       if (card.slug) history.replaceState(null, "", "#card/" + encodeURIComponent(card.slug));

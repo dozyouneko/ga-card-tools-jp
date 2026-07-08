@@ -2,7 +2,7 @@
 // 同じ (card_slug, board) が既にあれば枚数を加算する。
 
 import { one, run } from "../../../../_lib/db.js";
-import { getDeck } from "../../../../_lib/decks.js";
+import { getDeck, isValidArtImage } from "../../../../_lib/decks.js";
 import { error, json, readJson } from "../../../../_lib/http.js";
 import { getSessionUser } from "../../../../_lib/session.js";
 
@@ -19,21 +19,25 @@ export async function onRequestPost({ request, env, params }) {
   const board = typeof body.board === "string" && body.board.trim() ? body.board.trim() : "main";
   const qty = body.qty === undefined ? 1 : body.qty;
   if (!Number.isInteger(qty) || qty < 1 || qty > 99) return error(400, "invalid_qty");
+  // イラスト(版)指定は任意。既存行への加算時は既存のイラスト設定を維持する
+  const artImage = body.art_image === undefined || body.art_image === null ? null : body.art_image;
+  if (artImage !== null && !isValidArtImage(artImage)) return error(400, "invalid_art_image");
 
   await run(
     env.DB,
-    `INSERT INTO deck_cards (deck_id, card_slug, board, qty) VALUES (?, ?, ?, ?)
+    `INSERT INTO deck_cards (deck_id, card_slug, board, qty, art_image) VALUES (?, ?, ?, ?, ?)
      ON CONFLICT(deck_id, card_slug, board) DO UPDATE SET qty = qty + excluded.qty`,
     deck.id,
     cardSlug,
     board,
-    qty
+    qty,
+    artImage
   );
   await run(env.DB, `UPDATE decks SET updated_at = datetime('now') WHERE id = ?`, deck.id);
 
   const card = await one(
     env.DB,
-    `SELECT card_slug, board, qty FROM deck_cards WHERE deck_id = ? AND card_slug = ? AND board = ?`,
+    `SELECT card_slug, board, qty, art_image FROM deck_cards WHERE deck_id = ? AND card_slug = ? AND board = ?`,
     deck.id,
     cardSlug,
     board

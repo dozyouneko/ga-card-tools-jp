@@ -19,7 +19,7 @@ export async function onRequestGet({ request, env, params }) {
 
   const cards = await all(
     env.DB,
-    `SELECT card_slug, board, qty FROM deck_cards WHERE deck_id = ? ORDER BY board, card_slug`,
+    `SELECT card_slug, board, qty, art_image FROM deck_cards WHERE deck_id = ? ORDER BY board, card_slug`,
     deck.id
   );
   const owner = await one(

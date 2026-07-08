@@ -12,3 +12,8 @@ export function generateDeckId() {
 export function getDeck(env, deckId) {
   return one(env.DB, `SELECT * FROM decks WHERE id = ?`, deckId);
 }
+
+// deck_cards.art_image の妥当性チェック。公式APIの画像パス(先頭 "/"、"//" やスキームは不可)のみ許す
+export function isValidArtImage(s) {
+  return typeof s === "string" && s.length > 0 && s.length <= 300 && s.startsWith("/") && !s.startsWith("//");
+}

@@ -45,7 +45,7 @@ export async function onRequestPost({ request, env }) {
     name,
     typeof body.champion_slug === "string" ? body.champion_slug : null,
     typeof body.description === "string" ? body.description : null,
-    body.is_public === false ? 0 : 1
+    body.is_public === true ? 1 : 0 // 未指定はデフォルト非公開
   );
   return json({ deck: await getDeck(env, id) }, 201);
 }

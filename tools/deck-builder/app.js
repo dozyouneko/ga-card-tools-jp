@@ -50,6 +50,8 @@ const el = {
   sOrder: $("s-order"),
   sReset: $("s-reset"),
   sSearch: $("s-search"),
+  searchTop: $("search-top"),
+  sToggle: $("s-toggle"),
   resultModal: $("result-modal"),
   resultTitle: $("result-title"),
   resultCount: $("result-count"),
@@ -57,6 +59,9 @@ const el = {
   resultMore: $("result-more"),
   omniModal: $("omni-modal"),
   omniText: $("omni-text"),
+  artModal: $("art-modal"),
+  artTitle: $("art-title"),
+  artGrid: $("art-grid"),
   tileMenu: $("tile-menu"),
   toast: $("toast"),
   vTitle: $("v-title"),
@@ -111,6 +116,12 @@ function isMaterialCard(card) {
   return t.includes("CHAMPION") || t.includes("REGALIA");
 }
 function sidePoints(card) { return isMaterialCard(card) ? 3 : 1; }
+
+// デッキ行のイラスト。art_image(版指定)があればそれを、なければカードのデフォルト(先頭の版)を使う
+function rowImageUrl(row, card) {
+  if (row.art_image) return API + row.art_image;
+  return card ? imageUrl(card) : null;
+}
 
 // カードを入れられないゾーンか(マテリアル系はメイン不可、メイン系はマテリアル不可。サイド/検討中は両方可)
 function zoneDisallowed(card, zone) {
@@ -204,10 +215,10 @@ function openModal(modal) {
 function closeModal(modal) {
   modal.hidden = true;
   // 他のモーダル(共通のカード詳細含む)が開いたままならスクロールは固定のまま
-  const anyOpen = [el.resultModal, el.omniModal].some((m) => !m.hidden) || GA_CARD_DETAIL.isOpen();
+  const anyOpen = [el.resultModal, el.omniModal, el.artModal].some((m) => !m.hidden) || GA_CARD_DETAIL.isOpen();
   if (!anyOpen) document.body.style.overflow = "";
 }
-[["result-modal"], ["omni-modal"]].forEach(([id]) => {
+[["result-modal"], ["omni-modal"], ["art-modal"]].forEach(([id]) => {
   const modal = $(id);
   modal.addEventListener("click", (e) => {
     if (e.target.closest("[data-close]")) closeModal(modal);
@@ -218,6 +229,7 @@ document.addEventListener("keydown", (e) => {
   // 手前のものから順に閉じる
   if (!el.tileMenu.hidden) { el.tileMenu.hidden = true; return; }
   if (GA_CARD_DETAIL.isOpen()) { GA_CARD_DETAIL.close(); return; }
+  if (!el.artModal.hidden) { closeModal(el.artModal); return; }
   if (!el.omniModal.hidden) { closeModal(el.omniModal); return; }
   if (!el.resultModal.hidden) closeModal(el.resultModal);
 });
@@ -462,7 +474,7 @@ async function renderZones() {
       tile.tabIndex = 0;
       tile.dataset.slug = row.card_slug;
       tile.dataset.board = row.board;
-      const url = card && imageUrl(card);
+      const url = rowImageUrl(row, card);
       const name = card ? jpName(card) : row.card_slug;
       tile.innerHTML = `
         ${url ? `<img loading="lazy" src="${escapeHtml(url)}" alt="${escapeHtml(name)}" title="${escapeHtml(name)}">`
@@ -527,13 +539,13 @@ function findEntry(slug, board) {
   return deckData.cards.find((c) => c.card_slug === slug && c.board === board);
 }
 
-// カード追加(同じゾーンに既にあれば加算)。成功したらゾーンを再描画
-async function addCard(slug, board, qty = 1) {
+// カード追加(同じゾーンに既にあれば加算。イラスト指定は新規行のときだけ反映される)。成功したらゾーンを再描画
+async function addCard(slug, board, qty = 1, artImage = null) {
   beginSave();
   try {
     const res = await api(`/api/decks/${deckData.deck.id}/cards`, {
       method: "POST",
-      body: { card_slug: slug, board, qty },
+      body: { card_slug: slug, board, qty, ...(artImage ? { art_image: artImage } : {}) },
     });
     const entry = findEntry(slug, board);
     if (entry) entry.qty = res.card.qty;
@@ -562,6 +574,7 @@ async function setQty(slug, board, qty) {
 async function removeCard(slug, board, opts = {}) {
   const entry = findEntry(slug, board);
   const restoreQty = entry ? entry.qty : 0;
+  const restoreArt = entry ? entry.art_image : null; // 「元に戻す」でイラスト設定も復元する
   beginSave();
   try {
     await api(`/api/decks/${deckData.deck.id}/cards/${encodeURIComponent(slug)}?board=${encodeURIComponent(board)}`, { method: "DELETE" });
@@ -570,7 +583,7 @@ async function removeCard(slug, board, opts = {}) {
     if (opts.undo && restoreQty > 0) {
       showToast(`「${await cardName(slug)}」を${ZONE_LABEL[board]}から削除しました`, false, {
         label: "元に戻す",
-        fn: () => addCard(slug, board, restoreQty).catch((err) => showToast(`復元に失敗しました(${err.message})`, true)),
+        fn: () => addCard(slug, board, restoreQty, restoreArt).catch((err) => showToast(`復元に失敗しました(${err.message})`, true)),
       });
     }
   } finally { endSave(); }
@@ -584,7 +597,7 @@ async function moveCard(slug, from, to) {
   try {
     const res = await api(`/api/decks/${deckData.deck.id}/cards`, {
       method: "POST",
-      body: { card_slug: slug, board: to, qty: 1 },
+      body: { card_slug: slug, board: to, qty: 1, ...(entry.art_image ? { art_image: entry.art_image } : {}) },
     });
     if (entry.qty <= 1) {
       await api(`/api/decks/${deckData.deck.id}/cards/${encodeURIComponent(slug)}?board=${encodeURIComponent(from)}`, { method: "DELETE" });
@@ -658,11 +671,15 @@ function openTileMenu(anchor, slug, board) {
   menuContext = { slug, board };
   // 現在いるゾーンへの移動は出さない。カード種別的に入れられないゾーンも出さない
   el.tileMenu.querySelectorAll("[data-move]").forEach((b) => { b.hidden = b.dataset.move === board; });
+  // 「イラストを変更」は版が2つ以上あるカードだけに出す
+  const artBtn = el.tileMenu.querySelector('[data-act="art"]');
+  artBtn.hidden = true;
   getCard(slug).then((card) => {
     if (!menuContext || menuContext.slug !== slug) return;
     el.tileMenu.querySelectorAll("[data-move]").forEach((b) => {
       if (zoneDisallowed(card, b.dataset.move)) b.hidden = true;
     });
+    artBtn.hidden = !card || cardImages(card).length < 2;
   });
   el.tileMenu.hidden = false;
   const r = anchor.getBoundingClientRect();
@@ -685,6 +702,7 @@ el.tileMenu.addEventListener("click", async (e) => {
   if (!btn || !menuContext) return;
   const { slug, board } = menuContext;
   if (btn.dataset.move) { moveCard(slug, board, btn.dataset.move); return; }
+  if (btn.dataset.act === "art") { openArtPicker(slug, board); return; }
   if (btn.dataset.act === "thumb") {
     beginSave();
     try {
@@ -698,6 +716,55 @@ el.tileMenu.addEventListener("click", async (e) => {
   if (btn.dataset.act === "delete") {
     removeCard(slug, board, { undo: true }).catch((err) => showToast(`削除に失敗しました(${err.message})`, true));
   }
+});
+
+// ---------- イラスト選択ダイアログ ----------
+
+let artContext = null; // { slug, board }
+
+// 版のイラストを一覧表示して、タップで即変更する(案A)
+async function openArtPicker(slug, board) {
+  const card = await getCard(slug);
+  if (!card || !deckData) return;
+  const entry = findEntry(slug, board);
+  if (!entry) return;
+  const imgs = cardImages(card);
+  const current = rowImageUrl(entry, card);
+  artContext = { slug, board };
+  el.artTitle.textContent = `🎨 イラストを選択 — ${jpName(card)}`;
+  el.artGrid.innerHTML = imgs.map((im) => `
+    <button class="art-opt${im.url === current ? " current" : ""}" type="button" data-url="${escapeHtml(im.url)}">
+      <span class="cardph">
+        <img loading="lazy" src="${escapeHtml(im.url)}" alt="">
+        ${im.url === current ? `<span class="art-check">✓ 使用中</span>` : ""}
+      </span>
+      <span class="art-label">${escapeHtml(im.label)}</span>
+    </button>`).join("");
+  openModal(el.artModal);
+}
+
+el.artGrid.addEventListener("click", async (e) => {
+  const btn = e.target.closest(".art-opt");
+  if (!btn || !artContext) return;
+  const { slug, board } = artContext;
+  closeModal(el.artModal);
+  const card = await getCard(slug);
+  // デフォルト(先頭の版)を選んだときは指定を解除して null に戻す
+  const url = btn.dataset.url;
+  const path = card && url === imageUrl(card) ? null : url.slice(API.length);
+  beginSave();
+  try {
+    const res = await api(`/api/decks/${deckData.deck.id}/cards/${encodeURIComponent(slug)}`, {
+      method: "PATCH",
+      body: { board, art_image: path },
+    });
+    const entry = findEntry(slug, board);
+    if (entry) entry.art_image = res.card.art_image;
+    await renderZones();
+    flashTile(slug, board);
+    showToast(`「${await cardName(slug)}」のイラストを変更しました`);
+  } catch (err) { showToast(`イラストの変更に失敗しました(${err.message})`, true); }
+  finally { endSave(); }
 });
 
 // ---------- 編集バーの操作 ----------
@@ -903,6 +970,7 @@ function appendResults(cards) {
           e.stopPropagation();
           ai = (ai + 1) % imgs.length;
           syncImg();
+          item.dataset.artUrl = imgs[ai].url; // 追加時に「表示中の版」を使うため保持
           artBadge.textContent = `🎨 ${imgs.length}・${imgs[ai].prefix}`;
           artBadge.title = `イラスト/版を切り替え（${ai + 1}/${imgs.length}：${imgs[ai].label}）`;
         });
@@ -947,7 +1015,11 @@ el.resultGrid.addEventListener("click", async (e) => {
     const zone = add.dataset.target;
     add.disabled = true;
     try {
-      await addCard(slug, zone, 1);
+      // 🎨で切り替えて表示中の版があれば、その版のイラストで追加する（デフォルト表示なら指定なし）
+      const artUrl = item.dataset.artUrl;
+      const art = artUrl && artUrl !== (card && imageUrl(card)) && artUrl.startsWith(API)
+        ? artUrl.slice(API.length) : null;
+      await addCard(slug, zone, 1, art);
       renderAddRow(item, card);
       updateResultBadge(item, slug);
       const zoneRows = deckData.cards.filter((c) => c.board === zone);
@@ -991,11 +1063,21 @@ el.sSearch.addEventListener("click", () => runSearch(true));
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") runSearch(true); });
 });
 el.resultMore.addEventListener("click", () => searchCtl.loadMore());
+// 並び替え(名前順など)は結果ダイアログ内にあるため、変更されたら即再検索する
+el.sSort.addEventListener("change", () => {
+  if (!el.resultModal.hidden) runSearch(true);
+});
 el.sOrder.addEventListener("click", () => {
   const next = (el.sOrder.dataset.dir || "ASC") === "ASC" ? "DESC" : "ASC";
   el.sOrder.dataset.dir = next;
   el.sOrder.textContent = next === "ASC" ? "▲ 昇順" : "▼ 降順";
   if (!el.resultModal.hidden) runSearch(true); // ダイアログ表示中なら即再検索
+});
+// スマホでは絞り込みセレクトを折りたたむ(トップページの検索ツールと同じ挙動)
+el.sToggle.addEventListener("click", () => {
+  const open = el.searchTop.classList.toggle("filters-open");
+  el.sToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  el.sToggle.textContent = "絞り込み " + (open ? "▲" : "▾");
 });
 el.sReset.addEventListener("click", () => {
   el.sName.value = "";
@@ -1064,7 +1146,7 @@ async function renderDeckView() {
     const grid = section.querySelector(".view-grid");
     rows.forEach((row) => {
       const card = bySlug.get(row.card_slug);
-      const url = card && imageUrl(card);
+      const url = rowImageUrl(row, card);
       const name = card ? jpName(card) : row.card_slug;
       const tile = document.createElement("div");
       tile.className = "cardph clickable";
@@ -1122,7 +1204,7 @@ async function copyDeckToMine(id) {
     await Promise.all(src.cards.map((c) =>
       api(`/api/decks/${created.deck.id}/cards`, {
         method: "POST",
-        body: { card_slug: c.card_slug, board: c.board, qty: c.qty },
+        body: { card_slug: c.card_slug, board: c.board, qty: c.qty, ...(c.art_image ? { art_image: c.art_image } : {}) },
       })
     ));
     showToast(`「${created.deck.name}」として自分のデッキ一覧にコピーしました`);
