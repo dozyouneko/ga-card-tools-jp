@@ -14,7 +14,9 @@ export async function onRequestGet({ request, env }) {
   const decks = await all(
     env.DB,
     `SELECT d.id, d.name, d.champion_slug, d.description, d.is_public,
-            d.created_at, d.updated_at, COALESCE(SUM(c.qty), 0) AS card_count
+            d.created_at, d.updated_at, COALESCE(SUM(c.qty), 0) AS card_count,
+            COALESCE(SUM(CASE WHEN c.board = 'main' THEN c.qty ELSE 0 END), 0) AS main_count,
+            COALESCE(SUM(CASE WHEN c.board = 'material' THEN c.qty ELSE 0 END), 0) AS material_count
        FROM decks d LEFT JOIN deck_cards c ON c.deck_id = d.id
       WHERE d.user_id = ?
       GROUP BY d.id

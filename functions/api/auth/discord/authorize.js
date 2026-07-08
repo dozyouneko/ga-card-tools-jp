@@ -18,5 +18,15 @@ export function onRequestGet({ request, env }) {
     "Set-Cookie",
     `oauth_state=${state}; Path=/api/auth/discord; HttpOnly; Secure; SameSite=Lax; Max-Age=600`
   );
+
+  // ?return=/tools/deck-builder/ のように指定すると、ログイン完了後にそのページへ戻す。
+  // オープンリダイレクト防止のため、サイト内パス("/"始まり・"//"以外)のみ許可。
+  const ret = url.searchParams.get("return");
+  if (ret && ret.startsWith("/") && !ret.startsWith("//")) {
+    headers.append(
+      "Set-Cookie",
+      `login_return=${encodeURIComponent(ret)}; Path=/api/auth/discord; HttpOnly; Secure; SameSite=Lax; Max-Age=600`
+    );
+  }
   return new Response(null, { status: 302, headers });
 }

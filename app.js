@@ -78,9 +78,8 @@ function renderEffect(text, name) {
   return html;
 }
 
-function tr(card) {
-  return (I18N.cards && I18N.cards[card.slug]) || null;
-}
+// tr/jpName/firstEdition/imageUrl/flipEdition/backFace は shared/js/card-i18n.js に共通化（デッキ構築ツールと共用）
+const { tr, jpName, firstEdition, imageUrl, flipEdition, backFace } = window.GA_CARD_I18N;
 
 // 訳データが存在し、かつ name か effect のどちらかが埋まっているか
 // （空欄スキャフォルドは「未訳＝翻訳募集中」として扱う）
@@ -89,20 +88,10 @@ function isTranslated(card) {
   return !!(t && (t.name || t.effect));
 }
 
-function jpName(card) {
-  const t = tr(card);
-  return t && t.name ? t.name : card.name;
-}
-
 // 「英語（和訳）」形式で表示。和訳が無ければ英語のみ。 例: FIRE（火）
 function label(kind, value) {
   const map = (I18N.meta && I18N.meta[kind]) || {};
   return map[value] ? `${value}（${map[value]}）` : value;
-}
-
-function firstEdition(card) {
-  const eds = card.editions || card.result_editions || [];
-  return eds[0] || null;
 }
 
 // レアリティ番号 → 略号（gatcg 準拠）。C/UC/R/SR/UR/PR/CSR/CUR/CPR
@@ -161,11 +150,6 @@ function formatBadgeHtml(card) {
   return "";
 }
 
-function imageUrl(card) {
-  const ed = firstEdition(card);
-  return ed && ed.image ? IMG_BASE + ed.image : null;
-}
-
 // カードの全イラスト/版を {url, label, back} で返す（画像URLで重複排除）。
 // back は両面カードで、その版に対応する裏面画像URL（無ければ null）。
 function cardImages(card) {
@@ -194,40 +178,9 @@ function preferredArtIndex(imgs) {
 }
 
 // ---------- 両面（flip）カード ----------
-// 公式APIは常に「表面」のカードを返し、裏面は edition.other_orientations[0] に格納する。
-// 画像は other_orientations[0].edition.image、裏面は独自の slug/name/effect を持つ。
-
-// flip 構成（表面）を持つ edition を返す。無ければ null。
-function flipEdition(card) {
-  const eds = card.editions || card.result_editions || [];
-  return eds.find((ed) => ed.configuration === "flip" && ed.other_orientations && ed.other_orientations.length) || null;
-}
+// flipEdition/backFace は shared/js/card-i18n.js に共通化済み。
 function isFlip(card) {
   return !!flipEdition(card);
-}
-// 裏面を card 形状に正規化して返す（既存の tr/jpName/label/speedLabel/matchedTerms を流用可能に）。
-function backFace(card) {
-  const ed = flipEdition(card);
-  const b = ed && ed.other_orientations[0];
-  if (!b) return null;
-  const bed = b.edition || {};
-  return {
-    slug: b.slug,
-    name: b.name,
-    effect: b.effect,
-    classes: b.classes || [],
-    elements: b.elements || [],
-    types: b.types || [],
-    subtypes: b.subtypes || [],
-    cost: b.cost,
-    level: b.level,
-    power: b.power,
-    life: b.life,
-    durability: b.durability,
-    speed: b.speed,
-    flavor: b.flavor || bed.flavor || null,
-    image: bed.image ? IMG_BASE + bed.image : null,
-  };
 }
 
 // スピード: API は boolean（true=Fast / false=Slow）

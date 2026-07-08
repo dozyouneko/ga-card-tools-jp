@@ -9,13 +9,23 @@ import { createSession, getCookie } from "../../../_lib/session.js";
 // state用Cookieを消すためのSet-Cookie（authorize.jsと属性を揃えること）
 const CLEAR_STATE_COOKIE =
   "oauth_state=; Path=/api/auth/discord; HttpOnly; Secure; SameSite=Lax; Max-Age=0";
+const CLEAR_RETURN_COOKIE =
+  "login_return=; Path=/api/auth/discord; HttpOnly; Secure; SameSite=Lax; Max-Age=0";
+
+// ログイン後の戻り先。authorize.jsで検証済みだが、Cookieは改変できるため再検証する
+function returnPath(request) {
+  const raw = getCookie(request, "login_return");
+  if (!raw) return "/";
+  const ret = decodeURIComponent(raw);
+  return ret.startsWith("/") && !ret.startsWith("//") ? ret : "/";
+}
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
 
-  // ユーザーが認可画面でキャンセルした場合など。エラー扱いにせずトップへ戻す
+  // ユーザーが認可画面でキャンセルした場合など。エラー扱いにせず元のページへ戻す
   if (url.searchParams.get("error")) {
-    return redirectHome([CLEAR_STATE_COOKIE]);
+    return redirectTo(returnPath(request), [CLEAR_STATE_COOKIE, CLEAR_RETURN_COOKIE]);
   }
 
   const code = url.searchParams.get("code");
@@ -96,11 +106,11 @@ export async function onRequestGet({ request, env }) {
   }
 
   const { cookie } = await createSession(env, userId, request.headers.get("User-Agent"));
-  return redirectHome([CLEAR_STATE_COOKIE, cookie]);
+  return redirectTo(returnPath(request), [CLEAR_STATE_COOKIE, CLEAR_RETURN_COOKIE, cookie]);
 }
 
-function redirectHome(cookies) {
-  const headers = new Headers({ Location: "/" });
+function redirectTo(path, cookies) {
+  const headers = new Headers({ Location: path });
   for (const c of cookies) headers.append("Set-Cookie", c);
   return new Response(null, { status: 302, headers });
 }
