@@ -8,6 +8,7 @@
 <meta name="referrer" content="no-referrer">
 <title>デッキ構築ツール — Grand Archive 日本語カードDB</title>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="../../shared/css/card-detail.css">
 <!-- Cloudflare Web Analytics -->
 <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "79f367803da7466d9b8edd3476edb554"}'></script>
 <!-- End Cloudflare Web Analytics -->
@@ -152,32 +153,7 @@
   </div>
 </div>
 
-<!-- カード詳細ダイアログ(軽量版) -->
-<div class="modal" id="detail-modal" hidden>
-  <div class="modal-backdrop" data-close></div>
-  <div class="modal-body detail-body" role="dialog" aria-modal="true" aria-labelledby="dt-name">
-    <button class="modal-close" type="button" data-close aria-label="閉じる">×</button>
-    <div class="dt-grid">
-      <div class="dt-img">
-        <img id="dt-img" alt="" hidden>
-        <div id="dt-noimg" class="noimg" hidden></div>
-        <button class="btn btn-sm dt-flip" id="dt-flip" type="button" hidden>🔄 裏面を表示</button>
-      </div>
-      <div class="dt-info">
-        <h2 id="dt-name"></h2>
-        <p id="dt-name-en" class="dt-en"></p>
-        <p id="dt-banner" class="dt-banner" hidden></p>
-        <dl id="dt-meta" class="dt-meta"></dl>
-        <h3 class="dt-h">効果（日本語訳）</h3>
-        <div id="dt-effect" class="dt-effect"></div>
-        <details class="dt-orig">
-          <summary>英語原文を表示</summary>
-          <div id="dt-effect-en" class="dt-effect dt-effect-en"></div>
-        </details>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- カード詳細モーダルは shared/js/card-detail.js が #gacd-modal としてDOM注入する -->
 
 <!-- omnidex提出用コピーダイアログ -->
 <div class="modal" id="omni-modal" hidden>
@@ -248,6 +224,7 @@
 <script src="../../data/tl/rdop.js"></script>
 <script src="../../data/tl/rdopd.js"></script>
 <script src="../../shared/js/card-i18n.js"></script>
+<script src="../../shared/js/card-detail.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -8,6 +8,7 @@
     content="default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; img-src 'self' data: blob: https://api.gatcg.com; connect-src 'self' https://api.gatcg.com https://cloudflareinsights.com; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
   <title>Grand Archive 日本語カードDB（非公式プロトタイプ）</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="shared/css/card-detail.css" />
   <!-- Cloudflare Web Analytics -->
   <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "79f367803da7466d9b8edd3476edb554"}'></script>
   <!-- End Cloudflare Web Analytics -->
@@ -65,59 +66,7 @@
     <button id="load-more" type="button" hidden>もっと見る</button>
   </div>
 
-  <!-- 詳細モーダル -->
-  <div id="modal" class="modal" hidden>
-    <div class="modal-backdrop" data-close></div>
-    <div class="modal-body" role="dialog" aria-modal="true" aria-labelledby="d-name">
-      <button class="modal-close" type="button" data-close aria-label="閉じる">×</button>
-      <div class="detail">
-        <div class="detail-image">
-          <img id="d-img" crossorigin="anonymous" alt="" />
-          <div id="d-arts" class="arts" hidden></div>
-        </div>
-        <div class="detail-info">
-          <span id="d-badge" class="badge"></span>
-          <h2 id="d-name"></h2>
-          <p id="d-name-en" class="name-en"></p>
-          <p id="d-banned" class="banned-banner" hidden></p>
-          <dl id="d-meta" class="meta"></dl>
-
-          <section class="effect-block">
-            <h3>効果（日本語訳）</h3>
-            <div id="d-effect-jp" class="effect"></div>
-            <details class="orig">
-              <summary>英語原文を表示</summary>
-              <div id="d-effect-en" class="effect effect-en"></div>
-            </details>
-          </section>
-
-          <section id="d-flavor-wrap" class="flavor-block" hidden>
-            <div id="d-flavor" class="flavor"></div>
-          </section>
-
-          <section id="d-terms-wrap" class="terms-block" hidden>
-            <h3>この効果に出てくる用語</h3>
-            <ul id="d-terms"></ul>
-          </section>
-
-          <section id="d-editions-wrap" class="editions-block">
-            <h3>収録</h3>
-            <ul id="d-editions"></ul>
-          </section>
-
-          <div class="detail-actions">
-            <button id="d-add-print" class="add-print" type="button">🖨️ 印刷リストに追加</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 両面カードの裏面（flip）。裏面がある時だけ表示 -->
-      <section id="d-back-wrap" class="back-block" hidden>
-        <h3 class="back-title">🔄 裏面</h3>
-        <div id="d-back"></div>
-      </section>
-    </div>
-  </div>
+  <!-- カード詳細モーダルは shared/js/card-detail.js が #gacd-modal としてDOM注入する -->
 
   <!-- 印刷トレイ バー（1枚以上追加されると表示） -->
   <div id="print-bar" class="print-bar" hidden>
@@ -197,6 +146,7 @@
   <script src="data/tl/rdop.js"></script>
   <script src="data/tl/rdopd.js"></script>
   <script src="shared/js/card-i18n.js"></script>
+  <script src="shared/js/card-detail.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

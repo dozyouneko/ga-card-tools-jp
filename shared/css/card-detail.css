@@ -1,0 +1,120 @@
+/*
+ * カード詳細モーダル(shared/js/card-detail.js)用スタイル。
+ * すべて .gacd-modal 配下にスコープしてあり、ページ側のCSSと衝突しない。
+ * 色は各ページの :root カスタムプロパティ(--bg/--panel/--border/--text/--muted/--accent 等)を参照する。
+ */
+
+.gacd-modal { position: fixed; inset: 0; z-index: 60; }
+.gacd-modal[hidden] { display: none; }
+.gacd-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, .6); }
+.gacd-body {
+  position: relative;
+  max-width: 900px;
+  margin: 4vh auto;
+  max-height: 92vh;
+  overflow: auto;
+  background: var(--panel, #171a21);
+  border: 1px solid var(--border, #2a2f3a);
+  border-radius: 16px;
+  padding: 24px;
+}
+.gacd-close {
+  position: absolute; top: 12px; right: 14px;
+  background: transparent; border: none; color: var(--muted, #9aa2b1);
+  font-size: 1.6rem; cursor: pointer; line-height: 1;
+}
+.gacd-close:hover { color: var(--text, #e7e9ee); }
+
+.gacd-modal .muted { color: var(--muted, #9aa2b1); }
+
+.gacd-modal .detail { display: grid; grid-template-columns: 300px 1fr; gap: 24px; }
+.gacd-modal .detail-image > img { width: 100%; border-radius: 12px; border: 1px solid var(--border, #2a2f3a); }
+.gacd-modal .noimg {
+  display: grid; place-items: center; aspect-ratio: 63 / 88;
+  color: var(--muted, #9aa2b1); font-size: .8rem;
+  border: 1px solid var(--border, #2a2f3a); border-radius: 12px;
+}
+
+.gacd-modal .arts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.gacd-modal .arts[hidden] { display: none; }
+.gacd-modal .art-thumb {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 4px; cursor: pointer;
+  background: var(--panel-2, #1f232c); border: 1px solid var(--border, #2a2f3a); border-radius: 8px;
+}
+.gacd-modal .art-thumb img { width: 48px; height: 67px; object-fit: cover; border-radius: 4px; }
+.gacd-modal .art-thumb span { font-size: .62rem; color: var(--muted, #9aa2b1); max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gacd-modal .art-thumb.active { border-color: var(--accent, #d9a441); }
+.gacd-modal .art-thumb:hover { border-color: var(--accent-2, #6ea8fe); }
+
+.gacd-modal .detail-info h2 { margin: 8px 0 2px; }
+.gacd-modal .name-en { margin: 0 0 12px; color: var(--muted, #9aa2b1); }
+
+.gacd-modal .badge { display: inline-block; font-size: .72rem; padding: 3px 10px; border-radius: 999px; color: #fff; }
+.gacd-modal .badge-yes { background: var(--yes, #2f9e6b); }
+.gacd-modal .badge-no  { background: var(--no, #7a6320); }
+
+.gacd-modal .banned-banner {
+  margin: 0 0 12px; padding: 8px 12px;
+  background: rgba(185, 28, 28, .15);
+  border: 1px solid #b91c1c; border-radius: 8px;
+  color: #fca5a5; font-weight: 700; font-size: .9rem;
+}
+.gacd-modal .banned-banner[hidden] { display: none; }
+.gacd-modal .format-banner-pantheon { background: rgba(124, 58, 237, .15); border-color: #7c3aed; color: #c4b5fd; }
+.gacd-modal .format-banner-draft    { background: rgba(14, 116, 144, .15); border-color: #0e7490; color: #67e8f9; }
+.gacd-modal .format-banner-standard { background: rgba(180, 83, 9, .15); border-color: #b45309; color: #fcd34d; }
+
+.gacd-modal .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 18px; margin: 0 0 16px; }
+.gacd-modal .meta-row { display: flex; gap: 8px; border-bottom: 1px dashed var(--border, #2a2f3a); padding: 4px 0; }
+.gacd-modal .meta-row dt { color: var(--muted, #9aa2b1); min-width: 74px; }
+.gacd-modal .meta-row dd { margin: 0; }
+
+.gacd-modal .effect-block h3, .gacd-modal .terms-block h3, .gacd-modal .editions-block h3 {
+  font-size: .95rem; margin: 18px 0 8px; color: var(--accent, #d9a441);
+}
+.gacd-modal .effect { background: var(--panel-2, #1f232c); border: 1px solid var(--border, #2a2f3a); border-radius: 10px; padding: 12px 14px; }
+.gacd-modal .effect strong { color: var(--accent, #d9a441); }
+.gacd-modal .effect-en { color: var(--muted, #9aa2b1); }
+/* 効果文中のハイライト（用語 / サブタイプ / カード自己参照） */
+.gacd-modal .effect .term-hl { color: var(--accent-2, #6ea8fe); font-weight: 600; background: color-mix(in srgb, var(--accent-2, #6ea8fe) 14%, transparent); border-radius: 4px; padding: 0 2px; }
+.gacd-modal .effect .subtype-hl { color: var(--accent, #d9a441); font-weight: 600; background: color-mix(in srgb, var(--accent, #d9a441) 14%, transparent); border-radius: 4px; padding: 0 2px; }
+.gacd-modal .effect .card-name-hl { color: var(--accent-3, #e07bd0); font-weight: 600; background: color-mix(in srgb, var(--accent-3, #e07bd0) 14%, transparent); border-radius: 4px; padding: 0 2px; }
+.gacd-modal .orig { margin-top: 8px; }
+.gacd-modal .orig summary { cursor: pointer; color: var(--accent-2, #6ea8fe); font-size: .85rem; }
+
+.gacd-modal .flavor-block .flavor { font-style: italic; color: var(--muted, #9aa2b1); border-left: 3px solid var(--border, #2a2f3a); padding-left: 12px; margin-top: 14px; }
+
+.gacd-modal .terms-block ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.gacd-modal .terms-block li { background: var(--panel-2, #1f232c); border: 1px solid var(--border, #2a2f3a); border-radius: 10px; padding: 8px 12px; }
+.gacd-modal .term-jp { display: block; font-weight: 700; color: var(--accent-2, #6ea8fe); }
+.gacd-modal .term-desc { color: var(--muted, #9aa2b1); font-size: .88rem; }
+
+.gacd-modal .editions-block ul { margin: 0; padding-left: 18px; color: var(--muted, #9aa2b1); font-size: .9rem; }
+
+/* アクションボタン（トップページ=印刷リストに追加。無ければ非表示） */
+.gacd-modal .detail-actions { margin-top: 18px; }
+.gacd-modal .add-print {
+  background: var(--yes, #2f9e6b); color: #fff; border: none;
+  border-radius: 8px; padding: 10px 16px; cursor: pointer; font-size: .95rem;
+}
+.gacd-modal .add-print:hover { filter: brightness(1.08); }
+.gacd-modal .add-print:disabled { background: var(--panel-2, #1f232c); color: var(--muted, #9aa2b1); cursor: not-allowed; }
+.gacd-modal .add-print[hidden] { display: none; }
+
+/* 両面カード：裏面セクション（表面の下にスタック表示） */
+.gacd-modal .back-block { margin-top: 24px; border-top: 2px solid var(--border, #2a2f3a); padding-top: 8px; }
+.gacd-modal .back-block[hidden] { display: none; }
+.gacd-modal .back-title { font-size: 1rem; margin: 12px 0 14px; color: var(--accent-2, #6ea8fe); }
+.gacd-modal .back-detail { grid-template-columns: 220px 1fr; }
+.gacd-modal .back-detail .detail-image > img { width: 100%; border-radius: 12px; border: 1px solid var(--border, #2a2f3a); }
+.gacd-modal .back-detail .badge { margin-bottom: 6px; }
+
+/* スマホ: 全画面シート＋縦積み */
+@media (max-width: 640px) {
+  .gacd-body { margin: 0; max-width: none; min-height: 100%; max-height: 100vh; border-radius: 0; padding: 16px; }
+  .gacd-close { top: 8px; right: 10px; font-size: 2rem; padding: 2px 6px; }
+  .gacd-modal .detail { grid-template-columns: 1fr; gap: 16px; }
+  .gacd-modal .detail-image { max-width: 260px; margin: 0 auto; }
+  .gacd-modal .meta { grid-template-columns: 1fr; }
+}

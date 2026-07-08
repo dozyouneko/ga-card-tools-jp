@@ -10,7 +10,11 @@
 
 const API = "https://api.gatcg.com";
 const I18N = window.GA_I18N || { meta: {}, terms: {}, cards: {} };
-const { jpName, imageUrl, backFace } = window.GA_CARD_I18N;
+const {
+  jpName, imageUrl, backFace,
+  escapeHtml, hasJapanese,
+  FORMAT_JP, EXCLUSIVE_FORMAT_INFO, bannedFormats, exclusiveFormat, exclusiveNote,
+} = window.GA_CARD_I18N;
 
 const ZONES = ["material", "main", "side", "maybe"];
 const ZONE_LABEL = { material: "マテリアルデッキ", main: "メインデッキ", side: "サイドボード", maybe: "検討中" };
@@ -47,7 +51,6 @@ const el = {
   resultCount: $("result-count"),
   resultGrid: $("result-grid"),
   resultMore: $("result-more"),
-  detailModal: $("detail-modal"),
   omniModal: $("omni-modal"),
   omniText: $("omni-text"),
   tileMenu: $("tile-menu"),
@@ -69,33 +72,6 @@ let deckSeq = 0;      // 画面遷移の競合防止
 const cardCache = new Map(); // slug -> Promise<card|null>
 
 // ---------- ユーティリティ ----------
-
-function escapeHtml(s) {
-  return String(s == null ? "" : s)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-}
-
-function hasJapanese(s) {
-  return /[぀-ヿ㐀-鿿ｦ-ﾝ]/.test(s || "");
-}
-
-// 効果テキストの簡易マークダウン(**太字** / *斜体* / 改行)を安全にHTML化。CARDNAMEは実カード名に置換
-function renderEffect(text, name) {
-  if (!text) return '<span class="dt-none">（効果テキストなし）</span>';
-  const raw = name ? String(text).split("CARDNAME").join(name) : text;
-  let html = escapeHtml(raw);
-  html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-  html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
-  html = html.replace(/\n/g, "<br>");
-  return html;
-}
-
-// 「英語（和訳）」形式のラベル。例: FIRE（火）
-function metaLabel(kind, value) {
-  const map = (I18N.meta && I18N.meta[kind]) || {};
-  return map[value] ? `${value}（${map[value]}）` : value;
-}
 
 // バックエンドAPI呼び出し(JSON)。エラー時は {status, code} 付きの Error を投げる
 async function api(path, opts = {}) {
@@ -141,27 +117,8 @@ function zoneDisallowed(card, zone) {
 }
 
 // ---------- フォーマット(禁止/専用)表示 ----------
+// 判定ロジック(bannedFormats/exclusiveFormat等)は shared/js/card-i18n.js に共通化済み。
 
-const ALL_FORMATS = ["STANDARD", "DRAFT", "PANTHEON"];
-const FORMAT_JP = { STANDARD: "スタンダード", PANTHEON: "パンテオン", DRAFT: "ドラフト" };
-const EXCLUSIVE_FORMAT_INFO = {
-  PANTHEON: { icon: "🏛", cls: "pantheon", label: "Pantheon専用" },
-  DRAFT:    { icon: "🎴", cls: "draft", label: "ドラフト専用" },
-  STANDARD: { icon: "⭐", cls: "standard", label: "スタンダード専用" },
-};
-
-function bannedFormats(card) {
-  const leg = (card && card.legality) || {};
-  return ALL_FORMATS.filter((f) => leg[f] && leg[f].limit === 0);
-}
-function exclusiveFormat(card) {
-  const legal = ALL_FORMATS.filter((f) => !bannedFormats(card).includes(f));
-  return legal.length === 1 ? legal[0] : null;
-}
-function exclusiveNote(format) {
-  const others = ALL_FORMATS.filter((f) => f !== format).map((f) => FORMAT_JP[f]).join("・");
-  return `（${others}では使用不可）`;
-}
 // タイル左上に載せる小さなアイコン({icon, title})。該当なしは null
 function formatIconInfo(card) {
   const excl = exclusiveFormat(card);
@@ -242,11 +199,11 @@ function openModal(modal) {
 }
 function closeModal(modal) {
   modal.hidden = true;
-  // 他のモーダルが開いたままならスクロールは固定のまま
-  const anyOpen = [el.resultModal, el.detailModal, el.omniModal].some((m) => !m.hidden);
+  // 他のモーダル(共通のカード詳細含む)が開いたままならスクロールは固定のまま
+  const anyOpen = [el.resultModal, el.omniModal].some((m) => !m.hidden) || GA_CARD_DETAIL.isOpen();
   if (!anyOpen) document.body.style.overflow = "";
 }
-[["result-modal"], ["detail-modal"], ["omni-modal"]].forEach(([id]) => {
+[["result-modal"], ["omni-modal"]].forEach(([id]) => {
   const modal = $(id);
   modal.addEventListener("click", (e) => {
     if (e.target.closest("[data-close]")) closeModal(modal);
@@ -256,7 +213,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   // 手前のものから順に閉じる
   if (!el.tileMenu.hidden) { el.tileMenu.hidden = true; return; }
-  if (!el.detailModal.hidden) { closeModal(el.detailModal); return; }
+  if (GA_CARD_DETAIL.isOpen()) { GA_CARD_DETAIL.close(); return; }
   if (!el.omniModal.hidden) { closeModal(el.omniModal); return; }
   if (!el.resultModal.hidden) closeModal(el.resultModal);
 });
@@ -792,88 +749,12 @@ async function saveMemo() {
   } finally { endSave(); }
 }
 
-// ---------- カード詳細(軽量版) ----------
+// ---------- カード詳細 ----------
+// 本体は shared/js/card-detail.js (GA_CARD_DETAIL) に共通化。openDetail はその薄いラッパー。
 
-function metaRow(label, value) {
-  return value != null && value !== "" ? `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(String(value))}</dd>` : "";
+function openDetail(slug) {
+  GA_CARD_DETAIL.openBySlug(slug);
 }
-
-// 表示中の詳細。両面カードは showingBack で表裏を切り替える
-let detailState = null; // { card, back, showingBack }
-
-function renderDetailFace() {
-  const { card, back, showingBack } = detailState;
-  // 裏面は backFace() で表面と同じ形に正規化済みなので、jpName/tr もそのまま効く
-  const face = showingBack ? back : card;
-  const name = jpName(face);
-  $("dt-name").textContent = name;
-  $("dt-name-en").textContent = face.name;
-
-  const url = showingBack ? back.image : imageUrl(card);
-  const img = $("dt-img");
-  const noimg = $("dt-noimg");
-  img.hidden = !url;
-  noimg.hidden = !!url;
-  if (url) { img.src = url; img.alt = name; } else { noimg.textContent = name; }
-
-  const flipBtn = $("dt-flip");
-  flipBtn.hidden = !back;
-  flipBtn.textContent = showingBack ? "🔄 表面を表示" : "🔄 裏面を表示";
-
-  // 禁止/専用フォーマットのバナー(legalityはカード単位のため常に表面から判定)
-  const banner = $("dt-banner");
-  const excl = exclusiveFormat(card);
-  const banned = bannedFormats(card);
-  if (excl) {
-    const info = EXCLUSIVE_FORMAT_INFO[excl];
-    banner.textContent = `${info.icon} ${info.label}${exclusiveNote(excl)}`;
-    banner.className = `dt-banner dt-banner-${info.cls}`;
-    banner.hidden = false;
-  } else if (banned.length) {
-    banner.textContent = `🚫 使用禁止：${banned.map((f) => FORMAT_JP[f]).join("・")}`;
-    banner.className = "dt-banner dt-banner-banned";
-    banner.hidden = false;
-  } else {
-    banner.hidden = true;
-  }
-
-  const types = (face.types || []).map((x) => metaLabel("types", x)).join("・");
-  const classes = (face.classes || []).map((x) => metaLabel("classes", x)).join("・");
-  const elements = (face.elements || []).map((x) => metaLabel("elements", x)).join("・");
-  const subtypes = (face.subtypes || []).map((x) => metaLabel("subtypes", x)).join("・");
-  const cost = face.cost ? `${face.cost.value}（${face.cost.type}）` : "";
-  $("dt-meta").innerHTML =
-    metaRow("タイプ", types) +
-    metaRow("クラス", classes) +
-    metaRow("エレメント", elements) +
-    metaRow("サブタイプ", subtypes) +
-    metaRow("レベル", face.level) +
-    metaRow("コスト", cost) +
-    metaRow("パワー", face.power) +
-    metaRow("ライフ", face.life) +
-    metaRow("耐久", face.durability);
-
-  // 効果テキスト。裏面は独自のslugを持ち、日本語訳も裏面単位で存在する
-  const t = (I18N.cards && I18N.cards[face.slug]) || null;
-  $("dt-effect").innerHTML = t && t.effect
-    ? renderEffect(t.effect, name)
-    : (face.effect ? `<span class="dt-none">（日本語訳は準備中です。英語原文をご覧ください）</span>` : renderEffect(null));
-  $("dt-effect-en").innerHTML = renderEffect(face.effect, face.name);
-}
-
-async function openDetail(slug) {
-  const card = await getCard(slug);
-  if (!card) { showToast("カード情報を取得できませんでした", true); return; }
-  detailState = { card, back: backFace(card), showingBack: false };
-  renderDetailFace();
-  openModal(el.detailModal);
-}
-
-$("dt-flip").addEventListener("click", () => {
-  if (!detailState || !detailState.back) return;
-  detailState.showingBack = !detailState.showingBack;
-  renderDetailFace();
-});
 
 // ---------- カード検索(編集画面) ----------
 
@@ -1245,6 +1126,14 @@ $("v-cta-login").addEventListener("click", (e) => { e.currentTarget.href = login
 window.addEventListener("hashchange", route);
 
 (async function init() {
+  // カード詳細モーダル(共通コンポーネント)。カード取得はこのページのキャッシュを使う。
+  // 詳細を閉じたとき、下に検索結果等のモーダルが開いたままならスクロールロックを維持する
+  GA_CARD_DETAIL.init({
+    fetchCard: getCard,
+    onAfterClose: () => {
+      if (!el.resultModal.hidden || !el.omniModal.hidden) document.body.style.overflow = "hidden";
+    },
+  });
   fillSelect(el.sClass, "classes");
   fillSelect(el.sElement, "elements");
   fillSelect(el.sType, "types");

@@ -331,52 +331,7 @@ img.champ-thumb { display: block; }
 }
 .maker-cta p { margin: 0; flex: 1; min-width: 200px; }
 
-/* ---------- カード詳細(軽量版) ---------- */
-.detail-body { max-width: 760px; }
-.dt-grid { display: grid; grid-template-columns: 260px 1fr; gap: 20px; }
-.dt-img img { width: 100%; border-radius: 10px; border: 1px solid var(--border); }
-.dt-img .noimg {
-  aspect-ratio: 63 / 88; display: grid; place-items: center;
-  border: 1px solid var(--border); border-radius: 10px;
-  color: var(--muted); font-size: .8rem; padding: 8px; text-align: center;
-}
-.dt-flip { display: block; width: 100%; margin-top: 8px; text-align: center; }
-
-/* 検索結果の両面カード切替バッジ(トップページと同じ見た目) */
-.result .flip-badge {
-  position: absolute; left: 8px; bottom: 8px;
-  border: none; border-radius: 999px;
-  background: rgba(15, 17, 21, .82);
-  color: #fff; font-size: .7rem; line-height: 1; font-weight: 700;
-  padding: 4px 8px; cursor: pointer;
-}
-.result .flip-badge:hover { background: var(--accent-2); }
-.dt-info h2 { margin: 0; font-size: 1.15rem; }
-.dt-en { margin: 2px 0 10px; color: var(--muted); font-size: .82rem; }
-.dt-banner {
-  margin: 0 0 10px; padding: 7px 12px;
-  border: 1px solid var(--border); border-radius: 8px;
-  font-weight: 700; font-size: .82rem;
-}
-.dt-banner-banned { background: rgba(185, 28, 28, .15); border-color: #b91c1c; color: #fca5a5; }
-.dt-banner-pantheon { background: rgba(124, 58, 237, .15); border-color: #7c3aed; color: #c4b5fd; }
-.dt-banner-draft { background: rgba(14, 116, 144, .15); border-color: #0e7490; color: #67e8f9; }
-.dt-banner-standard { background: rgba(180, 83, 9, .15); border-color: #b45309; color: #fcd34d; }
-.dt-meta {
-  margin: 0 0 14px; display: grid; grid-template-columns: auto 1fr; gap: 2px 14px;
-  font-size: .8rem;
-}
-.dt-meta dt { color: var(--muted); }
-.dt-meta dd { margin: 0; }
-.dt-h { margin: 0 0 6px; font-size: .8rem; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
-.dt-effect {
-  background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
-  padding: 10px 14px; font-size: .88rem; line-height: 1.7;
-}
-.dt-effect-en { margin-top: 8px; color: var(--muted); font-size: .82rem; }
-.dt-none { color: var(--muted); }
-.dt-orig { margin-top: 10px; font-size: .8rem; }
-.dt-orig summary { cursor: pointer; color: var(--muted); }
+/* カード詳細モーダルのスタイルは shared/css/card-detail.css に共通化 */
 
 /* ---------- omnidex提出用コピー ---------- */
 .omni-body { max-width: 560px; }
@@ -462,8 +417,6 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
     padding: 20px 16px;
   }
   .resultgrid { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .dt-grid { grid-template-columns: 1fr; }
-  .dt-img { max-width: 260px; margin: 0 auto; }
   .modal-close {
     position: sticky; top: 0;
     float: right;

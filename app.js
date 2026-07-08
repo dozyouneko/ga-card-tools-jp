@@ -23,7 +23,6 @@ const el = {
   status: document.getElementById("status"),
   grid: document.getElementById("grid"),
   loadMore: document.getElementById("load-more"),
-  modal: document.getElementById("modal"),
   controls: document.getElementById("controls"),
   filterToggle: document.getElementById("filter-toggle"),
 };
@@ -34,9 +33,13 @@ const SETS = (I18N.meta && I18N.meta.sets) || [];
 // 検索・ページングの状態
 const pager = { page: 1, total: 0, shown: 0, hasMore: false, shownSlugs: new Set() };
 
-function hasJapanese(s) {
-  return /[぀-ヿ㐀-鿿ｦ-ﾝ]/.test(s || "");
-}
+// 共通ヘルパー(shared/js/card-i18n.js)。トップページとデッキ構築ツールで共用
+const {
+  tr, jpName, firstEdition, imageUrl, flipEdition, backFace,
+  escapeHtml, hasJapanese, renderEffect, label, isTranslated,
+  cardImages, rarityCode, speedLabel, formatBadgeHtml,
+} = window.GA_CARD_I18N;
+
 // 名前欄・効果テキスト欄それぞれの日本語入力を返す（無ければ ""）
 // サーバーは英語データのみのため、日本語はローカル訳（name/effect）から検索する。
 function jpNameQuery() {
@@ -59,114 +62,8 @@ function setPrefixes(val) {
 }
 
 // ---------- ユーティリティ ----------
-
-function escapeHtml(s) {
-  return String(s == null ? "" : s)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-}
-
-// 効果テキストの簡易マークダウン（**太字** / *斜体* / 改行）を安全にHTML化
-// name を渡すと、API 原文中のプレースホルダ CARDNAME を実カード名に置換する。
-function renderEffect(text, name) {
-  if (!text) return '<span class="muted">（効果テキストなし）</span>';
-  const raw = name ? String(text).split("CARDNAME").join(name) : text;
-  let html = escapeHtml(raw);
-  html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-  html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
-  html = html.replace(/\n/g, "<br>");
-  return html;
-}
-
-// tr/jpName/firstEdition/imageUrl/flipEdition/backFace は shared/js/card-i18n.js に共通化（デッキ構築ツールと共用）
-const { tr, jpName, firstEdition, imageUrl, flipEdition, backFace } = window.GA_CARD_I18N;
-
-// 訳データが存在し、かつ name か effect のどちらかが埋まっているか
-// （空欄スキャフォルドは「未訳＝翻訳募集中」として扱う）
-function isTranslated(card) {
-  const t = tr(card);
-  return !!(t && (t.name || t.effect));
-}
-
-// 「英語（和訳）」形式で表示。和訳が無ければ英語のみ。 例: FIRE（火）
-function label(kind, value) {
-  const map = (I18N.meta && I18N.meta[kind]) || {};
-  return map[value] ? `${value}（${map[value]}）` : value;
-}
-
-// レアリティ番号 → 略号（gatcg 準拠）。C/UC/R/SR/UR/PR/CSR/CUR/CPR
-const RARITY_CODE = { 1: "C", 2: "U", 3: "R", 4: "SR", 5: "UR", 6: "PR", 7: "CSR", 8: "CUR", 9: "CPR" };
-function rarityCode(r) {
-  if (r == null) return "";
-  return RARITY_CODE[r] || `R${r}`; // 未知の番号は R+数値でフォールバック
-}
-
-// 使用禁止（legality の limit が 0）判定
-const ALL_FORMATS = ["STANDARD", "DRAFT", "PANTHEON"];
-const FORMAT_JP = { STANDARD: "スタンダード", PANTHEON: "パンテオン", DRAFT: "ドラフト" };
-const FORMAT_SHORT = { STANDARD: "スタン", PANTHEON: "パンテオン", DRAFT: "ドラフト" };
-
-// 使用禁止（limit 0）になっているフォーマット一覧
-function bannedFormats(card) {
-  const leg = card.legality || {};
-  return ALL_FORMATS.filter((f) => leg[f] && leg[f].limit === 0);
-}
-// まだ使用できる（禁止されていない）フォーマット一覧
-function legalFormats(card) {
-  const banned = bannedFormats(card);
-  return ALL_FORMATS.filter((f) => !banned.includes(f));
-}
-// 残り1フォーマットでしか使用できない場合、そのフォーマット名を返す（例：スタンダード・ドラフト禁止 → "PANTHEON"）。
-// 該当しなければ null。
-function exclusiveFormat(card) {
-  const legal = legalFormats(card);
-  return legal.length === 1 ? legal[0] : null;
-}
-
-// 専用フォーマットのアイコン・クラス名・説明文（検索結果バッジ／詳細モーダルの両方で使う）
-const EXCLUSIVE_FORMAT_INFO = {
-  PANTHEON: { icon: "🏛", cls: "pantheon", label: "Pantheon専用" },
-  DRAFT:    { icon: "🎴", cls: "draft", label: "ドラフト専用" },
-  STANDARD: { icon: "⭐", cls: "standard", label: "スタンダード専用" },
-};
-function exclusiveNote(format) {
-  const others = ALL_FORMATS.filter((f) => f !== format).map((f) => FORMAT_JP[f]).join("・");
-  return `（${others}では使用不可）`;
-}
-
-// 検索結果カードに表示するフォーマットバッジ（専用フォーマット／禁止フォーマットのどちらか。無ければ空文字）
-function formatBadgeHtml(card) {
-  const excl = exclusiveFormat(card);
-  if (excl) {
-    const info = EXCLUSIVE_FORMAT_INFO[excl];
-    return `<span class="format-badge format-${info.cls}" title="${info.label}${exclusiveNote(excl)}">${info.icon} ${info.label}</span>`;
-  }
-  const banned = bannedFormats(card);
-  if (banned.length) {
-    const short = banned.map((f) => FORMAT_SHORT[f]).join("・");
-    const full = banned.map((f) => FORMAT_JP[f]).join("・");
-    return `<span class="format-badge format-banned" title="${full}で使用禁止">🚫 ${short}禁止</span>`;
-  }
-  return "";
-}
-
-// カードの全イラスト/版を {url, label, back} で返す（画像URLで重複排除）。
-// back は両面カードで、その版に対応する裏面画像URL（無ければ null）。
-function cardImages(card) {
-  const eds = card.editions || card.result_editions || [];
-  const seen = new Set();
-  const out = [];
-  eds.forEach((ed) => {
-    if (!ed.image || seen.has(ed.image)) return;
-    seen.add(ed.image);
-    const set = ed.set && ed.set.prefix ? ed.set.prefix : "";
-    const num = ed.collector_number ? ` #${ed.collector_number}` : "";
-    const bo = ed.other_orientations && ed.other_orientations[0];
-    const backUrl = bo && bo.edition && bo.edition.image ? IMG_BASE + bo.edition.image : null;
-    out.push({ url: IMG_BASE + ed.image, prefix: set || "?", label: (set + num).trim() || "版", back: backUrl });
-  });
-  return out;
-}
+// escapeHtml / renderEffect / isTranslated / label / rarityCode / フォーマット判定 /
+// cardImages / speedLabel は shared/js/card-i18n.js に共通化済み。
 
 // エキスパンション（版）で絞り込み検索している場合、その版のイラストを初期表示にする。
 // 絞り込みが無い、または一致する版が無い場合は先頭（imgs[0]）にフォールバック。
@@ -181,13 +78,6 @@ function preferredArtIndex(imgs) {
 // flipEdition/backFace は shared/js/card-i18n.js に共通化済み。
 function isFlip(card) {
   return !!flipEdition(card);
-}
-
-// スピード: API は boolean（true=Fast / false=Slow）
-function speedLabel(card) {
-  if (card.speed === true) return "Fast";
-  if (card.speed === false) return "Slow";
-  return "";
 }
 
 // ---------- フィルタ選択肢の生成 ----------
@@ -402,9 +292,9 @@ function appendGrid(cards) {
           ${elemChips ? `<span class="chip chip-elem">${escapeHtml(elemChips)}</span>` : ""}
         </p>
       </div>`;
-    cardEl.addEventListener("click", () => openDetail(card));
+    cardEl.addEventListener("click", () => GA_CARD_DETAIL.open(card));
     cardEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openDetail(card); }
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); GA_CARD_DETAIL.open(card); }
     });
     const addBtn = cardEl.querySelector(".card-add");
     if (addBtn) addBtn.addEventListener("click", (e) => { e.stopPropagation(); addToPrint(card); });
@@ -446,317 +336,19 @@ function appendGrid(cards) {
 }
 
 // ---------- 詳細モーダル ----------
-
-function metaRow(label, value) {
-  if (value == null || value === "" ) return "";
-  return `<div class="meta-row"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`;
-}
-
-function openDetail(card) {
-  const t = tr(card);
-  const imgs = cardImages(card);
-  const initialAi = preferredArtIndex(imgs);
-  const img = imgs.length ? imgs[initialAi].url : null;
-  const dImg = document.getElementById("d-img");
-  // 空文字の src は現在ページURL（file://index.html 等）に解決され警告を出すため、
-  // 画像が無いときは src 属性ごと外して非表示にする。
-  if (img) {
-    dImg.src = img;
-    dImg.hidden = false;
-  } else {
-    dImg.removeAttribute("src");
-    dImg.hidden = true;
-  }
-  dImg.alt = jpName(card);
-
-  // イラスト/版の切り替えサムネイル
-  const artsEl = document.getElementById("d-arts");
-  if (imgs.length > 1) {
-    artsEl.innerHTML = imgs
-      .map((im, i) => `<button class="art-thumb${i === initialAi ? " active" : ""}" type="button" data-url="${escapeHtml(im.url)}" data-back="${escapeHtml(im.back || "")}" title="${escapeHtml(im.label)}"><img loading="lazy" crossorigin="anonymous" src="${escapeHtml(im.url)}" alt=""><span>${escapeHtml(im.label)}</span></button>`)
-      .join("");
-    artsEl.hidden = false;
-  } else {
-    artsEl.innerHTML = "";
-    artsEl.hidden = true;
-  }
-
-  const translated = isTranslated(card);
-  const badge = document.getElementById("d-badge");
-  badge.textContent = translated ? "日本語訳あり" : "未翻訳";
-  badge.className = "badge " + (translated ? "badge-yes" : "badge-no");
-
-  document.getElementById("d-name").textContent = jpName(card);
-  document.getElementById("d-name-en").textContent = card.name;
-
-  // 使用可否の表示（特定フォーマット専用カードは禁止ではなく専用フォーマット表示にする）
-  const banned = bannedFormats(card);
-  const excl = exclusiveFormat(card);
-  const bannedEl = document.getElementById("d-banned");
-  if (excl) {
-    const info = EXCLUSIVE_FORMAT_INFO[excl];
-    bannedEl.textContent = `${info.icon} ${info.label}${exclusiveNote(excl)}`;
-    bannedEl.className = `banned-banner format-banner-${info.cls}`;
-    bannedEl.hidden = false;
-  } else if (banned.length) {
-    bannedEl.textContent = `🚫 使用禁止：${banned.map((f) => FORMAT_JP[f] || f).join("・")}`;
-    bannedEl.className = "banned-banner";
-    bannedEl.hidden = false;
-  } else {
-    bannedEl.className = "banned-banner";
-    bannedEl.hidden = true;
-  }
-
-  // メタ情報
-  const classes = (card.classes || []).map((c) => label("classes", c)).join("・");
-  const elements = (card.elements || []).map((e) => label("elements", e)).join("・");
-  const types = (card.types || []).map((x) => label("types", x)).join("・");
-  const subtypes = (card.subtypes || []).map((x) => label("subtypes", x)).join("・");
-  const cost = card.cost ? `${card.cost.value}（${card.cost.type}）` : "";
-  document.getElementById("d-meta").innerHTML =
-    metaRow("タイプ", types) +
-    metaRow("クラス", classes) +
-    metaRow("エレメント", elements) +
-    metaRow("サブタイプ", subtypes) +
-    metaRow("レベル", card.level) +
-    metaRow("コスト", cost) +
-    metaRow("パワー", card.power) +
-    metaRow("ライフ", card.life) +
-    metaRow("耐久", card.durability) +
-    metaRow("スピード", speedLabel(card));
-
-  // 効果（日本語 / 英語原文）。日本語文中の用語・サブタイプ・カード自身の名前は強調表示する。
-  const jpEffect = t && t.effect ? t.effect : null;
-  const jpBox = document.getElementById("d-effect-jp");
-  const terms = matchedTerms(card);
-  if (jpEffect) {
-    let html = renderEffect(jpEffect);
-    html = highlightCardName(html, card);
-    html = applyOutsideSpans(html, "card-name-hl", (seg) => highlightTerms(seg, terms));
-    html = applyOutsideSpans(html, "card-name-hl", (seg) => highlightSubtypes(seg, card));
-    jpBox.innerHTML = html;
-  } else if (!card.effect) {
-    // バニラ（そもそも英語原文にも効果テキストが無い）カードは「未訳」ではない
-    jpBox.innerHTML = '<span class="muted">（効果テキストなし）</span>';
-  } else {
-    jpBox.innerHTML = '<span class="muted">日本語訳はまだありません（翻訳募集中）。下の英語原文をご覧ください。</span>';
-  }
-  document.getElementById("d-effect-en").innerHTML = renderEffect(card.effect, card.name);
-
-  // フレーバー
-  const flavor = (t && t.flavor) || card.flavor;
-  const flavorWrap = document.getElementById("d-flavor-wrap");
-  if (flavor) {
-    document.getElementById("d-flavor").textContent = flavor;
-    flavorWrap.hidden = false;
-  } else {
-    flavorWrap.hidden = true;
-  }
-
-  renderTerms(card, terms);
-  renderEditions(card);
-  renderBackFace(card);
-
-  // 印刷リスト追加ボタンの状態
-  currentDetailCard = card;
-  const addBtn = document.getElementById("d-add-print");
-  addBtn.disabled = !img;
-  addBtn.textContent = img ? "🖨️ 印刷リストに追加" : "画像がないため追加できません";
-
-  el.modal.hidden = false;
-  document.body.classList.add("no-scroll");
-  if (card.slug) history.replaceState(null, "", "#card/" + encodeURIComponent(card.slug));
-}
-
-// 効果文中に登場するゲーム用語（terms辞書のキーが英語効果文に含まれるもの）を抽出
-function matchedTerms(card) {
-  // マークダウンの強調記号(*)を除去してから判定する。
-  // API原文は "**buff** counter" のように語の一部だけを太字化するため、
-  // 除去しないと "buff counter" 等の複数語キーが分断されて一致しない。
-  const haystack = `${card.effect || ""}`.replace(/\*/g, "").toLowerCase();
-  const found = [];
-  Object.keys(I18N.terms || {}).forEach((key) => {
-    // 語頭のワード境界(\b)で判定して英単語の途中でのヒットを防ぐ。
-    // 例: "age counter" は "damage counter" に、"charge" は "discharge" に誤ヒットしない。
-    // 語尾は境界を課さないため、複数形・活用（banished / materializes 等）は引き続き一致する。
-    if (new RegExp("\\b" + escapeRegExp(key)).test(haystack)) found.push(I18N.terms[key]);
-  });
-  return found;
-}
-
-function escapeRegExp(s) {
-  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-// 日本語効果テキスト（レンダリング済みHTML）内の用語語句を強調する。
-// 用語の jp から「（…）」より前の見出し語を取り出して着色する。
-function highlightTerms(html, terms) {
-  if (!terms || !terms.length) return html;
-  const cores = [...new Set(
-    terms.map((t) => String(t.jp || "").split("（")[0].trim()).filter((c) => c.length >= 2)
-  )].sort((a, b) => b.length - a.length);
-  if (!cores.length) return html;
-  // katakana/漢字の見出し語のみを対象にするため、ASCIIのHTMLタグとは衝突しない
-  const re = new RegExp("(" + cores.map(escapeRegExp).join("|") + ")", "g");
-  return html.replace(re, '<span class="term-hl">$1</span>');
-}
-
-// 日本語効果テキスト（レンダリング済みHTML）内で、そのカード自身のサブタイプの和訳を強調する。
-// 用語ハイライトとは別枠（このカードが実際に持つサブタイプのみが対象）。
-function highlightSubtypes(html, card) {
-  const map = (I18N.meta && I18N.meta.subtypes) || {};
-  const cores = [...new Set(
-    (card.subtypes || []).map((code) => map[code]).filter((jp) => jp && jp.length >= 2)
-  )].sort((a, b) => b.length - a.length);
-  if (!cores.length) return html;
-  const re = new RegExp("(" + cores.map(escapeRegExp).join("|") + ")", "g");
-  return html.replace(re, '<span class="subtype-hl">$1</span>');
-}
-
-// 日本語効果テキスト内で、カード自身の名前への自己参照（「カード名」）を強調する。
-// 用語・サブタイプのハイライトより先に適用し、名前がそれらに分断されないようにする。
-function highlightCardName(html, card) {
-  const name = jpName(card).trim();
-  if (name.length < 2 || !hasJapanese(name)) return html;
-  const re = new RegExp(escapeRegExp(name), "g");
-  return html.replace(re, '<span class="card-name-hl">$&</span>');
-}
-
-// html を「保護区間（既に挿入済みの <span class="…">…</span>）」とそれ以外に分割し、
-// 保護区間はそのまま残しつつ、それ以外の部分にだけ fn を適用する。
-// カード名がサブタイプ名を含む場合（例:「青のベビースライム」）に、カード名ハイライトの
-// 内側を用語・サブタイプハイライトが後から分断してしまわないようにするために使う。
-function applyOutsideSpans(html, className, fn) {
-  const re = new RegExp(`(<span class="${className}">.*?</span>)`, "g");
-  return html.split(re).map((seg, i) => (i % 2 === 1 ? seg : fn(seg))).join("");
-}
-
-// 効果文中に登場するゲーム用語を検出して解説を並べる（日本語DBの付加価値）
-function renderTerms(card, terms) {
-  const wrap = document.getElementById("d-terms-wrap");
-  const list = document.getElementById("d-terms");
-  const found = terms || matchedTerms(card);
-  if (!found.length) {
-    wrap.hidden = true;
-    return;
-  }
-  list.innerHTML = found
-    .map((term) => `<li><span class="term-jp">${escapeHtml(term.jp)}</span><span class="term-desc">${escapeHtml(term.desc)}</span></li>`)
-    .join("");
-  wrap.hidden = false;
-}
-
-function renderEditions(card) {
-  const eds = card.editions || card.result_editions || [];
-  const list = document.getElementById("d-editions");
-  if (!eds.length) {
-    list.innerHTML = '<li class="muted">情報なし</li>';
-    return;
-  }
-  list.innerHTML = eds
-    .map((ed) => {
-      const set = ed.set ? `${ed.set.name}（${ed.set.prefix}）` : "";
-      const num = ed.collector_number ? ` #${ed.collector_number}` : "";
-      const rarity = ed.rarity != null ? ` ・${rarityCode(ed.rarity)}` : "";
-      const illus = ed.illustrator ? ` ・絵：${ed.illustrator}` : "";
-      return `<li>${escapeHtml(set + num + rarity + illus)}</li>`;
-    })
-    .join("");
-}
-
-// 両面カードの裏面を詳細モーダル下部にスタック表示（表面と同じ体裁）。
-function renderBackFace(card) {
-  const wrap = document.getElementById("d-back-wrap");
-  const box = document.getElementById("d-back");
-  const back = backFace(card);
-  if (!back) { wrap.hidden = true; box.innerHTML = ""; return; }
-
-  const t = tr(back);
-  const translated = isTranslated(back);
-  const classes = back.classes.map((c) => label("classes", c)).join("・");
-  const elements = back.elements.map((e) => label("elements", e)).join("・");
-  const types = back.types.map((x) => label("types", x)).join("・");
-  const subtypes = back.subtypes.map((x) => label("subtypes", x)).join("・");
-  const cost = back.cost ? `${back.cost.value}（${back.cost.type}）` : "";
-  const meta =
-    metaRow("タイプ", types) +
-    metaRow("クラス", classes) +
-    metaRow("エレメント", elements) +
-    metaRow("サブタイプ", subtypes) +
-    metaRow("レベル", back.level) +
-    metaRow("コスト", cost) +
-    metaRow("パワー", back.power) +
-    metaRow("ライフ", back.life) +
-    metaRow("耐久", back.durability) +
-    metaRow("スピード", speedLabel(back));
-
-  const terms = matchedTerms(back);
-  const jpEffect = t && t.effect ? t.effect : null;
-  let jpHtml;
-  if (jpEffect) {
-    jpHtml = highlightCardName(renderEffect(jpEffect), back);
-    jpHtml = applyOutsideSpans(jpHtml, "card-name-hl", (seg) => highlightTerms(seg, terms));
-    jpHtml = applyOutsideSpans(jpHtml, "card-name-hl", (seg) => highlightSubtypes(seg, back));
-  } else if (!back.effect) {
-    // バニラ（そもそも英語原文にも効果テキストが無い）カードは「未訳」ではない
-    jpHtml = '<span class="muted">（効果テキストなし）</span>';
-  } else {
-    jpHtml = '<span class="muted">日本語訳はまだありません（翻訳募集中）。下の英語原文をご覧ください。</span>';
-  }
-  const imgHtml = back.image
-    ? `<img id="d-back-img" crossorigin="anonymous" src="${escapeHtml(back.image)}" alt="${escapeHtml(jpName(back))}">`
-    : `<div class="noimg">画像なし</div>`;
-
-  box.innerHTML = `
-    <div class="detail back-detail">
-      <div class="detail-image">${imgHtml}</div>
-      <div class="detail-info">
-        <span class="badge ${translated ? "badge-yes" : "badge-no"}">${translated ? "日本語訳あり" : "未翻訳"}</span>
-        <h2>${escapeHtml(jpName(back))}</h2>
-        <p class="name-en">${escapeHtml(back.name || "")}</p>
-        <dl class="meta">${meta}</dl>
-        <section class="effect-block">
-          <h3>効果（日本語訳）</h3>
-          <div class="effect">${jpHtml}</div>
-          <details class="orig">
-            <summary>英語原文を表示</summary>
-            <div class="effect effect-en">${renderEffect(back.effect, back.name)}</div>
-          </details>
-        </section>
-      </div>
-    </div>`;
-  wrap.hidden = false;
-}
-
-function closeDetail() {
-  el.modal.hidden = true;
-  document.body.classList.remove("no-scroll");
-  if (location.hash.startsWith("#card/")) {
-    history.replaceState(null, "", location.pathname + location.search);
-  }
-}
-
-// 共有可能URL（#card/<slug>）からカード詳細を開く
-async function openCardBySlug(slug) {
-  try {
-    const res = await fetch(`${API}/cards/${encodeURIComponent(slug)}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    openDetail(await res.json());
-  } catch (err) {
-    console.error("カードの取得に失敗:", err);
-  }
-}
+// 本体は shared/js/card-detail.js (GA_CARD_DETAIL) に共通化。ここではハッシュ連動のみ扱う。
 
 // URLハッシュに応じて詳細を開閉（共有リンク・戻る/進む対応）
 function handleHash() {
   const m = location.hash.match(/^#card\/(.+)$/);
   if (m) {
     const slug = decodeURIComponent(m[1]);
-    if (el.modal.hidden || !currentDetailCard || currentDetailCard.slug !== slug) {
-      openCardBySlug(slug);
+    const cur = GA_CARD_DETAIL.current();
+    if (!GA_CARD_DETAIL.isOpen() || !cur || cur.slug !== slug) {
+      GA_CARD_DETAIL.openBySlug(slug);
     }
-  } else if (!el.modal.hidden) {
-    closeDetail();
+  } else if (GA_CARD_DETAIL.isOpen()) {
+    GA_CARD_DETAIL.close();
   }
 }
 
@@ -764,7 +356,6 @@ function handleHash() {
 
 const PRINT_KEY = "ga_print_list_v1";
 let printList = loadPrintList();
-let currentDetailCard = null;
 
 function loadPrintList() {
   try {
@@ -958,24 +549,25 @@ function init() {
     });
   }
 
-  el.modal.querySelectorAll("[data-close]").forEach((n) => n.addEventListener("click", closeDetail));
-
-  // 詳細モーダルのイラスト/版サムネイル切り替え
-  document.getElementById("d-arts").addEventListener("click", (e) => {
-    const btn = e.target.closest(".art-thumb");
-    if (!btn) return;
-    document.getElementById("d-img").src = btn.dataset.url;
-    // 両面カード：裏面画像も選択した版に追従させる
-    const backImg = document.getElementById("d-back-img");
-    if (backImg && btn.dataset.back) backImg.src = btn.dataset.back;
-    document.getElementById("d-arts").querySelectorAll(".art-thumb").forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
+  // カード詳細モーダル（共通コンポーネント）。印刷ボタンとハッシュ連動はこのページ固有
+  GA_CARD_DETAIL.init({
+    preferredArtIndex,
+    action: {
+      label: (card) => (imageUrl(card) ? "🖨️ 印刷リストに追加" : "画像がないため追加できません"),
+      disabled: (card) => !imageUrl(card),
+      onClick: (card) => addToPrint(card),
+    },
+    onAfterOpen: (card) => {
+      if (card.slug) history.replaceState(null, "", "#card/" + encodeURIComponent(card.slug));
+    },
+    onAfterClose: () => {
+      if (location.hash.startsWith("#card/")) {
+        history.replaceState(null, "", location.pathname + location.search);
+      }
+    },
   });
 
   // 印刷リスト関連の配線
-  document.getElementById("d-add-print").addEventListener("click", () => {
-    if (currentDetailCard) addToPrint(currentDetailCard);
-  });
   document.getElementById("open-tray").addEventListener("click", openTray);
   document.getElementById("tray").querySelectorAll("[data-tray-close]").forEach((n) => n.addEventListener("click", closeTray));
   document.getElementById("tray-clear").addEventListener("click", clearPrint);
@@ -999,7 +591,7 @@ function init() {
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     if (!document.getElementById("tray").hidden) closeTray();
-    else if (!el.modal.hidden) closeDetail();
+    else if (GA_CARD_DETAIL.isOpen()) GA_CARD_DETAIL.close();
   });
 
   window.addEventListener("hashchange", handleHash);
