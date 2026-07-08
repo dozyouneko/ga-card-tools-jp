@@ -311,6 +311,26 @@ img.champ-thumb { display: block; }
   font-variant-numeric: tabular-nums;
 }
 
+/* 検索結果の両面カード切替バッジ(トップページと同じ見た目) */
+.result .flip-badge {
+  position: absolute; left: 8px; bottom: 8px;
+  border: none; border-radius: 999px;
+  background: rgba(15, 17, 21, .82);
+  color: #fff; font-size: .7rem; line-height: 1; font-weight: 700;
+  padding: 4px 8px; cursor: pointer;
+}
+.result .flip-badge:hover { background: var(--accent-2); }
+
+/* 検索結果のイラスト/版切替バッジ(トップページと同じ見た目) */
+.result .art-badge {
+  position: absolute; right: 8px; bottom: 8px;
+  border: none; border-radius: 8px;
+  background: rgba(15, 17, 21, .82);
+  color: #fff; font-size: .72rem; line-height: 1;
+  padding: 4px 8px; cursor: pointer;
+}
+.result .art-badge:hover { background: var(--accent-2); }
+
 /* ---------- 共有閲覧 ---------- */
 .view-head { padding: 22px 24px 8px; }
 .view-title-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }

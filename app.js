@@ -27,12 +27,6 @@ const el = {
   filterToggle: document.getElementById("filter-toggle"),
 };
 
-// エキスパンション定義（製品ライン → prefix 群）
-const SETS = (I18N.meta && I18N.meta.sets) || [];
-
-// 検索・ページングの状態
-const pager = { page: 1, total: 0, shown: 0, hasMore: false, shownSlugs: new Set() };
-
 // 共通ヘルパー(shared/js/card-i18n.js)。トップページとデッキ構築ツールで共用
 const {
   tr, jpName, firstEdition, imageUrl, flipEdition, backFace,
@@ -40,26 +34,8 @@ const {
   cardImages, rarityCode, speedLabel, formatBadgeHtml,
 } = window.GA_CARD_I18N;
 
-// 名前欄・効果テキスト欄それぞれの日本語入力を返す（無ければ ""）
-// サーバーは英語データのみのため、日本語はローカル訳（name/effect）から検索する。
-function jpNameQuery() {
-  const n = el.q.value.trim();
-  return n && hasJapanese(n) ? n : "";
-}
-function jpEffectQuery() {
-  const t = el.qtext.value.trim();
-  return t && hasJapanese(t) ? t : "";
-}
-// いずれかの欄に日本語が入っている → ローカル訳を検索するモード
-function isJpTextMode() {
-  return jpNameQuery() !== "" || jpEffectQuery() !== "";
-}
-function setPrefixes(val) {
-  if (val === "" || val == null) return []; // 「全て」（Number("") が 0 になる罠を回避）
-  const i = Number(val);
-  const s = Number.isInteger(i) ? SETS[i] : null;
-  return s ? s.prefixes : [];
-}
+// クエリ構築・日本語ローカル検索・ページング・setPrefixes は shared/js/card-search.js に共通化
+const { setPrefixes } = window.GA_CARD_SEARCH;
 
 // ---------- ユーティリティ ----------
 // escapeHtml / renderEffect / isTranslated / label / rarityCode / フォーマット判定 /
@@ -80,173 +56,57 @@ function isFlip(card) {
   return !!flipEdition(card);
 }
 
-// ---------- フィルタ選択肢の生成 ----------
+// ---------- 検索（共通コントローラ） ----------
+// クエリ構築・日本語ローカル検索・ページングは shared/js/card-search.js に共通化。
+// このページは結果のグリッド描画と件数表示のみを担当する。
 
-function fillSelect(select, kind) {
-  const map = (I18N.meta && I18N.meta[kind]) || {};
-  Object.keys(map).sort().forEach((key) => {
-    const opt = document.createElement("option");
-    opt.value = key;
-    opt.textContent = `${key}（${map[key]}）`;
-    select.appendChild(opt);
-  });
-}
+const shownSlugs = new Set(); // 重複表示を防ぐ（appendGrid で使用）
 
-// エキスパンション選択肢（value は SETS のインデックス）
-function fillSetSelect() {
-  SETS.forEach((s, i) => {
-    const opt = document.createElement("option");
-    opt.value = String(i);
-    opt.textContent = s.label;
-    el.fSet.appendChild(opt);
-  });
-}
-
-// ---------- API 呼び出し ----------
-
-let reqSeq = 0; // 競合するリクエストの取り違え防止
-
-function buildQuery(page) {
-  const p = new URLSearchParams();
-  const q = el.q.value.trim();
-  if (q) p.set("name", q);
-  const text = el.qtext.value.trim();
-  if (text) p.set("effect", text); // 効果テキスト検索（英語）。日本語は JP モードで別処理
-  if (el.fClass.value) p.set("class", el.fClass.value);
-  if (el.fElement.value) p.set("element", el.fElement.value);
-  if (el.fType.value) p.set("type", el.fType.value);
-  if (el.fSubtype.value) p.set("subtype", el.fSubtype.value);
-  setPrefixes(el.fSet.value).forEach((pre) => p.append("prefix", pre)); // エキスパンション（複数prefix）
-  p.set("sort", el.sort.value || "name");
-  p.set("order", el.order.dataset.dir || "ASC");
-  p.set("page", String(page));
-  p.set("page_size", "50");
-  return p.toString();
-}
-
-// reset=true で新規検索（1ページ目・グリッド全消去）、false で「もっと見る」（追記）
-async function runSearch(reset) {
-  // 効果テキスト欄が日本語 → サーバーは英語のみのため、ローカル訳から検索するモードに切替
-  if (isJpTextMode()) { runLocalJpSearch(reset); return; }
-
-  const seq = ++reqSeq;
-  if (reset) { pager.page = 1; pager.shownSlugs = new Set(); }
-  el.status.textContent = reset ? "検索中…" : "読み込み中…";
-  el.loadMore.disabled = true;
-  try {
-    const res = await fetch(`${API}/cards/search?${buildQuery(pager.page)}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    if (seq !== reqSeq) return; // 古いレスポンスは破棄
-    const cards = json.data || [];
-    pager.total = json.total_cards || 0;
-    pager.hasMore = !!json.has_more;
-    if (reset) el.grid.innerHTML = "";
+const searchCtl = GA_CARD_SEARCH.create({
+  els: {
+    name: el.q, text: el.qtext,
+    cls: el.fClass, element: el.fElement, type: el.fType, subtype: el.fSubtype,
+    set: el.fSet, sort: el.sort, order: el.order,
+  },
+  pageSize: 50,
+  jpPageSize: 40,
+  onStart: (reset) => {
+    el.status.textContent = reset ? "検索中…" : "読み込み中…";
+    el.loadMore.disabled = true;
+    if (reset) {
+      shownSlugs.clear();
+      el.grid.innerHTML = "";
+      el.loadMore.hidden = true;
+    }
+  },
+  onResults: (cards, info) => {
     appendGrid(cards);
-    updateSearchStatus();
-  } catch (err) {
-    if (seq !== reqSeq) return;
-    if (!reset && pager.page > 1) pager.page -= 1; // 追記失敗はページを戻して再試行可能に
+    updateSearchStatus(info);
+    el.loadMore.disabled = false;
+  },
+  onError: (err, { reset }) => {
     el.status.textContent = `読み込みに失敗しました（${err.message}）。時間をおいて再度お試しください。`;
     if (reset) { el.grid.innerHTML = ""; el.loadMore.hidden = true; }
-  } finally {
-    if (seq === reqSeq) el.loadMore.disabled = false;
-  }
-}
+    el.loadMore.disabled = false;
+  },
+});
 
-// 日本語テキスト検索：ローカル訳（name/effect）の部分一致 → 該当カードを取得して表示
-// English/API検索と同じ pager（page/total/hasMore）を使い、"もっと見る" でページ送りできるようにする。
-const JP_PAGE_SIZE = 40;
+// 既存の呼び出し箇所(入力イベント等)のための薄いラッパー
+function runSearch(reset) { searchCtl.run(reset); }
 
-async function runLocalJpSearch(reset) {
-  const seq = ++reqSeq;
-  if (reset) {
-    pager.page = 1;
-    pager.shownSlugs = new Set();
-    el.grid.innerHTML = "";
-    el.loadMore.hidden = true;
-  }
-  el.status.textContent = reset ? "日本語テキストで検索中…" : "読み込み中…";
-  el.loadMore.disabled = true;
-  try {
-    const slugs = localJpSlugs();
-    pager.total = slugs.length; // class/element/type/set の絞り込みはこの後クライアント側で適用されるため、この総数には反映されない
-    const from = (pager.page - 1) * JP_PAGE_SIZE;
-    const batch = slugs.slice(from, from + JP_PAGE_SIZE);
-    const cards = await fetchLocalJpMatches(seq, batch);
-    if (seq !== reqSeq) return;
-    pager.hasMore = from + JP_PAGE_SIZE < pager.total;
-    appendGrid(cards);
-    updateSearchStatus("（日本語テキスト一致・翻訳済みのみ）", "日本語テキストに一致する翻訳済みカードが見つかりませんでした（未翻訳のカードは日本語検索できません。英語での検索もお試しください）。");
-  } catch (err) {
-    if (seq !== reqSeq) return;
-    if (!reset && pager.page > 1) pager.page -= 1;
-    el.status.textContent = `検索に失敗しました（${err.message}）。`;
-  } finally {
-    if (seq === reqSeq) el.loadMore.disabled = false;
-  }
-}
-
-// ローカル訳を検索して slug の配列を返す。
-// 名前欄の日本語は name のみ、効果欄の日本語は effect のみに一致させる（両方あれば AND）。
-function localJpSlugs() {
-  const nq = jpNameQuery().toLowerCase();
-  const eq = jpEffectQuery().toLowerCase();
-  const cards = I18N.cards || {};
-  const out = [];
-  for (const slug in cards) {
-    const c = cards[slug];
-    if (nq && !String(c.name || "").toLowerCase().includes(nq)) continue;
-    if (eq && !String(c.effect || "").toLowerCase().includes(eq)) continue;
-    out.push(slug);
-  }
-  return out;
-}
-
-// ローカル一致した slug（1ページ分）のカードを取得し、他の絞り込み条件で客側フィルタして返す（並列取得）
-async function fetchLocalJpMatches(seq, slugs) {
-  const cards = await Promise.all(slugs.map(async (slug) => {
-    try {
-      const res = await fetch(`${API}/cards/${encodeURIComponent(slug)}`);
-      return res.ok ? await res.json() : null;
-    } catch { return null; }
-  }));
-  if (seq !== reqSeq) return [];
-  return cards.filter((c) => c && matchesActiveFilters(c));
-}
-
-// class/element/type/subtype/set の絞り込みにカードが合致するか（JPモードの客側フィルタ用）
-// 名前/効果の一致は localJpSlugs 側で処理済みのため、ここでは再適用しない。
-function matchesActiveFilters(card) {
-  if (el.fClass.value && !(card.classes || []).includes(el.fClass.value)) return false;
-  if (el.fElement.value && !(card.elements || []).includes(el.fElement.value)) return false;
-  if (el.fType.value && !(card.types || []).includes(el.fType.value)) return false;
-  if (el.fSubtype.value && !(card.subtypes || []).includes(el.fSubtype.value)) return false;
-  const pre = setPrefixes(el.fSet.value);
-  if (pre.length) {
-    const eds = card.editions || card.result_editions || [];
-    if (!eds.some((e) => e.set && pre.includes(e.set.prefix))) return false;
-  }
-  return true;
-}
-
-// suffix: 件数表示の末尾に添える注記（JP検索モード用）。emptyMessage: 0件時の文言差し替え（省略時は既定文言）。
-function updateSearchStatus(suffix, emptyMessage) {
-  pager.shown = el.grid.childElementCount;
-  if (pager.shown === 0) {
-    el.status.textContent = emptyMessage || "該当するカードがありません。条件を変えてお試しください。";
+function updateSearchStatus(info) {
+  const shown = el.grid.childElementCount;
+  if (shown === 0) {
+    el.status.textContent = info.jpMode
+      ? "日本語テキストに一致する翻訳済みカードが見つかりませんでした（未翻訳のカードは日本語検索できません。英語での検索もお試しください）。"
+      : "該当するカードがありません。条件を変えてお試しください。";
     el.loadMore.hidden = true;
     return;
   }
-  const totalPart = pager.total > pager.shown ? ` / 全 ${pager.total} 件` : "";
-  el.status.textContent = `${pager.shown} 件を表示${totalPart}${suffix || ""}`;
-  el.loadMore.hidden = !pager.hasMore;
-}
-
-function loadMore() {
-  if (!pager.hasMore) return;
-  pager.page += 1;
-  runSearch(false);
+  const totalPart = info.total > shown ? ` / 全 ${info.total} 件` : "";
+  const suffix = info.jpMode ? "（日本語テキスト一致・翻訳済みのみ）" : "";
+  el.status.textContent = `${shown} 件を表示${totalPart}${suffix}`;
+  el.loadMore.hidden = !info.hasMore;
 }
 
 // ---------- グリッド描画 ----------
@@ -256,8 +116,8 @@ function appendGrid(cards) {
   const frag = document.createDocumentFragment();
   cards.forEach((card) => {
     const slug = card.slug || card.uuid;
-    if (slug && pager.shownSlugs.has(slug)) return; // 重複表示を防ぐ
-    if (slug) pager.shownSlugs.add(slug);
+    if (slug && shownSlugs.has(slug)) return; // 重複表示を防ぐ
+    if (slug) shownSlugs.add(slug);
     const translated = isTranslated(card);
     const imgs = cardImages(card);
     const initialAi = preferredArtIndex(imgs);
@@ -517,11 +377,11 @@ function applyUrlQuery() {
 }
 
 function init() {
-  fillSelect(el.fClass, "classes");
-  fillSelect(el.fElement, "elements");
-  fillSelect(el.fType, "types");
-  fillSelect(el.fSubtype, "subtypes");
-  fillSetSelect();
+  GA_CARD_SEARCH.fillSelect(el.fClass, "classes");
+  GA_CARD_SEARCH.fillSelect(el.fElement, "elements");
+  GA_CARD_SEARCH.fillSelect(el.fType, "types");
+  GA_CARD_SEARCH.fillSelect(el.fSubtype, "subtypes");
+  GA_CARD_SEARCH.fillSetSelect(el.fSet);
   resetControls(); // 起動時は必ず「全て」から開始（前回選択の復元を打ち消す）
   applyUrlQuery();
 
@@ -534,7 +394,7 @@ function init() {
     el.order.textContent = next === "ASC" ? "▲ 昇順" : "▼ 降順";
     runSearch(true);
   });
-  el.loadMore.addEventListener("click", loadMore);
+  el.loadMore.addEventListener("click", () => searchCtl.loadMore());
   el.reset.addEventListener("click", () => {
     resetControls();
     runSearch(true);

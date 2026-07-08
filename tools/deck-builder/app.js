@@ -11,7 +11,7 @@
 const API = "https://api.gatcg.com";
 const I18N = window.GA_I18N || { meta: {}, terms: {}, cards: {} };
 const {
-  jpName, imageUrl, backFace,
+  jpName, imageUrl, backFace, cardImages,
   escapeHtml, hasJapanese,
   FORMAT_JP, EXCLUSIVE_FORMAT_INFO, bannedFormats, exclusiveFormat, exclusiveNote,
 } = window.GA_CARD_I18N;
@@ -45,6 +45,10 @@ const el = {
   sElement: $("s-element"),
   sType: $("s-type"),
   sSubtype: $("s-subtype"),
+  sSet: $("s-set"),
+  sSort: $("s-sort"),
+  sOrder: $("s-order"),
+  sReset: $("s-reset"),
   sSearch: $("s-search"),
   resultModal: $("result-modal"),
   resultTitle: $("result-title"),
@@ -758,109 +762,42 @@ function openDetail(slug) {
 
 // ---------- カード検索(編集画面) ----------
 
-function fillSelect(select, kind) {
-  const map = (I18N.meta && I18N.meta[kind]) || {};
-  Object.keys(map).sort().forEach((key) => {
-    const opt = document.createElement("option");
-    opt.value = key;
-    opt.textContent = `${key}（${map[key]}）`;
-    select.appendChild(opt);
-  });
-}
-
-const search = { page: 1, jpSlugs: null, hasMore: false, seq: 0 };
-const SEARCH_PAGE_SIZE = 24;
-
-function isJpSearch() {
-  return hasJapanese(el.sName.value) || hasJapanese(el.sText.value);
-}
-
-function searchApiQuery(page) {
-  const p = new URLSearchParams();
-  const name = el.sName.value.trim();
-  const text = el.sText.value.trim();
-  if (name) p.set("name", name);
-  if (text) p.set("effect", text);
-  if (el.sClass.value) p.set("class", el.sClass.value);
-  if (el.sElement.value) p.set("element", el.sElement.value);
-  if (el.sType.value) p.set("type", el.sType.value);
-  if (el.sSubtype.value) p.set("subtype", el.sSubtype.value);
-  p.set("sort", "name");
-  p.set("order", "ASC");
-  p.set("page", String(page));
-  p.set("page_size", String(SEARCH_PAGE_SIZE));
-  return p.toString();
-}
-
-// 日本語入力時: ローカル訳(name/effect)を検索して slug 一覧を作る
-function localJpSlugs() {
-  const nameQ = hasJapanese(el.sName.value) ? el.sName.value.trim().toLowerCase() : "";
-  const textQ = hasJapanese(el.sText.value) ? el.sText.value.trim().toLowerCase() : "";
-  const out = [];
-  const cards = I18N.cards || {};
-  for (const slug in cards) {
-    const c = cards[slug];
-    if (nameQ && !String(c.name || "").toLowerCase().includes(nameQ)) continue;
-    if (textQ && !String(c.effect || "").toLowerCase().includes(textQ)) continue;
-    out.push(slug);
-  }
-  return out.sort();
-}
-
-function matchesFilters(card) {
-  if (el.sClass.value && !(card.classes || []).includes(el.sClass.value)) return false;
-  if (el.sElement.value && !(card.elements || []).includes(el.sElement.value)) return false;
-  if (el.sType.value && !(card.types || []).includes(el.sType.value)) return false;
-  if (el.sSubtype.value && !(card.subtypes || []).includes(el.sSubtype.value)) return false;
-  return true;
-}
-
-async function runSearch(reset) {
-  const seq = ++search.seq;
-  if (reset) {
-    search.page = 1;
-    search.jpSlugs = isJpSearch() ? localJpSlugs() : null;
-    el.resultGrid.innerHTML = "";
-    openModal(el.resultModal);
-  } else {
-    search.page += 1;
-  }
-  el.resultCount.textContent = "検索中…";
-  el.resultMore.disabled = true;
-  try {
-    let cards = [];
-    let total = null;
-    if (search.jpSlugs) {
-      const from = (search.page - 1) * SEARCH_PAGE_SIZE;
-      const batch = search.jpSlugs.slice(from, from + SEARCH_PAGE_SIZE);
-      const fetched = await Promise.all(batch.map((s) => getCard(s)));
-      if (seq !== search.seq) return;
-      cards = fetched.filter((c) => c && matchesFilters(c));
-      search.hasMore = from + SEARCH_PAGE_SIZE < search.jpSlugs.length;
-      total = search.jpSlugs.length;
-    } else {
-      const res = await fetch(`${API}/cards/search?${searchApiQuery(search.page)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      if (seq !== search.seq) return;
-      cards = json.data || [];
-      search.hasMore = !!json.has_more;
-      total = json.total_cards || cards.length;
+// クエリ構築・日本語ローカル検索・ページングは shared/js/card-search.js に共通化。
+// カード取得はこのページのキャッシュ(getCard)を使い、結果はダイアログに描画する。
+const searchCtl = GA_CARD_SEARCH.create({
+  els: {
+    name: el.sName, text: el.sText,
+    cls: el.sClass, element: el.sElement, type: el.sType, subtype: el.sSubtype,
+    set: el.sSet, sort: el.sSort, order: el.sOrder,
+  },
+  pageSize: 24,
+  jpPageSize: 24,
+  fetchCard: getCard,
+  onStart: (reset) => {
+    if (reset) {
+      el.resultGrid.innerHTML = "";
+      openModal(el.resultModal);
     }
+    el.resultCount.textContent = "検索中…";
+    el.resultMore.disabled = true;
+  },
+  onResults: (cards, info) => {
     cards.forEach((card) => { cardCache.set(card.slug, Promise.resolve(card)); });
     appendResults(cards);
     const shown = el.resultGrid.childElementCount;
     el.resultCount.textContent = shown === 0
       ? "該当するカードがありません。条件を変えてお試しください。"
-      : `${shown} 件を表示${total > shown ? ` / 全 ${total} 件` : ""}${search.jpSlugs ? "（日本語一致・翻訳済みのみ）" : ""}`;
-    el.resultMore.hidden = !search.hasMore;
-  } catch (err) {
-    if (seq !== search.seq) return;
+      : `${shown} 件を表示${info.total > shown ? ` / 全 ${info.total} 件` : ""}${info.jpMode ? "（日本語一致・翻訳済みのみ）" : ""}`;
+    el.resultMore.hidden = !info.hasMore;
+    el.resultMore.disabled = false;
+  },
+  onError: (err) => {
     el.resultCount.textContent = `検索に失敗しました(${err.message})`;
-  } finally {
-    if (seq === search.seq) el.resultMore.disabled = false;
-  }
-}
+    el.resultMore.disabled = false;
+  },
+});
+
+function runSearch(reset) { searchCtl.run(reset); }
 
 // デッキ全体(全ゾーン)での投入枚数(ダイアログのバッジ用)
 function totalQtyInDeck(slug) {
@@ -900,7 +837,8 @@ function updateResultBadge(item, slug) {
 function appendResults(cards) {
   const frag = document.createDocumentFragment();
   cards.forEach((card) => {
-    const url = imageUrl(card);
+    const imgs = cardImages(card);
+    const url = imgs.length ? imgs[0].url : null;
     const back = backFace(card); // 両面カードなら裏面(無ければ null)
     const item = document.createElement("div");
     item.className = "result";
@@ -908,33 +846,56 @@ function appendResults(cards) {
     const inDeck = totalQtyInDeck(card.slug);
     item.innerHTML = `
       <div class="cardph">
-        ${url ? `<img loading="lazy" src="${escapeHtml(url)}" data-front="${escapeHtml(url)}" ${back && back.image ? `data-back="${escapeHtml(back.image)}"` : ""} alt="">` : `<div class="noimg">${escapeHtml(jpName(card))}</div>`}
+        ${url ? `<img loading="lazy" src="${escapeHtml(url)}" alt="">` : `<div class="noimg">${escapeHtml(jpName(card))}</div>`}
         ${formatIconHtml(card)}
-        ${url && back && back.image ? `<button class="flip-badge" type="button" title="両面カード：表裏を切り替え" aria-label="裏面を表示">🔄 両面</button>` : ""}
+        ${url && imgs.length > 1 ? `<button class="art-badge" type="button" title="イラスト/版を切り替え（${imgs.length}種）" aria-label="イラストを切り替え">🎨 ${imgs.length}・${escapeHtml(imgs[0].prefix)}</button>` : ""}
+        ${url && back ? `<button class="flip-badge" type="button" title="両面カード：表裏を切り替え" aria-label="裏面を表示">🔄 両面</button>` : ""}
         <span class="in-deck" ${inDeck ? "" : "hidden"}>${inDeck}枚</span>
       </div>
       <p class="rname">${escapeHtml(jpName(card))}<span>${escapeHtml(card.name)}</span></p>
       <div class="addrow"></div>`;
     renderAddRow(item, card);
+
+    // イラスト切替(🎨)と表裏切替(🔄)は同じ <img> を共有するため状態を一元管理する(トップページと同じ方式)
+    const imgEl = item.querySelector(".cardph img");
+    const artBadge = item.querySelector(".art-badge");
+    const flipBadge = item.querySelector(".flip-badge");
+    if (imgEl && (artBadge || flipBadge)) {
+      let ai = 0;              // 選択中の版(イラスト)番号
+      let showingBack = false; // 裏面を表示中か
+      const syncImg = () => {
+        const cur = imgs[ai] || imgs[0];
+        if (!cur) return;
+        imgEl.src = showingBack && cur.back ? cur.back : cur.url;
+        if (flipBadge) flipBadge.textContent = showingBack ? "🔄 裏面" : "🔄 両面";
+      };
+      if (artBadge) {
+        artBadge.addEventListener("click", (e) => {
+          e.stopPropagation();
+          ai = (ai + 1) % imgs.length;
+          syncImg();
+          artBadge.textContent = `🎨 ${imgs.length}・${imgs[ai].prefix}`;
+          artBadge.title = `イラスト/版を切り替え（${ai + 1}/${imgs.length}：${imgs[ai].label}）`;
+        });
+      }
+      if (flipBadge) {
+        flipBadge.addEventListener("click", (e) => {
+          e.stopPropagation();
+          showingBack = !showingBack;
+          syncImg();
+        });
+      }
+    }
+
     frag.appendChild(item);
   });
   el.resultGrid.appendChild(frag);
 }
 
-// ダイアログ内の操作(追加/減算/表裏切替/詳細)はイベント委譲
+// ダイアログ内の操作(追加/減算/詳細)はイベント委譲。🎨/🔄はappendResults内の個別リスナーが処理
 el.resultGrid.addEventListener("click", async (e) => {
   const item = e.target.closest(".result");
   if (!item) return;
-
-  // 🔄 表裏切り替え(詳細を開かずに画像だけ差し替える)
-  const flip = e.target.closest(".flip-badge");
-  if (flip) {
-    const img = item.querySelector(".cardph img");
-    const showingBack = img.src === img.dataset.back;
-    img.src = showingBack ? img.dataset.front : img.dataset.back;
-    flip.textContent = showingBack ? "🔄 両面" : "🔄 裏面";
-    return;
-  }
 
   const slug = item.dataset.slug;
   const card = await getCard(slug);
@@ -982,7 +943,21 @@ el.sSearch.addEventListener("click", () => runSearch(true));
 [el.sName, el.sText].forEach((input) => {
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") runSearch(true); });
 });
-el.resultMore.addEventListener("click", () => runSearch(false));
+el.resultMore.addEventListener("click", () => searchCtl.loadMore());
+el.sOrder.addEventListener("click", () => {
+  const next = (el.sOrder.dataset.dir || "ASC") === "ASC" ? "DESC" : "ASC";
+  el.sOrder.dataset.dir = next;
+  el.sOrder.textContent = next === "ASC" ? "▲ 昇順" : "▼ 降順";
+  if (!el.resultModal.hidden) runSearch(true); // ダイアログ表示中なら即再検索
+});
+el.sReset.addEventListener("click", () => {
+  el.sName.value = "";
+  el.sText.value = "";
+  [el.sClass, el.sElement, el.sType, el.sSubtype, el.sSet].forEach((s) => { s.value = ""; });
+  el.sSort.value = "name";
+  el.sOrder.dataset.dir = "ASC";
+  el.sOrder.textContent = "▲ 昇順";
+});
 
 // ---------- 共有リンク閲覧 ----------
 
@@ -1134,10 +1109,11 @@ window.addEventListener("hashchange", route);
       if (!el.resultModal.hidden || !el.omniModal.hidden) document.body.style.overflow = "hidden";
     },
   });
-  fillSelect(el.sClass, "classes");
-  fillSelect(el.sElement, "elements");
-  fillSelect(el.sType, "types");
-  fillSelect(el.sSubtype, "subtypes");
+  GA_CARD_SEARCH.fillSelect(el.sClass, "classes");
+  GA_CARD_SEARCH.fillSelect(el.sElement, "elements");
+  GA_CARD_SEARCH.fillSelect(el.sType, "types");
+  GA_CARD_SEARCH.fillSelect(el.sSubtype, "subtypes");
+  GA_CARD_SEARCH.fillSetSelect(el.sSet);
   try {
     const data = await api("/api/me");
     me = data.user;
