@@ -320,7 +320,7 @@ function renderDeckList() {
         <div class="deck-actions">
           <a class="btn btn-sm btn-primary" href="#edit/${escapeHtml(d.id)}">✏️ 編集</a>
           <button class="btn btn-sm" data-share>🔗 共有</button>
-          <button class="btn btn-sm" data-rename>リネーム</button>
+          <button class="btn btn-sm" data-rename>デッキ名修正</button>
           <button class="btn btn-sm btn-danger" data-delete>削除</button>
         </div>
       </div>`;
@@ -355,7 +355,7 @@ function renderDeckList() {
         const res = await api(`/api/decks/${d.id}`, { method: "PATCH", body: { name: name.trim() } });
         Object.assign(d, res.deck);
         renderDeckList();
-      } catch (err) { showToast(`リネームに失敗しました(${err.message})`, true); }
+      } catch (err) { showToast(`デッキ名の修正に失敗しました(${err.message})`, true); }
     });
     item.querySelector("[data-delete]").addEventListener("click", async () => {
       // デッキ全体の削除は取り返しがつかないため、こちらは確認を残す
@@ -834,7 +834,7 @@ el.edRename.addEventListener("click", async () => {
     const res = await api(`/api/decks/${deckData.deck.id}`, { method: "PATCH", body: { name: name.trim() } });
     deckData.deck = res.deck;
     renderEditorBar();
-  } catch (err) { showToast(`リネームに失敗しました(${err.message})`, true); }
+  } catch (err) { showToast(`デッキ名の修正に失敗しました(${err.message})`, true); }
   finally { endSave(); }
 });
 
