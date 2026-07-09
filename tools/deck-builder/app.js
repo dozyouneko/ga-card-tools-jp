@@ -61,6 +61,7 @@ const el = {
   omniText: $("omni-text"),
   artModal: $("art-modal"),
   artTitle: $("art-title"),
+  artNote: $("art-note"),
   artGrid: $("art-grid"),
   tileMenu: $("tile-menu"),
   toast: $("toast"),
@@ -325,19 +326,22 @@ function renderDeckList() {
         </div>
       </div>`;
 
-    // サムネイル(champion_slug のカード画像)。無ければプレースホルダーのまま
-    if (d.champion_slug) {
-      getCard(d.champion_slug).then((card) => {
-        const url = card && imageUrl(card);
-        if (!url) return;
-        const img = document.createElement("img");
-        img.className = "champ-thumb-img";
-        img.alt = "";
-        img.loading = "lazy";
-        img.src = url;
-        const ph = item.querySelector("[data-thumb]");
-        if (ph) ph.replaceWith(img);
-      });
+    // サムネイル: thumb_image(画像パス指定。裏面や版も選べる)を優先し、
+    // 無ければ champion_slug のカードの表面デフォルト版。どちらも無ければプレースホルダーのまま
+    const showThumb = (url) => {
+      if (!url) return;
+      const img = document.createElement("img");
+      img.className = "champ-thumb-img";
+      img.alt = "";
+      img.loading = "lazy";
+      img.src = url;
+      const ph = item.querySelector("[data-thumb]");
+      if (ph) ph.replaceWith(img);
+    };
+    if (d.thumb_image) {
+      showThumb(API + d.thumb_image);
+    } else if (d.champion_slug) {
+      getCard(d.champion_slug).then((card) => showThumb(card && imageUrl(card)));
     }
 
     item.querySelector("[data-share]").addEventListener("click", (e) => {
@@ -703,36 +707,20 @@ el.tileMenu.addEventListener("click", async (e) => {
   const { slug, board } = menuContext;
   if (btn.dataset.move) { moveCard(slug, board, btn.dataset.move); return; }
   if (btn.dataset.act === "art") { openArtPicker(slug, board); return; }
-  if (btn.dataset.act === "thumb") {
-    beginSave();
-    try {
-      const res = await api(`/api/decks/${deckData.deck.id}`, { method: "PATCH", body: { champion_slug: slug } });
-      deckData.deck = res.deck;
-      showToast(`「${await cardName(slug)}」をサムネイルに設定しました`);
-    } catch (err) { showToast(`設定に失敗しました(${err.message})`, true); }
-    finally { endSave(); }
-    return;
-  }
+  if (btn.dataset.act === "thumb") { openThumbPicker(slug); return; }
   if (btn.dataset.act === "delete") {
     removeCard(slug, board, { undo: true }).catch((err) => showToast(`削除に失敗しました(${err.message})`, true));
   }
 });
 
-// ---------- イラスト選択ダイアログ ----------
+// ---------- イラスト/サムネイル選択ダイアログ ----------
+// mode "art"   … デッキ内カードのイラスト(版)変更。表面の版のみ
+// mode "thumb" … デッキ一覧のサムネイル設定。表面の版+両面カードの裏面も選べる
 
-let artContext = null; // { slug, board }
+let artContext = null; // { mode, slug, board }
 
-// 版のイラストを一覧表示して、タップで即変更する(案A)
-async function openArtPicker(slug, board) {
-  const card = await getCard(slug);
-  if (!card || !deckData) return;
-  const entry = findEntry(slug, board);
-  if (!entry) return;
-  const imgs = cardImages(card);
-  const current = rowImageUrl(entry, card);
-  artContext = { slug, board };
-  el.artTitle.textContent = `🎨 イラストを選択 — ${jpName(card)}`;
-  el.artGrid.innerHTML = imgs.map((im) => `
+function renderArtOptions(options, current) {
+  el.artGrid.innerHTML = options.map((im) => `
     <button class="art-opt${im.url === current ? " current" : ""}" type="button" data-url="${escapeHtml(im.url)}">
       <span class="cardph">
         <img loading="lazy" src="${escapeHtml(im.url)}" alt="">
@@ -740,17 +728,67 @@ async function openArtPicker(slug, board) {
       </span>
       <span class="art-label">${escapeHtml(im.label)}</span>
     </button>`).join("");
+}
+
+// 版のイラストを一覧表示して、タップで即変更する(案A)
+async function openArtPicker(slug, board) {
+  const card = await getCard(slug);
+  if (!card || !deckData) return;
+  const entry = findEntry(slug, board);
+  if (!entry) return;
+  artContext = { mode: "art", slug, board };
+  el.artTitle.textContent = `🎨 イラストを選択 — ${jpName(card)}`;
+  el.artNote.textContent = "タップしたイラストにすぐ変更されます。";
+  renderArtOptions(cardImages(card), rowImageUrl(entry, card));
   openModal(el.artModal);
+}
+
+// サムネイル選択。選択肢が1つ以下(版が1つで裏面なし)ならダイアログを出さず即設定
+async function openThumbPicker(slug) {
+  const card = await getCard(slug);
+  if (!card || !deckData) return;
+  const options = [];
+  cardImages(card).forEach((im) => {
+    options.push({ url: im.url, label: im.label });
+    if (im.back) options.push({ url: im.back, label: `${im.label}（裏面）` });
+  });
+  if (options.length <= 1) {
+    setDeckThumb(slug, options.length ? options[0].url : null);
+    return;
+  }
+  const d = deckData.deck;
+  const current = d.thumb_image ? API + d.thumb_image
+    : (d.champion_slug === slug ? imageUrl(card) : null);
+  artContext = { mode: "thumb", slug, board: null };
+  el.artTitle.textContent = `🖼️ サムネイルを選択 — ${jpName(card)}`;
+  el.artNote.textContent = "タップしたイラストがデッキ一覧のサムネイルになります。";
+  renderArtOptions(options, current);
+  openModal(el.artModal);
+}
+
+async function setDeckThumb(slug, url) {
+  const path = url && url.startsWith(API) ? url.slice(API.length) : null;
+  beginSave();
+  try {
+    const res = await api(`/api/decks/${deckData.deck.id}`, {
+      method: "PATCH",
+      body: { champion_slug: slug, thumb_image: path },
+    });
+    deckData.deck = res.deck;
+    showToast(`「${await cardName(slug)}」をサムネイルに設定しました`);
+  } catch (err) { showToast(`設定に失敗しました(${err.message})`, true); }
+  finally { endSave(); }
 }
 
 el.artGrid.addEventListener("click", async (e) => {
   const btn = e.target.closest(".art-opt");
   if (!btn || !artContext) return;
-  const { slug, board } = artContext;
+  const { mode, slug, board } = artContext;
   closeModal(el.artModal);
+  const url = btn.dataset.url;
+  if (mode === "thumb") { setDeckThumb(slug, url); return; }
   const card = await getCard(slug);
   // デフォルト(先頭の版)を選んだときは指定を解除して null に戻す
-  const url = btn.dataset.url;
   const path = card && url === imageUrl(card) ? null : url.slice(API.length);
   beginSave();
   try {
@@ -1199,7 +1237,12 @@ async function copyDeckToMine(id) {
     const src = await api(`/api/decks/${encodeURIComponent(id)}`);
     const created = await api("/api/decks", {
       method: "POST",
-      body: { name: `${src.deck.name} のコピー`, champion_slug: src.deck.champion_slug || undefined, is_public: false },
+      body: {
+        name: `${src.deck.name} のコピー`,
+        champion_slug: src.deck.champion_slug || undefined,
+        thumb_image: src.deck.thumb_image || undefined,
+        is_public: false,
+      },
     });
     await Promise.all(src.cards.map((c) =>
       api(`/api/decks/${created.deck.id}/cards`, {

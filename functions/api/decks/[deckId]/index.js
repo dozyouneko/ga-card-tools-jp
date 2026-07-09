@@ -4,7 +4,7 @@
 //   DELETE — デッキ削除（所有者のみ。deck_cards はFKのCASCADEで連動削除）
 
 import { all, one, run } from "../../../_lib/db.js";
-import { getDeck } from "../../../_lib/decks.js";
+import { getDeck, isValidArtImage } from "../../../_lib/decks.js";
 import { error, json, readJson } from "../../../_lib/http.js";
 import { getSessionUser } from "../../../_lib/session.js";
 
@@ -53,6 +53,11 @@ export async function onRequestPatch({ request, env, params }) {
   if ("champion_slug" in body) {
     sets.push("champion_slug = ?");
     values.push(typeof body.champion_slug === "string" ? body.champion_slug : null);
+  }
+  if ("thumb_image" in body) {
+    if (body.thumb_image !== null && !isValidArtImage(body.thumb_image)) return error(400, "invalid_thumb_image");
+    sets.push("thumb_image = ?");
+    values.push(body.thumb_image);
   }
   if ("description" in body) {
     sets.push("description = ?");

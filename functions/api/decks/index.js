@@ -3,7 +3,7 @@
 //   POST — デッキ新規作成（要ログイン）
 
 import { all, run } from "../../_lib/db.js";
-import { generateDeckId, getDeck } from "../../_lib/decks.js";
+import { generateDeckId, getDeck, isValidArtImage } from "../../_lib/decks.js";
 import { error, json, readJson } from "../../_lib/http.js";
 import { getSessionUser } from "../../_lib/session.js";
 
@@ -13,7 +13,7 @@ export async function onRequestGet({ request, env }) {
 
   const decks = await all(
     env.DB,
-    `SELECT d.id, d.name, d.champion_slug, d.description, d.is_public,
+    `SELECT d.id, d.name, d.champion_slug, d.thumb_image, d.description, d.is_public,
             d.created_at, d.updated_at, COALESCE(SUM(c.qty), 0) AS card_count,
             COALESCE(SUM(CASE WHEN c.board = 'main' THEN c.qty ELSE 0 END), 0) AS main_count,
             COALESCE(SUM(CASE WHEN c.board = 'material' THEN c.qty ELSE 0 END), 0) AS material_count
@@ -35,15 +35,19 @@ export async function onRequestPost({ request, env }) {
   if (!name) return error(400, "name_required");
   if (name.length > 100) return error(400, "name_too_long");
 
+  const thumbImage = typeof body.thumb_image === "string" ? body.thumb_image : null;
+  if (thumbImage !== null && !isValidArtImage(thumbImage)) return error(400, "invalid_thumb_image");
+
   const id = generateDeckId();
   await run(
     env.DB,
-    `INSERT INTO decks (id, user_id, name, champion_slug, description, is_public)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO decks (id, user_id, name, champion_slug, thumb_image, description, is_public)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
     id,
     user.id,
     name,
     typeof body.champion_slug === "string" ? body.champion_slug : null,
+    thumbImage,
     typeof body.description === "string" ? body.description : null,
     body.is_public === true ? 1 : 0 // 未指定はデフォルト非公開
   );
