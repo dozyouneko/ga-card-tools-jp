@@ -473,7 +473,8 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
   }
   .search-top .filter-row { display: none; }
   .search-top.filters-open .filter-row { display: flex; }
-  .search-top .filter-row select { flex: 1 1 100%; }
+  /* min-width: 0 が無いと選択肢の文字幅(長いエキスパンション名等)より縮めず、画面からはみ出す */
+  .search-top .filter-row select { flex: 1 1 100%; width: 100%; min-width: 0; }
 
   .artgrid { grid-template-columns: 1fr 1fr; gap: 10px; }
 
