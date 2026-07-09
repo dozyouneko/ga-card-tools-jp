@@ -222,6 +222,8 @@ window.GA_CARD_DETAIL = (() => {
       let card;
       if (opts.fetchCard) {
         card = await opts.fetchCard(slug);
+      } else if (window.GA_CARD_CACHE) {
+        card = await window.GA_CARD_CACHE.getCard(slug);
       } else {
         const res = await fetch(`${API}/cards/${encodeURIComponent(slug)}`);
         card = res.ok ? await res.json() : null;

@@ -101,12 +101,11 @@ async function api(path, opts = {}) {
   return data;
 }
 
-// 公式APIからカード1枚を取得(Promiseをキャッシュ)
+// 公式APIからカード1枚を取得。共有キャッシュ(メモリ+localStorage、shared/js/card-cache.js)経由。
+// cardCache には検索結果のカードも直接注入されるため、このページ用のメモリ層として残している
 function getCard(slug) {
   if (!cardCache.has(slug)) {
-    cardCache.set(slug, fetch(`${API}/cards/${encodeURIComponent(slug)}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .catch(() => null));
+    cardCache.set(slug, window.GA_CARD_CACHE.getCard(slug));
   }
   return cardCache.get(slug);
 }
