@@ -401,9 +401,28 @@ function endSave() {
   }
 }
 
+// 読み込み中に前回開いていたデッキの内容が見えないよう、編集ビューを空にする
+// (デッキ一覧・共有閲覧の innerHTML="" と同じ役割)
+function clearEditor() {
+  clearTimeout(memoTimer); // 前のデッキのメモ自動保存が新しいデッキに書かれるのを防ぐ
+  el.edTitle.textContent = "";
+  el.edPub.hidden = true;
+  el.edMemo.value = "";
+  el.memoStatus.textContent = "";
+  document.querySelectorAll("#view-editor .zone").forEach((zoneEl) => {
+    zoneEl.querySelector(".zone-grid").innerHTML = "";
+    const cnt = zoneEl.querySelector(".cnt");
+    cnt.textContent = "";
+    cnt.classList.remove("ok", "over");
+    const bar = zoneEl.querySelector(".meter > i");
+    if (bar) { bar.style.width = "0"; bar.classList.remove("ok", "over"); }
+  });
+}
+
 async function openEditor(id) {
   const seq = ++deckSeq;
   if (!me) { showView(el.viewLogin); return; }
+  clearEditor();
   showView(el.viewEditor);
   setStatus("デッキを読み込み中…");
   try {
@@ -425,6 +444,7 @@ async function openEditor(id) {
 function renderEditorBar() {
   const d = deckData.deck;
   el.edTitle.textContent = d.name;
+  el.edPub.hidden = false;
   el.edPub.textContent = d.is_public ? "公開" : "非公開";
   el.edPub.className = d.is_public ? "badge-pub" : "badge-priv";
 }
