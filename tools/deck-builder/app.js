@@ -402,8 +402,19 @@ function endSave() {
 
 // 読み込み中に前回開いていたデッキの内容が見えないよう、編集ビューを空にする
 // (デッキ一覧・共有閲覧の innerHTML="" と同じ役割)
+// 検索フォームを初期状態に戻す(リセットボタンとデッキ切替時の両方から使う)
+function resetSearchForm() {
+  el.sName.value = "";
+  el.sText.value = "";
+  [el.sClass, el.sElement, el.sType, el.sSubtype, el.sSet].forEach((s) => { s.value = ""; });
+  el.sSort.value = "name";
+  el.sOrder.dataset.dir = "ASC";
+  el.sOrder.textContent = "▲ 昇順";
+}
+
 function clearEditor() {
   clearTimeout(memoTimer); // 前のデッキのメモ自動保存が新しいデッキに書かれるのを防ぐ
+  resetSearchForm(); // 前のデッキで入力した検索条件を持ち越さない
   el.edTitle.textContent = "";
   el.edPub.hidden = true;
   el.edMemo.value = "";
@@ -1136,14 +1147,7 @@ el.sToggle.addEventListener("click", () => {
   el.sToggle.setAttribute("aria-expanded", open ? "true" : "false");
   el.sToggle.textContent = "絞り込み " + (open ? "▲" : "▾");
 });
-el.sReset.addEventListener("click", () => {
-  el.sName.value = "";
-  el.sText.value = "";
-  [el.sClass, el.sElement, el.sType, el.sSubtype, el.sSet].forEach((s) => { s.value = ""; });
-  el.sSort.value = "name";
-  el.sOrder.dataset.dir = "ASC";
-  el.sOrder.textContent = "▲ 昇順";
-});
+el.sReset.addEventListener("click", resetSearchForm);
 
 // ---------- 共有リンク閲覧 ----------
 
