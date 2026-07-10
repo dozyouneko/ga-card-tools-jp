@@ -461,11 +461,18 @@ function renderEditorBar() {
 
 // ゾーン内の並び順: 属性(第1エレメント)順 → 英名アルファベット順。
 // マテリアルデッキのみ、チャンピオンをレベル順で先頭に置く。
+// サイドボードはマテリアル系(チャンピオン/レガリア)→メイン系の順にまとめ、
+// マテリアル群の中はマテリアルデッキと同じ順序にする。
 function zoneComparator(zone, bySlug) {
   return (a, b) => {
     const ca = bySlug.get(a.card_slug);
     const cb = bySlug.get(b.card_slug);
-    if (zone === "material") {
+    if (zone === "side") {
+      const matA = isMaterialCard(ca);
+      const matB = isMaterialCard(cb);
+      if (matA !== matB) return matA ? -1 : 1;
+    }
+    if (zone === "material" || zone === "side") {
       const champA = ca && (ca.types || []).includes("CHAMPION");
       const champB = cb && (cb.types || []).includes("CHAMPION");
       if (champA !== champB) return champA ? -1 : 1;
