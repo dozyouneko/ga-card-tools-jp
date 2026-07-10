@@ -371,6 +371,10 @@ a { color: var(--accent-2); }
   /* 横方向のはみ出しを防ぐ */
   html, body { overflow-x: hidden; }
 
+  /* 告知バナーは補足文を隠して1行に収める */
+  .wip-notice { padding: 10px 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wip-notice-sub { display: none; }
+
   /* 横余白を圧縮して有効幅を確保 */
   .site-header { padding: 14px 12px; }
   .controls { padding: 12px; }
