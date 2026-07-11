@@ -375,13 +375,19 @@ function renderDeckList() {
   el.deckList.appendChild(frag);
 }
 
+// デッキ作成系エラーの表示用メッセージ(APIのエラーコード→日本語)
+function deckCreateErrorMessage(err) {
+  if (err.code === "deck_limit_reached") return "デッキの保存数が上限に達しています。不要なデッキを削除してください";
+  return err.message;
+}
+
 async function createDeck() {
   const name = prompt("デッキ名を入力してください", "新しいデッキ");
   if (!name || !name.trim()) return;
   try {
     const res = await api("/api/decks", { method: "POST", body: { name: name.trim(), is_public: false } });
     location.hash = `#edit/${res.deck.id}`;
-  } catch (err) { showToast(`作成に失敗しました(${err.message})`, true); }
+  } catch (err) { showToast(`作成に失敗しました(${deckCreateErrorMessage(err)})`, true); }
 }
 
 // ---------- デッキ編集 ----------
@@ -1284,7 +1290,7 @@ async function copyDeckToMine(id) {
     location.hash = `#edit/${created.deck.id}`;
   } catch (err) {
     el.bootStatus.hidden = true;
-    showToast(`コピーに失敗しました(${err.message})`, true);
+    showToast(`コピーに失敗しました(${deckCreateErrorMessage(err)})`, true);
   }
 }
 

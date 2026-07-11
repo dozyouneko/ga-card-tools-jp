@@ -2,7 +2,7 @@
 //   GET  — 自分のデッキ一覧（要ログイン）
 //   POST — デッキ新規作成（要ログイン）
 
-import { all, run } from "../../_lib/db.js";
+import { all, one, run } from "../../_lib/db.js";
 import { generateDeckId, getDeck, isValidArtImage } from "../../_lib/decks.js";
 import { error, json, readJson } from "../../_lib/http.js";
 import { getSessionUser } from "../../_lib/session.js";
@@ -26,9 +26,15 @@ export async function onRequestGet({ request, env }) {
   return json({ decks });
 }
 
+// 1ユーザーが保存できるデッキ数の上限(悪意ある大量作成への保険)
+const DECK_LIMIT = 100;
+
 export async function onRequestPost({ request, env }) {
   const user = await getSessionUser(env, request);
   if (!user) return error(401, "login_required");
+
+  const { n } = await one(env.DB, `SELECT COUNT(*) AS n FROM decks WHERE user_id = ?`, user.id);
+  if (n >= DECK_LIMIT) return error(403, "deck_limit_reached");
 
   const body = await readJson(request);
   const name = typeof body?.name === "string" ? body.name.trim() : "";
