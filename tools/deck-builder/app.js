@@ -465,10 +465,31 @@ function renderEditorBar() {
   el.edPub.className = d.is_public ? "badge-pub" : "badge-priv";
 }
 
-// ゾーン内の並び順: 属性(第1エレメント)順 → 英名アルファベット順。
+// ゾーン内の並び順: 属性順 → 英名アルファベット順。
+// 属性は基本属性(ノーム→火→水→風)を先、上級属性はその後ろにアルファベット順。
+// EXALTEDは常に「基本属性+EXALTED」の形で付くため判定に使わず、基本属性側で並べる。
 // マテリアルデッキのみ、チャンピオンをレベル順で先頭に置く。
 // サイドボードはマテリアル系(チャンピオン/レガリア)→メイン系の順にまとめ、
 // マテリアル群の中はマテリアルデッキと同じ順序にする。
+const BASIC_ELEMENT_ORDER = ["NORM", "FIRE", "WATER", "WIND"];
+
+// ソートに使う属性: EXALTED以外の最初の属性(EXALTEDしか無い場合のみEXALTED)
+function sortElement(card) {
+  const els = (card && card.elements) || [];
+  return els.find((e) => e !== "EXALTED") || els[0] || "ZZZ";
+}
+
+function compareElements(ea, eb) {
+  const ia = BASIC_ELEMENT_ORDER.indexOf(ea);
+  const ib = BASIC_ELEMENT_ORDER.indexOf(eb);
+  if (ia !== -1 || ib !== -1) {
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  }
+  return ea.localeCompare(eb);
+}
+
 function zoneComparator(zone, bySlug) {
   return (a, b) => {
     const ca = bySlug.get(a.card_slug);
@@ -488,9 +509,9 @@ function zoneComparator(zone, bySlug) {
         if (la !== lb) return la - lb;
       }
     }
-    const ea = (ca && ca.elements && ca.elements[0]) || "ZZZ";
-    const eb = (cb && cb.elements && cb.elements[0]) || "ZZZ";
-    if (ea !== eb) return ea.localeCompare(eb);
+    const ea = sortElement(ca);
+    const eb = sortElement(cb);
+    if (ea !== eb) return compareElements(ea, eb);
     const na = (ca && ca.name) || a.card_slug;
     const nb = (cb && cb.name) || b.card_slug;
     return na.localeCompare(nb);
