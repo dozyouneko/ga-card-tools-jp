@@ -9,7 +9,7 @@
 ## 環境の全体像
 
 | 層 | 内容 | PC故障の影響 |
-|---|---|---|
+| --- | --- | --- |
 | コード | GitHub: <https://github.com/dozyouneko/ga-card-tools-jp> (main) | なし(クラウド) |
 | 本番 | Cloudflare Pages `ga-card-tools-jp`(push時に自動デプロイ)+ D1 `ga-deck-builder` | なし(クラウド) |
 | 認証 | Discord Developer Portal のOAuthアプリ(Redirect URI 登録済み) | なし(クラウド) |
@@ -67,9 +67,9 @@ git config user.email "1020dozyouneko@gmail.com"
 バックアップがあれば所定の場所に戻すだけ。なければ再発行する。
 
 | ファイル | 内容 | 再発行方法 |
-|---|---|---|
+| --- | --- | --- |
 | `/home/node/.cloudflare-token` | Cloudflare APIトークン(1行、`chmod 600`) | Cloudflareダッシュボード > My Profile > API Tokens > Create Token。権限: **Account/D1:Edit、Account/Cloudflare Pages:Edit、Account/Account Settings:Read、User/User Details:Read** |
-| `.dev.vars`(リポジトリ直下) | `DISCORD_CLIENT_ID=...`<br>`DISCORD_CLIENT_SECRET=...` | Discord Developer Portal > 対象アプリ > OAuth2。Client IDは表示されている値、Secretは「Reset Secret」で再発行。**Secretを再発行したら本番Pagesのsecret(下記の注意参照)も更新すること** |
+| `.dev.vars`(リポジトリ直下) | `DISCORD_CLIENT_ID=...` と `DISCORD_CLIENT_SECRET=...` の2行 | Discord Developer Portal > 対象アプリ > OAuth2。Client IDは表示されている値、Secretは「Reset Secret」で再発行。**Secretを再発行したら本番Pagesのsecret(下記の注意参照)も更新すること** |
 | `~/.claude/projects/-workspaces-claude-test-vsc/memory/` | Claude Codeのmemory | バックアップからのみ復元可(なければClaudeが徐々に再学習) |
 | `tmp/`(リポジトリ直下) | 計画メモ・手順書類 | バックアップからのみ復元可 |
 | `.claude/settings.local.json` | Claude Codeの権限設定 | バックアップから復元。なければ使いながら再許可 |
