@@ -1,5 +1,7 @@
 // /api/decks/:deckId
-//   GET    — デッキ閲覧（共有リンク。ログイン不要。非公開デッキは所有者のみ）
+//   GET    — デッキ閲覧（共有リンク。ログイン不要。IDが128bitランダムで推測不可のため
+//            非公開デッキもリンクを知っていれば閲覧できる=限定公開。is_public は
+//            フェーズ6の公開デッキ検索に載せるかどうかの区別）
 //   PATCH  — デッキ情報の更新（所有者のみ）
 //   DELETE — デッキ削除（所有者のみ。deck_cards はFKのCASCADEで連動削除）
 
@@ -14,8 +16,6 @@ export async function onRequestGet({ request, env, params }) {
 
   const user = await getSessionUser(env, request);
   const isOwner = !!user && user.id === deck.user_id;
-  // 非公開デッキは存在自体を漏らさないため403ではなく404にする
-  if (!deck.is_public && !isOwner) return error(404, "deck_not_found");
 
   const cards = await all(
     env.DB,

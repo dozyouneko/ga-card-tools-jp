@@ -863,7 +863,7 @@ el.edPub.addEventListener("click", async () => {
     const res = await api(`/api/decks/${deckData.deck.id}`, { method: "PATCH", body: { is_public: next } });
     deckData.deck = res.deck;
     renderEditorBar();
-    showToast(next ? "デッキを公開にしました" : "デッキを非公開にしました(共有リンクからも見えなくなります)");
+    showToast(next ? "デッキを公開にしました" : "デッキを非公開にしました(共有リンクを知っている人は引き続き見られます)");
   } catch (err) { showToast(`変更に失敗しました(${err.message})`, true); }
   finally { endSave(); }
 });
@@ -1177,7 +1177,7 @@ async function openDeckView(id) {
     el.vTitle.textContent = "";
     el.vOwner.textContent = "";
     setStatus(err.status === 404
-      ? "デッキが見つかりません。削除されたか、非公開に設定されている可能性があります。"
+      ? "デッキが見つかりません。削除された可能性があります。"
       : `読み込みに失敗しました(${err.message})`);
   }
 }
