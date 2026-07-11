@@ -36,6 +36,8 @@ function buildSessionCookie(value, maxAge) {
 
 // セッションを作成し、Cookie に入れる生トークンと Set-Cookie 文字列を返す
 export async function createSession(env, userId, userAgent) {
+  // 期限切れセッションの掃除。ログイン時にまとめて行う(全ユーザー分)
+  await run(env.DB, `DELETE FROM sessions WHERE expires_at <= datetime('now')`);
   const token = randomToken();
   const id = await sha256Hex(token);
   await run(
