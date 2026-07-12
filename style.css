@@ -172,17 +172,6 @@ a { color: var(--accent-2); }
 .format-draft    { background: #0e7490; }
 .format-standard { background: #b45309; }
 
-.banned-banner {
-  margin: 0 0 12px; padding: 8px 12px;
-  background: rgba(185, 28, 28, .15);
-  border: 1px solid #b91c1c; border-radius: 8px;
-  color: #fca5a5; font-weight: 700; font-size: .9rem;
-}
-.banned-banner[hidden] { display: none; }
-.format-banner-pantheon { background: rgba(124, 58, 237, .15); border-color: #7c3aed; color: #c4b5fd; }
-.format-banner-draft    { background: rgba(14, 116, 144, .15); border-color: #0e7490; color: #67e8f9; }
-.format-banner-standard { background: rgba(180, 83, 9, .15); border-color: #b45309; color: #fcd34d; }
-
 .art-badge {
   position: absolute; right: 8px; bottom: 8px;
   border: none; border-radius: 8px;
@@ -231,62 +220,6 @@ a { color: var(--accent-2); }
 }
 .modal-close:hover { color: var(--text); }
 
-.detail { display: grid; grid-template-columns: 300px 1fr; gap: 24px; }
-.detail-image > img { width: 100%; border-radius: 12px; border: 1px solid var(--border); }
-
-.arts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.arts[hidden] { display: none; }
-.art-thumb {
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 4px; cursor: pointer;
-  background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
-}
-.art-thumb img { width: 48px; height: 67px; object-fit: cover; border-radius: 4px; }
-.art-thumb span { font-size: .62rem; color: var(--muted); max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.art-thumb.active { border-color: var(--accent); }
-.art-thumb:hover { border-color: var(--accent-2); }
-.detail-info h2 { margin: 8px 0 2px; }
-.name-en { margin: 0 0 12px; color: var(--muted); }
-
-.badge { display: inline-block; font-size: .72rem; padding: 3px 10px; border-radius: 999px; color: #fff; }
-.badge-yes { background: var(--yes); }
-.badge-no  { background: var(--no); }
-
-.meta { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 18px; margin: 0 0 16px; }
-.meta-row { display: flex; gap: 8px; border-bottom: 1px dashed var(--border); padding: 4px 0; }
-.meta-row dt { color: var(--muted); min-width: 74px; }
-.meta-row dd { margin: 0; }
-
-.effect-block h3, .terms-block h3, .editions-block h3 { font-size: .95rem; margin: 18px 0 8px; color: var(--accent); }
-.effect { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
-.effect strong { color: var(--accent); }
-.effect-en { color: var(--muted); }
-/* 効果文中のゲーム用語ハイライト（詳細画面「この効果に出てくる用語」と対応） */
-.effect .term-hl { color: var(--accent-2); font-weight: 600; background: color-mix(in srgb, var(--accent-2) 14%, transparent); border-radius: 4px; padding: 0 2px; }
-/* 効果文中のサブタイプハイライト（そのカード自身が持つサブタイプの和訳のみが対象） */
-.effect .subtype-hl { color: var(--accent); font-weight: 600; background: color-mix(in srgb, var(--accent) 14%, transparent); border-radius: 4px; padding: 0 2px; }
-/* 効果文中のカード自己参照ハイライト（「カード名」への自己参照のみが対象） */
-.effect .card-name-hl { color: var(--accent-3); font-weight: 600; background: color-mix(in srgb, var(--accent-3) 14%, transparent); border-radius: 4px; padding: 0 2px; }
-.orig { margin-top: 8px; }
-.orig summary { cursor: pointer; color: var(--accent-2); font-size: .85rem; }
-
-.flavor-block .flavor { font-style: italic; color: var(--muted); border-left: 3px solid var(--border); padding-left: 12px; margin-top: 14px; }
-
-.terms-block ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
-.terms-block li { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; }
-.term-jp { display: block; font-weight: 700; color: var(--accent-2); }
-.term-desc { color: var(--muted); font-size: .88rem; }
-
-.editions-block ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; }
-
-/* 両面カード：詳細モーダルの裏面セクション（表面の下にスタック表示） */
-.back-block { margin-top: 24px; border-top: 2px solid var(--border); padding-top: 8px; }
-.back-block[hidden] { display: none; }
-.back-title { font-size: 1rem; margin: 12px 0 14px; color: var(--accent-2); }
-.back-detail { grid-template-columns: 220px 1fr; }
-.back-detail .detail-image > img { width: 100%; border-radius: 12px; border: 1px solid var(--border); }
-.back-detail .badge { margin-bottom: 6px; }
-
 .muted { color: var(--muted); }
 
 /* ---------- フッタ ---------- */
@@ -304,14 +237,6 @@ a { color: var(--accent-2); }
 }
 .card:hover .card-add, .card:focus-within .card-add { opacity: 1; }
 .card-add:hover { background: var(--yes); }
-
-.detail-actions { margin-top: 18px; }
-.add-print {
-  background: var(--yes); color: #fff; border: none;
-  border-radius: 8px; padding: 10px 16px; cursor: pointer; font-size: .95rem;
-}
-.add-print:hover { filter: brightness(1.08); }
-.add-print:disabled { background: var(--panel-2); color: var(--muted); cursor: not-allowed; }
 
 .print-bar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 15;
@@ -413,12 +338,9 @@ a { color: var(--accent-2); }
   .card-name-en { font-size: .72rem; }
   .card-add { opacity: 1; }
 
-  /* 詳細モーダル：全画面シート＋縦積み */
+  /* 印刷トレイ：全画面シート＋縦積み */
   .modal-body { margin: 0; max-width: none; min-height: 100%; max-height: 100vh; border-radius: 0; padding: 16px; }
   .modal-close { top: 8px; right: 10px; font-size: 2rem; padding: 2px 6px; }
-  .detail { grid-template-columns: 1fr; gap: 16px; }
-  .detail-image { max-width: 260px; margin: 0 auto; }
-  .meta { grid-template-columns: 1fr; }
 
   /* 印刷トレイのオプションは縦積み */
   .tray-options { flex-direction: column; gap: 10px; }
