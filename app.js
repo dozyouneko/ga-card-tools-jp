@@ -414,6 +414,17 @@ function init() {
     });
   }
 
+  // ヘッダのツールリンクの開閉（スマホのみトグル表示。PCでは常時表示）
+  const toolsToggle = document.getElementById("tools-toggle");
+  const siteHeader = document.querySelector(".site-header");
+  if (toolsToggle && siteHeader) {
+    toolsToggle.addEventListener("click", () => {
+      const open = siteHeader.classList.toggle("tools-open");
+      toolsToggle.setAttribute("aria-expanded", open ? "true" : "false");
+      toolsToggle.textContent = "ツール " + (open ? "▲" : "▾");
+    });
+  }
+
   // カード詳細モーダル（共通コンポーネント）。印刷ボタンとハッシュ連動はこのページ固有
   GA_CARD_DETAIL.init({
     preferredArtIndex,
