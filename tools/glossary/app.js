@@ -37,7 +37,8 @@
 
     list.innerHTML = shown
       .map((t) => {
-        const href = `../../index.html?qtext=${encodeURIComponent(t.jpCore)}`;
+        // 検索は英語キーワードで行う(英語原文には必ず含まれるため、和訳の言い回し差で取りこぼさない)
+        const href = `../../index.html?qtext=${encodeURIComponent(t.en)}`;
         return `<li>
           <div class="term-head">
             <a class="term-jp" href="${escapeHtml(href)}" title="効果テキスト検索でこの用語を検索">${escapeHtml(t.jpCore)}</a>
