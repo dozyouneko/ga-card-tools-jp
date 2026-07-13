@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://ga-card-tools-jp.pages.dev/sitemap.xml
