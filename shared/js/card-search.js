@@ -35,9 +35,22 @@ window.GA_CARD_SEARCH = (() => {
 
   // ---------- フィルタ選択肢の生成 ----------
 
+  // エレメントの表示順: 基本属性(ノーム→火→水→風)→上級属性(アルファベット順)→EXALTED。
+  // デッキ構築ツールのゾーン内ソート(BASIC_ELEMENT_ORDER)と同じ考え方。
+  // EXALTEDは常に基本属性と組で付く修飾属性のため末尾に置く。
+  const BASIC_ELEMENTS = ["NORM", "FIRE", "WATER", "WIND"];
+  function elementKeys(map) {
+    const keys = Object.keys(map);
+    const head = BASIC_ELEMENTS.filter((k) => keys.includes(k));
+    const tail = keys.filter((k) => !BASIC_ELEMENTS.includes(k) && k !== "EXALTED").sort();
+    if (keys.includes("EXALTED")) tail.push("EXALTED");
+    return head.concat(tail);
+  }
+
   function fillSelect(select, kind) {
     const map = (I18N.meta && I18N.meta[kind]) || {};
-    Object.keys(map).sort().forEach((key) => {
+    const keys = kind === "elements" ? elementKeys(map) : Object.keys(map).sort();
+    keys.forEach((key) => {
       const opt = document.createElement("option");
       opt.value = key;
       opt.textContent = `${key}（${map[key]}）`;
