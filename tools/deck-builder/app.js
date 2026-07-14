@@ -59,6 +59,11 @@ const el = {
   resultMore: $("result-more"),
   omniModal: $("omni-modal"),
   omniText: $("omni-text"),
+  importBtn: $("deck-import-btn"),
+  importModal: $("import-modal"),
+  importText: $("import-text"),
+  importResult: $("import-result"),
+  importRun: $("import-run"),
   artModal: $("art-modal"),
   artTitle: $("art-title"),
   artNote: $("art-note"),
@@ -215,10 +220,10 @@ function openModal(modal) {
 function closeModal(modal) {
   modal.hidden = true;
   // 他のモーダル(共通のカード詳細含む)が開いたままならスクロールは固定のまま
-  const anyOpen = [el.resultModal, el.omniModal, el.artModal].some((m) => !m.hidden) || GA_CARD_DETAIL.isOpen();
+  const anyOpen = [el.resultModal, el.omniModal, el.importModal, el.artModal].some((m) => !m.hidden) || GA_CARD_DETAIL.isOpen();
   if (!anyOpen) document.body.style.overflow = "";
 }
-[["result-modal"], ["omni-modal"], ["art-modal"]].forEach(([id]) => {
+[["result-modal"], ["omni-modal"], ["import-modal"], ["art-modal"]].forEach(([id]) => {
   const modal = $(id);
   modal.addEventListener("click", (e) => {
     if (e.target.closest("[data-close]")) closeModal(modal);
@@ -230,6 +235,7 @@ document.addEventListener("keydown", (e) => {
   if (!el.tileMenu.hidden) { el.tileMenu.hidden = true; return; }
   if (GA_CARD_DETAIL.isOpen()) { GA_CARD_DETAIL.close(); return; }
   if (!el.artModal.hidden) { closeModal(el.artModal); return; }
+  if (!el.importModal.hidden) { closeModal(el.importModal); return; }
   if (!el.omniModal.hidden) { closeModal(el.omniModal); return; }
   if (!el.resultModal.hidden) closeModal(el.resultModal);
 });
@@ -319,6 +325,7 @@ function renderDeckList() {
         </p>
         <div class="deck-actions">
           <a class="btn btn-sm btn-primary" href="#edit/${escapeHtml(d.id)}">✏️ 編集</a>
+          <button class="btn btn-sm" data-copy>複製</button>
           <button class="btn btn-sm" data-share>🔗 共有</button>
           <button class="btn btn-sm" data-rename>デッキ名修正</button>
           <button class="btn btn-sm btn-danger" data-delete>削除</button>
@@ -343,6 +350,10 @@ function renderDeckList() {
       getCard(d.champion_slug).then((card) => showThumb(card && imageUrl(card)));
     }
 
+    item.querySelector("[data-copy]").addEventListener("click", () => {
+      // 「〜のコピー」という名前で新規デッキを作り、完了後は編集画面へ遷移する
+      copyDeckToMine(d.id, { label: "複製", doneMsg: (name) => `「${name}」を複製しました` });
+    });
     item.querySelector("[data-share]").addEventListener("click", (e) => {
       copyText(deckShareUrl(d.id), "共有リンクをコピーしました");
       e.currentTarget.textContent = "✓ コピーしました";
@@ -524,12 +535,14 @@ async function renderZones() {
   const bySlug = await ensureCards(cards.map((c) => c.card_slug));
   if (seq !== deckSeq) return;
 
+  let materialFirst = null; // マテリアル表示順の先頭(サムネ自動設定用)
   ZONES.forEach((zone) => {
     const zoneEl = document.querySelector(`.zone[data-zone="${zone}"]`);
     const grid = zoneEl.querySelector(".zone-grid");
     const rows = cards
       .filter((c) => c.board === zone)
       .sort(zoneComparator(zone, bySlug));
+    if (zone === "material") materialFirst = rows[0] || null;
 
     grid.innerHTML = "";
     if (!rows.length) {
@@ -561,6 +574,27 @@ async function renderZones() {
 
     updateZoneHeader(zone, rows, bySlug);
   });
+
+  autoAssignThumb(materialFirst, bySlug);
+}
+
+// サムネイル未指定のデッキは、マテリアル表示順の先頭カードを自動でサムネイルに設定する。
+// 明示設定(thumb_image)や既存のチャンピオン指定(champion_slug)があれば何もしない。
+let thumbAssigning = false;
+async function autoAssignThumb(firstRow, bySlug) {
+  if (!deckData || !firstRow) return;
+  const d = deckData.deck;
+  if (d.thumb_image || d.champion_slug || thumbAssigning) return;
+  const card = bySlug.get(firstRow.card_slug);
+  const url = card && imageUrl(card);
+  if (!url || !url.startsWith(API)) return;
+  thumbAssigning = true;
+  try {
+    const res = await api(`/api/decks/${d.id}`, { method: "PATCH", body: { thumb_image: url.slice(API.length) } });
+    // 保存中にデッキが切り替わっていなければ反映する
+    if (deckData && deckData.deck.id === d.id) deckData.deck = res.deck;
+  } catch { /* 自動設定の失敗は無視 */ }
+  finally { thumbAssigning = false; }
 }
 
 function updateZoneHeader(zone, rows, bySlug) {
@@ -1288,8 +1322,11 @@ el.vCopyDeck.addEventListener("click", async () => {
   copyDeckToMine(id);
 });
 
-async function copyDeckToMine(id) {
-  setStatus("デッキをコピー中…");
+// opts.label: 進捗/失敗トーストの動詞(既定「コピー」。自分のデッキ複製時は「複製」)
+// opts.doneMsg(name): 成功トースト(既定は共有ビュー向けの「〜として自分のデッキ一覧にコピーしました」)
+async function copyDeckToMine(id, opts = {}) {
+  const label = opts.label || "コピー";
+  setStatus(`デッキを${label}中…`);
   try {
     const src = await api(`/api/decks/${encodeURIComponent(id)}`);
     const created = await api("/api/decks", {
@@ -1307,11 +1344,12 @@ async function copyDeckToMine(id) {
         body: { card_slug: c.card_slug, board: c.board, qty: c.qty, ...(c.art_image ? { art_image: c.art_image } : {}) },
       })
     ));
-    showToast(`「${created.deck.name}」として自分のデッキ一覧にコピーしました`);
+    showToast(opts.doneMsg ? opts.doneMsg(created.deck.name)
+                           : `「${created.deck.name}」として自分のデッキ一覧にコピーしました`);
     location.hash = `#edit/${created.deck.id}`;
   } catch (err) {
     el.bootStatus.hidden = true;
-    showToast(`コピーに失敗しました(${deckCreateErrorMessage(err)})`, true);
+    showToast(`${label}に失敗しました(${deckCreateErrorMessage(err)})`, true);
   }
 }
 
@@ -1321,6 +1359,112 @@ async function resumePendingCopy() {
   localStorage.removeItem(PENDING_COPY_KEY);
   await copyDeckToMine(pending);
 }
+
+// ---------- Omnidexテキストからインポート ----------
+
+// omnidex提出フォーマット(# Material Deck / # Main Deck / # Sideboard + 「枚数 英語カード名」)を
+// パースして [{ board, qty, name }] を返す。見出しが現れるまでは main 扱い。
+function parseOmnidexText(text) {
+  const HEAD = {
+    "material deck": "material", "materials": "material", "material": "material",
+    "main deck": "main", "maindeck": "main", "main": "main",
+    "sideboard": "side", "side deck": "side", "side": "side",
+  };
+  let board = "main";
+  const entries = [];
+  for (const raw of String(text).split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    const head = line.match(/^#\s*(.+?)$/);
+    if (head) {
+      const b = HEAD[head[1].toLowerCase()];
+      if (b) board = b;
+      continue;
+    }
+    const m = line.match(/^(\d+)\s*[x×]?\s+(.+)$/i);
+    if (!m) continue;
+    const qty = parseInt(m[1], 10);
+    const name = m[2].trim();
+    if (qty > 0 && name) entries.push({ board, qty, name });
+  }
+  return entries;
+}
+
+// 記号・大小・アクセントの揺れを吸収して名前を照合するための正規化
+const normCardName = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+// カード名(英語)→ slug。公式APIの名前検索から完全一致のみ採用する(曖昧一致は誤登録防止で不採用)
+async function resolveCardSlug(name) {
+  try {
+    const res = await fetch(`${API}/cards/search?name=${encodeURIComponent(name)}&page_size=30`);
+    if (!res.ok) return null;
+    const json = await res.json();
+    const target = normCardName(name);
+    const hit = (json.data || []).find((c) => normCardName(c.name) === target);
+    return hit ? hit.slug : null;
+  } catch { return null; }
+}
+
+async function importFromOmnidex() {
+  const entries = parseOmnidexText(el.importText.value);
+  if (!entries.length) {
+    el.importResult.hidden = false;
+    el.importResult.textContent = "デッキとして読み取れる行がありませんでした。フォーマットをご確認ください。";
+    return;
+  }
+  el.importRun.disabled = true;
+  el.importResult.hidden = false;
+  el.importResult.textContent = "カードを照合中…";
+  try {
+    // 同じカード名は1回だけ照合する
+    const names = [...new Set(entries.map((e) => e.name))];
+    const slugByName = new Map();
+    const failed = [];
+    await Promise.all(names.map(async (n) => {
+      const slug = await resolveCardSlug(n);
+      if (slug) slugByName.set(n, slug); else failed.push(n);
+    }));
+    const ok = entries.filter((e) => slugByName.has(e.name));
+    if (!ok.length) {
+      el.importResult.textContent = "カードが1枚も見つかりませんでした。英語名・フォーマットをご確認ください。";
+      return;
+    }
+    if (failed.length) {
+      const proceed = confirm(
+        `次の${failed.length}種のカードが見つかりませんでした:\n・${failed.join("\n・")}\n\n見つかった${ok.length}種でデッキを作成しますか？`
+      );
+      if (!proceed) return;
+    }
+    const name = prompt("デッキ名を入力してください", "インポートしたデッキ");
+    if (!name || !name.trim()) return;
+    el.importResult.textContent = "デッキを作成中…";
+    const created = await api("/api/decks", { method: "POST", body: { name: name.trim(), is_public: false } });
+    await Promise.all(ok.map((e) =>
+      api(`/api/decks/${created.deck.id}/cards`, {
+        method: "POST",
+        body: { card_slug: slugByName.get(e.name), board: e.board, qty: e.qty },
+      })
+    ));
+    closeModal(el.importModal);
+    const skip = failed.length ? `（${failed.length}種は未解決のためスキップ）` : "";
+    showToast(`「${created.deck.name}」を作成しました${skip}`);
+    location.hash = `#edit/${created.deck.id}`;
+  } catch (err) {
+    el.importResult.hidden = false;
+    el.importResult.textContent = `インポートに失敗しました（${deckCreateErrorMessage(err)}）`;
+  } finally {
+    el.importRun.disabled = false;
+  }
+}
+
+el.importBtn.addEventListener("click", () => {
+  if (!me) { location.href = loginUrl(); return; }
+  el.importText.value = "";
+  el.importResult.hidden = true;
+  el.importResult.textContent = "";
+  openModal(el.importModal);
+});
+el.importRun.addEventListener("click", importFromOmnidex);
 
 // ---------- 初期化 ----------
 

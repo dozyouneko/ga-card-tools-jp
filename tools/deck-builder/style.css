@@ -399,6 +399,27 @@ img.champ-thumb-img { display: block; }
 }
 .omni-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
 
+/* ---------- Omnidexインポート ---------- */
+.import-text {
+  width: 100%; box-sizing: border-box; resize: vertical; min-height: 240px;
+  background: var(--panel-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .82rem; line-height: 1.6;
+}
+.import-text:focus { outline: 2px solid var(--accent-2); outline-offset: 1px; }
+.import-result {
+  margin: 12px 0 0; padding: 10px 14px;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+  font-size: .82rem; line-height: 1.6; color: var(--muted);
+  white-space: pre-wrap; max-height: 30vh; overflow: auto;
+}
+.result-count code, .import-result code {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 5px;
+  padding: 1px 5px; font-size: .92em;
+}
+
 /* ---------- メモ欄 ---------- */
 .memo-block { margin-top: 10px; max-width: 720px; }
 .memo-block h3 {

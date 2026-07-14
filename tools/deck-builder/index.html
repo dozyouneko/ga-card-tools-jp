@@ -74,6 +74,7 @@
       <option value="name">名前順</option>
     </select>
     <button class="btn btn-sm btn-primary" id="deck-new-btn">＋ 新しいデッキ</button>
+    <button class="btn btn-sm" id="deck-import-btn">📥 インポート</button>
   </div>
   <div id="deck-list" class="deck-list"></div>
 </section>
@@ -194,6 +195,19 @@
     <p class="result-count">以下の内容をコピーして omnidex に貼り付けてください。「検討中」のカードは含まれません。</p>
     <pre id="omni-text" class="omni-text"></pre>
     <div class="omni-actions"><button class="btn btn-primary" id="omni-copy">📋 コピーする</button></div>
+  </div>
+</div>
+
+<!-- Omnidexテキストからインポートするダイアログ -->
+<div class="modal" id="import-modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-body omni-body" role="dialog" aria-modal="true" aria-label="Omnidexテキストからインポート">
+    <button class="modal-close" type="button" data-close aria-label="閉じる">×</button>
+    <h2>📥 Omnidexテキストからインポート</h2>
+    <p class="result-count">omnidex提出用テキスト（<code># Material Deck</code> / <code># Main Deck</code> / <code># Sideboard</code> と「枚数 英語カード名」の行）を貼り付けて読み込むと、新しいデッキとして保存します。カード名は英語で照合します。</p>
+    <textarea id="import-text" class="import-text" rows="12" aria-label="Omnidexテキスト" placeholder="# Main Deck&#10;4 Angel Attendant&#10;2 Resolute Stand&#10;..."></textarea>
+    <div id="import-result" class="import-result" role="status" aria-live="polite" hidden></div>
+    <div class="omni-actions"><button class="btn btn-primary" id="import-run">読み込む</button></div>
   </div>
 </div>
 
