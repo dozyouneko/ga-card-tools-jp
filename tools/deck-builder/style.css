@@ -111,6 +111,7 @@ button.badge-pub, button.badge-priv { cursor: pointer; }
 
 /* ---------- デッキ一覧 ---------- */
 .list-controls { display: flex; align-items: center; gap: 10px; padding: 12px 24px 0; }
+.list-actions { display: flex; gap: 10px; }
 .list-controls label { font-size: .8rem; color: var(--muted); }
 .list-controls select {
   background: var(--panel); color: var(--text);
@@ -517,6 +518,14 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
     border: 1px solid var(--border); border-radius: 50%;
     z-index: 2;
   }
+}
+
+/* スマホ: 操作列を二段に。上段=並び替え、下段=アクション2ボタンを均等幅 */
+@media (max-width: 640px) {
+  .list-controls { flex-wrap: wrap; }
+  .list-controls select { flex: 1; min-width: 0; }
+  .list-actions { flex-basis: 100%; }
+  .list-actions .btn { flex: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
