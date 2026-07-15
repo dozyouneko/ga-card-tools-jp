@@ -55,6 +55,7 @@ button { font: inherit; cursor: pointer; }
   padding: 9px 16px; font-size: .9rem; white-space: nowrap;
   text-decoration: none;
 }
+.btn[hidden] { display: none; } /* display指定がUAの[hidden]を上書きしないように */
 .btn:hover { border-color: var(--accent); }
 .btn-primary { background: var(--accent); border-color: var(--accent); color: #201a0a; font-weight: 700; }
 .btn-primary:hover { filter: brightness(1.08); }
@@ -398,7 +399,15 @@ img.champ-thumb-img { display: block; }
   max-height: 50vh; overflow: auto;
   white-space: pre; overflow-x: auto;
 }
-.omni-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+.omni-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+
+/* ---------- デッキ画像(X投稿用) ---------- */
+.image-body { max-width: 640px; }
+.image-preview {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+  max-height: 60vh; overflow-y: auto;
+}
+.image-preview img { display: block; width: 100%; height: auto; border-radius: 10px; }
 
 /* ---------- Omnidexインポート ---------- */
 .import-text {
@@ -526,6 +535,15 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
   .list-controls select { flex: 1; min-width: 0; }
   .list-actions { flex-basis: 100%; }
   .list-actions .btn { flex: 1; }
+
+  /* 編集バー: アクションを下段にまとめる(長いomnidexは1行、残り2つを均等幅) */
+  .editor-bar #ed-copy-text { flex: 1 1 100%; }
+  .editor-bar #ed-copy-link, .editor-bar #ed-image { flex: 1 1 0; white-space: nowrap; }
+
+  /* 共有閲覧: アクション列を折り返し可能な全幅に(はみ出し防止)。
+     入り切らないボタンは行を分けて残り幅いっぱいに伸ばす */
+  .view-title-row .actions { margin-left: 0; flex-basis: 100%; flex-wrap: wrap; }
+  .view-title-row .actions .btn { flex: 1 1 auto; text-align: center; }
 }
 
 @media (prefers-reduced-motion: reduce) {

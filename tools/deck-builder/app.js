@@ -59,6 +59,14 @@ const el = {
   resultMore: $("result-more"),
   omniModal: $("omni-modal"),
   omniText: $("omni-text"),
+  edImage: $("ed-image"),
+  vImage: $("v-image"),
+  imageModal: $("image-modal"),
+  imageStatus: $("image-status"),
+  imagePreviewWrap: $("image-preview-wrap"),
+  imagePreview: $("image-preview"),
+  imageSave: $("image-save"),
+  imageShare: $("image-share"),
   importBtn: $("deck-import-btn"),
   importModal: $("import-modal"),
   importText: $("import-text"),
@@ -220,10 +228,10 @@ function openModal(modal) {
 function closeModal(modal) {
   modal.hidden = true;
   // 他のモーダル(共通のカード詳細含む)が開いたままならスクロールは固定のまま
-  const anyOpen = [el.resultModal, el.omniModal, el.importModal, el.artModal].some((m) => !m.hidden) || GA_CARD_DETAIL.isOpen();
+  const anyOpen = [el.resultModal, el.omniModal, el.importModal, el.artModal, el.imageModal].some((m) => !m.hidden) || GA_CARD_DETAIL.isOpen();
   if (!anyOpen) document.body.style.overflow = "";
 }
-[["result-modal"], ["omni-modal"], ["import-modal"], ["art-modal"]].forEach(([id]) => {
+[["result-modal"], ["omni-modal"], ["import-modal"], ["art-modal"], ["image-modal"]].forEach(([id]) => {
   const modal = $(id);
   modal.addEventListener("click", (e) => {
     if (e.target.closest("[data-close]")) closeModal(modal);
@@ -235,6 +243,7 @@ document.addEventListener("keydown", (e) => {
   if (!el.tileMenu.hidden) { el.tileMenu.hidden = true; return; }
   if (GA_CARD_DETAIL.isOpen()) { GA_CARD_DETAIL.close(); return; }
   if (!el.artModal.hidden) { closeModal(el.artModal); return; }
+  if (!el.imageModal.hidden) { closeModal(el.imageModal); return; }
   if (!el.importModal.hidden) { closeModal(el.importModal); return; }
   if (!el.omniModal.hidden) { closeModal(el.omniModal); return; }
   if (!el.resultModal.hidden) closeModal(el.resultModal);
@@ -1465,6 +1474,382 @@ el.importBtn.addEventListener("click", () => {
   openModal(el.importModal);
 });
 el.importRun.addEventListener("click", importFromOmnidex);
+
+// ---------- デッキ画像出力(X投稿用) ----------
+// デッキ全体をcanvasで1枚のPNG(幅1200・7列)に合成する。カード画像は公式API
+// (api.gatcg.com、CORS許可済み)から crossOrigin で取得するため canvas を汚染しない。
+// 意匠・切り出し座標などの決定事項は tmp/X投稿用/デッキ画像機能/仕様.md(git管理外)。
+
+const IMG_SITE = "ga-card-tools-jp.pages.dev";
+const IMG_ZONES = [
+  { zone: "material", title: "Materials" },
+  { zone: "main", title: "Main Deck" },
+  { zone: "side", title: "Sideboard" },
+];
+// 配色はX宣伝画像と共通のダーク+ゴールドのトーン
+const IMG_C = {
+  bg: "#0f1115", panel: "#1a1d23", gold: "#d9a441", goldDark: "#201a0a",
+  text: "#e7e9ee", muted: "#969eac", line: "#464c58", badge: "#08090c",
+};
+const IMG_FONT = 'system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif';
+
+// 画像1枚をタイムアウト+1回リトライ付きで読み込む(最終的な失敗は null)
+function loadDeckImage(url, timeoutMs = 10000) {
+  const once = () => new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    const timer = setTimeout(() => { img.src = ""; reject(new Error("timeout")); }, timeoutMs);
+    img.onload = () => { clearTimeout(timer); resolve(img); };
+    img.onerror = () => { clearTimeout(timer); reject(new Error("load error")); };
+    img.src = url;
+  });
+  return once().catch(once).catch(() => null);
+}
+
+// URL群を並列数を絞って読み込む。戻り値は Map<url, HTMLImageElement|null>
+async function loadImagesPooled(urls, onProgress, limit = 6) {
+  const uniq = [...new Set(urls.filter(Boolean))];
+  const out = new Map();
+  let next = 0, done = 0;
+  const worker = async () => {
+    while (next < uniq.length) {
+      const url = uniq[next++];
+      out.set(url, await loadDeckImage(url));
+      done++;
+      onProgress(done, uniq.length);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, uniq.length) || 1 }, worker));
+  return out;
+}
+
+// ヘッダに載せるエレメント: 基本属性(火→水→風)を先、上級属性はアルファベット順。
+// EXALTEDは独自の玉を持たない(金装飾表現)ため載せない。NORMは他が無いときのみ。
+function deckDisplayElements(rows, bySlug) {
+  const present = new Set();
+  rows.forEach((r) => {
+    const c = bySlug.get(r.card_slug);
+    ((c && c.elements) || []).forEach((e) => present.add(e));
+  });
+  present.delete("EXALTED");
+  const basics = BASIC_ELEMENT_ORDER.filter((e) => e !== "NORM" && present.has(e));
+  const advanced = [...present].filter((e) => e !== "NORM" && !BASIC_ELEMENT_ORDER.includes(e)).sort();
+  const list = [...basics, ...advanced];
+  return list.length ? list : (present.has("NORM") ? ["NORM"] : []);
+}
+
+// エレメント玉の切り出し元: その属性の単属性カードを優先(複属性は玉の周りに
+// EXALTEDの金装飾等が写り込むことがあるため)。無ければ複属性カードで代用
+function orbSourceCard(element, rows, bySlug) {
+  let fallback = null;
+  for (const r of rows) {
+    const c = bySlug.get(r.card_slug);
+    const els = (c && c.elements) || [];
+    if (!els.includes(element)) continue;
+    if (els.length === 1) return c;
+    if (!fallback) fallback = c;
+  }
+  return fallback;
+}
+
+// カード画像からエレメント玉を円形に切り出して描く。
+// 座標はカード枠共通(500×700基準で中心449,47・半径22。実測値、仕様.md参照)
+function drawElementOrb(ctx, img, dx, dy, size) {
+  const w = img.naturalWidth, h = img.naturalHeight;
+  const cx = (449 / 500) * w, cy = (47 / 700) * h, r = (22 / 500) * w;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(dx + size / 2, dy + size / 2, size / 2, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2, dx, dy, size, size);
+  ctx.restore();
+  // 細い暗色の縁で切り出し端の写り込みをならす
+  ctx.beginPath();
+  ctx.arc(dx + size / 2, dy + size / 2, size / 2 - 1, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgb(10,11,14)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+// 角丸長方形のパス(ctx.roundRect未対応ブラウザ向け)
+function rrPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// 幅に収まるよう末尾を「…」で詰める
+function ellipsize(ctx, text, maxW) {
+  if (ctx.measureText(text).width <= maxW) return text;
+  let t = String(text);
+  while (t.length > 1 && ctx.measureText(t + "…").width > maxW) t = t.slice(0, -1);
+  return t + "…";
+}
+
+// プレースホルダ用: 中央揃えの簡易折り返し(最大4行)
+function wrapTextCentered(ctx, text, cx, cy, maxW, lineH) {
+  const lines = [];
+  let cur = "";
+  for (const ch of String(text)) {
+    if (lines.length === 4) break;
+    if (cur && ctx.measureText(cur + ch).width > maxW) { lines.push(cur); cur = ch; }
+    else cur += ch;
+  }
+  if (cur && lines.length < 4) lines.push(cur);
+  const y0 = cy - ((lines.length - 1) * lineH) / 2;
+  lines.forEach((ln, i) => ctx.fillText(ln, cx, y0 + i * lineH));
+}
+
+// ヘッダに載せるチャンピオン名: マテリアルの最高レベルのチャンピオン(いなければ null)
+function deckChampionName(sections, bySlug) {
+  const mat = sections.find((s) => s.zone === "material");
+  if (!mat) return null;
+  let best = null;
+  mat.rows.forEach((r) => {
+    const c = bySlug.get(r.card_slug);
+    if (!c || !(c.types || []).includes("CHAMPION")) return;
+    if (!best || (c.level || 0) > (best.level || 0)) best = c;
+  });
+  return best ? jpName(best) : null;
+}
+
+// カード1枚のタイル(画像 or 名前入りプレースホルダ+枚数バッジ)
+function drawCardTile(ctx, row, card, img, x, y, w, h) {
+  rrPath(ctx, x, y, w, h, 10);
+  ctx.save();
+  ctx.clip();
+  if (img) {
+    ctx.drawImage(img, x, y, w, h);
+  } else {
+    ctx.fillStyle = "#23262f";
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = IMG_C.muted;
+    ctx.font = `13px ${IMG_FONT}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    wrapTextCentered(ctx, card ? jpName(card) : row.card_slug, x + w / 2, y + h / 2, w - 16, 17);
+  }
+  ctx.restore();
+  rrPath(ctx, x + 0.5, y + 0.5, w - 1, h - 1, 10);
+  ctx.strokeStyle = IMG_C.line;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  // 枚数バッジ(左下)
+  const bs = 36, bx = x + 8, by = y + h - bs - 8;
+  rrPath(ctx, bx, by, bs, bs, 8);
+  ctx.fillStyle = IMG_C.badge;
+  ctx.fill();
+  ctx.strokeStyle = IMG_C.gold;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = IMG_C.gold;
+  ctx.font = `bold 23px ${IMG_FONT}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(String(row.qty), bx + bs / 2, by + bs / 2 + 1);
+}
+
+// デッキ画像本体の合成。戻り値 {canvas, failedCount}。デッキが空なら null
+async function buildDeckImage(data, onProgress) {
+  const cards = data.cards.filter((c) => c.board !== "maybe"); // 検討中は含めない(omnidexコピーと同じ)
+  const bySlug = await ensureCards(cards.map((c) => c.card_slug));
+
+  const sections = IMG_ZONES.map(({ zone, title }) => ({
+    zone, title,
+    rows: cards.filter((c) => c.board === zone).sort(zoneComparator(zone, bySlug)),
+  })).filter((s) => s.rows.length);
+  if (!sections.length) return null;
+
+  const allRows = sections.flatMap((s) => s.rows);
+  const orbSrcs = deckDisplayElements(allRows, bySlug).map((e) => {
+    const card = orbSourceCard(e, allRows, bySlug);
+    return { element: e, url: card ? imageUrl(card) : null };
+  });
+  const tileUrl = (r) => rowImageUrl(r, bySlug.get(r.card_slug));
+  const imgMap = await loadImagesPooled(
+    [...allRows.map(tileUrl), ...orbSrcs.map((o) => o.url)], onProgress);
+
+  const failedCount = allRows.filter((r) => !imgMap.get(tileUrl(r))).length;
+  if (failedCount === allRows.length) throw new Error("カード画像を1枚も取得できませんでした");
+
+  // レイアウト: 幅1200固定・7列・高さはデッキ内容に応じて可変
+  const W = 1200, MARGIN = 40, COLS = 7, GAP = 14;
+  const cardW = Math.floor((W - MARGIN * 2 - GAP * (COLS - 1)) / COLS);
+  const cardH = Math.round(cardW / 0.714); // 公式カード画像の縦横比
+  const HEADER_H = 150, SEC_H = 54, FOOTER_H = 72;
+  const rowsOf = (n) => Math.ceil(n / COLS);
+  let H = HEADER_H;
+  sections.forEach((s) => { H += SEC_H + rowsOf(s.rows.length) * (cardH + GAP); });
+  H += FOOTER_H + MARGIN;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = IMG_C.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // ヘッダ帯: GAロゴ+デッキ名+チャンピオン+エレメント(右上)
+  ctx.fillStyle = IMG_C.panel;
+  ctx.fillRect(0, 0, W, HEADER_H);
+  ctx.fillStyle = IMG_C.gold;
+  ctx.fillRect(0, HEADER_H - 3, W, 3);
+  rrPath(ctx, MARGIN, 34, 60, 60, 12);
+  ctx.fill();
+  ctx.fillStyle = IMG_C.goldDark;
+  ctx.font = `bold 28px ${IMG_FONT}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("GA", MARGIN + 30, 64);
+
+  // エレメント(右寄せ。幅を先に計算してデッキ名の最大幅を決める)
+  const ORB = 30, ORB_GAP = 9, ITEM_GAP = 26;
+  ctx.font = `bold 22px ${IMG_FONT}`;
+  const orbItems = orbSrcs.map((o) => ({ ...o, tw: ctx.measureText(o.element).width }));
+  const elemsW = orbItems.reduce((s, it) => s + ORB + ORB_GAP + it.tw, 0)
+    + ITEM_GAP * Math.max(0, orbItems.length - 1);
+  let ex = W - MARGIN - elemsW;
+  orbItems.forEach((it) => {
+    const img = it.url ? imgMap.get(it.url) : null;
+    if (img) drawElementOrb(ctx, img, ex, 50 - ORB / 2, ORB);
+    ctx.fillStyle = IMG_C.text;
+    ctx.font = `bold 22px ${IMG_FONT}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(it.element, ex + ORB + ORB_GAP, 50);
+    ex += ORB + ORB_GAP + it.tw + ITEM_GAP;
+  });
+
+  const nameMaxW = W - MARGIN - elemsW - (MARGIN + 82) - 24;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillStyle = IMG_C.text;
+  ctx.font = `bold 34px ${IMG_FONT}`;
+  ctx.fillText(ellipsize(ctx, data.deck.name, nameMaxW), MARGIN + 82, 36);
+  const champ = deckChampionName(sections, bySlug);
+  if (champ) {
+    ctx.fillStyle = IMG_C.muted;
+    ctx.font = `20px ${IMG_FONT}`;
+    ctx.fillText(ellipsize(ctx, `チャンピオン: ${champ}`, nameMaxW), MARGIN + 84, 84);
+  }
+
+  // セクション(見出し+カードグリッド)
+  let y = HEADER_H;
+  sections.forEach((s) => {
+    ctx.fillStyle = IMG_C.text;
+    ctx.font = `bold 26px ${IMG_FONT}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(s.title, MARGIN, y + SEC_H / 2);
+    const total = s.rows.reduce((sum, r) => sum + r.qty, 0);
+    let count = `${total} cards`;
+    if (s.zone === "side") {
+      const pt = s.rows.reduce((sum, r) => sum + sidePoints(bySlug.get(r.card_slug)) * r.qty, 0);
+      count += ` · ${pt} pt`;
+    }
+    ctx.fillStyle = IMG_C.muted;
+    ctx.font = `20px ${IMG_FONT}`;
+    ctx.fillText(count, MARGIN + 240, y + SEC_H / 2 + 2);
+    y += SEC_H;
+    s.rows.forEach((r, i) => {
+      drawCardTile(ctx, r, bySlug.get(r.card_slug), imgMap.get(tileUrl(r)),
+        MARGIN + (i % COLS) * (cardW + GAP), y + Math.floor(i / COLS) * (cardH + GAP), cardW, cardH);
+    });
+    y += rowsOf(s.rows.length) * (cardH + GAP);
+  });
+
+  // フッタ帯: 控えめな灰色URLのみ
+  const fy = H - FOOTER_H;
+  ctx.fillStyle = IMG_C.panel;
+  ctx.fillRect(0, fy, W, FOOTER_H);
+  ctx.fillStyle = IMG_C.gold;
+  ctx.fillRect(0, fy, W, 2);
+  ctx.fillStyle = IMG_C.muted;
+  ctx.font = `21px ${IMG_FONT}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(IMG_SITE, W / 2, fy + FOOTER_H / 2);
+
+  return { canvas, failedCount };
+}
+
+// ---------- デッキ画像ダイアログ ----------
+
+let imageBlob = null;      // 直近生成したPNG
+let imageBlobUrl = null;   // そのオブジェクトURL(再生成時に破棄)
+let imageFileName = "deck.png"; // 生成時のデッキ名で確定(保存時にデッキを移動していても正しい名前になる)
+let imageSeq = 0;          // 生成の競合防止(連打・デッキ切替)
+
+function deckImageFileName(deckName) {
+  const name = String(deckName || "deck").replace(/[\\/:*?"<>|]/g, "_").trim() || "deck";
+  return `${name}.png`;
+}
+function deckImageFile(blob) {
+  return new File([blob], imageFileName, { type: "image/png" });
+}
+
+async function openDeckImageModal() {
+  if (!deckData) return;
+  if (!deckData.cards.some((c) => c.board !== "maybe")) { showToast("デッキが空です", true); return; }
+  const deckName = deckData.deck.name; // 生成中に別デッキへ移動してもファイル名はこのデッキ名
+  const seq = ++imageSeq;
+  el.imagePreviewWrap.hidden = true;
+  el.imageSave.disabled = true;
+  el.imageShare.hidden = true;
+  el.imageStatus.textContent = "カード画像を取得中…";
+  openModal(el.imageModal);
+  try {
+    const result = await buildDeckImage(deckData, (done, total) => {
+      if (seq === imageSeq) el.imageStatus.textContent = `カード画像を取得中… ${done} / ${total}`;
+    });
+    if (seq !== imageSeq) return;
+    if (!result) { el.imageStatus.textContent = "デッキが空です。カードを追加してから生成してください。"; return; }
+    el.imageStatus.textContent = "画像を生成中…";
+    const blob = await new Promise((resolve) => result.canvas.toBlob(resolve, "image/png"));
+    if (seq !== imageSeq) return;
+    if (!blob) throw new Error("PNGへの変換に失敗しました");
+    if (imageBlobUrl) URL.revokeObjectURL(imageBlobUrl);
+    imageBlob = blob;
+    imageFileName = deckImageFileName(deckName);
+    imageBlobUrl = URL.createObjectURL(blob);
+    el.imagePreview.src = imageBlobUrl;
+    el.imagePreviewWrap.hidden = false;
+    el.imageSave.disabled = false;
+    let canShare = false;
+    try { canShare = !!(navigator.canShare && navigator.canShare({ files: [deckImageFile(blob)] })); }
+    catch { /* canShare未対応は共有ボタンを出さない */ }
+    el.imageShare.hidden = !canShare;
+    el.imageStatus.textContent = result.failedCount
+      ? `⚠ ${result.failedCount}種のカード画像を取得できなかったため、カード名入りの枠で代替しています。`
+      : "できあがりです。保存してXなどに投稿できます。";
+  } catch (err) {
+    if (seq !== imageSeq) return;
+    el.imageStatus.textContent = `生成に失敗しました(${err.message})`;
+  }
+}
+
+el.imageSave.addEventListener("click", () => {
+  if (!imageBlob || !imageBlobUrl) return;
+  const a = document.createElement("a");
+  a.href = imageBlobUrl;
+  a.download = deckImageFile(imageBlob).name;
+  a.click();
+});
+el.imageShare.addEventListener("click", async () => {
+  if (!imageBlob) return;
+  try {
+    await navigator.share({ files: [deckImageFile(imageBlob)] });
+  } catch (err) {
+    // 共有シートのキャンセルはエラー扱いにしない
+    if (err && err.name !== "AbortError") showToast(`共有に失敗しました(${err.message})`, true);
+  }
+});
+el.edImage.addEventListener("click", openDeckImageModal);
+el.vImage.addEventListener("click", openDeckImageModal);
 
 // ---------- 初期化 ----------
 

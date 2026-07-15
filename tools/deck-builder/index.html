@@ -91,6 +91,7 @@
     <span class="spacer"></span>
     <button class="btn btn-sm" id="ed-copy-text" title="omnidexに貼り付けられる形式で内容を確認してコピー">📤 omnidex提出用コピー</button>
     <button class="btn btn-sm" id="ed-copy-link">🔗 共有リンクをコピー</button>
+    <button class="btn btn-sm" id="ed-image" title="X投稿用のデッキ画像(PNG)を生成">🖼️ デッキ画像出力</button>
   </div>
 
   <div class="search-top" id="search-top">
@@ -151,6 +152,7 @@
       <span class="actions">
         <a class="btn btn-sm" id="v-edit" hidden>✏️ 編集する</a>
         <button class="btn btn-sm" id="v-copy-deck">📥 自分のデッキ一覧にコピー</button>
+        <button class="btn btn-sm" id="v-image" title="X投稿用のデッキ画像(PNG)を生成">🖼️ デッキ画像出力</button>
       </span>
     </div>
     <p class="owner-line" id="v-owner"></p>
@@ -210,6 +212,21 @@
     <textarea id="import-text" class="import-text" rows="12" aria-label="Omnidexテキスト" placeholder="# Main Deck&#10;4 Angel Attendant&#10;2 Resolute Stand&#10;..."></textarea>
     <div id="import-result" class="import-result" role="status" aria-live="polite" hidden></div>
     <div class="omni-actions"><button class="btn btn-primary" id="import-run">読み込む</button></div>
+  </div>
+</div>
+
+<!-- デッキ画像ダイアログ(X投稿用PNGの生成・プレビュー) -->
+<div class="modal" id="image-modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-body image-body" role="dialog" aria-modal="true" aria-label="デッキ画像出力">
+    <button class="modal-close" type="button" data-close aria-label="閉じる">×</button>
+    <h2>🖼️ デッキ画像出力</h2>
+    <p class="result-count" id="image-status" role="status" aria-live="polite"></p>
+    <div class="image-preview" id="image-preview-wrap" hidden><img id="image-preview" alt="デッキ画像のプレビュー"></div>
+    <div class="omni-actions">
+      <button class="btn" id="image-share" hidden>📤 共有</button>
+      <button class="btn btn-primary" id="image-save" disabled>💾 保存</button>
+    </div>
   </div>
 </div>
 
