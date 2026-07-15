@@ -16,3 +16,9 @@ export async function all(db, sql, ...params) {
 export function run(db, sql, ...params) {
   return db.prepare(sql).bind(...params).run();
 }
+
+// 複数ステートメントを1トランザクションで実行（順次・アトミック）。
+// stmts = [{ sql, params }]。順序どおりに実行されFK等の依存も満たせる。
+export function batch(db, stmts) {
+  return db.batch(stmts.map(({ sql, params = [] }) => db.prepare(sql).bind(...params)));
+}

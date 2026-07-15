@@ -1345,14 +1345,12 @@ async function copyDeckToMine(id, opts = {}) {
         champion_slug: src.deck.champion_slug || undefined,
         thumb_image: src.deck.thumb_image || undefined,
         is_public: false,
+        cards: src.cards.map((c) => ({
+          card_slug: c.card_slug, board: c.board, qty: c.qty,
+          ...(c.art_image ? { art_image: c.art_image } : {}),
+        })),
       },
     });
-    await Promise.all(src.cards.map((c) =>
-      api(`/api/decks/${created.deck.id}/cards`, {
-        method: "POST",
-        body: { card_slug: c.card_slug, board: c.board, qty: c.qty, ...(c.art_image ? { art_image: c.art_image } : {}) },
-      })
-    ));
     showToast(opts.doneMsg ? opts.doneMsg(created.deck.name)
                            : `「${created.deck.name}」として自分のデッキ一覧にコピーしました`);
     location.hash = `#edit/${created.deck.id}`;
@@ -1447,13 +1445,14 @@ async function importFromOmnidex() {
     const name = prompt("デッキ名を入力してください", "インポートしたデッキ");
     if (!name || !name.trim()) return;
     el.importResult.textContent = "デッキを作成中…";
-    const created = await api("/api/decks", { method: "POST", body: { name: name.trim(), is_public: false } });
-    await Promise.all(ok.map((e) =>
-      api(`/api/decks/${created.deck.id}/cards`, {
-        method: "POST",
-        body: { card_slug: slugByName.get(e.name), board: e.board, qty: e.qty },
-      })
-    ));
+    const created = await api("/api/decks", {
+      method: "POST",
+      body: {
+        name: name.trim(),
+        is_public: false,
+        cards: ok.map((e) => ({ card_slug: slugByName.get(e.name), board: e.board, qty: e.qty })),
+      },
+    });
     closeModal(el.importModal);
     const skip = failed.length ? `（${failed.length}種は未解決のためスキップ）` : "";
     showToast(`「${created.deck.name}」を作成しました${skip}`);
