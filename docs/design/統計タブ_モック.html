@@ -1,6 +1,6 @@
 <title>統計タブ 画面モック</title>
 <!--
-  タスク#12 デッキ統計タブの画面モック(ダミーデータ) v3
+  タスク#12 デッキ統計タブの画面モック(ダミーデータ) v4
   修正(2026-07-16ユーザー指摘): 構成順=マテリアル→メイン→サイド→合計→フォーマット適合 /
   表記=label()の「英語（日本語訳）」形式 / Floating Memory統計を追加。
   実物 tools/deck-builder/style.css のトークンを踏襲。本番ツールがダーク固定のため単一テーマ。
@@ -176,7 +176,7 @@
 </style>
 
 <div class="wrap">
-  <p class="mock-note"><b>画面モック v3</b><span>タスク#12 統計タブ — ダミーデータです。タブだけ操作できます。構成順・「英語（日本語訳）」表記・Floating Memory統計を反映済み（v3: 条件付き内数・禁止カード名も英語（日本語訳）に）。</span></p>
+  <p class="mock-note"><b>画面モック v4</b><span>タスク#12 統計タブ — ダミーデータです。タブだけ操作できます。構成順・「英語（日本語訳）」表記・Floating Memory統計を反映済み（v4: パンテオン構築ルール=1枚制限・サイド除外・Boon注記を反映）。</span></p>
 
   <!-- エディタバー(実物の再現) -->
   <div class="editor-bar">
@@ -357,14 +357,17 @@
         </div>
       </div>
 
-      <!-- 5. フォーマット適合 -->
+      <!-- 5. フォーマット適合(v4: パンテオン構築ルール対応) -->
       <div class="stat-card">
-        <h3>フォーマット適合 <span class="cnt">メイン+マテリアル+サイドで判定</span></h3>
+        <h3>フォーマット適合 <span class="cnt">スタンダード=メイン+マテリアル+サイド／パンテオン=メイン+マテリアルで判定</span></h3>
         <div class="fmt-row"><span class="fmt-name">スタンダード</span><span class="fmt-ok">✅ 使用可能</span></div>
-        <div class="fmt-row"><span class="fmt-name">パンテオン</span><span class="fmt-ok">✅ 使用可能</span></div>
+        <div class="fmt-row"><span class="fmt-name">パンテオン</span>
+          <span class="fmt-ng">⚠️ メイン同名1枚制限の超過 14種 — Card A（カードA） ×4・Card B（カードB） ×4・Card C（カードC） ×3 …他11種</span>
+        </div>
+        <p class="sr-note">※パンテオンは別途Boon 2枚（Lesser／Greater 各1）が必要です（本ツールでは管理対象外）。パンテオンにサイドボードはありません。</p>
         <div class="warn-banner" style="margin-top:10px">
-          <span class="tag">表示例</span>禁止カードがある場合:
-          <span class="fmt-ng">⚠️ スタンダード: 禁止カード 2枚 — Spring Gale Assault（春風の突撃） ×1・Luxem Benediction（ラクサムの祝福） ×1</span>
+          <span class="tag">表示例</span>禁止カード・4枚超過がある場合（最上部バナーも発火）:
+          <span class="fmt-ng">⚠️ 禁止カード 2枚 — Spring Gale Assault（春風の突撃） ×1・Luxem Benediction（ラクサムの祝福） ×1／⚠️ メイン同名4枚制限の超過 1種 — Card D（カードD） ×5</span>
         </div>
       </div>
 
