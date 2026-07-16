@@ -1,6 +1,6 @@
 <title>統計タブ 画面モック</title>
 <!--
-  タスク#12 デッキ統計タブの画面モック(ダミーデータ) v4
+  タスク#12 デッキ統計タブの画面モック(ダミーデータ) v5
   修正(2026-07-16ユーザー指摘): 構成順=マテリアル→メイン→サイド→合計→フォーマット適合 /
   表記=label()の「英語（日本語訳）」形式 / Floating Memory統計を追加。
   実物 tools/deck-builder/style.css のトークンを踏襲。本番ツールがダーク固定のため単一テーマ。
@@ -167,16 +167,27 @@
   .behavior li { margin: 4px 0; }
   .behavior li b { color: var(--text); font-weight: 600; }
 
+  /* サブタイプ別の開閉(v5)。summaryはh4と同じ見た目+インジケータ */
+  details.stat-fold summary {
+    list-style: none; cursor: pointer; margin: 0 0 8px;
+    font-size: .8rem; color: var(--muted); font-weight: 600; letter-spacing: .06em;
+  }
+  details.stat-fold summary::-webkit-details-marker { display: none; }
+  details.stat-fold summary::after { content: " ▸"; }
+  details.stat-fold[open] summary::after { content: " ▾"; }
+
   @media (max-width: 620px) {
     /* スマホ: ラベルを上・バーを下に折り返し */
     .statrow { flex-wrap: wrap; row-gap: 0; }
     .sr-label { width: 100%; text-align: left; }
     .editor-bar { gap: 8px; }
+    /* v5: 重複計上注記はスマホでは非表示(Boon注記は.sr-noteのままなので残る) */
+    .sr-note--multi { display: none; }
   }
 </style>
 
 <div class="wrap">
-  <p class="mock-note"><b>画面モック v4</b><span>タスク#12 統計タブ — ダミーデータです。タブだけ操作できます。構成順・「英語（日本語訳）」表記・Floating Memory統計を反映済み（v4: パンテオン構築ルール=1枚制限・サイド除外・Boon注記を反映）。</span></p>
+  <p class="mock-note"><b>画面モック v5</b><span>タスク#12 統計タブ — ダミーデータです。タブだけ操作できます。構成順・「英語（日本語訳）」表記・Floating Memory統計を反映済み（v5: スマホ=注記非表示+サブタイプ開閉式。サブタイプ別の見出しをクリックすると畳めます）。</span></p>
 
   <!-- エディタバー(実物の再現) -->
   <div class="editor-bar">
@@ -261,8 +272,7 @@
         </div>
 
         <div class="stat-sec">
-          <h4>サブタイプ別</h4>
-          <p class="subtype-line">ASSASSIN（アサシン） <b>4</b><span class="sep">・</span>WARRIOR（ウォリアー） <b>2</b></p>
+          <details class="stat-fold" data-zone="material" open><summary>サブタイプ別 2種</summary><p class="subtype-line">ASSASSIN（アサシン） <b>4</b><span class="sep">・</span>WARRIOR（ウォリアー） <b>2</b></p></details>
         </div>
       </div>
 
@@ -275,7 +285,7 @@
           <div class="statrow"><span class="sr-label">WIND（風）</span><span class="sr-track"><i style="width:100%;background:var(--el-wind)"></i></span><span class="sr-val">26</span></div>
           <div class="statrow"><span class="sr-label">NORM（ノーム）</span><span class="sr-track"><i style="width:92%;background:var(--el-norm)"></i></span><span class="sr-val">24</span></div>
           <div class="statrow"><span class="sr-label">LUXEM（ラクサム）</span><span class="sr-track"><i style="width:54%;background:var(--el-luxem)"></i></span><span class="sr-val">14</span></div>
-          <p class="sr-note">※複数エレメントを持つカードは各項目に数えるため、合計（64）はデッキ枚数（60）と一致しないことがあります。</p>
+          <p class="sr-note sr-note--multi">※複数エレメントを持つカードは各項目に数えるため、合計（64）はデッキ枚数（60）と一致しないことがあります。</p>
         </div>
 
         <div class="stat-sec">
@@ -287,8 +297,7 @@
         </div>
 
         <div class="stat-sec">
-          <h4>サブタイプ別</h4>
-          <p class="subtype-line">WARRIOR（ウォリアー） <b>12</b><span class="sep">・</span>SPIRIT（スピリット） <b>8</b><span class="sep">・</span>FAIRY（妖精） <b>6</b><span class="sep">・</span>ELEMENTAL（エレメンタル） <b>4</b><span class="sep">・</span>ANIMAL（動物） <b>2</b></p>
+          <details class="stat-fold" data-zone="main" open><summary>サブタイプ別 5種</summary><p class="subtype-line">WARRIOR（ウォリアー） <b>12</b><span class="sep">・</span>SPIRIT（スピリット） <b>8</b><span class="sep">・</span>FAIRY（妖精） <b>6</b><span class="sep">・</span>ELEMENTAL（エレメンタル） <b>4</b><span class="sep">・</span>ANIMAL（動物） <b>2</b></p></details>
         </div>
 
         <div class="stat-sec">
@@ -315,8 +324,7 @@
         </div>
 
         <div class="stat-sec">
-          <h4>サブタイプ別</h4>
-          <p class="subtype-line">ANIMAL（動物） <b>3</b><span class="sep">・</span>SPIRIT（スピリット） <b>2</b></p>
+          <details class="stat-fold" data-zone="side" open><summary>サブタイプ別 2種</summary><p class="subtype-line">ANIMAL（動物） <b>3</b><span class="sep">・</span>SPIRIT（スピリット） <b>2</b></p></details>
         </div>
 
         <div class="stat-sec">
@@ -347,8 +355,7 @@
         </div>
 
         <div class="stat-sec">
-          <h4>サブタイプ別</h4>
-          <p class="subtype-line">WARRIOR（ウォリアー） <b>14</b><span class="sep">・</span>SPIRIT（スピリット） <b>10</b><span class="sep">・</span>FAIRY（妖精） <b>6</b><span class="sep">・</span>ANIMAL（動物） <b>5</b><span class="sep">・</span>ASSASSIN（アサシン） <b>4</b><span class="sep">・</span>ELEMENTAL（エレメンタル） <b>4</b></p>
+          <details class="stat-fold" data-zone="total" open><summary>サブタイプ別 6種</summary><p class="subtype-line">WARRIOR（ウォリアー） <b>14</b><span class="sep">・</span>SPIRIT（スピリット） <b>10</b><span class="sep">・</span>FAIRY（妖精） <b>6</b><span class="sep">・</span>ANIMAL（動物） <b>5</b><span class="sep">・</span>ASSASSIN（アサシン） <b>4</b><span class="sep">・</span>ELEMENTAL（エレメンタル） <b>4</b></p></details>
         </div>
 
         <div class="stat-sec">
@@ -385,6 +392,7 @@
       <li><b>提案</b>: フォーマット適合が最下部に移ったため、禁止カードがある時だけ統計最上部に⚠️バナーを表示（このモックでは表示例として常時表示）</li>
       <li>タブ切替はゾーン表示と統計を丸ごと切替。検索バーは統計中も表示（カード追加で即時更新）</li>
       <li>共有閲覧画面にも同じタブバー＋統計パネル（構成同一・編集操作なし）</li>
+      <li><b>スマホ(≤620px)</b>: 重複計上注記は非表示。サブタイプ別は初期状態で閉じる(PCは開く)。開閉状態はライブ更新でも引き継ぐ(v5)</li>
       <li>0枚の分類は表示しない。リロード時はデッキタブに戻る</li>
     </ul>
   </div>
