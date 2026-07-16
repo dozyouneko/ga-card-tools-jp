@@ -113,7 +113,12 @@
     </div>
   </div>
 
-  <div class="deck-pane">
+  <div class="deck-tabs" role="tablist" aria-label="デッキ表示切替">
+    <button role="tab" id="ed-tab-deck" aria-selected="true" aria-controls="ed-pane-deck">🃏 デッキ</button>
+    <button role="tab" id="ed-tab-stats" aria-selected="false" aria-controls="ed-pane-stats">📊 統計</button>
+  </div>
+
+  <div class="deck-pane" id="ed-pane-deck" role="tabpanel" aria-labelledby="ed-tab-deck">
     <div class="zone" data-zone="material">
       <h3>マテリアルデッキ <span class="cnt"></span></h3>
       <div class="meter"><i></i></div>
@@ -141,6 +146,8 @@
       <p class="memo-status" id="memo-status" role="status" aria-live="polite"></p>
     </div>
   </div>
+
+  <div class="stats-pane" id="ed-pane-stats" role="tabpanel" aria-labelledby="ed-tab-stats" hidden></div>
 </section>
 
 <!-- ============ 共有リンク閲覧 ============ -->
@@ -157,7 +164,12 @@
     </div>
     <p class="owner-line" id="v-owner"></p>
   </div>
-  <div id="v-zones"></div>
+  <div class="deck-tabs" role="tablist" aria-label="デッキ表示切替">
+    <button role="tab" id="v-tab-deck" aria-selected="true" aria-controls="v-zones">🃏 デッキ</button>
+    <button role="tab" id="v-tab-stats" aria-selected="false" aria-controls="v-pane-stats">📊 統計</button>
+  </div>
+  <div id="v-zones" role="tabpanel" aria-labelledby="v-tab-deck"></div>
+  <div class="stats-pane" id="v-pane-stats" role="tabpanel" aria-labelledby="v-tab-stats" hidden></div>
   <div class="maker-cta" id="v-cta" hidden>
     <p>🗂️ このデッキは「デッキ構築ツール」で作成されました。Discordログインであなたのデッキも作れます。</p>
     <a class="btn btn-sm btn-primary" id="v-cta-login" href="/api/auth/discord/authorize">自分もデッキを作る</a>

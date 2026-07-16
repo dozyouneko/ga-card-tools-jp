@@ -11,7 +11,7 @@
 const API = "https://api.gatcg.com";
 const I18N = window.GA_I18N || { meta: {}, terms: {}, cards: {} };
 const {
-  jpName, imageUrl, backFace, cardImages,
+  jpName, imageUrl, backFace, cardImages, label,
   escapeHtml, hasJapanese,
   FORMAT_JP, EXCLUSIVE_FORMAT_INFO, bannedFormats, exclusiveFormat, exclusiveNote,
 } = window.GA_CARD_I18N;
@@ -85,6 +85,8 @@ const el = {
   vOwner: $("v-owner"),
   vZones: $("v-zones"),
   vCta: $("v-cta"),
+  edPaneStats: $("ed-pane-stats"),
+  vPaneStats: $("v-pane-stats"),
 };
 
 // ---------- 状態 ----------
@@ -93,6 +95,8 @@ let myDecks = [];     // 自分のデッキ一覧
 let deckData = null;  // 編集/閲覧中のデッキ {deck, cards, owner, is_owner}
 let deckSeq = 0;      // 画面遷移の競合防止
 const cardCache = new Map(); // slug -> Promise<card|null>
+let editorTabs = null; // 編集画面のデッキ/統計タブ制御(setupTabsで初期化)
+let viewTabs = null;   // 共有画面のデッキ/統計タブ制御
 
 // ---------- ユーティリティ ----------
 
@@ -469,6 +473,7 @@ async function openEditor(id) {
     el.bootStatus.hidden = true;
     el.edMemo.value = data.deck.description || "";
     el.memoStatus.textContent = "";
+    if (editorTabs) editorTabs.reset(); // デッキ切替時は常にデッキタブから
     renderEditorBar();
     renderZones();
   } catch (err) {
@@ -585,6 +590,9 @@ async function renderZones() {
   });
 
   autoAssignThumb(materialFirst, bySlug);
+
+  // 統計タブ表示中ならカード追加/削除/枚数変更で即時更新する
+  if (editorTabs && editorTabs.isStats()) renderStatsInto(el.edPaneStats, cards, bySlug);
 }
 
 // サムネイル未指定のデッキは、マテリアル表示順の先頭カードを自動でサムネイルに設定する。
@@ -1226,6 +1234,244 @@ el.sToggle.addEventListener("click", () => {
 });
 el.sReset.addEventListener("click", resetSearchForm);
 
+// ---------- デッキ統計タブ ----------
+// クライアント側集計のみ(API/DB変更なし)。編集画面・共有画面で共用する。
+// 表記は GA_CARD_I18N.label() の「英語（日本語訳）」形式をそのまま使う。
+
+const STAT_ZONES = ["material", "main", "side"]; // 集計対象。maybe(検討中)は常に除外
+// エレメント別の棒色。設計でダーク面#171a21に対し検証済みの3色 + 同明度帯で追加。
+// ラベルを棒に直付けするため色単独には依存しない(未知エレメントはタイプ棒色にフォールバック)。
+const BAR_TYPE = "#56779e";
+const ELEMENT_COLOR = {
+  NORM: "#7b8fd4", FIRE: "#cf6d54", WATER: "#3f97c4", WIND: "#3f9d63", LUXEM: "#ad8d2e",
+  CRUX: "#9b7cd4", TERA: "#ad7233", ARCANE: "#b667a6", ASTRA: "#5b9bd0", UMBRA: "#6d64b8",
+  NEOS: "#2f9e8f", EXIA: "#c2678f", EXALTED: "#8f9b33",
+};
+
+// Floating Memory(キーワード)の検出。
+// 英語効果テキストへのマークダウン除去後の文字列一致で判定する。
+// ・keyword付与は大文字の "Floating Memory"(例: **Floating Memory** / [Class Bonus] Floating Memory)。
+//   小文字 "floating memory" は "banish a card with floating memory" 等の参照(付与でない)なので大小区別する。
+// ・[Class Bonus]/[Level N+]/[Vanitas Bonus]等の条件タグ直後に付くものは「条件付き」として内数カウントする。
+//   [Class Bonus] [Level 1+] Floating Memory のようにタグが連なる表記も実在する(Limitless Slime等)。
+//   実データ検証(2026-07-16): 付与165枚中、条件付き96・無条件69。
+function floatingMemoryOf(card) {
+  const text = String((card && (card.effect_raw || card.effect)) || "").replace(/\*/g, "");
+  const has = /Floating Memory/.test(text);
+  const conditional = has && /\[[^\]]+\](\s*\[[^\]]+\])*\s*Floating Memory/.test(text);
+  return { has, conditional };
+}
+
+function inc(map, key, n) { map.set(key, (map.get(key) || 0) + n); }
+
+// カード名を「英語（日本語訳）」で表示する(未訳は英語のみ)。分類語のlabel()と同じ表示規則。
+function cardNameEJ(card) {
+  const jp = jpName(card);
+  return jp && jp !== card.name ? `${card.name}（${jp}）` : card.name;
+}
+
+// deckData.cards(board=ゾーン, qty持ち)と bySlug(slug→card)から、ゾーン別+合計の集計を返す。
+function computeDeckStats(cards, bySlug) {
+  const mkAgg = () => ({ count: 0, elements: new Map(), types: new Map(), subtypes: new Map(), fm: 0, fmConditional: 0 });
+  const byZone = { material: mkAgg(), main: mkAgg(), side: mkAgg() };
+  const total = mkAgg();
+  const bannedStd = new Map(); // slug → { name, qty }
+  const bannedPan = new Map();
+
+  const addTo = (agg, card, qty) => {
+    agg.count += qty;
+    // 複数エレメント/タイプ/サブタイプ持ちは各項目に qty ずつ計上する(合計はデッキ枚数を超え得る)
+    (card.elements || []).forEach((e) => inc(agg.elements, e, qty));
+    (card.types || []).forEach((t) => inc(agg.types, t, qty));
+    (card.subtypes || []).forEach((s) => inc(agg.subtypes, s, qty));
+    const fm = floatingMemoryOf(card);
+    if (fm.has) { agg.fm += qty; if (fm.conditional) agg.fmConditional += qty; }
+  };
+
+  cards.forEach((row) => {
+    if (!STAT_ZONES.includes(row.board)) return;
+    const card = bySlug.get(row.card_slug);
+    if (!card) return;
+    const qty = row.qty;
+    addTo(byZone[row.board], card, qty);
+    addTo(total, card, qty);
+    const banned = bannedFormats(card);
+    if (banned.includes("STANDARD")) {
+      const e = bannedStd.get(row.card_slug) || { name: cardNameEJ(card), qty: 0 };
+      e.qty += qty; bannedStd.set(row.card_slug, e);
+    }
+    if (banned.includes("PANTHEON")) {
+      const e = bannedPan.get(row.card_slug) || { name: cardNameEJ(card), qty: 0 };
+      e.qty += qty; bannedPan.set(row.card_slug, e);
+    }
+  });
+
+  return {
+    byZone, total,
+    format: {
+      STANDARD: [...bannedStd.values()],
+      PANTHEON: [...bannedPan.values()],
+    },
+  };
+}
+
+// Map を枚数降順の [key, count] 配列にする(同数は英名順で安定化)
+function sortedEntries(map) {
+  return [...map.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+}
+
+// エレメント別・タイプ別の純CSS横棒セクション。0件なら空文字を返す(節ごと非表示)。
+function barSectionHtml(title, map, kind, colorFor, note) {
+  const entries = sortedEntries(map);
+  if (!entries.length) return "";
+  const max = entries[0][1];
+  const rows = entries.map(([value, n]) => {
+    const w = max ? Math.round((n / max) * 100) : 0;
+    // CSP(style-src 'self')がstyle属性を禁止するため、寸法・色はdata属性に載せて描画後にCSSOMで適用する
+    return `<div class="statrow">`
+      + `<span class="sr-label">${escapeHtml(label(kind, value))}</span>`
+      + `<span class="sr-track"><i data-w="${w}" data-c="${colorFor(value)}"></i></span>`
+      + `<span class="sr-val">${n}</span></div>`;
+  }).join("");
+  return `<div class="stat-sec"><h4>${title}</h4>${rows}${note ? `<p class="sr-note">${escapeHtml(note)}</p>` : ""}</div>`;
+}
+
+// サブタイプ別の枚数降順テキスト行。0件なら空文字。
+function subtypeSectionHtml(map) {
+  const entries = sortedEntries(map);
+  if (!entries.length) return "";
+  const parts = entries.map(([value, n], i) =>
+    `${i ? '<span class="sep">・</span>' : ""}${escapeHtml(label("subtypes", value))} <b>${n}</b>`
+  ).join("");
+  return `<div class="stat-sec"><h4>サブタイプ別</h4><p class="subtype-line">${parts}</p></div>`;
+}
+
+// Floating Memory キーワードのテキスト行。0枚なら空文字(節ごと非表示)。
+// キーワードはサブタイプ辞書に無いため表記は固定(「英語（日本語訳）」形式に合わせる)。
+// 条件付き = [Class Bonus]/[Level N+]等の条件タグつきで付与されるもの。
+function keywordSectionHtml(agg) {
+  if (!agg.fm) return "";
+  const inner = agg.fmConditional ? ` <span class="inner">（うち条件付き ${agg.fmConditional}枚）</span>` : "";
+  return `<div class="stat-sec"><h4>キーワード</h4>`
+    + `<p class="subtype-line">Floating Memory（フローティングメモリー） <b>${agg.fm}</b>${inner}</p></div>`;
+}
+
+// ゾーン(または合計)ひとつ分の統計カード。空ゾーンは null を返す。
+function statCardHtml(heading, agg, opts = {}) {
+  if (!agg.count) return null;
+  const elColor = (v) => ELEMENT_COLOR[v] || BAR_TYPE;
+  const typeColor = () => BAR_TYPE;
+  const elNote = opts.multiNote
+    ? "※複数のエレメント・タイプ・サブタイプを持つカードは各項目に数えるため、合計がデッキ枚数と一致しないことがあります。"
+    : "";
+  const secs = [
+    barSectionHtml("エレメント別", agg.elements, "elements", elColor, elNote),
+    barSectionHtml("タイプ別", agg.types, "types", typeColor, ""),
+    subtypeSectionHtml(agg.subtypes),
+    keywordSectionHtml(agg),
+  ].join("");
+  return `<div class="stat-card"><h3>${heading}</h3>${secs}</div>`;
+}
+
+// フォーマット適合カード。スタンダード/パンテオンのみ(ドラフトは構築デッキに無意味)。
+function formatCardHtml(fmt) {
+  const rowFor = (key) => {
+    const banned = fmt[key];
+    const name = FORMAT_JP[key];
+    if (!banned.length) {
+      return `<div class="fmt-row"><span class="fmt-name">${name}</span><span class="fmt-ok">✅ 使用可能</span></div>`;
+    }
+    const n = banned.reduce((s, b) => s + b.qty, 0);
+    const list = banned.map((b) => `${escapeHtml(b.name)} ×${b.qty}`).join("・");
+    return `<div class="fmt-row"><span class="fmt-name">${name}</span>`
+      + `<span class="fmt-ng">⚠️ 禁止カード ${n}枚 — ${list}</span></div>`;
+  };
+  return `<div class="stat-card"><h3>フォーマット適合 <span class="cnt">メイン+マテリアル+サイドで判定</span></h3>`
+    + rowFor("STANDARD") + rowFor("PANTHEON") + `</div>`;
+}
+
+// 統計パネル全体をHTML文字列で組み立てる(編集・共有で共用)。
+function statsHtml(cards, bySlug) {
+  const stats = computeDeckStats(cards, bySlug);
+  if (!stats.total.count) {
+    return `<p class="stat-empty">カードがありません。デッキにカードを追加すると統計が表示されます。</p>`;
+  }
+  const parts = [];
+
+  // 0. ⚠️警告バナー(スタンダード禁止カードがある時のみ最上部)
+  const stdBannedN = stats.format.STANDARD.reduce((s, b) => s + b.qty, 0);
+  if (stdBannedN) {
+    parts.push(`<div class="warn-banner"><span class="fmt-ng">⚠️ スタンダードで使用できないカードが${stdBannedN}枚あります</span>`
+      + ` <span class="warn-hint">（詳細は最下部の「フォーマット適合」へ）</span></div>`);
+  }
+
+  // 1-3. マテリアル → メイン → サイド
+  parts.push(statCardHtml(`マテリアルデッキ <span class="cnt">${stats.byZone.material.count}枚</span>`, stats.byZone.material, { multiNote: true }));
+  parts.push(statCardHtml(`メインデッキ <span class="cnt">${stats.byZone.main.count}枚</span>`, stats.byZone.main, { multiNote: true }));
+  parts.push(statCardHtml(`サイドボード <span class="cnt">${stats.byZone.side.count}枚</span>`, stats.byZone.side, { multiNote: true }));
+
+  // 4. 合計(マテリアル+メイン+サイド。「検討中」は含まない)
+  const t = stats.byZone;
+  const breakdown = `${stats.total.count}枚 ＝ マテリアル${t.material.count}＋メイン${t.main.count}＋サイド${t.side.count}（「検討中」は含みません）`;
+  parts.push(statCardHtml(`合計 <span class="cnt">${breakdown}</span>`, stats.total, { multiNote: true }));
+
+  // 5. フォーマット適合
+  parts.push(formatCardHtml(stats.format));
+
+  return parts.filter(Boolean).join("");
+}
+
+// 統計パネルを指定コンテナへ描画する。
+// 棒の幅・色はCSP(style-src 'self'=style属性禁止)を避けてCSSOMで適用する(.meterと同じ方式)。
+function renderStatsInto(container, cards, bySlug) {
+  container.innerHTML = statsHtml(cards, bySlug);
+  container.querySelectorAll(".sr-track i[data-w]").forEach((bar) => {
+    bar.style.width = `${bar.dataset.w}%`;
+    bar.style.background = bar.dataset.c;
+  });
+}
+
+// ---------- タブ切替 ----------
+// タブ状態はhashに持たない(リロードでデッキタブに戻る。シンプル優先)。
+// deckTabId → statsTabId → deckPane → statsPane。onStats は統計タブ表示時の描画コールバック。
+function setupTabs(deckTabId, statsTabId, deckPane, statsPane, onStats) {
+  const deckTab = document.getElementById(deckTabId);
+  const statsTab = document.getElementById(statsTabId);
+  const select = (showStats) => {
+    deckTab.setAttribute("aria-selected", String(!showStats));
+    statsTab.setAttribute("aria-selected", String(showStats));
+    deckPane.hidden = showStats;
+    statsPane.hidden = !showStats;
+    if (showStats) onStats();
+  };
+  deckTab.addEventListener("click", () => select(false));
+  statsTab.addEventListener("click", () => select(true));
+  return { reset: () => select(false), isStats: () => statsTab.getAttribute("aria-selected") === "true" };
+}
+
+// 編集画面: 現在のデッキ内容で統計パネルを描画する(タブ表示中のみ呼ばれる)。
+async function renderEditorStats() {
+  if (!deckData) return;
+  const seq = deckSeq;
+  const cards = deckData.cards;
+  const bySlug = await ensureCards(cards.map((c) => c.card_slug));
+  if (seq !== deckSeq) return;
+  renderStatsInto(el.edPaneStats, cards, bySlug);
+}
+
+// 共有画面: 現在のデッキ内容で統計パネルを描画する。
+async function renderViewStats() {
+  if (!deckData) return;
+  const seq = deckSeq;
+  const cards = deckData.cards;
+  const bySlug = await ensureCards(cards.map((c) => c.card_slug));
+  if (seq !== deckSeq) return;
+  renderStatsInto(el.vPaneStats, cards, bySlug);
+}
+
+editorTabs = setupTabs("ed-tab-deck", "ed-tab-stats", $("ed-pane-deck"), el.edPaneStats, renderEditorStats);
+viewTabs = setupTabs("v-tab-deck", "v-tab-stats", el.vZones, el.vPaneStats, renderViewStats);
+
 // ---------- 共有リンク閲覧 ----------
 
 const VIEW_ZONES = ["material", "main", "side"]; // 「検討中」は共有画面には出さない
@@ -1234,6 +1480,8 @@ async function openDeckView(id) {
   const seq = ++deckSeq;
   showView(el.viewDeck);
   el.vZones.innerHTML = "";
+  el.vPaneStats.innerHTML = "";
+  if (viewTabs) viewTabs.reset(); // 共有デッキを開くたびデッキタブから(読み込み完了後だとユーザーのタブ操作を巻き戻すため先頭で)
   setStatus("デッキを読み込み中…");
   try {
     const data = await api(`/api/decks/${encodeURIComponent(id)}`);
@@ -1302,6 +1550,10 @@ async function renderDeckView() {
     });
     el.vZones.appendChild(section);
   });
+
+  // 読み込み中に統計タブへ切り替えられていた場合、データが揃ったここで描画する
+  // (renderViewStatsはdeckData未着時に早期returnするため、このフックがないと空のまま残る)
+  if (viewTabs && viewTabs.isStats()) renderStatsInto(el.vPaneStats, cards, bySlug);
 }
 
 // 共有画面のカードクリック → 詳細

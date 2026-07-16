@@ -9,6 +9,7 @@
   --accent: #d9a441;
   --accent-2: #6ea8fe;
   --yes: #2f9e6b;
+  --danger: #fca5a5;
   --discord: #5865f2;
   --radius: 12px;
 }
@@ -549,4 +550,80 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
   .gtile.just-added { animation: none; }
+}
+
+/* ---------- タブバー(デッキ / 統計) ---------- */
+.deck-tabs {
+  display: flex; gap: 6px; padding: 10px 24px 0;
+  border-bottom: 1px solid var(--border);
+}
+.deck-tabs button {
+  background: transparent; color: var(--muted);
+  border: 1px solid transparent; border-bottom: none;
+  border-radius: 8px 8px 0 0; padding: 8px 18px; margin-bottom: -1px;
+  font: inherit; font-size: .92rem; cursor: pointer;
+}
+.deck-tabs button:hover { color: var(--text); }
+.deck-tabs button[aria-selected="true"] {
+  background: var(--panel); color: var(--text); font-weight: 700;
+  border-color: var(--border); box-shadow: inset 0 2px 0 var(--accent);
+}
+.deck-tabs button:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 1px; }
+
+/* ---------- 統計パネル ---------- */
+.stats-pane {
+  display: flex; flex-direction: column; gap: 16px;
+  padding: 18px 24px 56px;
+}
+.stats-pane[hidden] { display: none; }
+.stat-empty { margin: 0; padding: 16px; font-size: .85rem; color: var(--muted); border: 1px dashed var(--border); border-radius: 10px; }
+
+.stat-card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.stat-card > h3 { margin: 0 0 10px; font-size: .95rem; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.stat-card > h3 .cnt { color: var(--muted); font-weight: 400; font-size: .8rem; }
+
+/* ⚠️警告バナー(禁止カードがある時のみ最上部) */
+.warn-banner {
+  border: 1px dashed var(--border); border-left: 3px solid var(--danger);
+  border-radius: 8px; padding: 8px 12px; font-size: .85rem;
+}
+.fmt-ng { color: var(--danger); }
+.warn-hint { color: var(--muted); font-size: .8rem; }
+
+/* フォーマット適合 */
+.fmt-row {
+  display: flex; align-items: baseline; gap: 10px; padding: 6px 0;
+  border-bottom: 1px solid var(--border); font-size: .92rem; flex-wrap: wrap;
+}
+.fmt-row:last-child { border-bottom: none; }
+.fmt-name { min-width: 8em; font-weight: 600; }
+.fmt-ok { color: #7fd4a8; }
+
+/* 集計セクション */
+.stat-sec + .stat-sec { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.stat-sec h4 { margin: 0 0 8px; font-size: .8rem; color: var(--muted); font-weight: 600; letter-spacing: .06em; }
+
+/* 横棒(枚数) */
+.statrow { display: flex; align-items: center; gap: 10px; padding: 2px 0; border-radius: 6px; }
+.sr-label { width: 15.5em; text-align: right; font-size: .85rem; flex-shrink: 0; line-height: 1.3; }
+.sr-track { flex: 1; height: 14px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
+.sr-track i { display: block; height: 100%; border-radius: 0 4px 4px 0; }
+.sr-val { width: 2.2em; font-variant-numeric: tabular-nums; font-size: .88rem; color: var(--text); }
+.sr-note { margin: 6px 0 0; font-size: .75rem; color: var(--muted); }
+
+/* サブタイプ・キーワード(テキスト行) */
+.subtype-line { margin: 0; font-size: .9rem; line-height: 1.7; }
+.subtype-line b { font-variant-numeric: tabular-nums; font-weight: 600; }
+.subtype-line .sep { color: var(--muted); margin: 0 6px; }
+.subtype-line .inner { color: var(--muted); font-size: .82rem; }
+
+/* スマホ: ラベルを上・バーを下に折り返し */
+@media (max-width: 620px) {
+  .deck-tabs { padding: 10px 16px 0; }
+  .stats-pane { padding: 16px 16px 48px; }
+  .statrow { flex-wrap: wrap; }
+  .sr-label { width: 100%; text-align: left; }
 }
