@@ -1270,13 +1270,22 @@ function cardNameEJ(card) {
   return jp && jp !== card.name ? `${card.name}（${jp}）` : card.name;
 }
 
+// フォーマットごとの構築ルール(2026-07-16 公式TRG・総合ルールで確認)。
+// - STANDARD: メイン同名4枚まで(メインのみで数える。サイドは別途ポイント制)。判定対象=メイン+マテリアル+サイド
+// - PANTHEON: メイン同名1枚(シングルトン)。サイドボードが存在しないため判定対象=メイン+マテリアルのみ。
+//   別途Boon 2枚(Lesser/Greater各1)が必要だが本ツールの管理対象外(注記で案内)
+// - マテリアルは両フォーマットとも同名1枚
+const FORMAT_RULES = {
+  STANDARD: { zones: ["material", "main", "side"], mainCopyLimit: 4 },
+  PANTHEON: { zones: ["material", "main"], mainCopyLimit: 1 },
+};
+
 // deckData.cards(board=ゾーン, qty持ち)と bySlug(slug→card)から、ゾーン別+合計の集計を返す。
 function computeDeckStats(cards, bySlug) {
   const mkAgg = () => ({ count: 0, elements: new Map(), types: new Map(), subtypes: new Map(), fm: 0, fmConditional: 0 });
   const byZone = { material: mkAgg(), main: mkAgg(), side: mkAgg() };
   const total = mkAgg();
-  const bannedStd = new Map(); // slug → { name, qty }
-  const bannedPan = new Map();
+  const perSlug = new Map(); // slug → { card, qty: {material, main, side} } フォーマット判定用
 
   const addTo = (agg, card, qty) => {
     agg.count += qty;
@@ -1295,24 +1304,27 @@ function computeDeckStats(cards, bySlug) {
     const qty = row.qty;
     addTo(byZone[row.board], card, qty);
     addTo(total, card, qty);
-    const banned = bannedFormats(card);
-    if (banned.includes("STANDARD")) {
-      const e = bannedStd.get(row.card_slug) || { name: cardNameEJ(card), qty: 0 };
-      e.qty += qty; bannedStd.set(row.card_slug, e);
-    }
-    if (banned.includes("PANTHEON")) {
-      const e = bannedPan.get(row.card_slug) || { name: cardNameEJ(card), qty: 0 };
-      e.qty += qty; bannedPan.set(row.card_slug, e);
-    }
+    const p = perSlug.get(row.card_slug) || { card, qty: { material: 0, main: 0, side: 0 } };
+    p.qty[row.board] += qty;
+    perSlug.set(row.card_slug, p);
   });
 
-  return {
-    byZone, total,
-    format: {
-      STANDARD: [...bannedStd.values()],
-      PANTHEON: [...bannedPan.values()],
-    },
-  };
+  // フォーマット適合: 禁止カード+枚数制限をFORMAT_RULESに沿って判定する
+  const format = {};
+  Object.entries(FORMAT_RULES).forEach(([key, rule]) => {
+    const banned = [];   // 禁止カード(判定対象ゾーン内)
+    const overMain = []; // メインの同名枚数制限超過
+    const overMaterial = []; // マテリアルの同名1枚制限超過
+    perSlug.forEach(({ card, qty }) => {
+      const inScope = rule.zones.reduce((s, z) => s + qty[z], 0);
+      if (inScope && bannedFormats(card).includes(key)) banned.push({ name: cardNameEJ(card), qty: inScope });
+      if (qty.main > rule.mainCopyLimit) overMain.push({ name: cardNameEJ(card), qty: qty.main });
+      if (qty.material > 1) overMaterial.push({ name: cardNameEJ(card), qty: qty.material });
+    });
+    format[key] = { banned, overMain, overMaterial };
+  });
+
+  return { byZone, total, format };
 }
 
 // Map を枚数降順の [key, count] 配列にする(同数は英名順で安定化)
@@ -1373,21 +1385,40 @@ function statCardHtml(heading, agg, opts = {}) {
   return `<div class="stat-card"><h3>${heading}</h3>${secs}</div>`;
 }
 
+// カード名リストの短縮表示(長いシングルトン違反列挙が画面を占領しないように先頭3種+他n種)
+function listCardNames(arr, max = 3) {
+  const head = arr.slice(0, max).map((b) => `${escapeHtml(b.name)} ×${b.qty}`).join("・");
+  return arr.length > max ? `${head} …他${arr.length - max}種` : head;
+}
+
 // フォーマット適合カード。スタンダード/パンテオンのみ(ドラフトは構築デッキに無意味)。
+// 禁止カードに加え、枚数制限(スタンダード=メイン4枚/パンテオン=メイン1枚/マテリアル1枚)も判定する。
+// デッキ最低枚数(60枚)は構築途中に常時⚠️となりノイズのため判定せず、ゾーンヘッダのメーターに委ねる。
 function formatCardHtml(fmt) {
   const rowFor = (key) => {
-    const banned = fmt[key];
+    const f = fmt[key];
     const name = FORMAT_JP[key];
-    if (!banned.length) {
-      return `<div class="fmt-row"><span class="fmt-name">${name}</span><span class="fmt-ok">✅ 使用可能</span></div>`;
+    const issues = [];
+    if (f.banned.length) {
+      const n = f.banned.reduce((s, b) => s + b.qty, 0);
+      issues.push(`⚠️ 禁止カード ${n}枚 — ${listCardNames(f.banned)}`);
     }
-    const n = banned.reduce((s, b) => s + b.qty, 0);
-    const list = banned.map((b) => `${escapeHtml(b.name)} ×${b.qty}`).join("・");
-    return `<div class="fmt-row"><span class="fmt-name">${name}</span>`
-      + `<span class="fmt-ng">⚠️ 禁止カード ${n}枚 — ${list}</span></div>`;
+    if (f.overMain.length) {
+      const limit = FORMAT_RULES[key].mainCopyLimit;
+      issues.push(`⚠️ メイン同名${limit}枚制限の超過 ${f.overMain.length}種 — ${listCardNames(f.overMain)}`);
+    }
+    if (f.overMaterial.length) {
+      issues.push(`⚠️ マテリアル同名1枚制限の超過 — ${listCardNames(f.overMaterial)}`);
+    }
+    const body = issues.length
+      ? `<span class="fmt-issues">${issues.map((i) => `<span class="fmt-ng">${i}</span>`).join("")}</span>`
+      : `<span class="fmt-ok">✅ 使用可能</span>`;
+    return `<div class="fmt-row"><span class="fmt-name">${name}</span>${body}</div>`;
   };
-  return `<div class="stat-card"><h3>フォーマット適合 <span class="cnt">メイン+マテリアル+サイドで判定</span></h3>`
-    + rowFor("STANDARD") + rowFor("PANTHEON") + `</div>`;
+  return `<div class="stat-card"><h3>フォーマット適合 <span class="cnt">スタンダード=メイン+マテリアル+サイド／パンテオン=メイン+マテリアルで判定</span></h3>`
+    + rowFor("STANDARD") + rowFor("PANTHEON")
+    + `<p class="sr-note">※パンテオンは別途Boon 2枚（Lesser／Greater 各1）が必要です（本ツールでは管理対象外）。パンテオンにサイドボードはありません。</p>`
+    + `</div>`;
 }
 
 // 統計パネル全体をHTML文字列で組み立てる(編集・共有で共用)。
@@ -1398,10 +1429,15 @@ function statsHtml(cards, bySlug) {
   }
   const parts = [];
 
-  // 0. ⚠️警告バナー(スタンダード禁止カードがある時のみ最上部)
-  const stdBannedN = stats.format.STANDARD.reduce((s, b) => s + b.qty, 0);
-  if (stdBannedN) {
-    parts.push(`<div class="warn-banner"><span class="fmt-ng">⚠️ スタンダードで使用できないカードが${stdBannedN}枚あります</span>`
+  // 0. ⚠️警告バナー(スタンダード不適合=禁止カードまたは枚数超過がある時のみ最上部)
+  const std = stats.format.STANDARD;
+  const stdBannedN = std.banned.reduce((s, b) => s + b.qty, 0);
+  const stdOverN = std.overMain.length + std.overMaterial.length;
+  if (stdBannedN || stdOverN) {
+    const reasons = [];
+    if (stdBannedN) reasons.push(`禁止カード ${stdBannedN}枚`);
+    if (stdOverN) reasons.push(`枚数制限の超過 ${stdOverN}種`);
+    parts.push(`<div class="warn-banner"><span class="fmt-ng">⚠️ スタンダードで使用できない構成です（${reasons.join("・")}）</span>`
       + ` <span class="warn-hint">（詳細は最下部の「フォーマット適合」へ）</span></div>`);
   }
 

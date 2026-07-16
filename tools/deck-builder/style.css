@@ -591,6 +591,7 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
   border-radius: 8px; padding: 8px 12px; font-size: .85rem;
 }
 .fmt-ng { color: var(--danger); }
+.fmt-issues { display: flex; flex-direction: column; gap: 2px; }
 .warn-hint { color: var(--muted); font-size: .8rem; }
 
 /* フォーマット適合 */
