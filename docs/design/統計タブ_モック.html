@@ -1,0 +1,401 @@
+<title>統計タブ 画面モック</title>
+<!--
+  タスク#12 デッキ統計タブの画面モック(ダミーデータ) v2
+  修正(2026-07-16ユーザー指摘): 構成順=マテリアル→メイン→サイド→合計→フォーマット適合 /
+  表記=label()の「英語（日本語訳）」形式 / Floating Memory統計を追加。
+  実物 tools/deck-builder/style.css のトークンを踏襲。本番ツールがダーク固定のため単一テーマ。
+  エレメント3色は dataviz validator でダーク面 #171a21 に対し全チェックPASS済み。
+-->
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1f232c;
+    --border: #2a2f3a;
+    --text: #e7e9ee;
+    --muted: #9aa2b1;
+    --accent: #d9a441;
+    --accent-2: #6ea8fe;
+    --yes: #2f9e6b;
+    --danger: #fca5a5;
+    --radius: 12px;
+    /* データ色(検証済): WIND / NORM / LUXEM */
+    --el-wind: #3f9d63;
+    --el-norm: #7b8fd4;
+    --el-luxem: #ad8d2e;
+    --bar-type: #56779e; /* タイプ別は単色(同一カテゴリ内の量比較) */
+  }
+  html { background: var(--bg); }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+    line-height: 1.6; font-size: 15px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 20px 20px 48px; }
+
+  /* ---- モック注記 ---- */
+  .mock-note {
+    display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+    border: 1px dashed var(--border); border-radius: var(--radius);
+    padding: 10px 14px; margin-bottom: 18px; font-size: .82rem; color: var(--muted);
+  }
+  .mock-note b { color: var(--accent); font-weight: 700; letter-spacing: .04em; }
+
+  /* ---- エディタバー(実物の再現・非機能) ---- */
+  .editor-bar {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 10px 0; font-size: .9rem;
+  }
+  .editor-bar .back { color: var(--accent-2); text-decoration: none; }
+  .deck-title { font-weight: 700; font-size: 1.05rem; }
+  .badge-pub {
+    background: rgba(47,158,107,.15); color: #7fd4a8; border: 1px solid rgba(47,158,107,.45);
+    border-radius: 999px; padding: 1px 10px; font-size: .78rem;
+  }
+  .save-state { color: var(--muted); font-size: .8rem; }
+  .spacer { flex: 1; }
+  .btn {
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 12px; font-size: .82rem; white-space: nowrap; font: inherit;
+  }
+  .mock-inert { opacity: .55; pointer-events: none; }
+
+  /* ---- 検索バー(簡略再現・非機能) ---- */
+  .search-top {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 12px 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    margin-bottom: 16px;
+  }
+  .search-top input {
+    flex: 1; min-width: 180px; background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px; color: var(--muted); font: inherit;
+  }
+  .search-top .hint { width: 100%; margin: 0; font-size: .75rem; color: var(--muted); }
+  .search-top .hint b { color: var(--text); font-weight: 600; }
+
+  /* ---- ★新設: タブバー ---- */
+  .deck-tabs { display: flex; gap: 6px; margin-bottom: 0; }
+  .deck-tabs button {
+    background: var(--panel); color: var(--muted); border: 1px solid var(--border);
+    border-bottom: none; border-radius: 10px 10px 0 0; padding: 9px 22px 7px;
+    font: inherit; font-size: .92rem; cursor: pointer;
+  }
+  .deck-tabs button[aria-selected="true"] {
+    background: var(--panel-2); color: var(--text); font-weight: 700;
+    border-color: var(--accent); box-shadow: inset 0 2px 0 var(--accent);
+  }
+  .deck-tabs button:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 1px; }
+  .tab-body {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 0 var(--radius) var(--radius) var(--radius);
+    padding: 18px;
+  }
+  .tab-body[hidden] { display: none; }
+
+  /* ---- デッキタブ(プレースホルダ) ---- */
+  .zone h3 { margin: 0 0 8px; font-size: .95rem; }
+  .zone h3 .cnt { color: var(--muted); font-weight: 400; font-size: .8rem; }
+  .zone + .zone { margin-top: 18px; }
+  .tilegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
+  .tile {
+    aspect-ratio: 5 / 7; border-radius: 6px; position: relative;
+    background: linear-gradient(160deg, #262c38, #1a1e27); border: 1px solid var(--border);
+  }
+  .tile .qty {
+    position: absolute; right: 4px; bottom: 4px; background: rgba(0,0,0,.65);
+    border-radius: 6px; padding: 0 6px; font-size: .72rem; color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .zone .ellipsis { color: var(--muted); font-size: .8rem; margin: 8px 0 0; }
+
+  /* ---- 統計タブ ---- */
+  .stats-pane { display: flex; flex-direction: column; gap: 16px; }
+  .stat-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .stat-card > h3 { margin: 0 0 10px; font-size: .95rem; }
+  .stat-card > h3 .cnt { color: var(--muted); font-weight: 400; font-size: .8rem; }
+
+  /* ⚠️警告バナー(提案: 禁止カードがある時のみ最上部に表示) */
+  .warn-banner {
+    border: 1px dashed var(--border); border-left: 3px solid var(--danger);
+    border-radius: 8px; padding: 8px 12px; font-size: .85rem;
+  }
+  .warn-banner .tag {
+    display: inline-block; background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 999px; padding: 0 8px; font-size: .72rem; margin-right: 8px; color: var(--muted);
+  }
+  .fmt-ng { color: var(--danger); }
+
+  /* フォーマット適合 */
+  .fmt-row {
+    display: flex; align-items: baseline; gap: 10px; padding: 6px 0;
+    border-bottom: 1px solid var(--border); font-size: .92rem; flex-wrap: wrap;
+  }
+  .fmt-row:last-of-type { border-bottom: none; }
+  .fmt-name { min-width: 8em; font-weight: 600; }
+  .fmt-ok { color: #7fd4a8; }
+
+  /* 集計セクション */
+  .stat-sec + .stat-sec { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .stat-sec h4 { margin: 0 0 8px; font-size: .8rem; color: var(--muted); font-weight: 600; letter-spacing: .06em; }
+
+  /* 横棒(枚数) */
+  .statrow { display: flex; align-items: center; gap: 10px; padding: 2px 0; border-radius: 6px; }
+  .statrow:hover { background: rgba(255,255,255,.04); }
+  /* ラベル列は最長ラベル(PHANTASIA（ファンタジア）等)が折り返さない幅。
+     実装ではグリッドのmax-contentでラベル列を内容に合わせるのが確実 */
+  .sr-label { width: 15.5em; text-align: right; font-size: .85rem; flex-shrink: 0; line-height: 1.3; }
+  .sr-track { flex: 1; height: 14px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
+  .sr-track i { display: block; height: 100%; border-radius: 0 4px 4px 0; }
+  .sr-val { width: 2.2em; font-variant-numeric: tabular-nums; font-size: .88rem; color: var(--text); }
+  .sr-note { margin: 6px 0 0; font-size: .75rem; color: var(--muted); }
+
+  /* サブタイプ・キーワード(テキスト行) */
+  .subtype-line { margin: 0; font-size: .9rem; }
+  .subtype-line b { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .subtype-line .sep { color: var(--muted); margin: 0 6px; }
+  .subtype-line .inner { color: var(--muted); font-size: .82rem; }
+
+  /* ---- 挙動メモ ---- */
+  .behavior {
+    margin-top: 22px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 18px; font-size: .85rem;
+  }
+  .behavior h2 { margin: 0 0 8px; font-size: .95rem; color: var(--accent); }
+  .behavior ul { margin: 0; padding-left: 1.3em; color: var(--muted); }
+  .behavior li { margin: 4px 0; }
+  .behavior li b { color: var(--text); font-weight: 600; }
+
+  @media (max-width: 620px) {
+    /* スマホ: ラベルを上・バーを下に折り返し */
+    .statrow { flex-wrap: wrap; row-gap: 0; }
+    .sr-label { width: 100%; text-align: left; }
+    .editor-bar { gap: 8px; }
+  }
+</style>
+
+<div class="wrap">
+  <p class="mock-note"><b>画面モック v2</b><span>タスク#12 統計タブ — ダミーデータです。タブだけ操作できます。構成順・「英語（日本語訳）」表記・Floating Memory統計を反映済み。</span></p>
+
+  <!-- エディタバー(実物の再現) -->
+  <div class="editor-bar">
+    <a class="back" href="#" onclick="return false">← 一覧</a>
+    <span class="deck-title">Wind Luxem Zander ✏️</span>
+    <span class="badge-pub">公開</span>
+    <span class="save-state">保存済み</span>
+    <span class="spacer"></span>
+    <button class="btn mock-inert">📤 omnidex提出用コピー</button>
+    <button class="btn mock-inert">🔗 共有リンクをコピー</button>
+    <button class="btn mock-inert">🖼️ デッキ画像出力</button>
+  </div>
+
+  <!-- 検索バー(統計タブ表示中も出したまま = 設計判断2) -->
+  <div class="search-top">
+    <input type="search" value="" placeholder="カード名で検索（英語 / 日本語）" disabled>
+    <button class="btn mock-inert">絞り込み ▾</button>
+    <button class="btn mock-inert">🔍 検索</button>
+    <p class="hint">💡 検索バーは統計タブ表示中も<b>そのまま使えます</b>。カードを追加すると下の統計が即時更新されます。</p>
+  </div>
+
+  <!-- ★新設タブバー -->
+  <div class="deck-tabs" role="tablist" aria-label="デッキ表示切替">
+    <button role="tab" id="tab-deck" aria-selected="false" aria-controls="pane-deck">🃏 デッキ</button>
+    <button role="tab" id="tab-stats" aria-selected="true" aria-controls="pane-stats">📊 統計</button>
+  </div>
+
+  <!-- デッキタブ(既存のゾーン表示。モックでは省略形) -->
+  <div class="tab-body" id="pane-deck" role="tabpanel" aria-labelledby="tab-deck" hidden>
+    <div class="zone">
+      <h3>マテリアルデッキ <span class="cnt">12 / 12</span></h3>
+      <div class="tilegrid">
+        <div class="tile"><span class="qty">×1</span></div>
+        <div class="tile"><span class="qty">×1</span></div>
+        <div class="tile"><span class="qty">×1</span></div>
+        <div class="tile"><span class="qty">×1</span></div>
+        <div class="tile"><span class="qty">×1</span></div>
+        <div class="tile"><span class="qty">×1</span></div>
+      </div>
+      <p class="ellipsis">…以下略（既存画面のまま。モックでは省略）</p>
+    </div>
+    <div class="zone">
+      <h3>メインデッキ <span class="cnt">60 / 60</span></h3>
+      <div class="tilegrid">
+        <div class="tile"><span class="qty">×4</span></div>
+        <div class="tile"><span class="qty">×4</span></div>
+        <div class="tile"><span class="qty">×3</span></div>
+        <div class="tile"><span class="qty">×3</span></div>
+        <div class="tile"><span class="qty">×2</span></div>
+        <div class="tile"><span class="qty">×2</span></div>
+      </div>
+      <p class="ellipsis">…以下略</p>
+    </div>
+  </div>
+
+  <!-- ★統計タブ(本モックの主役) -->
+  <div class="tab-body" id="pane-stats" role="tabpanel" aria-labelledby="tab-stats">
+    <div class="stats-pane">
+
+      <!-- 提案: 禁止カードがある時のみ最上部に警告バナー(適合ブロックが最下部に移ったため) -->
+      <div class="warn-banner">
+        <span class="tag">表示例・提案</span>
+        <span class="fmt-ng">⚠️ スタンダードで使用できないカードが2枚あります</span>
+        <span style="color:var(--muted);font-size:.8rem">（禁止カードがある時だけ表示。詳細は最下部の「フォーマット適合」へ）</span>
+      </div>
+
+      <!-- 1. マテリアルデッキ -->
+      <div class="stat-card">
+        <h3>マテリアルデッキ <span class="cnt">12枚</span></h3>
+
+        <div class="stat-sec">
+          <h4>エレメント別</h4>
+          <div class="statrow"><span class="sr-label">NORM（ノーム）</span><span class="sr-track"><i style="width:100%;background:var(--el-norm)"></i></span><span class="sr-val">7</span></div>
+          <div class="statrow"><span class="sr-label">WIND（風）</span><span class="sr-track"><i style="width:43%;background:var(--el-wind)"></i></span><span class="sr-val">3</span></div>
+          <div class="statrow"><span class="sr-label">LUXEM（ラクサム）</span><span class="sr-track"><i style="width:29%;background:var(--el-luxem)"></i></span><span class="sr-val">2</span></div>
+        </div>
+
+        <div class="stat-sec">
+          <h4>タイプ別</h4>
+          <div class="statrow"><span class="sr-label">REGALIA（レガリア）</span><span class="sr-track"><i style="width:100%;background:var(--bar-type)"></i></span><span class="sr-val">8</span></div>
+          <div class="statrow"><span class="sr-label">CHAMPION（チャンピオン）</span><span class="sr-track"><i style="width:50%;background:var(--bar-type)"></i></span><span class="sr-val">4</span></div>
+        </div>
+
+        <div class="stat-sec">
+          <h4>サブタイプ別</h4>
+          <p class="subtype-line">ASSASSIN（アサシン） <b>4</b><span class="sep">・</span>WARRIOR（ウォリアー） <b>2</b></p>
+        </div>
+      </div>
+
+      <!-- 2. メインデッキ -->
+      <div class="stat-card">
+        <h3>メインデッキ <span class="cnt">60枚</span></h3>
+
+        <div class="stat-sec">
+          <h4>エレメント別</h4>
+          <div class="statrow"><span class="sr-label">WIND（風）</span><span class="sr-track"><i style="width:100%;background:var(--el-wind)"></i></span><span class="sr-val">26</span></div>
+          <div class="statrow"><span class="sr-label">NORM（ノーム）</span><span class="sr-track"><i style="width:92%;background:var(--el-norm)"></i></span><span class="sr-val">24</span></div>
+          <div class="statrow"><span class="sr-label">LUXEM（ラクサム）</span><span class="sr-track"><i style="width:54%;background:var(--el-luxem)"></i></span><span class="sr-val">14</span></div>
+          <p class="sr-note">※複数エレメントを持つカードは各項目に数えるため、合計（64）はデッキ枚数（60）と一致しないことがあります。</p>
+        </div>
+
+        <div class="stat-sec">
+          <h4>タイプ別</h4>
+          <div class="statrow"><span class="sr-label">ALLY（アライ）</span><span class="sr-track"><i style="width:100%;background:var(--bar-type)"></i></span><span class="sr-val">28</span></div>
+          <div class="statrow"><span class="sr-label">ACTION（アクション）</span><span class="sr-track"><i style="width:79%;background:var(--bar-type)"></i></span><span class="sr-val">22</span></div>
+          <div class="statrow"><span class="sr-label">ITEM（アイテム）</span><span class="sr-track"><i style="width:21%;background:var(--bar-type)"></i></span><span class="sr-val">6</span></div>
+          <div class="statrow"><span class="sr-label">PHANTASIA（ファンタジア）</span><span class="sr-track"><i style="width:14%;background:var(--bar-type)"></i></span><span class="sr-val">4</span></div>
+        </div>
+
+        <div class="stat-sec">
+          <h4>サブタイプ別</h4>
+          <p class="subtype-line">WARRIOR（ウォリアー） <b>12</b><span class="sep">・</span>SPIRIT（スピリット） <b>8</b><span class="sep">・</span>FAIRY（妖精） <b>6</b><span class="sep">・</span>ELEMENTAL（エレメンタル） <b>4</b><span class="sep">・</span>ANIMAL（動物） <b>2</b></p>
+        </div>
+
+        <div class="stat-sec">
+          <h4>キーワード</h4>
+          <p class="subtype-line">Floating Memory（フローティングメモリー） <b>9</b> <span class="inner">（うち [Class Bonus] 3枚）</span></p>
+        </div>
+      </div>
+
+      <!-- 3. サイドボード -->
+      <div class="stat-card">
+        <h3>サイドボード <span class="cnt">8枚</span></h3>
+
+        <div class="stat-sec">
+          <h4>エレメント別</h4>
+          <div class="statrow"><span class="sr-label">WIND（風）</span><span class="sr-track"><i style="width:100%;background:var(--el-wind)"></i></span><span class="sr-val">5</span></div>
+          <div class="statrow"><span class="sr-label">NORM（ノーム）</span><span class="sr-track"><i style="width:60%;background:var(--el-norm)"></i></span><span class="sr-val">3</span></div>
+        </div>
+
+        <div class="stat-sec">
+          <h4>タイプ別</h4>
+          <div class="statrow"><span class="sr-label">ALLY（アライ）</span><span class="sr-track"><i style="width:100%;background:var(--bar-type)"></i></span><span class="sr-val">4</span></div>
+          <div class="statrow"><span class="sr-label">ACTION（アクション）</span><span class="sr-track"><i style="width:75%;background:var(--bar-type)"></i></span><span class="sr-val">3</span></div>
+          <div class="statrow"><span class="sr-label">ITEM（アイテム）</span><span class="sr-track"><i style="width:25%;background:var(--bar-type)"></i></span><span class="sr-val">1</span></div>
+        </div>
+
+        <div class="stat-sec">
+          <h4>サブタイプ別</h4>
+          <p class="subtype-line">ANIMAL（動物） <b>3</b><span class="sep">・</span>SPIRIT（スピリット） <b>2</b></p>
+        </div>
+
+        <div class="stat-sec">
+          <h4>キーワード</h4>
+          <p class="subtype-line">Floating Memory（フローティングメモリー） <b>2</b></p>
+        </div>
+      </div>
+
+      <!-- 4. 合計(マテリアル+メイン+サイド) -->
+      <div class="stat-card">
+        <h3>合計 <span class="cnt">80枚 ＝ マテリアル12＋メイン60＋サイド8（「検討中」は含みません）</span></h3>
+
+        <div class="stat-sec">
+          <h4>エレメント別</h4>
+          <div class="statrow"><span class="sr-label">WIND（風）</span><span class="sr-track"><i style="width:100%;background:var(--el-wind)"></i></span><span class="sr-val">34</span></div>
+          <div class="statrow"><span class="sr-label">NORM（ノーム）</span><span class="sr-track"><i style="width:100%;background:var(--el-norm)"></i></span><span class="sr-val">34</span></div>
+          <div class="statrow"><span class="sr-label">LUXEM（ラクサム）</span><span class="sr-track"><i style="width:47%;background:var(--el-luxem)"></i></span><span class="sr-val">16</span></div>
+        </div>
+
+        <div class="stat-sec">
+          <h4>タイプ別</h4>
+          <div class="statrow"><span class="sr-label">ALLY（アライ）</span><span class="sr-track"><i style="width:100%;background:var(--bar-type)"></i></span><span class="sr-val">32</span></div>
+          <div class="statrow"><span class="sr-label">ACTION（アクション）</span><span class="sr-track"><i style="width:78%;background:var(--bar-type)"></i></span><span class="sr-val">25</span></div>
+          <div class="statrow"><span class="sr-label">REGALIA（レガリア）</span><span class="sr-track"><i style="width:25%;background:var(--bar-type)"></i></span><span class="sr-val">8</span></div>
+          <div class="statrow"><span class="sr-label">ITEM（アイテム）</span><span class="sr-track"><i style="width:22%;background:var(--bar-type)"></i></span><span class="sr-val">7</span></div>
+          <div class="statrow"><span class="sr-label">CHAMPION（チャンピオン）</span><span class="sr-track"><i style="width:13%;background:var(--bar-type)"></i></span><span class="sr-val">4</span></div>
+          <div class="statrow"><span class="sr-label">PHANTASIA（ファンタジア）</span><span class="sr-track"><i style="width:13%;background:var(--bar-type)"></i></span><span class="sr-val">4</span></div>
+        </div>
+
+        <div class="stat-sec">
+          <h4>サブタイプ別</h4>
+          <p class="subtype-line">WARRIOR（ウォリアー） <b>14</b><span class="sep">・</span>SPIRIT（スピリット） <b>10</b><span class="sep">・</span>FAIRY（妖精） <b>6</b><span class="sep">・</span>ANIMAL（動物） <b>5</b><span class="sep">・</span>ASSASSIN（アサシン） <b>4</b><span class="sep">・</span>ELEMENTAL（エレメンタル） <b>4</b></p>
+        </div>
+
+        <div class="stat-sec">
+          <h4>キーワード</h4>
+          <p class="subtype-line">Floating Memory（フローティングメモリー） <b>11</b> <span class="inner">（うち [Class Bonus] 3枚）</span></p>
+        </div>
+      </div>
+
+      <!-- 5. フォーマット適合 -->
+      <div class="stat-card">
+        <h3>フォーマット適合 <span class="cnt">メイン+マテリアル+サイドで判定</span></h3>
+        <div class="fmt-row"><span class="fmt-name">スタンダード</span><span class="fmt-ok">✅ 使用可能</span></div>
+        <div class="fmt-row"><span class="fmt-name">パンテオン</span><span class="fmt-ok">✅ 使用可能</span></div>
+        <div class="warn-banner" style="margin-top:10px">
+          <span class="tag">表示例</span>禁止カードがある場合:
+          <span class="fmt-ng">⚠️ スタンダード: 禁止カード 2枚 — 春風の突撃 ×1・ラクサムの祝福 ×1</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 挙動メモ(設計書の要点) -->
+  <div class="behavior">
+    <h2>このモックが表す挙動（v2で更新）</h2>
+    <ul>
+      <li><b>構成順</b>: マテリアル → メイン → サイド → 合計 → フォーマット適合</li>
+      <li><b>合計</b> = マテリアル+メイン+サイドの全カードを合算（「検討中」は除外）</li>
+      <li><b>表記は「英語（日本語訳）」</b> — 既存の label() 関数の出力形式そのまま（例: WIND（風））</li>
+      <li><b>Floating Memory</b>はカードの効果テキスト(英語)への文字列一致で検出。[Class Bonus]付きは内数表示。0枚のゾーンでは節ごと非表示</li>
+      <li><b>提案</b>: フォーマット適合が最下部に移ったため、禁止カードがある時だけ統計最上部に⚠️バナーを表示（このモックでは表示例として常時表示）</li>
+      <li>タブ切替はゾーン表示と統計を丸ごと切替。検索バーは統計中も表示（カード追加で即時更新）</li>
+      <li>共有閲覧画面にも同じタブバー＋統計パネル（構成同一・編集操作なし）</li>
+      <li>0枚の分類は表示しない。リロード時はデッキタブに戻る</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  // タブ切替(モック内で唯一の操作)
+  const tabs = [["tab-deck", "pane-deck"], ["tab-stats", "pane-stats"]];
+  tabs.forEach(([tabId, paneId]) => {
+    document.getElementById(tabId).addEventListener("click", () => {
+      tabs.forEach(([t, p]) => {
+        document.getElementById(t).setAttribute("aria-selected", String(t === tabId));
+        document.getElementById(p).hidden = (p !== paneId);
+      });
+    });
+  });
+</script>
