@@ -16,6 +16,7 @@ const el = {
   fElement: document.getElementById("f-element"),
   fType: document.getElementById("f-type"),
   fSubtype: document.getElementById("f-subtype"),
+  fFormat: document.getElementById("f-format"),
   fSet: document.getElementById("f-set"),
   sort: document.getElementById("f-sort"),
   order: document.getElementById("order"),
@@ -66,7 +67,7 @@ const searchCtl = GA_CARD_SEARCH.create({
   els: {
     name: el.q, text: el.qtext,
     cls: el.fClass, element: el.fElement, type: el.fType, subtype: el.fSubtype,
-    set: el.fSet, sort: el.sort, order: el.order,
+    format: el.fFormat, set: el.fSet, sort: el.sort, order: el.order,
   },
   pageSize: 50,
   jpPageSize: 40,
@@ -369,6 +370,7 @@ function resetControls() {
   el.fElement.value = "";
   el.fType.value = "";
   el.fSubtype.value = "";
+  el.fFormat.value = "";
   el.fSet.value = "";
   el.sort.value = "name";
   el.order.dataset.dir = "ASC";
@@ -386,13 +388,14 @@ function init() {
   GA_CARD_SEARCH.fillSelect(el.fElement, "elements");
   GA_CARD_SEARCH.fillSelect(el.fType, "types");
   GA_CARD_SEARCH.fillSelect(el.fSubtype, "subtypes");
+  GA_CARD_SEARCH.fillFormatSelect(el.fFormat);
   GA_CARD_SEARCH.fillSetSelect(el.fSet);
   resetControls(); // 起動時は必ず「全て」から開始（前回選択の復元を打ち消す）
   applyUrlQuery();
 
   el.q.addEventListener("input", debounce(() => runSearch(true), 350));
   el.qtext.addEventListener("input", debounce(() => runSearch(true), 350));
-  [el.fClass, el.fElement, el.fType, el.fSubtype, el.fSet, el.sort].forEach((s) => s.addEventListener("change", () => runSearch(true)));
+  [el.fClass, el.fElement, el.fType, el.fSubtype, el.fFormat, el.fSet, el.sort].forEach((s) => s.addEventListener("change", () => runSearch(true)));
   el.order.addEventListener("click", () => {
     const next = (el.order.dataset.dir || "ASC") === "ASC" ? "DESC" : "ASC";
     el.order.dataset.dir = next;

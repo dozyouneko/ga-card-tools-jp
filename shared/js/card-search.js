@@ -21,7 +21,7 @@
 window.GA_CARD_SEARCH = (() => {
   const API = "https://api.gatcg.com";
   const I18N = window.GA_I18N || { meta: {}, terms: {}, cards: {} };
-  const { hasJapanese } = window.GA_CARD_I18N;
+  const { hasJapanese, bannedFormats } = window.GA_CARD_I18N;
 
   // エキスパンション定義（製品ライン → prefix 群）
   const SETS = (I18N.meta && I18N.meta.sets) || [];
@@ -68,6 +68,24 @@ window.GA_CARD_SEARCH = (() => {
     });
   }
 
+  // フォーマット絞り込み（使用可3種＋禁止2種）。value は "<FORMAT>:<STATE>" 形式。
+  // データ列挙値ではなく意味的フィルタのため「KEY（訳）」形式にせず日本語のみ。
+  const FORMAT_FILTERS = [
+    ["STANDARD:LEGAL", "スタンダードで使用可"],
+    ["PANTHEON:LEGAL", "パンテオンで使用可"],
+    ["DRAFT:LEGAL", "ドラフトで使用可"],
+    ["STANDARD:RESTRICTED", "スタンダード禁止"],
+    ["PANTHEON:RESTRICTED", "パンテオン禁止"],
+  ];
+  function fillFormatSelect(select) {
+    FORMAT_FILTERS.forEach(([value, text]) => {
+      const opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = text;
+      select.appendChild(opt);
+    });
+  }
+
   // ---------- コントローラ ----------
 
   function create(opts) {
@@ -105,6 +123,12 @@ window.GA_CARD_SEARCH = (() => {
       if (val(els.element)) p.set("element", val(els.element));
       if (val(els.type)) p.set("type", val(els.type));
       if (val(els.subtype)) p.set("subtype", val(els.subtype));
+      if (val(els.format)) {
+        // "<FORMAT>:<STATE>"。サーバー側で legality_format × legality_state 絞り込み（ページング正確）
+        const [fmt, state] = val(els.format).split(":");
+        p.set("legality_format", fmt);
+        p.set("legality_state", state);
+      }
       setPrefixes(val(els.set)).forEach((pre) => p.append("prefix", pre)); // エキスパンション（複数prefix）
       p.set("sort", els.sort ? (els.sort.value || "name") : "name");
       p.set("order", els.order ? (els.order.dataset.dir || "ASC") : "ASC");
@@ -135,6 +159,12 @@ window.GA_CARD_SEARCH = (() => {
       if (val(els.element) && !(card.elements || []).includes(val(els.element))) return false;
       if (val(els.type) && !(card.types || []).includes(val(els.type))) return false;
       if (val(els.subtype) && !(card.subtypes || []).includes(val(els.subtype))) return false;
+      if (val(els.format)) {
+        // bannedFormats()=limit0判定はAPIのRESTRICTEDと同義。LEGAL=禁止でない／RESTRICTED=禁止
+        const [fmt, state] = val(els.format).split(":");
+        const banned = bannedFormats(card).includes(fmt);
+        if (state === "LEGAL" ? banned : !banned) return false;
+      }
       const pre = setPrefixes(val(els.set));
       if (pre.length) {
         const eds = card.editions || card.result_editions || [];
@@ -195,5 +225,5 @@ window.GA_CARD_SEARCH = (() => {
     return { run, loadMore, pager, isJpTextMode };
   }
 
-  return { create, fillSelect, fillSetSelect, setPrefixes };
+  return { create, fillSelect, fillSetSelect, fillFormatSelect, setPrefixes };
 })();

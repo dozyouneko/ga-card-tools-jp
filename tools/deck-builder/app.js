@@ -45,6 +45,7 @@ const el = {
   sElement: $("s-element"),
   sType: $("s-type"),
   sSubtype: $("s-subtype"),
+  sFormat: $("s-format"),
   sSet: $("s-set"),
   sSort: $("s-sort"),
   sOrder: $("s-order"),
@@ -436,7 +437,7 @@ function endSave() {
 function resetSearchForm() {
   el.sName.value = "";
   el.sText.value = "";
-  [el.sClass, el.sElement, el.sType, el.sSubtype, el.sSet].forEach((s) => { s.value = ""; });
+  [el.sClass, el.sElement, el.sType, el.sSubtype, el.sFormat, el.sSet].forEach((s) => { s.value = ""; });
   el.sSort.value = "name";
   el.sOrder.dataset.dir = "ASC";
   el.sOrder.textContent = "▲ 昇順";
@@ -1017,7 +1018,7 @@ const searchCtl = GA_CARD_SEARCH.create({
   els: {
     name: el.sName, text: el.sText,
     cls: el.sClass, element: el.sElement, type: el.sType, subtype: el.sSubtype,
-    set: el.sSet, sort: el.sSort, order: el.sOrder,
+    format: el.sFormat, set: el.sSet, sort: el.sSort, order: el.sOrder,
   },
   pageSize: 24,
   jpPageSize: 24,
@@ -2171,6 +2172,7 @@ window.addEventListener("hashchange", route);
   GA_CARD_SEARCH.fillSelect(el.sElement, "elements");
   GA_CARD_SEARCH.fillSelect(el.sType, "types");
   GA_CARD_SEARCH.fillSelect(el.sSubtype, "subtypes");
+  GA_CARD_SEARCH.fillFormatSelect(el.sFormat);
   GA_CARD_SEARCH.fillSetSelect(el.sSet);
   try {
     const data = await api("/api/me");
