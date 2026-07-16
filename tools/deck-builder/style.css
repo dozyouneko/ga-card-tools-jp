@@ -621,10 +621,22 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
 .subtype-line .sep { color: var(--muted); margin: 0 6px; }
 .subtype-line .inner { color: var(--muted); font-size: .82rem; }
 
+/* サブタイプ別の開閉(第7版⑰)。summaryはh4と同じ見た目+▸/▾インジケータ(ネイティブmarkerは隠す) */
+.stat-fold > summary {
+  margin: 0; font-size: .8rem; color: var(--muted); font-weight: 600; letter-spacing: .06em;
+  cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px;
+}
+.stat-fold > summary::-webkit-details-marker { display: none; }
+.stat-fold > summary::before { content: "▸"; font-size: .7em; }
+.stat-fold[open] > summary { margin-bottom: 8px; }
+.stat-fold[open] > summary::before { content: "▾"; }
+.stat-fold > summary:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; border-radius: 4px; }
+
 /* スマホ: ラベルを上・バーを下に折り返し */
 @media (max-width: 620px) {
   .deck-tabs { padding: 10px 16px 0; }
   .stats-pane { padding: 16px 16px 48px; }
   .statrow { flex-wrap: wrap; }
   .sr-label { width: 100%; text-align: left; }
+  .sr-note--multi { display: none; } /* 第7版⑯: 重複計上注記はスマホで非表示(Boon注記は素の.sr-noteなので表示継続) */
 }

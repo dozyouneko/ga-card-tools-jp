@@ -1333,7 +1333,8 @@ function sortedEntries(map) {
 }
 
 // エレメント別・タイプ別の純CSS横棒セクション。0件なら空文字を返す(節ごと非表示)。
-function barSectionHtml(title, map, kind, colorFor, note) {
+// noteClass: 注記のクラス。重複計上注記は "sr-note sr-note--multi" を渡し≤620pxで非表示にする(第7版⑯)。
+function barSectionHtml(title, map, kind, colorFor, note, noteClass = "sr-note") {
   const entries = sortedEntries(map);
   if (!entries.length) return "";
   const max = entries[0][1];
@@ -1345,17 +1346,26 @@ function barSectionHtml(title, map, kind, colorFor, note) {
       + `<span class="sr-track"><i data-w="${w}" data-c="${colorFor(value)}"></i></span>`
       + `<span class="sr-val">${n}</span></div>`;
   }).join("");
-  return `<div class="stat-sec"><h4>${title}</h4>${rows}${note ? `<p class="sr-note">${escapeHtml(note)}</p>` : ""}</div>`;
+  return `<div class="stat-sec"><h4>${title}</h4>${rows}${note ? `<p class="${noteClass}">${escapeHtml(note)}</p>` : ""}</div>`;
+}
+
+// スマホ初期状態: 描画時にサブタイプ別を閉じる(第7版⑰)。PC(>620px)は開いた状態。
+function subtypeInitiallyOpen() {
+  return !window.matchMedia("(max-width: 620px)").matches;
 }
 
 // サブタイプ別の枚数降順テキスト行。0件なら空文字。
-function subtypeSectionHtml(map) {
+// 第7版⑰: <details>で開閉可能に。zoneはdata-zoneキー(再描画時の開閉状態引き継ぎに使う)。
+function subtypeSectionHtml(map, zone) {
   const entries = sortedEntries(map);
   if (!entries.length) return "";
   const parts = entries.map(([value, n], i) =>
     `${i ? '<span class="sep">・</span>' : ""}${escapeHtml(label("subtypes", value))} <b>${n}</b>`
   ).join("");
-  return `<div class="stat-sec"><h4>サブタイプ別</h4><p class="subtype-line">${parts}</p></div>`;
+  const open = subtypeInitiallyOpen() ? " open" : "";
+  return `<details class="stat-sec stat-fold" data-zone="${escapeHtml(zone)}"${open}>`
+    + `<summary>サブタイプ別 ${entries.length}種</summary>`
+    + `<p class="subtype-line">${parts}</p></details>`;
 }
 
 // Floating Memory キーワードのテキスト行。0枚なら空文字(節ごと非表示)。
@@ -1377,9 +1387,9 @@ function statCardHtml(heading, agg, opts = {}) {
     ? "※複数のエレメント・タイプ・サブタイプを持つカードは各項目に数えるため、合計がデッキ枚数と一致しないことがあります。"
     : "";
   const secs = [
-    barSectionHtml("エレメント別", agg.elements, "elements", elColor, elNote),
+    barSectionHtml("エレメント別", agg.elements, "elements", elColor, elNote, "sr-note sr-note--multi"),
     barSectionHtml("タイプ別", agg.types, "types", typeColor, ""),
-    subtypeSectionHtml(agg.subtypes),
+    subtypeSectionHtml(agg.subtypes, opts.zone),
     keywordSectionHtml(agg),
   ].join("");
   return `<div class="stat-card"><h3>${heading}</h3>${secs}</div>`;
@@ -1442,14 +1452,14 @@ function statsHtml(cards, bySlug) {
   }
 
   // 1-3. マテリアル → メイン → サイド
-  parts.push(statCardHtml(`マテリアルデッキ <span class="cnt">${stats.byZone.material.count}枚</span>`, stats.byZone.material, { multiNote: true }));
-  parts.push(statCardHtml(`メインデッキ <span class="cnt">${stats.byZone.main.count}枚</span>`, stats.byZone.main, { multiNote: true }));
-  parts.push(statCardHtml(`サイドボード <span class="cnt">${stats.byZone.side.count}枚</span>`, stats.byZone.side, { multiNote: true }));
+  parts.push(statCardHtml(`マテリアルデッキ <span class="cnt">${stats.byZone.material.count}枚</span>`, stats.byZone.material, { multiNote: true, zone: "material" }));
+  parts.push(statCardHtml(`メインデッキ <span class="cnt">${stats.byZone.main.count}枚</span>`, stats.byZone.main, { multiNote: true, zone: "main" }));
+  parts.push(statCardHtml(`サイドボード <span class="cnt">${stats.byZone.side.count}枚</span>`, stats.byZone.side, { multiNote: true, zone: "side" }));
 
   // 4. 合計(マテリアル+メイン+サイド。「検討中」は含まない)
   const t = stats.byZone;
   const breakdown = `${stats.total.count}枚 ＝ マテリアル${t.material.count}＋メイン${t.main.count}＋サイド${t.side.count}（「検討中」は含みません）`;
-  parts.push(statCardHtml(`合計 <span class="cnt">${breakdown}</span>`, stats.total, { multiNote: true }));
+  parts.push(statCardHtml(`合計 <span class="cnt">${breakdown}</span>`, stats.total, { multiNote: true, zone: "total" }));
 
   // 5. フォーマット適合
   parts.push(formatCardHtml(stats.format));
@@ -1460,7 +1470,14 @@ function statsHtml(cards, bySlug) {
 // 統計パネルを指定コンテナへ描画する。
 // 棒の幅・色はCSP(style-src 'self'=style属性禁止)を避けてCSSOMで適用する(.meterと同じ方式)。
 function renderStatsInto(container, cards, bySlug) {
+  // 第7版⑰: 差し替え前にサブタイプ別の開閉状態をdata-zoneキーで退避し、差し替え後に再適用する。
+  // (ライブ更新のたびに初期状態へ閉じ直る事故を防ぐ)
+  const foldState = new Map();
+  container.querySelectorAll("details.stat-fold[data-zone]").forEach((d) => foldState.set(d.dataset.zone, d.open));
   container.innerHTML = statsHtml(cards, bySlug);
+  container.querySelectorAll("details.stat-fold[data-zone]").forEach((d) => {
+    if (foldState.has(d.dataset.zone)) d.open = foldState.get(d.dataset.zone);
+  });
   container.querySelectorAll(".sr-track i[data-w]").forEach((bar) => {
     bar.style.width = `${bar.dataset.w}%`;
     bar.style.background = bar.dataset.c;
