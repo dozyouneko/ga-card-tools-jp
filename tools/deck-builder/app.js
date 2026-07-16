@@ -1349,21 +1349,16 @@ function barSectionHtml(title, map, kind, colorFor, note, noteClass = "sr-note")
   return `<div class="stat-sec"><h4>${title}</h4>${rows}${note ? `<p class="${noteClass}">${escapeHtml(note)}</p>` : ""}</div>`;
 }
 
-// スマホ初期状態: 描画時にサブタイプ別を閉じる(第7版⑰)。PC(>620px)は開いた状態。
-function subtypeInitiallyOpen() {
-  return !window.matchMedia("(max-width: 620px)").matches;
-}
-
 // サブタイプ別の枚数降順テキスト行。0件なら空文字。
 // 第7版⑰: <details>で開閉可能に。zoneはdata-zoneキー(再描画時の開閉状態引き継ぎに使う)。
+// 第8版⑱: 初期状態は幅に関係なく常に「閉」(open属性を付けない)。開閉の引き継ぎはfoldStateで継続。
 function subtypeSectionHtml(map, zone) {
   const entries = sortedEntries(map);
   if (!entries.length) return "";
   const parts = entries.map(([value, n], i) =>
     `${i ? '<span class="sep">・</span>' : ""}${escapeHtml(label("subtypes", value))} <b>${n}</b>`
   ).join("");
-  const open = subtypeInitiallyOpen() ? " open" : "";
-  return `<details class="stat-sec stat-fold" data-zone="${escapeHtml(zone)}"${open}>`
+  return `<details class="stat-sec stat-fold" data-zone="${escapeHtml(zone)}">`
     + `<summary>サブタイプ別 ${entries.length}種</summary>`
     + `<p class="subtype-line">${parts}</p></details>`;
 }
