@@ -1,6 +1,6 @@
 <title>統計タブ 画面モック</title>
 <!--
-  タスク#12 デッキ統計タブの画面モック(ダミーデータ) v5
+  タスク#12 デッキ統計タブの画面モック(ダミーデータ) v6
   修正(2026-07-16ユーザー指摘): 構成順=マテリアル→メイン→サイド→合計→フォーマット適合 /
   表記=label()の「英語（日本語訳）」形式 / Floating Memory統計を追加。
   実物 tools/deck-builder/style.css のトークンを踏襲。本番ツールがダーク固定のため単一テーマ。
@@ -187,7 +187,7 @@
 </style>
 
 <div class="wrap">
-  <p class="mock-note"><b>画面モック v5</b><span>タスク#12 統計タブ — ダミーデータです。タブだけ操作できます。構成順・「英語（日本語訳）」表記・Floating Memory統計を反映済み（v5: スマホ=注記非表示+サブタイプ開閉式。サブタイプ別の見出しをクリックすると畳めます）。</span></p>
+  <p class="mock-note"><b>画面モック v6</b><span>タスク#12 統計タブ — ダミーデータです。タブだけ操作できます。構成順・「英語（日本語訳）」表記・Floating Memory統計を反映済み（v6: サブタイプ別は初期状態で閉。見出しクリックで開閉できます）。</span></p>
 
   <!-- エディタバー(実物の再現) -->
   <div class="editor-bar">
@@ -272,7 +272,7 @@
         </div>
 
         <div class="stat-sec">
-          <details class="stat-fold" data-zone="material" open><summary>サブタイプ別 2種</summary><p class="subtype-line">ASSASSIN（アサシン） <b>4</b><span class="sep">・</span>WARRIOR（ウォリアー） <b>2</b></p></details>
+          <details class="stat-fold" data-zone="material"><summary>サブタイプ別 2種</summary><p class="subtype-line">ASSASSIN（アサシン） <b>4</b><span class="sep">・</span>WARRIOR（ウォリアー） <b>2</b></p></details>
         </div>
       </div>
 
@@ -297,7 +297,7 @@
         </div>
 
         <div class="stat-sec">
-          <details class="stat-fold" data-zone="main" open><summary>サブタイプ別 5種</summary><p class="subtype-line">WARRIOR（ウォリアー） <b>12</b><span class="sep">・</span>SPIRIT（スピリット） <b>8</b><span class="sep">・</span>FAIRY（妖精） <b>6</b><span class="sep">・</span>ELEMENTAL（エレメンタル） <b>4</b><span class="sep">・</span>ANIMAL（動物） <b>2</b></p></details>
+          <details class="stat-fold" data-zone="main"><summary>サブタイプ別 5種</summary><p class="subtype-line">WARRIOR（ウォリアー） <b>12</b><span class="sep">・</span>SPIRIT（スピリット） <b>8</b><span class="sep">・</span>FAIRY（妖精） <b>6</b><span class="sep">・</span>ELEMENTAL（エレメンタル） <b>4</b><span class="sep">・</span>ANIMAL（動物） <b>2</b></p></details>
         </div>
 
         <div class="stat-sec">
@@ -324,7 +324,7 @@
         </div>
 
         <div class="stat-sec">
-          <details class="stat-fold" data-zone="side" open><summary>サブタイプ別 2種</summary><p class="subtype-line">ANIMAL（動物） <b>3</b><span class="sep">・</span>SPIRIT（スピリット） <b>2</b></p></details>
+          <details class="stat-fold" data-zone="side"><summary>サブタイプ別 2種</summary><p class="subtype-line">ANIMAL（動物） <b>3</b><span class="sep">・</span>SPIRIT（スピリット） <b>2</b></p></details>
         </div>
 
         <div class="stat-sec">
@@ -355,7 +355,7 @@
         </div>
 
         <div class="stat-sec">
-          <details class="stat-fold" data-zone="total" open><summary>サブタイプ別 6種</summary><p class="subtype-line">WARRIOR（ウォリアー） <b>14</b><span class="sep">・</span>SPIRIT（スピリット） <b>10</b><span class="sep">・</span>FAIRY（妖精） <b>6</b><span class="sep">・</span>ANIMAL（動物） <b>5</b><span class="sep">・</span>ASSASSIN（アサシン） <b>4</b><span class="sep">・</span>ELEMENTAL（エレメンタル） <b>4</b></p></details>
+          <details class="stat-fold" data-zone="total"><summary>サブタイプ別 6種</summary><p class="subtype-line">WARRIOR（ウォリアー） <b>14</b><span class="sep">・</span>SPIRIT（スピリット） <b>10</b><span class="sep">・</span>FAIRY（妖精） <b>6</b><span class="sep">・</span>ANIMAL（動物） <b>5</b><span class="sep">・</span>ASSASSIN（アサシン） <b>4</b><span class="sep">・</span>ELEMENTAL（エレメンタル） <b>4</b></p></details>
         </div>
 
         <div class="stat-sec">
@@ -392,7 +392,7 @@
       <li><b>提案</b>: フォーマット適合が最下部に移ったため、禁止カードがある時だけ統計最上部に⚠️バナーを表示（このモックでは表示例として常時表示）</li>
       <li>タブ切替はゾーン表示と統計を丸ごと切替。検索バーは統計中も表示（カード追加で即時更新）</li>
       <li>共有閲覧画面にも同じタブバー＋統計パネル（構成同一・編集操作なし）</li>
-      <li><b>スマホ(≤620px)</b>: 重複計上注記は非表示。サブタイプ別は初期状態で閉じる(PCは開く)。開閉状態はライブ更新でも引き継ぐ(v5)</li>
+      <li><b>サブタイプ別は幅に関係なく初期状態で閉</b>(v6=設計書第8版)。スマホ(≤620px)では重複計上注記も非表示。開閉状態はライブ更新でも引き継ぐ</li>
       <li>0枚の分類は表示しない。リロード時はデッキタブに戻る</li>
     </ul>
   </div>
