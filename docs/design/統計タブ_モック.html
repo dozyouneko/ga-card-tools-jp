@@ -1,6 +1,6 @@
 <title>統計タブ 画面モック</title>
 <!--
-  タスク#12 デッキ統計タブの画面モック(ダミーデータ) v2
+  タスク#12 デッキ統計タブの画面モック(ダミーデータ) v3
   修正(2026-07-16ユーザー指摘): 構成順=マテリアル→メイン→サイド→合計→フォーマット適合 /
   表記=label()の「英語（日本語訳）」形式 / Floating Memory統計を追加。
   実物 tools/deck-builder/style.css のトークンを踏襲。本番ツールがダーク固定のため単一テーマ。
@@ -176,7 +176,7 @@
 </style>
 
 <div class="wrap">
-  <p class="mock-note"><b>画面モック v2</b><span>タスク#12 統計タブ — ダミーデータです。タブだけ操作できます。構成順・「英語（日本語訳）」表記・Floating Memory統計を反映済み。</span></p>
+  <p class="mock-note"><b>画面モック v3</b><span>タスク#12 統計タブ — ダミーデータです。タブだけ操作できます。構成順・「英語（日本語訳）」表記・Floating Memory統計を反映済み（v3: 条件付き内数・禁止カード名も英語（日本語訳）に）。</span></p>
 
   <!-- エディタバー(実物の再現) -->
   <div class="editor-bar">
@@ -293,7 +293,7 @@
 
         <div class="stat-sec">
           <h4>キーワード</h4>
-          <p class="subtype-line">Floating Memory（フローティングメモリー） <b>9</b> <span class="inner">（うち [Class Bonus] 3枚）</span></p>
+          <p class="subtype-line">Floating Memory（フローティングメモリー） <b>9</b> <span class="inner">（うち条件付き 3枚）</span></p>
         </div>
       </div>
 
@@ -353,7 +353,7 @@
 
         <div class="stat-sec">
           <h4>キーワード</h4>
-          <p class="subtype-line">Floating Memory（フローティングメモリー） <b>11</b> <span class="inner">（うち [Class Bonus] 3枚）</span></p>
+          <p class="subtype-line">Floating Memory（フローティングメモリー） <b>11</b> <span class="inner">（うち条件付き 3枚）</span></p>
         </div>
       </div>
 
@@ -364,7 +364,7 @@
         <div class="fmt-row"><span class="fmt-name">パンテオン</span><span class="fmt-ok">✅ 使用可能</span></div>
         <div class="warn-banner" style="margin-top:10px">
           <span class="tag">表示例</span>禁止カードがある場合:
-          <span class="fmt-ng">⚠️ スタンダード: 禁止カード 2枚 — 春風の突撃 ×1・ラクサムの祝福 ×1</span>
+          <span class="fmt-ng">⚠️ スタンダード: 禁止カード 2枚 — Spring Gale Assault（春風の突撃） ×1・Luxem Benediction（ラクサムの祝福） ×1</span>
         </div>
       </div>
 
@@ -378,7 +378,7 @@
       <li><b>構成順</b>: マテリアル → メイン → サイド → 合計 → フォーマット適合</li>
       <li><b>合計</b> = マテリアル+メイン+サイドの全カードを合算（「検討中」は除外）</li>
       <li><b>表記は「英語（日本語訳）」</b> — 既存の label() 関数の出力形式そのまま（例: WIND（風））</li>
-      <li><b>Floating Memory</b>はカードの効果テキスト(英語)への文字列一致で検出。[Class Bonus]付きは内数表示。0枚のゾーンでは節ごと非表示</li>
+      <li><b>Floating Memory</b>はカードの効果テキスト(英語)への文字列一致で検出。[Class Bonus]/[Level N+]等の条件タグ付きは「うち条件付き n枚」と内数表示。0枚のゾーンでは節ごと非表示</li>
       <li><b>提案</b>: フォーマット適合が最下部に移ったため、禁止カードがある時だけ統計最上部に⚠️バナーを表示（このモックでは表示例として常時表示）</li>
       <li>タブ切替はゾーン表示と統計を丸ごと切替。検索バーは統計中も表示（カード追加で即時更新）</li>
       <li>共有閲覧画面にも同じタブバー＋統計パネル（構成同一・編集操作なし）</li>
