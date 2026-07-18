@@ -21,7 +21,9 @@ docs/design/
 
 ## 今後のタスク
 
-### P26新カード3枚の和訳対応(未着手・issue未採番)
+### P26新カード3枚の和訳対応(未着手・[GitHub issue #1](https://github.com/dozyouneko/ga-card-tools-jp/issues/1))
+
+※2026-07-18からタスク管理をGitHub Issuesに移行(gh CLIで起票可能)。従来の独自番号(#11〜#17=tmp/デッキ構築ツールモックメモ.mdの台帳)とは別系列で、GitHubの自動採番(#1〜)を使う。
 
 2026-07-18のAPI実測(全2,240件)で判明した、7/16以降にAPIへ追加されたP26(2026プロモ)の新カード3枚:
 
