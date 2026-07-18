@@ -31,3 +31,6 @@ dist/
 scratch_ref_*
 # 作業用ファイル置き場（計画メモ・スクリーンショット等。コミット対象外）
 tmp/
+
+# Claude Code のローカル権限設定（個人環境依存。共有用は settings.json）
+.claude/settings.local.json
