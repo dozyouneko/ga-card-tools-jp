@@ -574,6 +574,7 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
 .stats-pane {
   display: flex; flex-direction: column; gap: 16px;
   padding: 18px 24px 56px;
+  max-width: 880px; /* 第9版⑲: ワイドPCで棒・行が伸びすぎるのを防止（左寄せ=margin autoは付けない） */
 }
 .stats-pane[hidden] { display: none; }
 .stat-empty { margin: 0; padding: 16px; font-size: .85rem; color: var(--muted); border: 1px dashed var(--border); border-radius: 10px; }
