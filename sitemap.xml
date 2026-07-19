@@ -39,7 +39,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/rdoa/</loc>
-    <lastmod>2026-04-02</lastmod>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -69,7 +69,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/p26/</loc>
-    <lastmod>2026-02-25</lastmod>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -117,7 +117,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/dtr/</loc>
-    <lastmod>2026-06-29</lastmod>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -129,7 +129,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/dtrsd/</loc>
-    <lastmod>2026-04-09</lastmod>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -171,7 +171,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/p25/</loc>
-    <lastmod>2026-04-09</lastmod>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -183,7 +183,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/ambdp/</loc>
-    <lastmod>2025-01-22</lastmod>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -255,13 +255,13 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/alcsd/</loc>
-    <lastmod>2026-04-09</lastmod>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/p24/</loc>
-    <lastmod>2026-04-20</lastmod>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -3328,6 +3328,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/dilu-auspicious-charger/</loc>
     <lastmod>2025-01-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/dinah-lost-spirit/</loc>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -8163,7 +8169,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/necklace-of-foresight/</loc>
-    <lastmod>2026-02-20</lastmod>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -8277,7 +8283,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/nocturnes-oblivion/</loc>
-    <lastmod>2025-07-24</lastmod>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -10167,7 +10173,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/sablier-guard/</loc>
-    <lastmod>2025-07-24</lastmod>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -10233,7 +10239,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/sages-urn/</loc>
-    <lastmod>2025-01-21</lastmod>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -12590,6 +12596,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/transcendental-rite/</loc>
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/transfusive-aura/</loc>
     <lastmod>2026-04-02</lastmod>
     <changefreq>monthly</changefreq>
@@ -12628,6 +12640,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/triskit-guidance-angel/</loc>
     <lastmod>2025-02-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/tristan-ascendant-shadow/</loc>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

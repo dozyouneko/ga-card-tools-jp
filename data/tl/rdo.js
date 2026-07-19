@@ -835,7 +835,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   // Ensnaring Fumes  [ACTION]  L- WIND
   // EN: You may remove three preparation counters from your champion rather than pay this card's reserve cost. /  / Return all allies to their owner's hands. /  / [Class Bonus] Floating Memory
   "ensnaring-fumes": {
-    name: "からめとる霧",
+    name: "絡め取る煙霧",
     effect:
       "このカードのリザーブコストを支払う代わりに、あなたのチャンピオンからプレパレーションカウンターを3個取り除いてよい。\n\n" +
       "すべてのアライをオーナーの手札に戻す。\n\n" +
@@ -3036,7 +3036,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
   // Trump Set  [ACTION]  L- NORM
   // EN: [Class Bonus] This card costs 1 less to activate. (Apply this effect only if your champion's class matches this card's class) /  / Change the target of an attack to a Suited ally you control. If you do, that ally gets +3POWER and +3LIFE until end of turn.
   "trump-set": {
-    name: "切り札の組",
+    name: "切り札一式",
     effect:
       "［クラスボーナス］このカードは起動コストが1少なくなる。*（この効果は、あなたのチャンピオンのクラスがこのカードのクラスと一致する場合のみ適用する。）*\n\n" +
       "攻撃の対象を、あなたがコントロールするスートアライに変更する。そうしたなら、そのアライは、ターン終了時まで＋3パワーと＋3ライフを得る。",
