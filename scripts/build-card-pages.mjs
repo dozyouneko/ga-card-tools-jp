@@ -119,7 +119,12 @@ function truncate(s, n) {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
 }
 
-const day = (iso) => (iso || "").slice(0, 10);
+// API側で日付が未設定のセットは epoch 0 が返るため、日付なし("")として扱う。
+// 空文字は降順ソートで末尾に来るので、newestFirst() の並び順は従来(1970-01-01)と変わらない。
+const day = (iso) => {
+  const d = (iso || "").slice(0, 10);
+  return d === "1970-01-01" ? "" : d;
+};
 
 // 版を「所属セットの発売日が新しい順」に並べたカードのビューを返す。
 // 代表画像・パンくず・収録一覧すべて最新版基準(指摘: 最古版だと旧セットの絵柄になる)。
@@ -339,7 +344,7 @@ function cardPage(rawCard) {
   // 収録セットと版(最新順)
   const edRows = eds.map((ed) => {
     const set = ed.set || {};
-    return `<tr><td><a href="/sets/${setSlug(set.prefix || "")}/">${esc(setLabel(set.prefix || ""))}</a></td><td>${day(set.release_date)}</td><td>#${esc(ed.collector_number || "")}</td><td>${esc(CI.rarityCode(ed.rarity))}</td><td>${esc(ed.illustrator || "")}</td></tr>`;
+    return `<tr><td><a href="/sets/${setSlug(set.prefix || "")}/">${esc(setLabel(set.prefix || ""))}</a></td><td>${day(set.release_date) || "—"}</td><td>#${esc(ed.collector_number || "")}</td><td>${esc(CI.rarityCode(ed.rarity))}</td><td>${esc(ed.illustrator || "")}</td></tr>`;
   }).join("");
   const editions = eds.length
     ? `<section class="cp-block"><h2>収録セットと版</h2><div class="cp-scroll"><table class="cp-table"><thead><tr><th>セット</th><th>発売日</th><th>番号</th><th>レア</th><th>イラスト</th></tr></thead><tbody>${edRows}</tbody></table></div></section>`
