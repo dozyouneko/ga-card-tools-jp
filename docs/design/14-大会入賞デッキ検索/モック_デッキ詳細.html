@@ -5,9 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>デッキ詳細 画面モック(3/3)</title>
 <!--
-  タスク#14 大会入賞デッキ検索の画面モック v1(ダミー導線)
+  タスク#14 大会入賞デッキ検索の画面モック v2(イラスト表示版)
   デッキ内容はOmnidex API実測(2026-07-19・イベント#57690 1位 yokomi選手の実提出デッキ)。
-  カード名は「英語（日本語訳）」表記(cardNameEJ・#12統計タブと同じ規則)。全カードのslug解決・訳文取得を確認済み。
+  表示は既存の共有デッキ画面(tools/deck-builder/app.js renderDeckView・.cardph/.view-grid)を
+  そのままベースにしたカードタイル。イラストは各カードの先頭の版(=カードデータのeditions[0]。
+  既存サイトの imageUrl() と同じデフォルト仕様。複数イラストがある場合の「最新版を採用」等の
+  優先ルールは実装時に検討すればよく、本モックでは既定の先頭版で表示)。
+  画像はカードDB本番と同じ api.gatcg.com から直接読み込み(実カード画像)。
 -->
 <style>
   :root {
@@ -22,7 +26,7 @@
     line-height: 1.6; font-size: 15px;
   }
   a { color: var(--accent-2); }
-  .wrap { max-width: 880px; margin: 0 auto; padding: 20px 20px 56px; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 20px 20px 56px; }
 
   .mock-note {
     display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
@@ -42,17 +46,34 @@
   .meta-row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: .88rem; color: var(--muted); }
   .meta-row a { color: var(--accent-2); }
 
-  .deck-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-top: 16px; }
-  .deck-card > h2 { margin: 0 0 10px; font-size: .95rem; display: flex; align-items: baseline; gap: 8px; }
-  .deck-card > h2 .cnt { color: var(--muted); font-weight: 400; font-size: .8rem; }
-
-  .deck-row { display: flex; align-items: baseline; gap: 10px; padding: 3px 0; font-size: .9rem; }
-  .deck-row .q { width: 2em; flex-shrink: 0; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .deck-row .n { flex: 1; }
-  .deck-row .n .jp { color: var(--muted); }
+  /* ---- 共有デッキ画面(view-zone/view-grid/cardph)と同じ表現 ---- */
+  .view-zone { margin-top: 18px; }
+  .view-zone h3 {
+    font-size: .85rem; color: var(--muted); font-weight: 600; letter-spacing: .04em;
+    margin: 0 0 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+  .view-zone h3 b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .view-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 12px; }
+  .cardph {
+    position: relative; border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--border); background: var(--panel-2);
+  }
+  .cardph img { width: 100%; aspect-ratio: 63 / 88; object-fit: cover; display: block; }
+  .cardph .noimg {
+    aspect-ratio: 63 / 88; display: grid; place-items: center; padding: 8px;
+    color: var(--muted); font-size: .72rem; text-align: center; word-break: break-all;
+  }
+  .qty-badge {
+    position: absolute; top: 8px; right: 8px;
+    background: rgba(8,9,12,.82); color: #fff; border: 1px solid rgba(255,255,255,.35);
+    font-size: .7rem; font-weight: 800; border-radius: 999px; padding: 2px 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .cardph.clickable { cursor: pointer; }
+  .cardph.clickable:hover { border-color: var(--accent); }
 
   .demo-note {
-    margin-top: 18px; font-size: .82rem; color: var(--muted);
+    margin-top: 20px; font-size: .82rem; color: var(--muted);
     border-top: 1px solid var(--border); padding-top: 12px;
   }
 
@@ -64,17 +85,13 @@
   .behavior ol { margin: 0; padding-left: 1.3em; color: var(--muted); }
   .behavior li { margin: 4px 0; }
   .behavior li b { color: var(--text); font-weight: 600; }
-
-  @media (max-width: 620px) {
-    .deck-row { flex-wrap: wrap; }
-  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="mock-note">
-    <b>MOCK 3/3</b>
-    <span>デッキ詳細画面(最終画面)。<a href="モック_大会詳細.html">← 2/3 大会詳細画面</a> / <a href="モック_大会検索.html">1/3 大会検索画面</a> へ戻れます。</span>
+    <b>MOCK 3/3 (v2: イラスト表示版)</b>
+    <span>デッキ詳細画面(最終画面)。<a href="モック_大会詳細.html">← 2/3 大会詳細画面</a> / <a href="モック_大会検索.html">1/3 大会検索画面</a> へ戻れます。表示は既存の共有デッキ画面と同じカードタイル(実カード画像・api.gatcg.comから読み込み)。</span>
   </div>
 
   <a class="back" href="モック_大会詳細.html">← 大会詳細へ戻る</a>
@@ -89,70 +106,78 @@
     </div>
   </div>
 
-  <div class="deck-card">
-    <h2>マテリアルデッキ <span class="cnt">12種12枚</span></h2>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Spirit of Wind<span class="jp">（風の精霊）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Arisanna, Herbalist Prodigy<span class="jp">（アリサナ、薬草の申し子）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Backup Charger<span class="jp">（予備の充電器）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Censer of Restful Peace<span class="jp">（安息の香炉）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Essence Crucible<span class="jp">（エッセンスのるつぼ）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Grand Crusader's Ring<span class="jp">（大聖戦士の指輪）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Ingredient Pouch<span class="jp">（材料袋）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Nullifying Lantern<span class="jp">（無効化のランタン）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Orb of Sealing<span class="jp">（封印のオーブ）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Polaris, Twinkling Cauldron<span class="jp">（ポラリス、瞬く大釜）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Viridian Protective Trinket<span class="jp">（翠の守護の装身具）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Purifying Thurible<span class="jp">（浄化の香炉）</span></span></div>
+  <div class="view-zone">
+    <h3>マテリアルデッキ <b>12枚</b></h3>
+    <div class="view-grid">
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/8lbewemhus.jpg" alt="Spirit of Wind（風の精霊）" title="Spirit of Wind（風の精霊）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/8n4yw4gq5w.jpg" alt="Arisanna, Herbalist Prodigy（アリサナ、薬草の申し子）" title="Arisanna, Herbalist Prodigy（アリサナ、薬草の申し子）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/3apypgzedx.jpg" alt="Backup Charger（予備の充電器）" title="Backup Charger（予備の充電器）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/5zkjomqu16.jpg" alt="Censer of Restful Peace（安息の香炉）" title="Censer of Restful Peace（安息の香炉）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/zW7kxXrcPX.jpg" alt="Essence Crucible（エッセンスのるつぼ）" title="Essence Crucible（エッセンスのるつぼ）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/ioxgugw9r9.jpg" alt="Grand Crusader's Ring（大聖戦士の指輪）" title="Grand Crusader's Ring（大聖戦士の指輪）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/kuhtkm4wuq.jpg" alt="Ingredient Pouch（材料袋）" title="Ingredient Pouch（材料袋）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/t6kxtm8eed.jpg" alt="Nullifying Lantern（無効化のランタン）" title="Nullifying Lantern（無効化のランタン）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/7ajdbh9gjr.jpg" alt="Orb of Sealing（封印のオーブ）" title="Orb of Sealing（封印のオーブ）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/BA3xVio7WK.jpg" alt="Polaris, Twinkling Cauldron（ポラリス、瞬く大釜）" title="Polaris, Twinkling Cauldron（ポラリス、瞬く大釜）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/ydupmu6gvm.jpg" alt="Viridian Protective Trinket（翠の守護の装身具）" title="Viridian Protective Trinket（翠の守護の装身具）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/szigpFX24M.jpg" alt="Purifying Thurible（浄化の香炉）" title="Purifying Thurible（浄化の香炉）"><span class="qty-badge">×1</span></div>
+    </div>
   </div>
 
-  <div class="deck-card">
-    <h2>メインデッキ <span class="cnt">24種60枚</span></h2>
-    <div class="deck-row"><span class="q">×3</span><span class="n">Distilled Water<span class="jp">（蒸留水）</span></span></div>
-    <div class="deck-row"><span class="q">×2</span><span class="n">Floral Arrangement<span class="jp">（花のあしらい）</span></span></div>
-    <div class="deck-row"><span class="q">×4</span><span class="n">Rictus Tiding<span class="jp">（引き笑いの報せ）</span></span></div>
-    <div class="deck-row"><span class="q">×2</span><span class="n">Topsy Decree<span class="jp">（あべこべの布告）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Turbo Charge<span class="jp">（ターボチャージ）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Unbroken Mustang<span class="jp">（不屈のマスタング）</span></span></div>
-    <div class="deck-row"><span class="q">×4</span><span class="n">Aesan Protector<span class="jp">（アエサンの守護者）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Calming Breeze<span class="jp">（凪ぐ微風）</span></span></div>
-    <div class="deck-row"><span class="q">×3</span><span class="n">Cyclical Breeze<span class="jp">（巡りの微風）</span></span></div>
-    <div class="deck-row"><span class="q">×2</span><span class="n">Dream Fairy<span class="jp">（夢の妖精）</span></span></div>
-    <div class="deck-row"><span class="q">×4</span><span class="n">Fairy Whispers<span class="jp">（妖精のささやき）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Innervate Agility<span class="jp">（活力の敏捷）</span></span></div>
-    <div class="deck-row"><span class="q">×4</span><span class="n">Razorgale Calling<span class="jp">（レイザーゲイルの呼び声）</span></span></div>
-    <div class="deck-row"><span class="q">×3</span><span class="n">Reclaim<span class="jp">（取り戻し）</span></span></div>
-    <div class="deck-row"><span class="q">×4</span><span class="n">Scout the Land<span class="jp">（土地の偵察）</span></span></div>
-    <div class="deck-row"><span class="q">×3</span><span class="n">Speed Potion<span class="jp">（スピードポーション）</span></span></div>
-    <div class="deck-row"><span class="q">×2</span><span class="n">Spellshield: Wind<span class="jp">（スペルシールド：風）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Stifling Gyre<span class="jp">（抑圧の旋風）</span></span></div>
-    <div class="deck-row"><span class="q">×2</span><span class="n">Tempest Downfall<span class="jp">（嵐の崩落）</span></span></div>
-    <div class="deck-row"><span class="q">×2</span><span class="n">Three Visits<span class="jp">（三顧の礼）</span></span></div>
-    <div class="deck-row"><span class="q">×4</span><span class="n">Veiling Breeze<span class="jp">（覆い隠す微風）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Verdigris Decree<span class="jp">（緑青の勅令）</span></span></div>
-    <div class="deck-row"><span class="q">×4</span><span class="n">Windmill Engineer<span class="jp">（風車の技師）</span></span></div>
-    <div class="deck-row"><span class="q">×2</span><span class="n">Zephyr<span class="jp">（ゼファー）</span></span></div>
+  <div class="view-zone">
+    <h3>メインデッキ <b>60枚</b></h3>
+    <div class="view-grid">
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/6gLhXwRMq3.jpg" alt="Distilled Water（蒸留水）" title="Distilled Water（蒸留水）"><span class="qty-badge">×3</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/II0oJRF3SM.jpg" alt="Floral Arrangement（花のあしらい）" title="Floral Arrangement（花のあしらい）"><span class="qty-badge">×2</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/tqveezw40i.jpg" alt="Rictus Tiding（引き笑いの報せ）" title="Rictus Tiding（引き笑いの報せ）"><span class="qty-badge">×4</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/X6UGiWHVIo.jpg" alt="Topsy Decree（あべこべの布告）" title="Topsy Decree（あべこべの布告）"><span class="qty-badge">×2</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/c16bn55g9b.jpg" alt="Turbo Charge（ターボチャージ）" title="Turbo Charge（ターボチャージ）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/vo5bxrg4eb.jpg" alt="Unbroken Mustang（不屈のマスタング）" title="Unbroken Mustang（不屈のマスタング）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/437wrwhqq1.jpg" alt="Aesan Protector（アエサンの守護者）" title="Aesan Protector（アエサンの守護者）"><span class="qty-badge">×4</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/yRPihgyHAH.jpg" alt="Calming Breeze（凪ぐ微風）" title="Calming Breeze（凪ぐ微風）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/a0ympv5ou3.jpg" alt="Cyclical Breeze（巡りの微風）" title="Cyclical Breeze（巡りの微風）"><span class="qty-badge">×3</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/wjn06zlhig.jpg" alt="Dream Fairy（夢の妖精）" title="Dream Fairy（夢の妖精）"><span class="qty-badge">×2</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/jfleo75zyb.jpg" alt="Fairy Whispers（妖精のささやき）" title="Fairy Whispers（妖精のささやき）"><span class="qty-badge">×4</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/3z0y2snsdv.jpg" alt="Innervate Agility（活力の敏捷）" title="Innervate Agility（活力の敏捷）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/pn2t15wzta.jpg" alt="Razorgale Calling（レイザーゲイルの呼び声）" title="Razorgale Calling（レイザーゲイルの呼び声）"><span class="qty-badge">×4</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/V6gBBisXz5.jpg" alt="Reclaim（取り戻し）" title="Reclaim（取り戻し）"><span class="qty-badge">×3</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/go0aghn40k.jpg" alt="Scout the Land（土地の偵察）" title="Scout the Land（土地の偵察）"><span class="qty-badge">×4</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/mmbab7CSy0.jpg" alt="Speed Potion（スピードポーション）" title="Speed Potion（スピードポーション）"><span class="qty-badge">×3</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/3dijq63nob.jpg" alt="Spellshield: Wind（スペルシールド：風）" title="Spellshield: Wind（スペルシールド：風）"><span class="qty-badge">×2</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/E533sbfrmt.jpg" alt="Stifling Gyre（抑圧の旋風）" title="Stifling Gyre（抑圧の旋風）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/el9900jpyh.jpg" alt="Tempest Downfall（嵐の崩落）" title="Tempest Downfall（嵐の崩落）"><span class="qty-badge">×2</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/CQLgF8ETYu.jpg" alt="Three Visits（三顧の礼）" title="Three Visits（三顧の礼）"><span class="qty-badge">×2</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/7uychawtts.jpg" alt="Veiling Breeze（覆い隠す微風）" title="Veiling Breeze（覆い隠す微風）"><span class="qty-badge">×4</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/ujqus0ccrs.jpg" alt="Verdigris Decree（緑青の勅令）" title="Verdigris Decree（緑青の勅令）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/l19j6i9ctl.jpg" alt="Windmill Engineer（風車の技師）" title="Windmill Engineer（風車の技師）"><span class="qty-badge">×4</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/yf9riu5xa6.jpg" alt="Zephyr（ゼファー）" title="Zephyr（ゼファー）"><span class="qty-badge">×2</span></div>
+    </div>
   </div>
 
-  <div class="deck-card">
-    <h2>サイドボード <span class="cnt">9種11枚</span></h2>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Nullifying Mirror<span class="jp">（無効化の鏡）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Wind Resonance Bauble<span class="jp">（風の共鳴宝珠）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Break Apart<span class="jp">（打ち砕く）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Obscured Offering<span class="jp">（覆い隠された供物）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Topsy Decree<span class="jp">（あべこべの布告）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Calming Breeze<span class="jp">（凪ぐ微風）</span></span></div>
-    <div class="deck-row"><span class="q">×1</span><span class="n">Stifling Gyre<span class="jp">（抑圧の旋風）</span></span></div>
-    <div class="deck-row"><span class="q">×2</span><span class="n">Stifling Trap<span class="jp">（抑圧の罠）</span></span></div>
-    <div class="deck-row"><span class="q">×2</span><span class="n">Verdigris Decree<span class="jp">（緑青の勅令）</span></span></div>
+  <div class="view-zone">
+    <h3>サイドボード <b>11枚</b></h3>
+    <div class="view-grid">
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/m14a9gpt6s.jpg" alt="Nullifying Mirror（無効化の鏡）" title="Nullifying Mirror（無効化の鏡）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/jm4wuq20gv.jpg" alt="Wind Resonance Bauble（風の共鳴宝珠）" title="Wind Resonance Bauble（風の共鳴宝珠）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/1nis8uaztx.jpg" alt="Break Apart（打ち砕く）" title="Break Apart（打ち砕く）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/WeNl3PfM69.jpg" alt="Obscured Offering（覆い隠された供物）" title="Obscured Offering（覆い隠された供物）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/X6UGiWHVIo.jpg" alt="Topsy Decree（あべこべの布告）" title="Topsy Decree（あべこべの布告）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/yRPihgyHAH.jpg" alt="Calming Breeze（凪ぐ微風）" title="Calming Breeze（凪ぐ微風）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/E533sbfrmt.jpg" alt="Stifling Gyre（抑圧の旋風）" title="Stifling Gyre（抑圧の旋風）"><span class="qty-badge">×1</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/3mgz76sk0p.jpg" alt="Stifling Trap（抑圧の罠）" title="Stifling Trap（抑圧の罠）"><span class="qty-badge">×2</span></div>
+      <div class="cardph clickable" tabindex="0"><img loading="lazy" src="https://api.gatcg.com/cards/images/ujqus0ccrs.jpg" alt="Verdigris Decree（緑青の勅令）" title="Verdigris Decree（緑青の勅令）"><span class="qty-badge">×2</span></div>
+    </div>
   </div>
-  <p class="demo-note">※上記はOmnidex APIから実際に取得した1位yokomi選手の提出デッキそのもの(材料/メイン/サイド全カード、名前解決・日本語訳とも実データで確認済み。メイン60枚・サイド11枚と実際のデッキ構築ルールに一致)。</p>
+
+  <p class="demo-note">※画像はカードDB本番と同じ api.gatcg.com から実カード画像を読み込んでいます(オフラインでは表示されません)。イラストは各カードの先頭の版(デフォルト版)。マウスオーバーで英語（日本語訳）のカード名がツールチップ表示されます(既存の共有デッキ画面と同じ挙動)。</p>
 
   <div class="behavior">
     <h2>挙動メモ(実装時の参考)</h2>
     <ol>
-      <li><b>表記</b>: 「英語（日本語訳）」形式(#12統計タブの `cardNameEJ()` と同じ規則)。未解決カードは英語名のみ(リンクなし)。</li>
-      <li><b>カードリンク</b>: 実装時は各行から `cards/&lt;slug&gt;/` または既存の詳細モーダル(shared/js/card-detail.js)を開けるようにする(カードDBと同じUX)。</li>
-      <li><b>構成順</b>: マテリアル→メイン→サイドボード(#12統計タブと同じ並び)。</li>
+      <li><b>タイルの見た目</b>: 既存の共有デッキ画面(`renderDeckView()`・`.cardph`/`.view-grid`)をそのまま流用。実装コストは実質ゼロ(カードのslugさえ解決できていれば同じ描画関数に乗せられる)。</li>
+      <li><b>イラストの版選び</b>: 既定は先頭の版(カードデータの`editions[0]`。既存`imageUrl()`と同じ)。「最新版を優先」等のルールが必要になれば`cardImages()`(shared/js/card-i18n.js)で全版を取得し並べ替えるだけで対応可(実装は容易)。</li>
+      <li><b>カードクリック</b>: 実装時は既存の詳細モーダル(`shared/js/card-detail.js`)をそのまま開けるようにする(カードDB・デッキ構築ツールと同じUX)。</li>
+      <li><b>未解決カード</b>: `.noimg`(スラグ解決できなかった場合の代替表示)も既存スタイルをそのまま使う。</li>
       <li><b>枚数超過・禁止カード</b>: 大会時点のフォーマット適合は問わない(過去のレギュレーションでの入賞デッキのため、現行ルールでの警告表示はしない方針)。</li>
     </ol>
   </div>
