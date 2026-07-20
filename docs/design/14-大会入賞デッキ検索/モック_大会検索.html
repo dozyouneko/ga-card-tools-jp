@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大会検索 画面モック(1/3)</title>
+<!--
+  タスク#14 大会入賞デッキ検索の画面モック v1(ダミー導線)
+  実物 tools/deck-builder/style.css・docs/design/12-デッキ統計タブ/統計タブ_モック.html のトークンを踏襲。
+  3画面(検索→大会詳細→デッキ詳細)をリンクで実際に遷移して確認できる。
+  大会・デッキデータは2026-07-19にOmnidex APIで実測した実データ(イベント#57690等)を使用。
+-->
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel-2: #1f232c; --border: #2a2f3a;
+    --text: #e7e9ee; --muted: #9aa2b1; --accent: #d9a441; --accent-2: #6ea8fe;
+    --yes: #2f9e6b; --danger: #fca5a5; --radius: 12px;
+  }
+  html { background: var(--bg); }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+    line-height: 1.6; font-size: 15px;
+  }
+  a { color: var(--accent-2); }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 20px 20px 56px; }
+
+  .mock-note {
+    display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+    border: 1px dashed var(--border); border-radius: var(--radius);
+    padding: 10px 14px; margin-bottom: 18px; font-size: .82rem; color: var(--muted);
+  }
+  .mock-note b { color: var(--accent); font-weight: 700; letter-spacing: .04em; }
+
+  .back { display: inline-block; margin-bottom: 10px; font-size: .88rem; color: var(--accent-2); text-decoration: none; }
+  h1 { margin: 4px 0 4px; font-size: 1.5rem; }
+  .sub { margin: 0 0 20px; color: var(--muted); font-size: .92rem; }
+
+  .filter-box {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px; margin-bottom: 18px;
+  }
+  .filter-row { display: flex; flex-wrap: wrap; gap: 8px 10px; }
+  .filter-row select, .filter-row input, .filter-row button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 12px; font-size: .88rem; font: inherit;
+  }
+  .filter-row input[type="search"] { flex: 1; min-width: 200px; }
+  .filter-row button { color: var(--muted); cursor: not-allowed; }
+
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  thead th {
+    text-align: left; padding: 8px 10px; color: var(--muted); font-weight: 600;
+    font-size: .78rem; letter-spacing: .04em; border-bottom: 1px solid var(--border);
+  }
+  tbody td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tbody tr.clickable { cursor: pointer; }
+  tbody tr.clickable:hover { background: rgba(255,255,255,.04); }
+  tbody tr.disabled { opacity: .5; }
+  td.date { white-space: nowrap; color: var(--muted); font-variant-numeric: tabular-nums; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .ev-name { font-weight: 600; }
+  .ev-name a { color: var(--text); text-decoration: none; }
+  .ev-name a:hover { color: var(--accent-2); }
+  .ev-host { color: var(--muted); font-size: .8rem; margin-top: 2px; }
+
+  .cat-badge {
+    display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: .74rem; font-weight: 600;
+    white-space: nowrap;
+  }
+  .cat-store { background: rgba(217,164,65,.15); color: var(--accent); border: 1px solid rgba(217,164,65,.4); }
+  .cat-regional { background: rgba(110,168,254,.15); color: var(--accent-2); border: 1px solid rgba(110,168,254,.4); }
+
+  .jp-badge {
+    display: inline-flex; align-items: center; gap: 4px; margin-left: 8px;
+    background: rgba(47,158,107,.15); color: #7fd4a8; border: 1px solid rgba(47,158,107,.4);
+    border-radius: 999px; padding: 1px 9px; font-size: .74rem; font-weight: 600; vertical-align: middle;
+  }
+
+  .demo-note {
+    margin-top: 18px; font-size: .82rem; color: var(--muted);
+    border-top: 1px solid var(--border); padding-top: 12px;
+  }
+
+  .behavior {
+    margin-top: 22px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 18px; font-size: .85rem;
+  }
+  .behavior h2 { margin: 0 0 8px; font-size: .95rem; color: var(--accent); }
+  .behavior ol { margin: 0; padding-left: 1.3em; color: var(--muted); }
+  .behavior li { margin: 4px 0; }
+  .behavior li b { color: var(--text); font-weight: 600; }
+
+  @media (max-width: 640px) {
+    thead th:nth-child(3), td:nth-child(3) { display: none; } /* フォーマット列を隠す */
+    .ev-host { display: block; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mock-note">
+    <b>MOCK 1/3</b>
+    <span>大会検索(一覧)画面。<a href="モック_大会詳細.html">→ 2/3 大会詳細画面</a> → <a href="モック_デッキ詳細.html">3/3 デッキ詳細画面</a> の順にリンクを辿って導線を確認できます。</span>
+  </div>
+
+  <a class="back" href="../../../index.html">← Grand Archive カードDBへ戻る</a>
+  <h1>🏆 大会入賞デッキ検索</h1>
+  <p class="sub">主要大会(Store Championship・Regionals等)の入賞デッキを日本語訳付きで見られます <span class="jp-badge">🇯🇵 日本語訳あり</span></p>
+
+  <div class="filter-box">
+    <div class="filter-row">
+      <select disabled><option>カテゴリ（全て）</option></select>
+      <select disabled><option>国（全て）</option></select>
+      <select disabled><option>フォーマット（全て）</option></select>
+      <input type="search" placeholder="大会名・プレイヤー名で検索…" disabled>
+      <button disabled>リセット</button>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>開催日</th><th>大会名</th><th>フォーマット</th><th>種別</th><th>参加</th></tr>
+    </thead>
+    <tbody>
+      <tr class="clickable" onclick="location.href='モック_大会詳細.html'">
+        <td class="date">2026-07-12</td>
+        <td>
+          <div class="ev-name"><a href="モック_大会詳細.html">CANTRIP RDOストアチャンピオンシップ</a></div>
+          <div class="ev-host">CANTRIP・東京都八王子市</div>
+        </td>
+        <td>スタンダード</td>
+        <td><span class="cat-badge cat-store">Store Champs</span></td>
+        <td class="num">22名</td>
+      </tr>
+      <tr class="disabled">
+        <td class="date">2026-07-11</td>
+        <td>
+          <div class="ev-name">Maindeck/JWW RDO Regional</div>
+          <div class="ev-host">Maindeck/JWW</div>
+        </td>
+        <td>スタンダード</td>
+        <td><span class="cat-badge cat-regional">Regionals</span></td>
+        <td class="num">48名</td>
+      </tr>
+      <tr class="disabled">
+        <td class="date">2026-07-05</td>
+        <td>
+          <div class="ev-name">CakeTCG Utrecht RDO Regional</div>
+          <div class="ev-host">CakeTCG</div>
+        </td>
+        <td>スタンダード</td>
+        <td><span class="cat-badge cat-regional">Regionals</span></td>
+        <td class="num">35名</td>
+      </tr>
+      <tr class="disabled">
+        <td class="date">2026-07-04</td>
+        <td>
+          <div class="ev-name">Carta Magica RDO Regionals — Hosted @ New Realm Games, Vaughan</div>
+          <div class="ev-host">Carta Magica</div>
+        </td>
+        <td>スタンダード</td>
+        <td><span class="cat-badge cat-regional">Regionals</span></td>
+        <td class="num">—</td>
+      </tr>
+      <tr class="disabled">
+        <td class="date">2026-07-03</td>
+        <td>
+          <div class="ev-name">Radiant Origins Dunedin Regionals @ Card Merchant Dunedin</div>
+          <div class="ev-host">Card Merchant Dunedin</div>
+        </td>
+        <td>スタンダード</td>
+        <td><span class="cat-badge cat-regional">Regionals</span></td>
+        <td class="num">34名</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="demo-note">※モックでは「CANTRIP RDOストアチャンピオンシップ」のみ詳細画面を用意しています(実データで作成)。他の行はダミー(実際の大会名・件数はcantripmtg.comのデッキ検索ページから引用)。</p>
+
+  <div class="behavior">
+    <h2>挙動メモ(実装時の参考)</h2>
+    <ol>
+      <li><b>並び</b>: 開催日の新しい順がデフォルト。</li>
+      <li><b>絞り込み</b>: データ量が少ない(規模の大きい大会のみ収録)ため、クライアント側フィルタで即時反映(サーバー往復なし)。</li>
+      <li><b>フォーマット列</b>: スマホ幅(≤640px)では非表示にして横スクロールを防ぐ(統計タブのレスポンシブ対応を踏襲)。</li>
+      <li><b>行クリック</b>: 大会詳細画面(2/3)へ遷移。</li>
+    </ol>
+  </div>
+</div>
+</body>
+</html>

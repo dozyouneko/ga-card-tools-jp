@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大会詳細 画面モック(2/3)</title>
+<!--
+  タスク#14 大会入賞デッキ検索の画面モック v1(ダミー導線)
+  データはOmnidex API実測(2026-07-19・イベント#57690 CANTRIP RDOストアチャンピオンシップ)。
+  Top8の順位・戦績・ユーザー名はすべて実データ。
+-->
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel-2: #1f232c; --border: #2a2f3a;
+    --text: #e7e9ee; --muted: #9aa2b1; --accent: #d9a441; --accent-2: #6ea8fe;
+    --yes: #2f9e6b; --danger: #fca5a5; --radius: 12px;
+  }
+  html { background: var(--bg); }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+    line-height: 1.6; font-size: 15px;
+  }
+  a { color: var(--accent-2); }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 20px 20px 56px; }
+
+  .mock-note {
+    display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+    border: 1px dashed var(--border); border-radius: var(--radius);
+    padding: 10px 14px; margin-bottom: 18px; font-size: .82rem; color: var(--muted);
+  }
+  .mock-note b { color: var(--accent); font-weight: 700; letter-spacing: .04em; }
+
+  .back { display: inline-block; margin-bottom: 10px; font-size: .88rem; color: var(--accent-2); text-decoration: none; }
+
+  .ev-head { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+  h1 { margin: 0 0 8px; font-size: 1.35rem; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: .88rem; color: var(--muted); }
+  .cat-badge {
+    display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: .74rem; font-weight: 600;
+    background: rgba(217,164,65,.15); color: var(--accent); border: 1px solid rgba(217,164,65,.4);
+  }
+  .jp-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(47,158,107,.15); color: #7fd4a8; border: 1px solid rgba(47,158,107,.4);
+    border-radius: 999px; padding: 1px 9px; font-size: .74rem; font-weight: 600;
+  }
+
+  h2 { font-size: 1rem; margin: 26px 0 10px; color: var(--muted); font-weight: 600; letter-spacing: .04em; }
+
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  thead th {
+    text-align: left; padding: 8px 10px; color: var(--muted); font-weight: 600;
+    font-size: .78rem; letter-spacing: .04em; border-bottom: 1px solid var(--border);
+  }
+  tbody td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  td.rank { font-variant-numeric: tabular-nums; color: var(--muted); width: 2.4em; }
+  tr.top1 td.rank { color: var(--accent); font-weight: 700; }
+  td.rec { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.pct { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .player-name { font-weight: 600; }
+  .deck-link {
+    display: inline-flex; align-items: center; gap: 4px; font-size: .82rem;
+    color: var(--accent-2); text-decoration: none; white-space: nowrap;
+  }
+  .deck-link:hover { text-decoration: underline; }
+  .no-deck { color: var(--muted); font-size: .82rem; }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover { background: rgba(255,255,255,.04); }
+
+  .demo-note {
+    margin-top: 18px; font-size: .82rem; color: var(--muted);
+    border-top: 1px solid var(--border); padding-top: 12px;
+  }
+
+  .behavior {
+    margin-top: 22px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 18px; font-size: .85rem;
+  }
+  .behavior h2 { margin: 0 0 8px; font-size: .95rem; color: var(--accent); }
+  .behavior ol { margin: 0; padding-left: 1.3em; color: var(--muted); }
+  .behavior li { margin: 4px 0; }
+  .behavior li b { color: var(--text); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mock-note">
+    <b>MOCK 2/3</b>
+    <span>大会詳細画面(順位表)。<a href="モック_大会検索.html">← 1/3 大会検索画面</a> / rank1「yokomi」の行をクリックすると <a href="モック_デッキ詳細.html">→ 3/3 デッキ詳細画面</a> へ遷移します。</span>
+  </div>
+
+  <a class="back" href="モック_大会検索.html">← 大会検索へ戻る</a>
+
+  <div class="ev-head">
+    <h1>CANTRIP RDOストアチャンピオンシップ</h1>
+    <div class="meta-row">
+      <span class="cat-badge">Store Championship</span>
+      <span class="jp-badge">🇯🇵 日本語訳あり</span>
+      <span>2026-07-12</span>
+      <span>CANTRIP・東京都八王子市</span>
+      <span>フォーマット: スタンダード</span>
+      <span>参加22名</span>
+      <span>スイス5回戦 → シングルエリミネーション(Top4)</span>
+    </div>
+  </div>
+
+  <h2>順位表(Top8・swiss終了時点)</h2>
+  <table>
+    <thead>
+      <tr><th>順位</th><th>プレイヤー</th><th>成績</th><th>GW%</th><th>MW%</th><th>デッキ</th></tr>
+    </thead>
+    <tbody>
+      <tr class="top1 clickable" onclick="location.href='モック_デッキ詳細.html'">
+        <td class="rank">1</td>
+        <td class="player-name">yokomi</td>
+        <td class="rec">4-0-1</td>
+        <td class="pct">88.9%</td>
+        <td class="pct">80%</td>
+        <td><a class="deck-link" href="モック_デッキ詳細.html">📄 デッキを見る</a></td>
+      </tr>
+      <tr>
+        <td class="rank">2</td>
+        <td class="player-name">hachico</td>
+        <td class="rec">4-1-0</td>
+        <td class="pct">69.2%</td>
+        <td class="pct">80%</td>
+        <td><span class="no-deck">(モック未収録)</span></td>
+      </tr>
+      <tr>
+        <td class="rank">3</td>
+        <td class="player-name">AkiraKasumi</td>
+        <td class="rec">4-1-0</td>
+        <td class="pct">72.7%</td>
+        <td class="pct">80%</td>
+        <td><span class="no-deck">(モック未収録)</span></td>
+      </tr>
+      <tr>
+        <td class="rank">4</td>
+        <td class="player-name">naruge</td>
+        <td class="rec">3-1-1</td>
+        <td class="pct">77.8%</td>
+        <td class="pct">60%</td>
+        <td><span class="no-deck">(モック未収録)</span></td>
+      </tr>
+      <tr>
+        <td class="rank">5</td>
+        <td class="player-name">Kaoru</td>
+        <td class="rec">3-1-1</td>
+        <td class="pct">58.3%</td>
+        <td class="pct">60%</td>
+        <td><span class="no-deck">(モック未収録)</span></td>
+      </tr>
+      <tr>
+        <td class="rank">6</td>
+        <td class="player-name">barbarian</td>
+        <td class="rec">3-1-1</td>
+        <td class="pct">63.6%</td>
+        <td class="pct">60%</td>
+        <td><span class="no-deck">(モック未収録)</span></td>
+      </tr>
+      <tr>
+        <td class="rank">7</td>
+        <td class="player-name">Bayabayashi</td>
+        <td class="rec">3-2-0</td>
+        <td class="pct">50.0%</td>
+        <td class="pct">60%</td>
+        <td><span class="no-deck">(モック未収録)</span></td>
+      </tr>
+      <tr>
+        <td class="rank">8</td>
+        <td class="player-name">Ruruca</td>
+        <td class="rec">3-2-0</td>
+        <td class="pct">58.3%</td>
+        <td class="pct">60%</td>
+        <td><span class="no-deck">(モック未収録)</span></td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="demo-note">※順位・戦績・ユーザー名はすべて実データ(Omnidex API standings/players実測)。「デッキを見る」はモックでは1位のみ用意(2位以下もAPI上は全員デッキ提出済み=実装時は全行にリンクが付く)。</p>
+
+  <div class="behavior">
+    <h2>挙動メモ(実装時の参考)</h2>
+    <ol>
+      <li><b>デッキ未提出</b>: `standings[].hasSubmittedDecklist` が false の選手は「デッキを見る」リンクを出さない。</li>
+      <li><b>順位表のスコープ</b>: MVPはTop8想定(cantrip等の一般的な掲載範囲に合わせる)。全順位表示は将来検討。</li>
+      <li><b>GW%/MW%</b>: ゲーム勝率/マッチ勝率。タイブレーカーとして表示するが判定ロジックには使わない(表示のみ)。</li>
+      <li><b>カテゴリバッジ</b>: 一覧画面(1/3)と同じ配色トークンを共有。</li>
+    </ol>
+  </div>
+</div>
+</body>
+</html>
