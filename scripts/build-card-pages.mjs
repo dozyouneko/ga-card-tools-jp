@@ -9,75 +9,26 @@
 // window スタブ経由でそのまま読み込む(ブラウザ表示と同一ロジック)。
 // 効果文の用語ハイライト等は shared/js/card-detail.js の実装を移植(同一規則)。
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
 import { fileURLToPath } from "node:url";
+import { loadCards, fetchJson } from "./lib/cards-snapshot.mjs";
+import { loadPageI18n } from "./lib/page-i18n.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = "https://ga-card-tools-jp.pages.dev";
 const API = "https://api.gatcg.com";
-const SNAPSHOT = path.join(ROOT, "tmp", "api-cache", "cards-snapshot.json");
 const FEATURED = path.join(ROOT, "tmp", "api-cache", "featured-sets.json");
 const REFRESH = process.argv.includes("--refresh");
 
 // ---------- 翻訳・共通ヘルパーの読み込み(ブラウザと同じ順序) ----------
+// 実体は scripts/lib/page-i18n.mjs(build-tournament-pages.mjs と共用)
 
-function loadI18n() {
-  // index.html の <script src="data/..."> の並びをそのまま使う(マージ順を一致させる)
-  const html = readFileSync(path.join(ROOT, "index.html"), "utf8");
-  const files = [...html.matchAll(/<script src="(data\/[^"]+)"><\/script>/g)].map((m) => m[1]);
-  if (!files.length) throw new Error("index.html から data/ スクリプトを検出できません");
-  const sandbox = { window: {} };
-  vm.createContext(sandbox);
-  for (const f of [...files, "shared/js/card-i18n.js"]) {
-    vm.runInContext(readFileSync(path.join(ROOT, f), "utf8"), sandbox, { filename: f });
-  }
-  return { I18N: sandbox.window.GA_I18N, CI: sandbox.window.GA_CARD_I18N };
-}
-
-const { I18N, CI } = loadI18n();
+const { I18N, CI } = loadPageI18n(ROOT);
 const esc = CI.escapeHtml;
 
 // ---------- スナップショット取得 ----------
-
-async function fetchJson(url, tries = 3) {
-  for (let i = 1; ; i++) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    } catch (e) {
-      if (i >= tries) throw new Error(`${url}: ${e.message}`);
-      await new Promise((r) => setTimeout(r, 1000 * i));
-    }
-  }
-}
-
-async function refreshSnapshot() {
-  process.stderr.write("公式APIから全カードを取得中...\n");
-  const first = await fetchJson(`${API}/cards/search?page=1`);
-  const totalPages = first.total_pages;
-  const cards = [...first.data];
-  const pages = [];
-  for (let p = 2; p <= totalPages; p++) pages.push(p);
-  const CONCURRENCY = 4;
-  let idx = 0;
-  async function worker() {
-    while (idx < pages.length) {
-      const p = pages[idx++];
-      const d = await fetchJson(`${API}/cards/search?page=${p}`);
-      cards.push(...d.data);
-      if (p % 10 === 0) process.stderr.write(`  ${p}/${totalPages} ページ\n`);
-    }
-  }
-  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
-  cards.sort((a, b) => a.slug.localeCompare(b.slug));
-  mkdirSync(path.dirname(SNAPSHOT), { recursive: true });
-  writeFileSync(SNAPSHOT, JSON.stringify({ fetched_at: new Date().toISOString(), total: cards.length, cards }));
-  process.stderr.write(`スナップショット保存: ${cards.length}枚 → ${path.relative(ROOT, SNAPSHOT)}\n`);
-  return cards;
-}
+// 取得・保存の実体は scripts/lib/cards-snapshot.mjs(build-tournament-pages.mjs と共用)
 
 // エキスパンショングループ(公式ロゴ付き)。--refresh 時またはキャッシュ未生成時に取得
 async function loadFeaturedSets() {
@@ -645,6 +596,23 @@ const CARDS_JS = `// カード個別ページ・セット一覧(静的生成)用
 })();
 `;
 
+// 大会入賞デッキ(scripts/build-tournament-pages.mjs が生成)のURLを集める。
+// データが無ければ何も返さない(大会スキャン→カードページ生成の順に実行する運用)。
+function tournamentUrls() {
+  const dir = path.join(ROOT, "data", "tournaments", "events");
+  if (!existsSync(dir)) return [];
+  const out = [{ loc: `${SITE}/tournaments/`, lastmod: null, changefreq: "daily", priority: "0.8" }];
+  for (const f of readdirSync(dir).filter((n) => n.endsWith(".json"))) {
+    const ev = JSON.parse(readFileSync(path.join(dir, f), "utf8"));
+    const lastmod = day(ev.startAt) || null;
+    out.push({ loc: `${SITE}/tournaments/${ev.id}/`, lastmod, changefreq: "yearly", priority: "0.7" });
+    for (const d of ev.decklists || []) {
+      out.push({ loc: `${SITE}/tournaments/${ev.id}/decks/${d.player}/`, lastmod, changefreq: "yearly", priority: "0.5" });
+    }
+  }
+  return out;
+}
+
 function buildSitemap(cards, setsSorted) {
   const urls = [];
   const add = (loc, lastmod, changefreq, priority) => urls.push({ loc, lastmod, changefreq, priority });
@@ -653,6 +621,7 @@ function buildSitemap(cards, setsSorted) {
   add(`${SITE}/tools/glossary/`, null, "monthly", "0.6");
   add(`${SITE}/tools/print/`, null, "monthly", "0.5");
   add(`${SITE}/cards/`, null, "weekly", "0.8");
+  urls.push(...tournamentUrls());
   for (const [prefix, entries] of setsSorted) {
     const lastmod = entries.reduce((m, { card }) => (day(card.last_update) > m ? day(card.last_update) : m), "");
     add(`${SITE}/sets/${setSlug(prefix)}/`, lastmod || null, "monthly", "0.6");
@@ -667,14 +636,7 @@ function buildSitemap(cards, setsSorted) {
 // ---------- main ----------
 
 async function main() {
-  let cards;
-  if (REFRESH || !existsSync(SNAPSHOT)) {
-    cards = await refreshSnapshot();
-  } else {
-    const snap = JSON.parse(readFileSync(SNAPSHOT, "utf8"));
-    cards = snap.cards;
-    process.stderr.write(`スナップショット使用: ${cards.length}枚 (取得: ${snap.fetched_at})\n`);
-  }
+  const cards = await loadCards(ROOT, { force: REFRESH });
 
   // セット別グルーピング(カードは版ごとに所属セットへ。同一セット内の重複版は先頭のみ)
   const bySets = new Map();

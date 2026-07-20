@@ -1,0 +1,52 @@
+# 大会入賞デッキ(タスク#14)のデータ自動更新。
+# 日次で公式Omnidex APIをスキャンし、新しく確定した主要大会を data/tournaments/ に取り込んで
+# 静的ページを再生成し、変更があればmainへ直接pushする(Cloudflare Pagesの自動デプロイが続く)。
+# 設計: docs/design/14-大会入賞デッキ検索/大会入賞デッキ検索_設計.md
+name: build-tournaments
+
+on:
+  # ⚠️ 日次cronは「大会データをgit管理する容量方針」が決まるまで無効にしてある(issue #14 で確認中)。
+  # 初回バックフィル実測(2026-07-20): 415大会 / 9,307デッキ = 生成HTML 221MB + データ45MB。
+  # このまま有効化すると初回実行でmainへ約266MBがpushされ、履歴からの取り消しが困難になるため。
+  # 方針決定後に下の3行のコメントを外す。
+  # schedule:
+  #   - cron: "0 18 * * *" # 毎日 03:00 JST(イベント作成は世界全体で約115件/日のため日次で十分)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-tournaments
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 大会スキャン → ページ生成。カードスナップショット(tmp/はgit管理外)は
+      # スクリプトが未取得時に公式APIから自動で取り直す。
+      - name: 大会データをスキャンしてページ生成
+        run: node scripts/build-tournament-pages.mjs
+
+      # sitemap.xml は build-card-pages.mjs 側が生成する(tournaments/ のURLもここで合流)。
+      # cards/・sets/ の再生成物は下の git add 対象外なので、コミットには含めない。
+      - name: sitemap.xml を再生成
+        run: node scripts/build-card-pages.mjs
+
+      - name: 変更があればコミット・push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/tournaments tournaments sitemap.xml
+          if git diff --cached --quiet; then
+            echo "更新なし(新しく確定した大会はありませんでした)"
+          else
+            git commit -m "大会データ自動更新 $(date -u +%Y-%m-%d)"
+            git push
+          fi

@@ -8,6 +8,8 @@
     "dev": "node scripts/serve.mjs",
     "scaffold": "node scripts/scaffold.mjs",
     "validate": "node scripts/validate.mjs",
+    "build:cards": "node scripts/build-card-pages.mjs",
+    "build:tournaments": "node scripts/build-tournament-pages.mjs",
     "pages:dev": "wrangler pages dev . --local",
     "db:migrate:local": "wrangler d1 execute DB --local --file=migrations/0001_init.sql && wrangler d1 execute DB --local --file=migrations/0002_deck_card_art.sql && wrangler d1 execute DB --local --file=migrations/0003_deck_thumb.sql",
     "db:migrate:remote": "wrangler d1 execute DB --remote --file=migrations/0001_init.sql && wrangler d1 execute DB --remote --file=migrations/0002_deck_card_art.sql && wrangler d1 execute DB --remote --file=migrations/0003_deck_thumb.sql"
