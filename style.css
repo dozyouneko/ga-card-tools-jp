@@ -107,13 +107,22 @@ a { color: var(--accent-2); }
 /* ---------- 複数選択（AND/OR）の絞り込みグループ ---------- */
 /* 4グループを開いたままにするとチップが50個以上並びカード一覧が押し出されるため、
    各グループは <details> で既定は閉じる。閉じていても選択件数はバッジで分かる。 */
+
+/* PC幅では4グループをタイル状に並べる（全幅で縦に積むとカード一覧が下へ押し出されるため）。
+   幅に応じて 2〜4 列に追従し、開いたグループだけ全幅に広げてチップを窮屈にしない。
+   スマホ幅は下のメディアクエリで縦積みに戻す。 */
+.filter-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px;
+  align-items: start;
+}
+.fgroup[open], .filter-rest { grid-column: 1 / -1; }
 .fgroup {
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--panel-2);
 }
-.fgroup + .fgroup { margin-top: 8px; }
-.filter-rest { margin-top: 10px; }
 .fgroup summary {
   display: flex;
   align-items: center;
@@ -410,8 +419,11 @@ a { color: var(--accent-2); }
     font-size: 16px; padding: 11px 12px; border-radius: 8px;
     background: var(--panel); color: var(--text); border: 1px solid var(--border);
   }
+  /* PC幅のタイル配置をやめ、グループは縦積みに戻す */
   .filter-row { display: none; }
   .controls.filters-open .filter-row { display: block; }
+  .fgroup + .fgroup { margin-top: 8px; }
+  .filter-rest { margin-top: 10px; }
   .controls.filters-open .filter-rest { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .controls.filters-open .filter-rest select { grid-column: 1 / -1; }
   #order, #reset { min-width: 0; }
