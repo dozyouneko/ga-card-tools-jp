@@ -85,6 +85,8 @@ APIがANDに非対応のため、以下の方式を採る。
 
 AND時は総件数が確定できないため、**「表示中 N件」のように実際に描画した件数を出す**か、上位集合の件数であることが分かる表記にする。
 
+**(2026-07-22確定)** 既存の `N 件を表示 / 全 N 件` の表記を維持し、総件数を出せない場合のみ注記を添える。モックに書いた `検索結果：N件` は[#18](https://github.com/dozyouneko/ga-card-tools-jp/issues/18)(大会デッキ検索)の表記であり、**カードDBは対象外**なので寄せない。あわせて**日本語モードで従来出ていた不正確な「全 N 件」を出さないように直す**(既存の `total = jpSlugs.length` の制約への対処)。
+
 **現行コードにも同じ制約が既にある**([card-search.js](../../../shared/js/card-search.js) の日本語モード: `total = jpSlugs.length; // 追加の絞り込みは客側適用のため、総数には反映されない`)。本対応で表記を統一するとよい。
 
 ### 検討したが採らない案: カードメタデータ索引を配信する
@@ -118,7 +120,9 @@ slug→{elements, classes, types, subtypes} の索引を生成して配信すれ
 現行の `<select>`(単一選択)を複数選択できる形に変える。**`<select multiple>` はスマホで扱いにくいため採用しない。**
 
 - **チェックボックス群**を基本とする。項目名をタップで開閉するトグル(`<details>`)に入れ、既定は閉じる
-- **エレメントは12種と少なく、[#15](https://github.com/dozyouneko/ga-card-tools-jp/issues/15)で属性玉のアイコン(32px WebP・data URI)を作成済み**なので、**玉アイコン付きのトグルボタン群**にすると視認性が上がりカードDBらしくなる。`scripts/lib/element-orbs.json` を流用できる
+- **エレメントは13種と少なく、[#15](https://github.com/dozyouneko/ga-card-tools-jp/issues/15)で属性玉のアイコン(32px WebP・data URI)を作成済み**なので、**玉アイコン付きのトグルボタン群**にすると視認性が上がりカードDBらしくなる
+- ⚠️ **`scripts/lib/element-orbs.json` はNode側のファイルでブラウザから読めない**。CSPが `style-src 'self'` でインラインstyleも使えないため、**JSONからCSSファイルを生成してコミットし `<link>` で読み込む**(`scripts/gen-element-orbs-css.mjs` → `shared/css/element-orbs.css`)。sharp・ネットワークが要る `gen-element-orbs.mjs` とは別物で、**JSONを読むだけでオフライン実行できる**
+- ⚠️ **EXALTEDには玉がない**(`element-orbs.json` は12種でEXALTEDを含まない)。これはゲーム上もEXALTEDが独自の玉を持たない(金装飾表現)ためで、[deck-builder/app.js](../../../tools/deck-builder/app.js) の `deckDisplayElements()` も同じ理由でEXALTEDを除外している。**EXALTEDのチップはテキストのみとする**
 - 選択中の件数をバッジ等で示す(閉じていても状態が分かるように)
 
 ### サブタイプは146種あるため既定では上位20種のみ出す
@@ -134,13 +138,16 @@ slug→{elements, classes, types, subtypes} の索引を生成して配信すれ
 
 - **既定は上位20種のみ**をチップで表示する
 - 「**＋ すべて表示（146種）**」で残りを開く
-- 表示順は**出現頻度の降順**とする(実装時にスナップショットから算出。上位20種は `CLERIC / SPELL / HUMAN / MAGE / TAMER / WARRIOR / GUARDIAN / SKILL / RANGER / ASSASSIN / REACTION / SWORD / ANIMAL / ACCESSORY / AUTOMATON / SPECTER / ANGEL / ARMOR / DRAGON / BOW`)
+- 表示順は**出現頻度の降順**とする(実装時にスナップショットから算出)
+- **(2026-07-22訂正)** 初版に書いた上位20種の列挙は**末尾5種が誤り**だった(カバー率2,205止まり)。正しい頻度降順の上位20種は次のとおりで、カバー率2,239(=表の値と一致):
+  `CLERIC / SPELL / HUMAN / MAGE / TAMER / WARRIOR / GUARDIAN / SKILL / RANGER / ASSASSIN / REACTION / SWORD / ANIMAL / ACCESSORY / AUTOMATON / ARTIFACT / SPECTER / BEAST / CHESSMAN / SPIRIT`
+- **(2026-07-22追記)** 絞り込み候補は**カードスナップショットではなく `I18N.meta.subtypes` から生成する**(既存の `fillSelect()` と同じ挙動)。そのため UI 上は**147種**になる(差分は `SHENJU`。訳語はあるがスナップショット上どのカードにも付いていない)。ボタン表記は「＋ すべて表示（147種）」
 
 ### AND/ORトグル
 
 - **項目ごとに1つずつ**置く(エレメントはOR・サブタイプはAND、のような混在ができる)
 - 2値のセグメント切り替え(`AND` / `OR`)。**既定はOR**(「norm or wind」という要望の主目的であり、ANDより直感的なため)
-- **値を1つしか選んでいないときはAND/ORの区別が無意味**なので、トグルを無効化するか非表示にする
+- **(2026-07-22確定)** 値を1つ以下しか選んでいないときも**トグルは常時有効**にする。無効化すると「先にANDを選んでから値を選ぶ」操作ができず不便なため(1値ならAND/ORで結果は変わらないので実害はない)
 
 ### エレメントAND時のメッセージ
 
