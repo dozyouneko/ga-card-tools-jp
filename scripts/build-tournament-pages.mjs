@@ -449,7 +449,12 @@ function championLabel(card) {
   return jp && jp !== en ? `${en}（${jp}）` : en;
 }
 
-// デッキ1件 → { els: ["FIRE", …], champ: "Arisanna（アリサナ）" }。
+// 順位表に並べるチャンピオン名の上限。実測の分布は 1件=10,157(96%) / 2件=409 / 3件=1 /
+// 12件=1 で、3件までを全表示にすれば省略されるのは実質1デッキ(大会#53836・全材料が
+// スピリット12種=413文字)だけ。省略しないとスマホ幅で1行が約400pxを占める
+const MAX_CHAMPS = 3;
+
+// デッキ1件 → { els: ["FIRE", …], champ: 表示名, full: 全件(titleと検索に使う) }。
 // チャンピオンが複数ならスラッシュ併記。スピリットしか無いときだけスピリット名を使う
 function deckInfoOf(deck, cardBySlug) {
   const champs = (deck.material || [])
@@ -457,7 +462,11 @@ function deckInfoOf(deck, cardBySlug) {
     .filter((c) => c && (c.types || []).includes("CHAMPION"));
   const nonSpirit = champs.filter((c) => !(c.subtypes || []).includes("SPIRIT"));
   const names = [...new Set((nonSpirit.length ? nonSpirit : champs).map(championLabel))];
-  return { els: championElements(champs), champ: names.join(" / ") || NO_DECK_INFO };
+  const full = names.join(" / ") || NO_DECK_INFO;
+  const champ = names.length > MAX_CHAMPS
+    ? `${names.slice(0, MAX_CHAMPS).join(" / ")} 他${names.length - MAX_CHAMPS}種`
+    : full;
+  return { els: championElements(champs), champ, full };
 }
 
 // 各大会に deckInfo(プレイヤーid → 上記)を持たせる。順位表・一覧の検索の双方で使う
@@ -601,7 +610,7 @@ ${siteFooter()}
 // 一覧のテキスト検索でプレイヤー名・大会id・チャンピオン名も引けるようにするため、
 // 各行に検索用の文字列を持たせる。チャンピオン名は大会内で重複排除する(#15)
 function searchBlob(ev) {
-  const champs = [...new Set(Object.values(ev.deckInfo || {}).map((d) => d.champ))]
+  const champs = [...new Set(Object.values(ev.deckInfo || {}).map((d) => d.full))]
     .filter((c) => c !== NO_DECK_INFO);
   return [ev.id, ev.name, ev.host.name, ev.host.country, countryLabelText(ev.host.country),
     formatJp(ev.format), catInfo(ev.category).full, ...Object.values(ev.players), ...champs].join(" ");
@@ -642,11 +651,13 @@ function eventPage(ev) {
     const name = playerName(ev, s.player);
     const info = ev.deckInfo[s.player];
     // 属性玉 → チャンピオン名。デッキ未提出の行は「—」(#15)
+    // title は「他N種」で省略した分も含む全件(設計 2026-07-22改訂)
     const deckCell = info
-      ? `${info.els.length ? `<span class="orbs">${orbsHtml(info.els)}</span>` : ""}<span class="champ" title="${esc(info.champ)}">${esc(info.champ)}</span>`
+      ? `${info.els.length ? `<span class="orbs">${orbsHtml(info.els)}</span>` : ""}<span class="champ" title="${esc(info.full)}">${esc(info.champ)}</span>`
       : `<span class="champ no-deck">${NO_DECK_INFO}</span>`;
-    // 順位表の絞り込み(プレイヤー名・チャンピオン名・属性)用。属性は日本語名と英字コードの両方で引ける
-    const blob = [name, info ? info.champ : "", ...(info ? info.els.flatMap((e) => [e, elementJp(e)]) : [])].join(" ");
+    // 順位表の絞り込み(プレイヤー名・チャンピオン名・属性)用。属性は日本語名と英字コードの
+    // 両方で引ける。チャンピオン名は省略前の全件を入れる(隠れた名前でも引けるように)
+    const blob = [name, info ? info.full : "", ...(info ? info.els.flatMap((e) => [e, elementJp(e)]) : [])].join(" ");
     return `<tr${s.rank === 1 ? ' class="top1"' : ""} data-player="${s.player}" data-search="${esc(blob)}">
         <td class="rank">${RANK_ICON[s.rank] || ""}${s.rank}</td>
         <td class="player-name">${esc(name)}</td>
