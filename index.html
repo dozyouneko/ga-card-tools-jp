@@ -24,6 +24,7 @@
   <meta name="twitter:image" content="https://ga-card-tools-jp.pages.dev/ogp.png" />
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="shared/css/card-detail.css" />
+  <link rel="stylesheet" href="shared/css/element-orbs.css" />
   <!-- Cloudflare Web Analytics -->
   <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "79f367803da7466d9b8edd3476edb554"}'></script>
   <!-- End Cloudflare Web Analytics -->
@@ -52,12 +53,14 @@
       <input type="search" id="q" placeholder="カード名で検索（英語）… 例: lorraine" autocomplete="off" />
       <input type="search" id="qtext" placeholder="効果テキストで部分検索（英語 / 日本語）… 例: draw, 追放" autocomplete="off" />
     </div>
-    <button id="filter-toggle" class="filter-toggle" type="button" aria-expanded="false" aria-controls="filter-row">絞り込み・並び替え ▾</button>
-    <div class="controls-row filter-row" id="filter-row">
-    <select id="f-class" autocomplete="off"><option value="">クラス（全て）</option></select>
-    <select id="f-element" autocomplete="off"><option value="">エレメント（全て）</option></select>
-    <select id="f-type" autocomplete="off"><option value="">タイプ（全て）</option></select>
-    <select id="f-subtype" autocomplete="off"><option value="">サブタイプ（全て）</option></select>
+    <button id="filter-toggle" class="filter-toggle" type="button" aria-expanded="false" aria-controls="filter-row"><span id="filter-toggle-label">絞り込み・並び替え ▾</span><span id="filter-toggle-badge" class="fbadge" hidden></span></button>
+    <div class="filter-row" id="filter-row">
+    <!-- 複数選択（AND/OR）の絞り込み。中身は shared/js/card-search.js の fillChips() が構築する -->
+    <details class="fgroup" id="g-element"></details>
+    <details class="fgroup" id="g-class"></details>
+    <details class="fgroup" id="g-type"></details>
+    <details class="fgroup" id="g-subtype"></details>
+    <div class="controls-row filter-rest">
     <select id="f-format" autocomplete="off"><option value="">フォーマット（全て）</option></select>
     <select id="f-set" autocomplete="off"><option value="">エキスパンション（全て）</option></select>
     <select id="f-sort" autocomplete="off" aria-label="並び替え">
@@ -70,6 +73,7 @@
     </select>
     <button id="order" type="button" data-dir="ASC" aria-label="昇順・降順を切替">▲ 昇順</button>
     <button id="reset" type="button">リセット</button>
+    </div>
     </div>
   </section>
 

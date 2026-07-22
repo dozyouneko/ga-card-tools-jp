@@ -12,10 +12,12 @@ const I18N = window.GA_I18N || { meta: {}, terms: {}, cards: {} };
 const el = {
   q: document.getElementById("q"),
   qtext: document.getElementById("qtext"),
-  fClass: document.getElementById("f-class"),
-  fElement: document.getElementById("f-element"),
-  fType: document.getElementById("f-type"),
-  fSubtype: document.getElementById("f-subtype"),
+  // クラス/エレメント/タイプ/サブタイプは複数選択（AND/OR）のチップ群。
+  // 中身は GA_CARD_SEARCH.fillChips() が構築し、getValues()/getMode()/reset() を持つ
+  gClass: document.getElementById("g-class"),
+  gElement: document.getElementById("g-element"),
+  gType: document.getElementById("g-type"),
+  gSubtype: document.getElementById("g-subtype"),
   fFormat: document.getElementById("f-format"),
   fSet: document.getElementById("f-set"),
   sort: document.getElementById("f-sort"),
@@ -26,6 +28,8 @@ const el = {
   loadMore: document.getElementById("load-more"),
   controls: document.getElementById("controls"),
   filterToggle: document.getElementById("filter-toggle"),
+  filterToggleLabel: document.getElementById("filter-toggle-label"),
+  filterToggleBadge: document.getElementById("filter-toggle-badge"),
 };
 
 // 共通ヘルパー(shared/js/card-i18n.js)。トップページとデッキ構築ツールで共用
@@ -66,7 +70,7 @@ const shownSlugs = new Set(); // 重複表示を防ぐ（appendGrid で使用）
 const searchCtl = GA_CARD_SEARCH.create({
   els: {
     name: el.q, text: el.qtext,
-    cls: el.fClass, element: el.fElement, type: el.fType, subtype: el.fSubtype,
+    cls: el.gClass, element: el.gElement, type: el.gType, subtype: el.gSubtype,
     format: el.fFormat, set: el.fSet, sort: el.sort, order: el.order,
   },
   pageSize: 50,
@@ -82,6 +86,7 @@ const searchCtl = GA_CARD_SEARCH.create({
   },
   onResults: (cards, info) => {
     appendGrid(cards);
+    updateElementWarn(info);
     updateSearchStatus(info);
     el.loadMore.disabled = false;
   },
@@ -95,17 +100,44 @@ const searchCtl = GA_CARD_SEARCH.create({
 // 既存の呼び出し箇所(入力イベント等)のための薄いラッパー
 function runSearch(reset) { searchCtl.run(reset); }
 
+// エレメントANDで0件が確定する組み合わせの注意書き。
+// グループを閉じていると見えないので、そのときは開いて気づけるようにする
+function updateElementWarn(info) {
+  const warn = el.gElement.warnEl;
+  if (!warn) return;
+  const blocked = info.blocked === "element-and";
+  warn.hidden = !blocked;
+  if (blocked) {
+    warn.textContent = `⚠️ ${GA_CARD_SEARCH.ELEMENT_AND_MESSAGE}`;
+    el.gElement.open = true;
+  }
+}
+
 function updateSearchStatus(info) {
   const shown = el.grid.childElementCount;
+  if (info.blocked === "element-and") {
+    el.status.textContent = GA_CARD_SEARCH.ELEMENT_AND_MESSAGE;
+    el.loadMore.hidden = true;
+    return;
+  }
   if (shown === 0) {
+    // AND条件は取得済みのページに対して適用するため、このページに1件も残らないことがある。
+    // 続きのページに該当が残っている場合は「もっと見る」を残す
+    if (info.hasMore) {
+      el.status.textContent = "このページには該当がありませんでした。「もっと見る」で続きを検索できます。";
+      el.loadMore.hidden = false;
+      return;
+    }
     el.status.textContent = info.jpMode
       ? "日本語テキストに一致する翻訳済みカードが見つかりませんでした（未翻訳のカードは日本語検索できません。英語での検索もお試しください）。"
       : "該当するカードがありません。条件を変えてお試しください。";
     el.loadMore.hidden = true;
     return;
   }
-  const totalPart = info.total > shown ? ` / 全 ${info.total} 件` : "";
-  const suffix = info.jpMode ? "（日本語テキスト一致・翻訳済みのみ）" : "";
+  // 客側で後段フィルタが入る場合（AND指定・日本語モードでの絞り込み）は総件数を正確に出せない
+  const totalPart = !info.approxTotal && info.total > shown ? ` / 全 ${info.total} 件` : "";
+  let suffix = info.jpMode ? "（日本語テキスト一致・翻訳済みのみ）" : "";
+  if (info.approxTotal) suffix += "（AND条件などは取得済みのページに適用するため、総件数は表示できません）";
   el.status.textContent = `${shown} 件を表示${totalPart}${suffix}`;
   el.loadMore.hidden = !info.hasMore;
 }
@@ -366,10 +398,7 @@ function debounce(fn, ms) {
 function resetControls() {
   el.q.value = "";
   el.qtext.value = "";
-  el.fClass.value = "";
-  el.fElement.value = "";
-  el.fType.value = "";
-  el.fSubtype.value = "";
+  filterGroups().forEach((g) => g.reset()); // 選択チップ・AND/OR・開閉状態をまとめて戻す
   el.fFormat.value = "";
   el.fSet.value = "";
   el.sort.value = "name";
@@ -383,11 +412,21 @@ function applyUrlQuery() {
   if (qtext) el.qtext.value = qtext;
 }
 
+const filterGroups = () => [el.gElement, el.gClass, el.gType, el.gSubtype];
+
+// スマホでは絞り込み全体が畳まれるため、畳んだ状態でも選択件数が分かるようにトグルへバッジを出す
+function updateFilterBadge() {
+  const n = filterGroups().reduce((sum, g) => sum + g.getValues().length, 0);
+  el.filterToggleBadge.hidden = n === 0;
+  el.filterToggleBadge.textContent = String(n);
+}
+
 function init() {
-  GA_CARD_SEARCH.fillSelect(el.fClass, "classes");
-  GA_CARD_SEARCH.fillSelect(el.fElement, "elements");
-  GA_CARD_SEARCH.fillSelect(el.fType, "types");
-  GA_CARD_SEARCH.fillSelect(el.fSubtype, "subtypes");
+  // 複数選択（AND/OR）の絞り込みグループ。既定は閉じた状態（開くとチップが50個以上並ぶため）
+  GA_CARD_SEARCH.fillChips(el.gElement, "elements", { label: "エレメント", orbs: true });
+  GA_CARD_SEARCH.fillChips(el.gClass, "classes", { label: "クラス" });
+  GA_CARD_SEARCH.fillChips(el.gType, "types", { label: "タイプ" });
+  GA_CARD_SEARCH.fillChips(el.gSubtype, "subtypes", { label: "サブタイプ", top: GA_CARD_SEARCH.SUBTYPE_TOP });
   GA_CARD_SEARCH.fillFormatSelect(el.fFormat);
   GA_CARD_SEARCH.fillSetSelect(el.fSet);
   resetControls(); // 起動時は必ず「全て」から開始（前回選択の復元を打ち消す）
@@ -395,7 +434,8 @@ function init() {
 
   el.q.addEventListener("input", debounce(() => runSearch(true), 350));
   el.qtext.addEventListener("input", debounce(() => runSearch(true), 350));
-  [el.fClass, el.fElement, el.fType, el.fSubtype, el.fFormat, el.fSet, el.sort].forEach((s) => s.addEventListener("change", () => runSearch(true)));
+  [el.fFormat, el.fSet, el.sort].forEach((s) => s.addEventListener("change", () => runSearch(true)));
+  filterGroups().forEach((g) => g.onChange(() => { updateFilterBadge(); runSearch(true); }));
   el.order.addEventListener("click", () => {
     const next = (el.order.dataset.dir || "ASC") === "ASC" ? "DESC" : "ASC";
     el.order.dataset.dir = next;
@@ -405,6 +445,7 @@ function init() {
   el.loadMore.addEventListener("click", () => searchCtl.loadMore());
   el.reset.addEventListener("click", () => {
     resetControls();
+    updateFilterBadge();
     runSearch(true);
   });
 
@@ -413,7 +454,7 @@ function init() {
     el.filterToggle.addEventListener("click", () => {
       const open = el.controls.classList.toggle("filters-open");
       el.filterToggle.setAttribute("aria-expanded", open ? "true" : "false");
-      el.filterToggle.textContent = "絞り込み・並び替え " + (open ? "▲" : "▾");
+      el.filterToggleLabel.textContent = "絞り込み・並び替え " + (open ? "▲" : "▾");
     });
   }
 

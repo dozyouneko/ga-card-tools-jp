@@ -104,6 +104,105 @@ a { color: var(--accent-2); }
 /* 絞り込みトグルは PC では非表示（フィルタは常時表示）。スマホでのみ出す */
 .filter-toggle { display: none; }
 
+/* ---------- 複数選択（AND/OR）の絞り込みグループ ---------- */
+/* 4グループを開いたままにするとチップが50個以上並びカード一覧が押し出されるため、
+   各グループは <details> で既定は閉じる。閉じていても選択件数はバッジで分かる。 */
+.fgroup {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+.fgroup + .fgroup { margin-top: 8px; }
+.filter-rest { margin-top: 10px; }
+.fgroup summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+.fgroup summary::-webkit-details-marker { display: none; }
+.fgroup summary:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 1px; }
+.flabel { font-weight: 700; font-size: .92rem; }
+.fbadge {
+  background: var(--accent);
+  color: #201a0a;
+  border-radius: 10px;
+  font-size: .72rem;
+  font-weight: 700;
+  padding: 1px 8px;
+}
+.fbadge[hidden] { display: none; }
+
+/* AND/OR トグル（項目ごとに1つ。既定はOR） */
+.andor {
+  margin-left: auto;
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.controls .andor button {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 700;
+  padding: 6px 11px;
+}
+.controls .andor button.on { background: var(--accent); color: #201a0a; }
+/* 値が1つ以下ならAND/ORの区別が無意味なので操作させない */
+.controls .andor button:disabled { cursor: default; }
+.andor.idle { opacity: .5; }
+
+/* 選択チップ。カード一覧の .chip（下方で定義）と名前が同じため .fgroup で必ず限定する */
+.fgroup .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 12px; }
+.fgroup .chips[hidden] { display: none; }
+.fgroup .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 11px 5px 8px;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  font-size: .85rem;
+}
+.fgroup .chip:hover { border-color: var(--accent); }
+.fgroup .chip.on { border-color: var(--accent); background: rgba(217,164,65,.14); }
+.fgroup .chip input { position: absolute; opacity: 0; width: 0; height: 0; }
+.fgroup .chip:has(input:focus-visible) { outline: 2px solid var(--accent-2); outline-offset: 1px; }
+.fgroup .chip em { font-style: normal; color: var(--muted); font-size: .72rem; }
+
+/* サブタイプは146種あるため既定は上位20種のみ。残りは「すべて表示」で開く */
+.more { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 12px 12px; }
+.controls .morebtn {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--accent-2);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: .82rem;
+}
+.hint { color: var(--muted); font-size: .76rem; }
+
+/* エレメントANDで0件が確定する組み合わせの注意書き */
+.fwarn {
+  margin: 0 12px 12px;
+  padding: 9px 11px;
+  border: 1px solid #6b4a1e;
+  background: rgba(217,164,65,.10);
+  border-radius: 8px;
+  color: #e8cf9a;
+  font-size: .84rem;
+  line-height: 1.6;
+}
+.fwarn[hidden] { display: none; }
+
 .status { padding: 12px 24px 0; color: var(--muted); font-size: .9rem; }
 
 #order { white-space: nowrap; min-width: 84px; }
@@ -315,9 +414,17 @@ a { color: var(--accent-2); }
     background: var(--panel); color: var(--text); border: 1px solid var(--border);
   }
   .filter-row { display: none; }
-  .controls.filters-open .filter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .controls.filters-open .filter-row select { grid-column: 1 / -1; }
+  .controls.filters-open .filter-row { display: block; }
+  .controls.filters-open .filter-rest { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .controls.filters-open .filter-rest select { grid-column: 1 / -1; }
   #order, #reset { min-width: 0; }
+
+  /* 絞り込みグループは開いても各グループは閉じたまま（2段構え）。
+     上の一括指定（font-size:16px・padding:11px）はチップ側では大きすぎるので戻す */
+  .fgroup .chips { gap: 5px; }
+  .fgroup .chip { font-size: .8rem; padding: 6px 10px 6px 8px; }
+  .controls .andor button { font-size: .78rem; padding: 8px 12px; }
+  .controls .morebtn { font-size: .82rem; padding: 7px 12px; }
 
   /* タップ領域を広げる（44px 目安） */
   .card-add { top: 6px; right: 6px; padding: 8px 10px; font-size: .9rem; }
