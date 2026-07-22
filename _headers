@@ -9,7 +9,11 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=()
 
 # 大会デッキのHTML断片: 単独のページではなくダイアログ表示用の部品のため、検索エンジンには載せない。
+# Pagesは /foo.html を /foo へ308でトリムするため、トリム後のパスにも同じ指定が要る
+# (.html 側だけだと実際に本文を返すURLにヘッダが付かない)。
 /tournaments/*/decks.html
+  X-Robots-Tag: noindex
+/tournaments/*/decks
   X-Robots-Tag: noindex
 
 # カードDB（ルート）: 公式API api.gatcg.com と Cloudflare Web Analytics のみ通信を許可。
