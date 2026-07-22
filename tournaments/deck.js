@@ -111,9 +111,51 @@
 
   // ---- 順位表の折りたたみ: 1つ開いたら他を閉じる ----
   const blocks = Array.from(document.querySelectorAll("details.rank-block"));
-  blocks.forEach((b) => b.addEventListener("toggle", () => {
-    if (b.open) blocks.forEach((o) => { if (o !== b) o.open = false; });
+  let filtering = false;                        // 絞り込み中は開閉を制御下に置く(下記)
+  const openState = blocks.map((b) => b.open);  // 絞り込み解除時に戻すための開閉状態
+  blocks.forEach((b, i) => b.addEventListener("toggle", () => {
+    if (filtering) return; // 絞り込み中は全ブロックを開いて平坦に見せているため排他制御しない
+    openState[i] = b.open;
+    if (b.open) blocks.forEach((o, j) => { if (o !== b) { o.open = false; openState[j] = false; } });
   }));
+
+  // ---- 順位表の絞り込み(#15): プレイヤー名・チャンピオン名・属性で行を絞る ----
+  // 絞り込み中は100行ごとの折りたたみを無視し、該当行を平坦に表示する
+  // (折りたたんだブロックの中に隠れると検索の意味がなくなるため)
+  const rankQ = document.getElementById("rank-q");
+  const wrap = document.getElementById("standings-wrap");
+  if (rankQ && wrap) {
+    const rows = Array.from(wrap.querySelectorAll("tbody tr[data-player]"));
+    const hitsEl = document.getElementById("rank-hits");
+    const emptyEl = document.getElementById("rank-empty");
+
+    const applyRankFilter = () => {
+      const q = rankQ.value.trim().toLowerCase();
+      filtering = !!q;
+      let n = 0;
+      rows.forEach((r) => {
+        const ok = !q || (r.dataset.search || "").toLowerCase().includes(q);
+        r.hidden = !ok;
+        if (ok) n++;
+      });
+      wrap.classList.toggle("filtering", filtering);
+      // 該当0件のブロックは丸ごと隠す。ヘッダ行は先頭の可視ブロックにだけ残す
+      let headShown = false;
+      blocks.forEach((b, i) => {
+        const has = !!b.querySelector("tbody tr[data-player]:not([hidden])");
+        b.open = filtering ? true : openState[i];
+        b.hidden = filtering && !has;
+        const head = b.querySelector("thead");
+        if (head) head.hidden = filtering && !(has && !headShown);
+        if (filtering && has) headShown = true;
+      });
+      hitsEl.textContent = q ? n + " / " + rows.length + "名" : "";
+      emptyEl.hidden = !(q && n === 0);
+    };
+
+    rankQ.addEventListener("input", applyRankFilter);
+    applyRankFilter(); // ブラウザが入力値を復元した場合に備えて初期適用する
+  }
 
   if (!window.GA_CARD_DETAIL) return;
   // カード詳細を閉じてもデッキダイアログが開いていれば背面のスクロール停止を維持する

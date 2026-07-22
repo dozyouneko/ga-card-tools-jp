@@ -83,8 +83,12 @@ const log = (s) => process.stderr.write(s + "\n");
 
 // ---------- 翻訳・共通ヘルパー(build-card-pages.mjs と共用) ----------
 
-const { CI, dataFiles } = loadPageI18n(ROOT);
+const { I18N, CI, dataFiles } = loadPageI18n(ROOT);
 const esc = CI.escapeHtml;
+
+// 属性玉(32px WebPのbase64)。scripts/gen-element-orbs.mjs が生成しコミットしてある定数を
+// 読むだけなので、日次cronのビルドは画像処理ライブラリにも公式カード画像にも依存しない
+const ELEMENT_ORBS = JSON.parse(readFileSync(path.join(ROOT, "scripts", "lib", "element-orbs.json"), "utf8")).orbs;
 
 // ---------- API ----------
 
@@ -409,6 +413,67 @@ const eventUrl = (id) => `/tournaments/${id}/`;
 const deckAnchor = (player) => `deck-${player}`; // 大会詳細ページ内のアコーディオンのid
 const playerName = (ev, id) => ev.players[id] || `Player #${id}`;
 
+// ---------- デッキの属性・チャンピオン(#15) ----------
+//
+// 順位表に出す「そのデッキが何のデッキか」を、マテリアルデッキのチャンピオン(スピリット含む)から
+// 導出する。events/<id>.json には保存せず生成のたびに求める(スキーマ追加も再取得も要らず、
+// カードスナップショットは decks.html の生成で既に読んでいるため実質ノーコスト)。
+//
+// ⚠ デッキ構築ツールの deckDisplayElements() は「デッキの全カード」から属性を集めるが、
+//    それだと最大10属性になり順位表の1行に載らない(実測: 4個以上が11%)。チャンピオンだけに
+//    絞ると 1個=38% / 2個=62% に収まる(設計書「実測」節)。
+
+const BASIC_ELEMENT_ORDER = ["NORM", "FIRE", "WATER", "WIND"];
+const NO_DECK_INFO = "—"; // 属性・チャンピオンが取れないときのフォールバック
+const elementJp = (e) => (I18N.meta && I18N.meta.elements && I18N.meta.elements[e]) || e;
+
+// 表示に使う属性: 基本属性(火→水→風)を先、上級属性はアルファベット順。
+// EXALTEDは独自の玉を持たない(金装飾表現)ため載せない。NORMは他が無いときのみ。
+// tools/deck-builder/app.js の deckDisplayElements() と同じ並び順の規則。
+function championElements(champs) {
+  const present = new Set();
+  champs.forEach((c) => (c.elements || []).forEach((e) => present.add(e)));
+  present.delete("EXALTED");
+  const basics = BASIC_ELEMENT_ORDER.filter((e) => e !== "NORM" && present.has(e));
+  const advanced = [...present].filter((e) => e !== "NORM" && !BASIC_ELEMENT_ORDER.includes(e)).sort();
+  const list = [...basics, ...advanced];
+  return list.length ? list : (present.has("NORM") ? ["NORM"] : []);
+}
+
+// 表示名 = 英語名の最初のカンマまで ＋（日本語名の最初の読点まで）。
+// レベル違い(Alice, Distorted Queen / Alice, Golden Queen)はこの前方部分で自動的に集約される
+const headBefore = (s, sep) => String(s || "").split(sep)[0].trim();
+function championLabel(card) {
+  const en = headBefore(card.name, ",");
+  const jp = headBefore(CI.jpName(card), "、");
+  return jp && jp !== en ? `${en}（${jp}）` : en;
+}
+
+// デッキ1件 → { els: ["FIRE", …], champ: "Arisanna（アリサナ）" }。
+// チャンピオンが複数ならスラッシュ併記。スピリットしか無いときだけスピリット名を使う
+function deckInfoOf(deck, cardBySlug) {
+  const champs = (deck.material || [])
+    .map((e) => (e.slug ? cardBySlug.get(e.slug) : null))
+    .filter((c) => c && (c.types || []).includes("CHAMPION"));
+  const nonSpirit = champs.filter((c) => !(c.subtypes || []).includes("SPIRIT"));
+  const names = [...new Set((nonSpirit.length ? nonSpirit : champs).map(championLabel))];
+  return { els: championElements(champs), champ: names.join(" / ") || NO_DECK_INFO };
+}
+
+// 各大会に deckInfo(プレイヤーid → 上記)を持たせる。順位表・一覧の検索の双方で使う
+function annotateDecks(events, cardBySlug) {
+  for (const ev of events) {
+    ev.deckInfo = {};
+    for (const d of ev.decklists) ev.deckInfo[d.player] = deckInfoOf(d, cardBySlug);
+  }
+}
+
+// 玉は画像なので role="img" + aria-label で属性名を読ませる(title はマウスオーバー用)
+const orbsHtml = (els) => els.map((e) => {
+  const jp = esc(elementJp(e));
+  return `<i class="orb orb-${e.toLowerCase()}" role="img" aria-label="${jp}" title="${jp}"></i>`;
+}).join("");
+
 // ---------- ページ共通(cards/ の静的ページと同型) ----------
 
 function headMeta({ title, description, canonical, extraCss = "" }) {
@@ -533,10 +598,13 @@ ${siteFooter()}
 `;
 }
 
-// 一覧のテキスト検索でプレイヤー名・大会idも引けるようにするため、各行に検索用の文字列を持たせる
+// 一覧のテキスト検索でプレイヤー名・大会id・チャンピオン名も引けるようにするため、
+// 各行に検索用の文字列を持たせる。チャンピオン名は大会内で重複排除する(#15)
 function searchBlob(ev) {
+  const champs = [...new Set(Object.values(ev.deckInfo || {}).map((d) => d.champ))]
+    .filter((c) => c !== NO_DECK_INFO);
   return [ev.id, ev.name, ev.host.name, ev.host.country, countryLabelText(ev.host.country),
-    formatJp(ev.format), catInfo(ev.category).full, ...Object.values(ev.players)].join(" ");
+    formatJp(ev.format), catInfo(ev.category).full, ...Object.values(ev.players), ...champs].join(" ");
 }
 
 // searchBlob用(esc前の生文字列)
@@ -571,9 +639,18 @@ function eventPage(ev) {
     const link = deckPlayers.has(s.player)
       ? `<a class="deck-link" href="#${deckAnchor(s.player)}">📄 デッキを見る</a>`
       : `<span class="no-deck">デッキ未提出</span>`;
-    return `<tr${s.rank === 1 ? ' class="top1"' : ""} data-player="${s.player}">
+    const name = playerName(ev, s.player);
+    const info = ev.deckInfo[s.player];
+    // 属性玉 → チャンピオン名。デッキ未提出の行は「—」(#15)
+    const deckCell = info
+      ? `${info.els.length ? `<span class="orbs">${orbsHtml(info.els)}</span>` : ""}<span class="champ" title="${esc(info.champ)}">${esc(info.champ)}</span>`
+      : `<span class="champ no-deck">${NO_DECK_INFO}</span>`;
+    // 順位表の絞り込み(プレイヤー名・チャンピオン名・属性)用。属性は日本語名と英字コードの両方で引ける
+    const blob = [name, info ? info.champ : "", ...(info ? info.els.flatMap((e) => [e, elementJp(e)]) : [])].join(" ");
+    return `<tr${s.rank === 1 ? ' class="top1"' : ""} data-player="${s.player}" data-search="${esc(blob)}">
         <td class="rank">${RANK_ICON[s.rank] || ""}${s.rank}</td>
-        <td class="player-name">${esc(playerName(ev, s.player))}</td>
+        <td class="player-name">${esc(name)}</td>
+        <td class="deck-id">${deckCell}</td>
         <td class="score">${s.score == null ? "—" : s.score}</td>
         <td class="rec">${esc(recordLabel(s))}</td>
         <td class="pct">${esc(pct(s.gwPercent))}</td>
@@ -581,7 +658,7 @@ function eventPage(ev) {
         <td>${link}</td>
       </tr>`;
   };
-  const thead = `<thead><tr><th>順位</th><th>プレイヤー</th><th class="score">勝ち点</th><th>成績</th><th class="pct">GW%</th><th class="pct">MW%</th><th>デッキ</th></tr></thead>`;
+  const thead = `<thead><tr><th>順位</th><th>プレイヤー</th><th>デッキ</th><th class="score">勝ち点</th><th>成績</th><th class="pct">GW%</th><th class="pct">MW%</th><th></th></tr></thead>`;
   const table = (list) => `<div class="cp-scroll"><table class="standings">
     ${thead}
     <tbody>
@@ -629,7 +706,14 @@ ${crumb([["トップ", "/"], ["大会デッキ", "/tournaments/"], [ev.name]])}
 
   <h2>順位表（${ev.standings.length}名・スイス終了時点）</h2>
   <p class="cp-muted">「デッキを見る」で提出デッキ（${ev.decklists.length}件）をダイアログ表示します。カードをクリックすると日本語の詳細が開きます。当時のフォーマットで提出されたリストのため、現行ルールでの使用可否は判定していません。</p>
+  <div class="rank-filter">
+    <input type="search" id="rank-q" placeholder="プレイヤー名・チャンピオン名・属性で絞り込み…" aria-label="順位表をプレイヤー名・チャンピオン名・属性で絞り込み">
+    <span class="rank-hits" id="rank-hits" role="status"></span>
+  </div>
+  <div id="standings-wrap">
 ${standingsHtml}
+  </div>
+  <p class="rank-empty" id="rank-empty" hidden>該当する選手がいません。</p>
   <p class="cp-muted">順位は勝ち点順で、同点はタイブレーカー（GW%＝ゲーム勝率、MW%＝マッチ勝率）によります。勝ち点には不戦勝（bye）を含みます。順位はスイスラウンド終了時点のもので、決勝トーナメントの結果は含みません。</p>
 
   <p class="cp-muted">出典: <a href="${esc(ev.url || `https://omni.gatcg.com/events/${ev.id}`)}" rel="external nofollow">Omnidex 公式イベントページ #${ev.id}</a></p>
@@ -707,6 +791,12 @@ function decksFragment(ev, cardBySlug) {
 
 // ---------- 静的アセット ----------
 
+// 属性玉のCSS。32px WebPをdata URIで埋め込むため外部への画像リクエストは発生しない。
+// 元データは scripts/lib/element-orbs.json(生成: scripts/gen-element-orbs.mjs)
+const ORB_CSS = Object.entries(ELEMENT_ORBS)
+  .map(([el, o]) => `.orb-${el.toLowerCase()} { background-image:url("data:image/webp;base64,${o.b64}"); }`)
+  .join("\n");
+
 const CSS = `/* 大会デッキ検索(静的生成)用。生成元: scripts/build-tournament-pages.mjs
    トークン・共通部品は cards/cards.css と揃えている(cp- 接頭辞は共通) */
 :root { --bg:#12141a; --panel:#171a21; --panel-2:#1f232c; --line:#262b36; --text:#e6e8ee; --muted:#9aa2b1; --accent:#d9a441; --accent-2:#6ea8fe; }
@@ -777,6 +867,26 @@ td.rec, td.pct { font-variant-numeric:tabular-nums; color:var(--muted); white-sp
 td.score, th.score { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
 td.score { font-weight:600; }
 
+/* ---- 順位表の「デッキ」列: 属性玉 + チャンピオン名(#15) ----
+   玉は公式カード画像から切り出した32px WebPをdata URIで持つ(外部リクエストなし)。
+   名前は列幅に収まらなければ省略記号で詰め、全文は title で見せる */
+td.deck-id { display:flex; align-items:center; gap:8px; min-width:0; }
+.orbs { display:inline-flex; gap:2px; flex:0 0 auto; }
+.orb { width:18px; height:18px; display:inline-block; border-radius:50%; background-size:cover; box-shadow:0 0 0 1px rgba(0,0,0,.55); }
+.champ { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+${ORB_CSS}
+
+/* 順位表の絞り込み(プレイヤー名・チャンピオン名・属性) */
+.rank-filter { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:0 0 10px; }
+.rank-filter input[type="search"] { flex:1; min-width:220px; max-width:420px; background:var(--panel-2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:7px 12px; font:inherit; font-size:.88rem; }
+.rank-filter input:focus { outline:2px solid var(--accent-2); outline-offset:1px; }
+.rank-hits { color:var(--muted); font-size:.82rem; }
+.rank-empty { color:var(--muted); font-size:.88rem; }
+/* 絞り込み中は100行ごとの折りたたみを無視して該当行を平坦に出す(折りたたみの中に隠さない) */
+#standings-wrap.filtering .rank-block { border:none; background:none; margin-bottom:0; }
+#standings-wrap.filtering .rank-block > summary { display:none; }
+#standings-wrap.filtering .rank-block > .cp-scroll { padding:0; }
+
 /* 順位表の折りたたみ(101名以上の大会のみ。1つ開くと他は閉じる=tournaments/deck.js) */
 .rank-block { border:1px solid var(--line); border-radius:12px; background:var(--panel); margin-bottom:8px; }
 .rank-block > summary { cursor:pointer; padding:10px 16px; font-weight:600; font-size:.9rem; display:flex; gap:10px; align-items:baseline; }
@@ -842,14 +952,17 @@ td.score { font-weight:600; }
   .cat-short { display:none; }
   .cat-full { display:inline; }
 
-  /* 順位表: 順位・プレイヤー名・デッキ導線 / 勝ち点・成績 の2行 */
+  /* 順位表: 順位・プレイヤー名・デッキ導線 / 属性・チャンピオン / 勝ち点・成績 の3行(#15) */
   .standings tbody tr { display:grid; grid-template-columns:auto 1fr auto; gap:2px 8px; align-items:baseline; }
   .standings td.rank { grid-column:1; grid-row:1; }
   .standings td.player-name { grid-column:2; grid-row:1; }
   .standings tbody td:last-child { grid-column:3; grid-row:1; text-align:right; }
-  .standings td.score { grid-column:1; grid-row:2; text-align:left; }
+  /* 属性・チャンピオンはこの機能の主目的なので省略せず折り返す */
+  .standings td.deck-id { grid-column:1/-1; grid-row:2; flex-wrap:wrap; }
+  .standings td.deck-id .champ { overflow:visible; text-overflow:clip; white-space:normal; }
+  .standings td.score { grid-column:1; grid-row:3; text-align:left; }
   .standings td.score::before { content:"勝ち点 "; color:var(--muted); font-weight:400; font-size:.82rem; }
-  .standings td.rec { grid-column:2/-1; grid-row:2; white-space:normal; }
+  .standings td.rec { grid-column:2/-1; grid-row:3; white-space:normal; }
   .standings td.rec::before { content:"・"; color:var(--muted); margin-right:4px; }
   /* タイブレーカーの参考値(GW%・MW%)はスマホでは出さない */
   .standings th.pct, .standings td.pct { display:none; }
@@ -1070,9 +1183,51 @@ const DECK_JS = `// 大会詳細ページのデッキ表示まわり。生成元
 
   // ---- 順位表の折りたたみ: 1つ開いたら他を閉じる ----
   const blocks = Array.from(document.querySelectorAll("details.rank-block"));
-  blocks.forEach((b) => b.addEventListener("toggle", () => {
-    if (b.open) blocks.forEach((o) => { if (o !== b) o.open = false; });
+  let filtering = false;                        // 絞り込み中は開閉を制御下に置く(下記)
+  const openState = blocks.map((b) => b.open);  // 絞り込み解除時に戻すための開閉状態
+  blocks.forEach((b, i) => b.addEventListener("toggle", () => {
+    if (filtering) return; // 絞り込み中は全ブロックを開いて平坦に見せているため排他制御しない
+    openState[i] = b.open;
+    if (b.open) blocks.forEach((o, j) => { if (o !== b) { o.open = false; openState[j] = false; } });
   }));
+
+  // ---- 順位表の絞り込み(#15): プレイヤー名・チャンピオン名・属性で行を絞る ----
+  // 絞り込み中は100行ごとの折りたたみを無視し、該当行を平坦に表示する
+  // (折りたたんだブロックの中に隠れると検索の意味がなくなるため)
+  const rankQ = document.getElementById("rank-q");
+  const wrap = document.getElementById("standings-wrap");
+  if (rankQ && wrap) {
+    const rows = Array.from(wrap.querySelectorAll("tbody tr[data-player]"));
+    const hitsEl = document.getElementById("rank-hits");
+    const emptyEl = document.getElementById("rank-empty");
+
+    const applyRankFilter = () => {
+      const q = rankQ.value.trim().toLowerCase();
+      filtering = !!q;
+      let n = 0;
+      rows.forEach((r) => {
+        const ok = !q || (r.dataset.search || "").toLowerCase().includes(q);
+        r.hidden = !ok;
+        if (ok) n++;
+      });
+      wrap.classList.toggle("filtering", filtering);
+      // 該当0件のブロックは丸ごと隠す。ヘッダ行は先頭の可視ブロックにだけ残す
+      let headShown = false;
+      blocks.forEach((b, i) => {
+        const has = !!b.querySelector("tbody tr[data-player]:not([hidden])");
+        b.open = filtering ? true : openState[i];
+        b.hidden = filtering && !has;
+        const head = b.querySelector("thead");
+        if (head) head.hidden = filtering && !(has && !headShown);
+        if (filtering && has) headShown = true;
+      });
+      hitsEl.textContent = q ? n + " / " + rows.length + "名" : "";
+      emptyEl.hidden = !(q && n === 0);
+    };
+
+    rankQ.addEventListener("input", applyRankFilter);
+    applyRankFilter(); // ブラウザが入力値を復元した場合に備えて初期適用する
+  }
 
   if (!window.GA_CARD_DETAIL) return;
   // カード詳細を閉じてもデッキダイアログが開いていれば背面のスクロール停止を維持する
@@ -1105,6 +1260,7 @@ const DECK_JS = `// 大会詳細ページのデッキ表示まわり。生成元
 // ---------- 生成 ----------
 
 function build(events, cardBySlug) {
+  annotateDecks(events, cardBySlug); // 順位表の属性・チャンピオン(一覧の検索でも使う)
   mkdirSync(OUT_DIR, { recursive: true });
   writeFileSync(path.join(OUT_DIR, "index.html"), listPage(events));
   writeFileSync(path.join(OUT_DIR, "tournaments.css"), CSS);

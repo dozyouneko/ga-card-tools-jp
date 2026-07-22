@@ -44,156 +44,178 @@
 
   <h2>順位表（17名・スイス終了時点）</h2>
   <p class="cp-muted">「デッキを見る」で提出デッキ（17件）をダイアログ表示します。カードをクリックすると日本語の詳細が開きます。当時のフォーマットで提出されたリストのため、現行ルールでの使用可否は判定していません。</p>
+  <div class="rank-filter">
+    <input type="search" id="rank-q" placeholder="プレイヤー名・チャンピオン名・属性で絞り込み…" aria-label="順位表をプレイヤー名・チャンピオン名・属性で絞り込み">
+    <span class="rank-hits" id="rank-hits" role="status"></span>
+  </div>
+  <div id="standings-wrap">
 <div class="cp-scroll"><table class="standings">
-    <thead><tr><th>順位</th><th>プレイヤー</th><th class="score">勝ち点</th><th>成績</th><th class="pct">GW%</th><th class="pct">MW%</th><th>デッキ</th></tr></thead>
+    <thead><tr><th>順位</th><th>プレイヤー</th><th>デッキ</th><th class="score">勝ち点</th><th>成績</th><th class="pct">GW%</th><th class="pct">MW%</th><th></th></tr></thead>
     <tbody>
-<tr class="top1" data-player="7620">
+<tr class="top1" data-player="7620" data-search="Nickson Ciel（シエル） FIRE 火 UMBRA アンブラ">
         <td class="rank">🥇1</td>
         <td class="player-name">Nickson</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i><i class="orb orb-umbra" role="img" aria-label="アンブラ" title="アンブラ"></i></span><span class="champ" title="Ciel（シエル）">Ciel（シエル）</span></td>
         <td class="score">15</td>
         <td class="rec">5-0-0</td>
         <td class="pct">83.3%</td>
         <td class="pct">100%</td>
         <td><a class="deck-link" href="#deck-7620">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="15036">
+<tr data-player="15036" data-search="NTHan Lorraine（ロレイン） WIND 風 CRUX クラックス">
         <td class="rank">🥈2</td>
         <td class="player-name">NTHan</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-crux" role="img" aria-label="クラックス" title="クラックス"></i></span><span class="champ" title="Lorraine（ロレイン）">Lorraine（ロレイン）</span></td>
         <td class="score">12</td>
         <td class="rec">4-1-0（うち不戦勝1）</td>
         <td class="pct">60%</td>
         <td class="pct">75%</td>
         <td><a class="deck-link" href="#deck-15036">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="869">
+<tr data-player="869" data-search="Yukineko Diana（ダイアナ） WATER 水">
         <td class="rank">🥉3</td>
         <td class="player-name">Yukineko</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i></span><span class="champ" title="Diana（ダイアナ）">Diana（ダイアナ）</span></td>
         <td class="score">10</td>
         <td class="rec">3-1-1</td>
         <td class="pct">63.6%</td>
         <td class="pct">60%</td>
         <td><a class="deck-link" href="#deck-869">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="17331">
+<tr data-player="17331" data-search="Temperantia Arisanna（アリサナ） WIND 風">
         <td class="rank">4</td>
         <td class="player-name">Temperantia</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i></span><span class="champ" title="Arisanna（アリサナ）">Arisanna（アリサナ）</span></td>
         <td class="score">10</td>
         <td class="rec">3-1-1</td>
         <td class="pct">63.6%</td>
         <td class="pct">60%</td>
         <td><a class="deck-link" href="#deck-17331">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="22212">
+<tr data-player="22212" data-search="Jeraz Lorraine（ロレイン） / Merlin（マーリン） FIRE 火 CRUX クラックス">
         <td class="rank">5</td>
         <td class="player-name">Jeraz</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i><i class="orb orb-crux" role="img" aria-label="クラックス" title="クラックス"></i></span><span class="champ" title="Lorraine（ロレイン） / Merlin（マーリン）">Lorraine（ロレイン） / Merlin（マーリン）</span></td>
         <td class="score">9</td>
         <td class="rec">3-2-0</td>
         <td class="pct">53.8%</td>
         <td class="pct">60%</td>
         <td><a class="deck-link" href="#deck-22212">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="7630">
+<tr data-player="7630" data-search="Nayiys Arisanna（アリサナ） FIRE 火">
         <td class="rank">6</td>
         <td class="player-name">Nayiys</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i></span><span class="champ" title="Arisanna（アリサナ）">Arisanna（アリサナ）</span></td>
         <td class="score">9</td>
         <td class="rec">3-2-0</td>
         <td class="pct">63.6%</td>
         <td class="pct">60%</td>
         <td><a class="deck-link" href="#deck-7630">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="9108">
+<tr data-player="9108" data-search="Thongzx Diao Chan（ダオ・チャン） WATER 水">
         <td class="rank">7</td>
         <td class="player-name">Thongzx</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i></span><span class="champ" title="Diao Chan（ダオ・チャン）">Diao Chan（ダオ・チャン）</span></td>
         <td class="score">9</td>
         <td class="rec">3-2-0</td>
         <td class="pct">58.3%</td>
         <td class="pct">60%</td>
         <td><a class="deck-link" href="#deck-9108">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="18797">
+<tr data-player="18797" data-search="Neruu Alice（アリス） FIRE 火 UMBRA アンブラ">
         <td class="rank">8</td>
         <td class="player-name">Neruu</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i><i class="orb orb-umbra" role="img" aria-label="アンブラ" title="アンブラ"></i></span><span class="champ" title="Alice（アリス）">Alice（アリス）</span></td>
         <td class="score">7</td>
         <td class="rec">2-2-1</td>
         <td class="pct">55.6%</td>
         <td class="pct">40%</td>
         <td><a class="deck-link" href="#deck-18797">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="26336">
+<tr data-player="26336" data-search="SirGeorgedon Zander（ザンダー） FIRE 火 LUXEM ラクサム">
         <td class="rank">9</td>
         <td class="player-name">SirGeorgedon</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i><i class="orb orb-luxem" role="img" aria-label="ラクサム" title="ラクサム"></i></span><span class="champ" title="Zander（ザンダー）">Zander（ザンダー）</span></td>
         <td class="score">7</td>
         <td class="rec">2-2-1</td>
         <td class="pct">42.9%</td>
         <td class="pct">40%</td>
         <td><a class="deck-link" href="#deck-26336">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="12223">
+<tr data-player="12223" data-search="Woon Ciel（シエル） WATER 水">
         <td class="rank">10</td>
         <td class="player-name">Woon</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i></span><span class="champ" title="Ciel（シエル）">Ciel（シエル）</span></td>
         <td class="score">6</td>
         <td class="rec">2-3-0</td>
         <td class="pct">45.5%</td>
         <td class="pct">40%</td>
         <td><a class="deck-link" href="#deck-12223">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="2398">
+<tr data-player="2398" data-search="Conman Guo Jia（グオ・ジア） WIND 風 LUXEM ラクサム">
         <td class="rank">11</td>
         <td class="player-name">Conman</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-luxem" role="img" aria-label="ラクサム" title="ラクサム"></i></span><span class="champ" title="Guo Jia（グオ・ジア）">Guo Jia（グオ・ジア）</span></td>
         <td class="score">6</td>
         <td class="rec">2-2-0</td>
         <td class="pct">60%</td>
         <td class="pct">50%</td>
         <td><a class="deck-link" href="#deck-2398">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="17236">
+<tr data-player="17236" data-search="dioxy Arisanna（アリサナ） WIND 風 ASTRA アストラ">
         <td class="rank">12</td>
         <td class="player-name">dioxy</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-astra" role="img" aria-label="アストラ" title="アストラ"></i></span><span class="champ" title="Arisanna（アリサナ）">Arisanna（アリサナ）</span></td>
         <td class="score">3</td>
         <td class="rec">1-4-0</td>
         <td class="pct">33.3%</td>
         <td class="pct">20%</td>
         <td><a class="deck-link" href="#deck-17236">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="19588">
+<tr data-player="19588" data-search="J0ka Lorraine（ロレイン） WIND 風 CRUX クラックス">
         <td class="rank">13</td>
         <td class="player-name">J0ka</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-crux" role="img" aria-label="クラックス" title="クラックス"></i></span><span class="champ" title="Lorraine（ロレイン）">Lorraine（ロレイン）</span></td>
         <td class="score">3</td>
         <td class="rec">1-2-0</td>
         <td class="pct">33.3%</td>
         <td class="pct">33.3%</td>
         <td><a class="deck-link" href="#deck-19588">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="19457">
+<tr data-player="19457" data-search="hong9119 Lorraine（ロレイン） FIRE 火">
         <td class="rank">14</td>
         <td class="player-name">hong9119</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i></span><span class="champ" title="Lorraine（ロレイン）">Lorraine（ロレイン）</span></td>
         <td class="score">3</td>
         <td class="rec">1-4-0（うち不戦勝1）</td>
         <td class="pct">0%</td>
         <td class="pct">0%</td>
         <td><a class="deck-link" href="#deck-19457">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="2075">
+<tr data-player="2075" data-search="Jinzkakz Lorraine（ロレイン） FIRE 火">
         <td class="rank">15</td>
         <td class="player-name">Jinzkakz</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i></span><span class="champ" title="Lorraine（ロレイン）">Lorraine（ロレイン）</span></td>
         <td class="score">3</td>
         <td class="rec">1-2-0</td>
         <td class="pct">42.9%</td>
         <td class="pct">33.3%</td>
         <td><a class="deck-link" href="#deck-2075">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="18326">
+<tr data-player="18326" data-search="Mick Guo Jia（グオ・ジア） WATER 水 LUXEM ラクサム">
         <td class="rank">16</td>
         <td class="player-name">Mick</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i><i class="orb orb-luxem" role="img" aria-label="ラクサム" title="ラクサム"></i></span><span class="champ" title="Guo Jia（グオ・ジア）">Guo Jia（グオ・ジア）</span></td>
         <td class="score">3</td>
         <td class="rec">1-2-0（うち不戦勝1）</td>
         <td class="pct">0%</td>
         <td class="pct">0%</td>
         <td><a class="deck-link" href="#deck-18326">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="17339">
+<tr data-player="17339" data-search="CrayFish Diao Chan（ダオ・チャン） FIRE 火 TERA テラ">
         <td class="rank">17</td>
         <td class="player-name">CrayFish</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i><i class="orb orb-tera" role="img" aria-label="テラ" title="テラ"></i></span><span class="champ" title="Diao Chan（ダオ・チャン）">Diao Chan（ダオ・チャン）</span></td>
         <td class="score">3</td>
         <td class="rec">1-3-0</td>
         <td class="pct">22.2%</td>
@@ -202,6 +224,8 @@
       </tr>
     </tbody>
   </table></div>
+  </div>
+  <p class="rank-empty" id="rank-empty" hidden>該当する選手がいません。</p>
   <p class="cp-muted">順位は勝ち点順で、同点はタイブレーカー（GW%＝ゲーム勝率、MW%＝マッチ勝率）によります。勝ち点には不戦勝（bye）を含みます。順位はスイスラウンド終了時点のもので、決勝トーナメントの結果は含みません。</p>
 
   <p class="cp-muted">出典: <a href="https://omni.gatcg.com/events/55172" rel="external nofollow">Omnidex 公式イベントページ #55172</a></p>

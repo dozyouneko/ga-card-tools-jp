@@ -44,75 +44,88 @@
 
   <h2>順位表（8名・スイス終了時点）</h2>
   <p class="cp-muted">「デッキを見る」で提出デッキ（8件）をダイアログ表示します。カードをクリックすると日本語の詳細が開きます。当時のフォーマットで提出されたリストのため、現行ルールでの使用可否は判定していません。</p>
+  <div class="rank-filter">
+    <input type="search" id="rank-q" placeholder="プレイヤー名・チャンピオン名・属性で絞り込み…" aria-label="順位表をプレイヤー名・チャンピオン名・属性で絞り込み">
+    <span class="rank-hits" id="rank-hits" role="status"></span>
+  </div>
+  <div id="standings-wrap">
 <div class="cp-scroll"><table class="standings">
-    <thead><tr><th>順位</th><th>プレイヤー</th><th class="score">勝ち点</th><th>成績</th><th class="pct">GW%</th><th class="pct">MW%</th><th>デッキ</th></tr></thead>
+    <thead><tr><th>順位</th><th>プレイヤー</th><th>デッキ</th><th class="score">勝ち点</th><th>成績</th><th class="pct">GW%</th><th class="pct">MW%</th><th></th></tr></thead>
     <tbody>
-<tr class="top1" data-player="11952">
+<tr class="top1" data-player="11952" data-search="RayneeDay Zander（ザンダー） FIRE 火 LUXEM ラクサム">
         <td class="rank">🥇1</td>
         <td class="player-name">RayneeDay</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i><i class="orb orb-luxem" role="img" aria-label="ラクサム" title="ラクサム"></i></span><span class="champ" title="Zander（ザンダー）">Zander（ザンダー）</span></td>
         <td class="score">9</td>
         <td class="rec">3-0-0</td>
         <td class="pct">75%</td>
         <td class="pct">100%</td>
         <td><a class="deck-link" href="#deck-11952">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="14561">
+<tr data-player="14561" data-search="SapphicSnake Kongming（コンミン） WATER 水 TERA テラ">
         <td class="rank">🥈2</td>
         <td class="player-name">SapphicSnake</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i><i class="orb orb-tera" role="img" aria-label="テラ" title="テラ"></i></span><span class="champ" title="Kongming（コンミン）">Kongming（コンミン）</span></td>
         <td class="score">6</td>
         <td class="rec">2-1-0</td>
         <td class="pct">71.4%</td>
         <td class="pct">66.7%</td>
         <td><a class="deck-link" href="#deck-14561">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="1981">
+<tr data-player="1981" data-search="Brai Ciel（シエル） FIRE 火 UMBRA アンブラ">
         <td class="rank">🥉3</td>
         <td class="player-name">Brai</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i><i class="orb orb-umbra" role="img" aria-label="アンブラ" title="アンブラ"></i></span><span class="champ" title="Ciel（シエル）">Ciel（シエル）</span></td>
         <td class="score">6</td>
         <td class="rec">2-1-0（うち不戦勝1）</td>
         <td class="pct">50%</td>
         <td class="pct">50%</td>
         <td><a class="deck-link" href="#deck-1981">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="1339">
+<tr data-player="1339" data-search="Skysama Guo Jia（グオ・ジア） WIND 風 LUXEM ラクサム">
         <td class="rank">4</td>
         <td class="player-name">Skysama</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-luxem" role="img" aria-label="ラクサム" title="ラクサム"></i></span><span class="champ" title="Guo Jia（グオ・ジア）">Guo Jia（グオ・ジア）</span></td>
         <td class="score">4</td>
         <td class="rec">1-1-1</td>
         <td class="pct">57.1%</td>
         <td class="pct">33.3%</td>
         <td><a class="deck-link" href="#deck-1339">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="2202">
+<tr data-player="2202" data-search="Bocol123 Ciel（シエル） FIRE 火 UMBRA アンブラ">
         <td class="rank">5</td>
         <td class="player-name">Bocol123</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i><i class="orb orb-umbra" role="img" aria-label="アンブラ" title="アンブラ"></i></span><span class="champ" title="Ciel（シエル）">Ciel（シエル）</span></td>
         <td class="score">4</td>
         <td class="rec">1-1-1</td>
         <td class="pct">50%</td>
         <td class="pct">33.3%</td>
         <td><a class="deck-link" href="#deck-2202">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="17640">
+<tr data-player="17640" data-search="Taikun Tristan（トリスタン） WIND 風 UMBRA アンブラ">
         <td class="rank">6</td>
         <td class="player-name">Taikun</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-umbra" role="img" aria-label="アンブラ" title="アンブラ"></i></span><span class="champ" title="Tristan（トリスタン）">Tristan（トリスタン）</span></td>
         <td class="score">3</td>
         <td class="rec">1-1-0</td>
         <td class="pct">50%</td>
         <td class="pct">50%</td>
         <td><a class="deck-link" href="#deck-17640">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="7452">
+<tr data-player="7452" data-search="WeestWind Lorraine（ロレイン） WIND 風 CRUX クラックス">
         <td class="rank">7</td>
         <td class="player-name">WeestWind</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-crux" role="img" aria-label="クラックス" title="クラックス"></i></span><span class="champ" title="Lorraine（ロレイン）">Lorraine（ロレイン）</span></td>
         <td class="score">0</td>
         <td class="rec">0-2-0</td>
         <td class="pct">0%</td>
         <td class="pct">0%</td>
         <td><a class="deck-link" href="#deck-7452">📄 デッキを見る</a></td>
       </tr>
-<tr data-player="3715">
+<tr data-player="3715" data-search="Wolfaith Kongming（コンミン） WIND 風 TERA テラ">
         <td class="rank">8</td>
         <td class="player-name">Wolfaith</td>
+        <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-tera" role="img" aria-label="テラ" title="テラ"></i></span><span class="champ" title="Kongming（コンミン）">Kongming（コンミン）</span></td>
         <td class="score">0</td>
         <td class="rec">0-2-0</td>
         <td class="pct">0%</td>
@@ -121,6 +134,8 @@
       </tr>
     </tbody>
   </table></div>
+  </div>
+  <p class="rank-empty" id="rank-empty" hidden>該当する選手がいません。</p>
   <p class="cp-muted">順位は勝ち点順で、同点はタイブレーカー（GW%＝ゲーム勝率、MW%＝マッチ勝率）によります。勝ち点には不戦勝（bye）を含みます。順位はスイスラウンド終了時点のもので、決勝トーナメントの結果は含みません。</p>
 
   <p class="cp-muted">出典: <a href="https://omni.gatcg.com/events/54688" rel="external nofollow">Omnidex 公式イベントページ #54688</a></p>
