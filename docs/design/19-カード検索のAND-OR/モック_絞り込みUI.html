@@ -8,7 +8,11 @@ main{max-width:1180px;margin:0 auto;padding:20px}
 h1{font-size:1.2rem}h2{font-size:1rem;margin-top:28px;border-bottom:1px solid var(--line);padding-bottom:6px}
 .note{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:var(--muted);font-size:.9rem}
 .frame{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:14px;margin-top:10px}
-.cols{display:grid;grid-template-columns:1fr 400px;gap:22px;align-items:start}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:start}
+.cap{color:var(--muted);font-size:.82rem;margin:0 0 6px}
+.outer-toggle{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font:inherit;font-size:.92rem;cursor:pointer;margin-bottom:8px}
+.outer-toggle .badge{margin-left:auto}
 .narrow{max-width:390px}
 /* --- 絞り込みパネル --- */
 .qrow{display:flex;gap:8px;margin-bottom:12px}
@@ -57,14 +61,60 @@ h1{font-size:1.2rem}h2{font-size:1rem;margin-top:28px;border-bottom:1px solid va
 <p class="note"><b>操作はできません（見た目の確認用）。</b>エレメントの玉は #15 で作成した実物のアイコン（32px WebP・data URI）を流用。<br>
 選択状態は「エレメント= NORM+WIND を <b>OR</b>」「タイプ= REGALIA+ITEM を <b>AND</b>」「サブタイプ= SPELL」を例示。</p>
 
-<div class="cols">
-  <div>
-    <h2>PC幅</h2>
-    <div class="frame"><div class="filters">
+<h2>PC幅</h2>
+<p class="note">絞り込みは常時表示（現行どおり）。<b>各グループは既定で閉じており</b>、選択済み件数はバッジで分かる。必要なグループだけ開く。</p>
+<div class="cols2">
+  <div><p class="cap">既定（全グループ閉じ）</p><div class="frame"><div class="filters">
   <div class="qrow">
     <input type="search" placeholder="カード名で検索（英語）… 例: lorraine">
     <input type="search" placeholder="効果テキストで部分検索（英語 / 日本語）">
   </div>
+  
+  
+  <details class="fgroup">
+  <summary><span class="flabel">エレメント</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="">AND</button><button type="button" class="on">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip on"><input type="checkbox" name="el" checked><i class="orb orb-norm"></i><span>ノーム</span><em>NORM</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-fire"></i><span>火</span><em>FIRE</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-water"></i><span>水</span><em>WATER</em></label><label class="chip on"><input type="checkbox" name="el" checked><i class="orb orb-wind"></i><span>風</span><em>WIND</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-arcane"></i><span>アーケイン</span><em>ARCANE</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-astra"></i><span>アストラ</span><em>ASTRA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-crux"></i><span>クラックス</span><em>CRUX</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-exia"></i><span>エクシア</span><em>EXIA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-luxem"></i><span>ラクサム</span><em>LUXEM</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-neos"></i><span>ネオス</span><em>NEOS</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-tera"></i><span>テラ</span><em>TERA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-umbra"></i><span>アンブラ</span><em>UMBRA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-exalted"></i><span>エグザルテッド</span><em>EXALTED</em></label></div>
+  
+</details>
+  <details class="fgroup">
+  <summary><span class="flabel">クラス</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="">AND</button><button type="button" class="on">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip"><input type="checkbox" name="cls" ><span>クレリック</span><em>CLERIC</em></label><label class="chip"><input type="checkbox" name="cls" ><span>ガーディアン</span><em>GUARDIAN</em></label><label class="chip"><input type="checkbox" name="cls" ><span>メイジ</span><em>MAGE</em></label><label class="chip"><input type="checkbox" name="cls" ><span>レンジャー</span><em>RANGER</em></label><label class="chip"><input type="checkbox" name="cls" ><span>ウォリアー</span><em>WARRIOR</em></label><label class="chip"><input type="checkbox" name="cls" ><span>アサシン</span><em>ASSASSIN</em></label><label class="chip"><input type="checkbox" name="cls" ><span>テイマー</span><em>TAMER</em></label><label class="chip"><input type="checkbox" name="cls" ><span>スピリット</span><em>SPIRIT</em></label><label class="chip"><input type="checkbox" name="cls" ><span>アノマリー</span><em>ANOMALY</em></label></div>
+  
+</details>
+  <details class="fgroup">
+  <summary><span class="flabel">タイプ</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="on">AND</button><button type="button" class="">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip"><input type="checkbox" name="ty" ><span>アクション</span><em>ACTION</em></label><label class="chip"><input type="checkbox" name="ty" ><span>アライ</span><em>ALLY</em></label><label class="chip"><input type="checkbox" name="ty" ><span>アタック</span><em>ATTACK</em></label><label class="chip"><input type="checkbox" name="ty" ><span>チャンピオン</span><em>CHAMPION</em></label><label class="chip on"><input type="checkbox" name="ty" checked><span>アイテム</span><em>ITEM</em></label><label class="chip on"><input type="checkbox" name="ty" checked><span>レガリア</span><em>REGALIA</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ウェポン</span><em>WEAPON</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ドメイン</span><em>DOMAIN</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ファンタジア</span><em>PHANTASIA</em></label><label class="chip"><input type="checkbox" name="ty" ><span>トークン</span><em>TOKEN</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ユニーク</span><em>UNIQUE</em></label><label class="chip"><input type="checkbox" name="ty" ><span>マスタリー</span><em>MASTERY</em></label></div>
+  
+</details>
+  <details class="fgroup">
+  <summary><span class="flabel">サブタイプ</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="on">AND</button><button type="button" class="">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip on"><input type="checkbox" name="sub" checked><span>クレリック</span><em>CLERIC</em></label><label class="chip on"><input type="checkbox" name="sub" checked><span>スペル</span><em>SPELL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>人間</span><em>HUMAN</em></label><label class="chip"><input type="checkbox" name="sub" ><span>メイジ</span><em>MAGE</em></label><label class="chip"><input type="checkbox" name="sub" ><span>テイマー</span><em>TAMER</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ウォリアー</span><em>WARRIOR</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ガーディアン</span><em>GUARDIAN</em></label><label class="chip"><input type="checkbox" name="sub" ><span>スキル</span><em>SKILL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>レンジャー</span><em>RANGER</em></label><label class="chip"><input type="checkbox" name="sub" ><span>アサシン</span><em>ASSASSIN</em></label><label class="chip"><input type="checkbox" name="sub" ><span>リアクション</span><em>REACTION</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ソード</span><em>SWORD</em></label><label class="chip"><input type="checkbox" name="sub" ><span>動物</span><em>ANIMAL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>アクセサリー</span><em>ACCESSORY</em></label><label class="chip"><input type="checkbox" name="sub" ><span>オートマトン</span><em>AUTOMATON</em></label><label class="chip"><input type="checkbox" name="sub" ><span>スペクター</span><em>SPECTER</em></label><label class="chip"><input type="checkbox" name="sub" ><span>エンジェル</span><em>ANGEL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>アーマー</span><em>ARMOR</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ドラゴン</span><em>DRAGON</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ボウ</span><em>BOW</em></label></div>
+  <p class="more"><button type="button" class="morebtn">＋ すべて表示（146種）</button><span class="hint">よく使う20種を表示中。上位20種で全カードをカバーします</span></p>
+</details>
+  <div class="frow">
+    <select><option>フォーマット（全て）</option></select>
+    <select><option>エキスパンション（全て）</option></select>
+    <select><option>名前順</option></select>
+    <button type="button">▲ 昇順</button>
+    <button type="button">リセット</button>
+  </div>
+</div>
+<p class="status">検索結果：<b>1,133</b>件　<span class="muted">（エレメント OR / タイプ AND は表示中の件数）</span></p></div></div>
+  <div><p class="cap">エレメントとサブタイプを開いた状態</p><div class="frame"><div class="filters">
+  <div class="qrow">
+    <input type="search" placeholder="カード名で検索（英語）… 例: lorraine">
+    <input type="search" placeholder="効果テキストで部分検索（英語 / 日本語）">
+  </div>
+  
+  
   <details class="fgroup" open>
   <summary><span class="flabel">エレメント</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
     <button type="button" class="">AND</button><button type="button" class="on">OR</button>
@@ -79,7 +129,7 @@ h1{font-size:1.2rem}h2{font-size:1rem;margin-top:28px;border-bottom:1px solid va
   <div class="chips"><label class="chip"><input type="checkbox" name="cls" ><span>クレリック</span><em>CLERIC</em></label><label class="chip"><input type="checkbox" name="cls" ><span>ガーディアン</span><em>GUARDIAN</em></label><label class="chip"><input type="checkbox" name="cls" ><span>メイジ</span><em>MAGE</em></label><label class="chip"><input type="checkbox" name="cls" ><span>レンジャー</span><em>RANGER</em></label><label class="chip"><input type="checkbox" name="cls" ><span>ウォリアー</span><em>WARRIOR</em></label><label class="chip"><input type="checkbox" name="cls" ><span>アサシン</span><em>ASSASSIN</em></label><label class="chip"><input type="checkbox" name="cls" ><span>テイマー</span><em>TAMER</em></label><label class="chip"><input type="checkbox" name="cls" ><span>スピリット</span><em>SPIRIT</em></label><label class="chip"><input type="checkbox" name="cls" ><span>アノマリー</span><em>ANOMALY</em></label></div>
   
 </details>
-  <details class="fgroup" open>
+  <details class="fgroup">
   <summary><span class="flabel">タイプ</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
     <button type="button" class="on">AND</button><button type="button" class="">OR</button>
   </span></summary>
@@ -101,16 +151,29 @@ h1{font-size:1.2rem}h2{font-size:1rem;margin-top:28px;border-bottom:1px solid va
     <button type="button">リセット</button>
   </div>
 </div>
-<p class="status">検索結果：<b>1,133</b>件　<span class="muted">（エレメント OR / タイプ AND は表示中の件数）</span></p></div>
-  </div>
-  <div>
-    <h2>スマホ幅（390px）</h2>
-    <div class="frame narrow"><div class="filters">
+<p class="status">検索結果：<b>1,133</b>件　<span class="muted">（エレメント OR / タイプ AND は表示中の件数）</span></p></div></div>
+</div>
+
+<h2>スマホ幅（390px）</h2>
+<p class="note"><b>現行どおり「絞り込み・並び替え ▾」で全体が畳まれる</b>（<code>@media (max-width:640px)</code>）。開くと各グループの見出しだけが並び、さらに必要なグループを開く<b>2段構え</b>。</p>
+<div class="cols3">
+  <div><p class="cap">① 既定（畳まれている）</p><div class="frame narrow"><div class="filters">
   <div class="qrow">
     <input type="search" placeholder="カード名で検索（英語）… 例: lorraine">
     <input type="search" placeholder="効果テキストで部分検索（英語 / 日本語）">
   </div>
-  <details class="fgroup" open>
+  <button type="button" class="outer-toggle">絞り込み・並び替え ▾<span class="badge">4</span></button>
+  
+</div>
+<p class="status">検索結果：<b>1,133</b>件　<span class="muted">（エレメント OR / タイプ AND は表示中の件数）</span></p></div></div>
+  <div><p class="cap">② 開いた直後（グループは閉じ）</p><div class="frame narrow"><div class="filters">
+  <div class="qrow">
+    <input type="search" placeholder="カード名で検索（英語）… 例: lorraine">
+    <input type="search" placeholder="効果テキストで部分検索（英語 / 日本語）">
+  </div>
+  <button type="button" class="outer-toggle">絞り込み・並び替え ▴<span class="badge">4</span></button>
+  
+  <details class="fgroup">
   <summary><span class="flabel">エレメント</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
     <button type="button" class="">AND</button><button type="button" class="on">OR</button>
   </span></summary>
@@ -124,14 +187,14 @@ h1{font-size:1.2rem}h2{font-size:1rem;margin-top:28px;border-bottom:1px solid va
   <div class="chips"><label class="chip"><input type="checkbox" name="cls" ><span>クレリック</span><em>CLERIC</em></label><label class="chip"><input type="checkbox" name="cls" ><span>ガーディアン</span><em>GUARDIAN</em></label><label class="chip"><input type="checkbox" name="cls" ><span>メイジ</span><em>MAGE</em></label><label class="chip"><input type="checkbox" name="cls" ><span>レンジャー</span><em>RANGER</em></label><label class="chip"><input type="checkbox" name="cls" ><span>ウォリアー</span><em>WARRIOR</em></label><label class="chip"><input type="checkbox" name="cls" ><span>アサシン</span><em>ASSASSIN</em></label><label class="chip"><input type="checkbox" name="cls" ><span>テイマー</span><em>TAMER</em></label><label class="chip"><input type="checkbox" name="cls" ><span>スピリット</span><em>SPIRIT</em></label><label class="chip"><input type="checkbox" name="cls" ><span>アノマリー</span><em>ANOMALY</em></label></div>
   
 </details>
-  <details class="fgroup" open>
+  <details class="fgroup">
   <summary><span class="flabel">タイプ</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
     <button type="button" class="on">AND</button><button type="button" class="">OR</button>
   </span></summary>
   <div class="chips"><label class="chip"><input type="checkbox" name="ty" ><span>アクション</span><em>ACTION</em></label><label class="chip"><input type="checkbox" name="ty" ><span>アライ</span><em>ALLY</em></label><label class="chip"><input type="checkbox" name="ty" ><span>アタック</span><em>ATTACK</em></label><label class="chip"><input type="checkbox" name="ty" ><span>チャンピオン</span><em>CHAMPION</em></label><label class="chip on"><input type="checkbox" name="ty" checked><span>アイテム</span><em>ITEM</em></label><label class="chip on"><input type="checkbox" name="ty" checked><span>レガリア</span><em>REGALIA</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ウェポン</span><em>WEAPON</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ドメイン</span><em>DOMAIN</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ファンタジア</span><em>PHANTASIA</em></label><label class="chip"><input type="checkbox" name="ty" ><span>トークン</span><em>TOKEN</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ユニーク</span><em>UNIQUE</em></label><label class="chip"><input type="checkbox" name="ty" ><span>マスタリー</span><em>MASTERY</em></label></div>
   
 </details>
-  <details class="fgroup" open>
+  <details class="fgroup">
   <summary><span class="flabel">サブタイプ</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
     <button type="button" class="on">AND</button><button type="button" class="">OR</button>
   </span></summary>
@@ -146,18 +209,63 @@ h1{font-size:1.2rem}h2{font-size:1rem;margin-top:28px;border-bottom:1px solid va
     <button type="button">リセット</button>
   </div>
 </div>
-<p class="status">検索結果：<b>1,133</b>件　<span class="muted">（エレメント OR / タイプ AND は表示中の件数）</span></p></div>
+<p class="status">検索結果：<b>1,133</b>件　<span class="muted">（エレメント OR / タイプ AND は表示中の件数）</span></p></div></div>
+  <div><p class="cap">③ エレメントを開いた状態</p><div class="frame narrow"><div class="filters">
+  <div class="qrow">
+    <input type="search" placeholder="カード名で検索（英語）… 例: lorraine">
+    <input type="search" placeholder="効果テキストで部分検索（英語 / 日本語）">
   </div>
+  <button type="button" class="outer-toggle">絞り込み・並び替え ▴<span class="badge">4</span></button>
+  
+  <details class="fgroup" open>
+  <summary><span class="flabel">エレメント</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="">AND</button><button type="button" class="on">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip on"><input type="checkbox" name="el" checked><i class="orb orb-norm"></i><span>ノーム</span><em>NORM</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-fire"></i><span>火</span><em>FIRE</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-water"></i><span>水</span><em>WATER</em></label><label class="chip on"><input type="checkbox" name="el" checked><i class="orb orb-wind"></i><span>風</span><em>WIND</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-arcane"></i><span>アーケイン</span><em>ARCANE</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-astra"></i><span>アストラ</span><em>ASTRA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-crux"></i><span>クラックス</span><em>CRUX</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-exia"></i><span>エクシア</span><em>EXIA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-luxem"></i><span>ラクサム</span><em>LUXEM</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-neos"></i><span>ネオス</span><em>NEOS</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-tera"></i><span>テラ</span><em>TERA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-umbra"></i><span>アンブラ</span><em>UMBRA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-exalted"></i><span>エグザルテッド</span><em>EXALTED</em></label></div>
+  
+</details>
+  <details class="fgroup">
+  <summary><span class="flabel">クラス</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="">AND</button><button type="button" class="on">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip"><input type="checkbox" name="cls" ><span>クレリック</span><em>CLERIC</em></label><label class="chip"><input type="checkbox" name="cls" ><span>ガーディアン</span><em>GUARDIAN</em></label><label class="chip"><input type="checkbox" name="cls" ><span>メイジ</span><em>MAGE</em></label><label class="chip"><input type="checkbox" name="cls" ><span>レンジャー</span><em>RANGER</em></label><label class="chip"><input type="checkbox" name="cls" ><span>ウォリアー</span><em>WARRIOR</em></label><label class="chip"><input type="checkbox" name="cls" ><span>アサシン</span><em>ASSASSIN</em></label><label class="chip"><input type="checkbox" name="cls" ><span>テイマー</span><em>TAMER</em></label><label class="chip"><input type="checkbox" name="cls" ><span>スピリット</span><em>SPIRIT</em></label><label class="chip"><input type="checkbox" name="cls" ><span>アノマリー</span><em>ANOMALY</em></label></div>
+  
+</details>
+  <details class="fgroup">
+  <summary><span class="flabel">タイプ</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="on">AND</button><button type="button" class="">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip"><input type="checkbox" name="ty" ><span>アクション</span><em>ACTION</em></label><label class="chip"><input type="checkbox" name="ty" ><span>アライ</span><em>ALLY</em></label><label class="chip"><input type="checkbox" name="ty" ><span>アタック</span><em>ATTACK</em></label><label class="chip"><input type="checkbox" name="ty" ><span>チャンピオン</span><em>CHAMPION</em></label><label class="chip on"><input type="checkbox" name="ty" checked><span>アイテム</span><em>ITEM</em></label><label class="chip on"><input type="checkbox" name="ty" checked><span>レガリア</span><em>REGALIA</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ウェポン</span><em>WEAPON</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ドメイン</span><em>DOMAIN</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ファンタジア</span><em>PHANTASIA</em></label><label class="chip"><input type="checkbox" name="ty" ><span>トークン</span><em>TOKEN</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ユニーク</span><em>UNIQUE</em></label><label class="chip"><input type="checkbox" name="ty" ><span>マスタリー</span><em>MASTERY</em></label></div>
+  
+</details>
+  <details class="fgroup">
+  <summary><span class="flabel">サブタイプ</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="on">AND</button><button type="button" class="">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip on"><input type="checkbox" name="sub" checked><span>クレリック</span><em>CLERIC</em></label><label class="chip on"><input type="checkbox" name="sub" checked><span>スペル</span><em>SPELL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>人間</span><em>HUMAN</em></label><label class="chip"><input type="checkbox" name="sub" ><span>メイジ</span><em>MAGE</em></label><label class="chip"><input type="checkbox" name="sub" ><span>テイマー</span><em>TAMER</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ウォリアー</span><em>WARRIOR</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ガーディアン</span><em>GUARDIAN</em></label><label class="chip"><input type="checkbox" name="sub" ><span>スキル</span><em>SKILL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>レンジャー</span><em>RANGER</em></label><label class="chip"><input type="checkbox" name="sub" ><span>アサシン</span><em>ASSASSIN</em></label><label class="chip"><input type="checkbox" name="sub" ><span>リアクション</span><em>REACTION</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ソード</span><em>SWORD</em></label><label class="chip"><input type="checkbox" name="sub" ><span>動物</span><em>ANIMAL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>アクセサリー</span><em>ACCESSORY</em></label><label class="chip"><input type="checkbox" name="sub" ><span>オートマトン</span><em>AUTOMATON</em></label><label class="chip"><input type="checkbox" name="sub" ><span>スペクター</span><em>SPECTER</em></label><label class="chip"><input type="checkbox" name="sub" ><span>エンジェル</span><em>ANGEL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>アーマー</span><em>ARMOR</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ドラゴン</span><em>DRAGON</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ボウ</span><em>BOW</em></label></div>
+  <p class="more"><button type="button" class="morebtn">＋ すべて表示（146種）</button><span class="hint">よく使う20種を表示中。上位20種で全カードをカバーします</span></p>
+</details>
+  <div class="frow">
+    <select><option>フォーマット（全て）</option></select>
+    <select><option>エキスパンション（全て）</option></select>
+    <select><option>名前順</option></select>
+    <button type="button">▲ 昇順</button>
+    <button type="button">リセット</button>
+  </div>
+</div>
+<p class="status">検索結果：<b>1,133</b>件　<span class="muted">（エレメント OR / タイプ AND は表示中の件数）</span></p></div></div>
 </div>
 
 <h2>エレメントANDで成立しない組み合わせを選んだとき</h2>
 <p class="note">FIRE + WIND を <b>AND</b> で指定した場合。複属性カードは「EXALTED＋基本属性」しか存在しないため、検索する前に警告を出す。</p>
-<div class="cols">
-  <div><div class="frame"><div class="filters">
+<div class="cols2">
+  <div><p class="cap">PC幅</p><div class="frame"><div class="filters">
   <div class="qrow">
     <input type="search" placeholder="カード名で検索（英語）… 例: lorraine">
     <input type="search" placeholder="効果テキストで部分検索（英語 / 日本語）">
   </div>
+  
+  
   <details class="fgroup" open>
   <summary><span class="flabel">エレメント</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
     <button type="button" class="on">AND</button><button type="button" class="">OR</button>
@@ -195,11 +303,13 @@ h1{font-size:1.2rem}h2{font-size:1rem;margin-top:28px;border-bottom:1px solid va
   </div>
 </div>
 <p class="status">検索条件を見直してください</p></div></div>
-  <div><div class="frame narrow"><div class="filters">
+  <div><p class="cap">スマホ幅</p><div class="frame narrow"><div class="filters">
   <div class="qrow">
     <input type="search" placeholder="カード名で検索（英語）… 例: lorraine">
     <input type="search" placeholder="効果テキストで部分検索（英語 / 日本語）">
   </div>
+  <button type="button" class="outer-toggle">絞り込み・並び替え ▴<span class="badge">4</span></button>
+  
   <details class="fgroup" open>
   <summary><span class="flabel">エレメント</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
     <button type="button" class="on">AND</button><button type="button" class="">OR</button>
