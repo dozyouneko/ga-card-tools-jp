@@ -110,10 +110,15 @@ a { color: var(--accent-2); }
 
 /* PC幅では4グループをタイル状に並べる（全幅で縦に積むとカード一覧が下へ押し出されるため）。
    幅に応じて 2〜4 列に追従し、開いたグループだけ全幅に広げてチップを窮屈にしない。
-   スマホ幅は下のメディアクエリで縦積みに戻す。 */
+   スマホ幅は下のメディアクエリで縦積みに戻す。
+
+   最小トラック幅の `(100% - 24px) / 4`（gap 8px × 3本を除いた幅の4等分）は、列数を4で
+   頭打ちにするためのもの。これが無いと .filter-rest が全トラックにまたがる関係で
+   auto-fit が5本目以降を「空」と判定できず、広い画面で右側に空トラックが残る。
+   狭いときは 240px 側が効いて 2〜3 列に折り返す。 */
 .filter-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(max(240px, (100% - 24px) / 4), 1fr));
   gap: 8px;
   align-items: start;
 }
