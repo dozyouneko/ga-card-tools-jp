@@ -153,9 +153,6 @@ a { color: var(--accent-2); }
   padding: 6px 11px;
 }
 .controls .andor button.on { background: var(--accent); color: #201a0a; }
-/* 値が1つ以下ならAND/ORの区別が無意味なので操作させない */
-.controls .andor button:disabled { cursor: default; }
-.andor.idle { opacity: .5; }
 
 /* 選択チップ。カード一覧の .chip（下方で定義）と名前が同じため .fgroup で必ず限定する */
 .fgroup .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 12px; }

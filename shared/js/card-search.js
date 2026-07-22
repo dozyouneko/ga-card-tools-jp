@@ -179,14 +179,13 @@ window.GA_CARD_SEARCH = (() => {
       const n = getValues().length;
       badge.hidden = n === 0;
       badge.textContent = String(n);
-      // 値が1つ以下ならAND/ORの区別が無意味なので操作させない
+      // AND/ORトグルは常時有効にする。1値以下では結果が変わらないので実害がなく、
+      // 「先にANDを選んでから値を選ぶ」操作ができるほうが分かりやすいため
       modeBtns.forEach((b) => {
-        b.disabled = n < 2;
         const on = b.dataset.mode === mode;
         b.classList.toggle("on", on);
         b.setAttribute("aria-pressed", on ? "true" : "false");
       });
-      andor.classList.toggle("idle", n < 2);
       Array.from(boxes()).forEach((b) => b.closest(".chip").classList.toggle("on", b.checked));
     }
 
@@ -198,10 +197,11 @@ window.GA_CARD_SEARCH = (() => {
     modeBtns.forEach((b) => {
       b.addEventListener("click", (e) => {
         e.preventDefault(); // summary 内のボタンなので、既定動作(details の開閉)を止める
-        if (b.disabled || mode === b.dataset.mode) return;
+        if (mode === b.dataset.mode) return;
         mode = b.dataset.mode;
         sync();
-        if (changed) changed();
+        // 1値以下では結果が変わらないので検索し直さない（無駄なAPIリクエストを出さない）
+        if (changed && getValues().length > 1) changed();
       });
     });
     if (moreBtn) {
