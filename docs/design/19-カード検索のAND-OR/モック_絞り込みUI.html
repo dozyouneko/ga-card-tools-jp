@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>#19 モック: カード検索のAND/OR絞り込みUI</title>
+<style>
+:root{--bg:#12141a;--panel:#171a21;--panel-2:#1f232c;--line:#262b36;--text:#e6e8ee;--muted:#9aa2b1;--accent:#d9a441;--accent-2:#6ea8fe}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1180px;margin:0 auto;padding:20px}
+h1{font-size:1.2rem}h2{font-size:1rem;margin-top:28px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.note{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:var(--muted);font-size:.9rem}
+.frame{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:14px;margin-top:10px}
+.cols{display:grid;grid-template-columns:1fr 400px;gap:22px;align-items:start}
+.narrow{max-width:390px}
+/* --- 絞り込みパネル --- */
+.qrow{display:flex;gap:8px;margin-bottom:12px}
+.qrow input{flex:1;min-width:0;background:var(--panel-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px 11px;font:inherit}
+.fgroup{border:1px solid var(--line);border-radius:10px;background:var(--panel-2);margin-bottom:8px}
+.fgroup summary{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;list-style:none}
+.fgroup summary::-webkit-details-marker{display:none}
+.flabel{font-weight:700;font-size:.92rem}
+.badge{background:var(--accent);color:#201a0a;border-radius:10px;font-size:.72rem;font-weight:700;padding:1px 8px}
+.andor{margin-left:auto;display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.andor button{background:transparent;border:0;color:var(--muted);font:600 .78rem/1 inherit;padding:6px 11px;cursor:pointer}
+.andor button.on{background:var(--accent);color:#201a0a}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 12px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:5px 11px 5px 8px;background:var(--panel);cursor:pointer;font-size:.85rem}
+.chip.on{border-color:var(--accent);background:rgba(217,164,65,.14)}
+.chip input{display:none}
+.chip em{font-style:normal;color:var(--muted);font-size:.72rem}
+.orb{width:18px;height:18px;display:inline-block;border-radius:50%;background-size:cover;box-shadow:0 0 0 1px rgba(0,0,0,.55);flex:0 0 auto}
+.orb-fire{background-image:url("data:image/webp;base64,UklGRhoDAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSM8AAAABgFvb1rLoZjiZk2lmUwxWzrjGOMWMu3eAS+jufP+7HUTEBEDRmiq8tSeT9ls+aYFgsNRfKvaLAS2Gm+lS4+RKrxT4Xwo+uxQO2kvRSnhPoL0Urjh36H+W4h+GrZsl8RBAcMroOoHSkpqGtc/pWVJLcqLAyr2xnjus1pg14nVYrTfWc56VTbJi5h6nZ0aRkwcCE8bYC+CKcQ4A+me5J90WnGWpmge7wxWZcgj7bbcST06o6g57WsZnOmh0pnsqvZwXguZE9qU1HrdeMnEzFAEAVlA4ICQCAACwCgCdASogACAAPmkokEWkIqGYBgBABoS2AE6ZQjp5ZHC32zu4Y3gD0AOk//bGa1vdKkDcA0pUzzxv/UXAA9DMdlVuuc5noEUC0nmzcUTNQYH9hTSiMKz4SElOyHAAAP7w3V1Vf8W5hP0LuYVTDcrA5y0NTN19wPDTCbJt094oIJa3lF4iKyoazZgC3dCu5LuOu+/jwIEvJy5DsFseNLdbPNt1JMOjoTHGSH++71HMJGtJbhJIbPBAphCtv9oBAVTrAdTEDu5X7KyOSkZ6jYWwAmfoyi90nhHBsdiMOHjHpfc8Mv7zk94DD+xNtbKCNDZF6Wy31nHUuBL6k4Vll9iMfOz4sR6XIdP1M5XA6lEE7jCvewv9I5r+CnWJ2IE5QDKGiiZkrt4n4Fhf2hfVtzzHtWI+1unR+DLgf+X/pG4/5WKf5WtFp2LVWw9YJ6+mT+kXWFrEaH1JSFqcuabamBUriuLGX+E9Z1HTD/r5AHpvWShkjiisCe7jDRu3aCmFF/2AWe8gdKVs5+j/2Cz+KmwnpXrVY3pHJ4kpVQqffKG3xDXQQxGKm1GRCNZEFzNaZ8IoBtm5Nm5Ea4XOb5zKPU6W87gxe/p5lhfFIwzlzkG/duWpFx+x/x83k96KmwNUWn+IHdqe5aPj9kpZ9oa/MqI2u9bAD632S+aXCQKYIu9Sr4sjq6AnC0PXGgyi2BhNB0ymA8fkLjwmti+ddyQ1pcS79UAAAA==")}
+.orb-water{background-image:url("data:image/webp;base64,UklGRkgDAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSM8AAAABgFvb1rLoZjiZk2lmUwxWzrjGOMWMu3eAS+jufP+7HUTEBEDRmiq8tSeT9ls+aYFgsNRfKvaLAS2Gm+lS4+RKrxT4Xwo+uxQO2kvRSnhPoL0Urjh36H+W4h+GrZsl8RBAcMroOoHSkpqGtc/pWVJLcqLAyr2xnjus1pg14nVYrTfWc56VTbJi5h6nZ0aRkwcCE8bYC+CKcQ4A+me5J90WnGWpmge7wxWZcgj7bbcST06o6g57WsZnOmh0pnsqvZwXguZE9qU1HrdeMnEzFAEAVlA4IFICAADQCwCdASogACAAPl0kjUWjoiEb9AA4BcS2AE6ZQjqD0a3DtOxgNs1zyvoR3gD0K/LW9jGfKclYAbTjf7WAywLgVzn6gG6Z/sAWfc7A8kf7QnBJ88tlqcFiF/nLVlfcmwsDcx98tyQAAP7o8RGXOFZzVYZO4rtYNKHHud9gxBSRrNWrEuQ3x3tbtKzm15jMy89q58cOuApgwgy9EsH1iCvQmAqaWhNY1I6julOz/DefMDK1nvfj71IZEkHR/VtiWlqWDtNlHVF8yySiZ38xVXv1nqGe3xKlEaQZyfofLHX8jnlCuPki3FPb1vgPoCuHQgJQQb+IY2Uzl9B4c+jqFXDd/EFNsdy7o7gu3mQE+zSYZrY6iFMZxH/aFlN2lW3rnFgBPhnsE4rM+Pe3ETyCKPr2htGFgScbd7toqll8VWgKdQVFnIJ07Z9BBrtEKfQJX8qDfxVllzK2+3iNJXpmJ3qD/6TCKF1nIfZtw+f21VUIAC+c6Ua306EryxvXXxht4D/wfzv735BtHP8FR8LDJLFNJ7Rm+HmoPUNyz8CpukVizj4MhSdw8qhA2PDnhgWG+hXua79//+2Mr6SfgR2biMDq6Kuh14r/UzuHH3G5fD5wQeZO7/Q6QvJap5JcBwFkDCeeGR2uTYeffO1aZQdTo2cOmUVMbtzm/9zw3zUgleH1MBt1fNRrQPfmWNXrp8jBz8ZAi5VBpPn/hKPvoRRA06d03m2wU+rtDpzXLilRVDcKUm9unmOZQMJI2S8Jne/5cDQ4vxy8TMJz3VioV1+fMKcAAAA=")}
+.orb-wind{background-image:url("data:image/webp;base64,UklGRp4DAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSM8AAAABgFvb1rLoZjiZk2lmUwxWzrjGOMWMu3eAS+jufP+7HUTEBEDRmiq8tSeT9ls+aYFgsNRfKvaLAS2Gm+lS4+RKrxT4Xwo+uxQO2kvRSnhPoL0Urjh36H+W4h+GrZsl8RBAcMroOoHSkpqGtc/pWVJLcqLAyr2xnjus1pg14nVYrTfWc56VTbJi5h6nZ0aRkwcCE8bYC+CKcQ4A+me5J90WnGWpmge7wxWZcgj7bbcST06o6g57WsZnOmh0pnsqvZwXguZE9qU1HrdeMnEzFAEAVlA4IKgCAACwDACdASogACAAPl0mjUWjoiEb9AA4BcS2AE6ZQjzPzPjU5kuBBltsBuAPPA6gD0APLY9hT9wrUEaCaG7Wf5bwSW8mGGM4v0J/0vcF/Wz/YdgfyVSOMtqgtLlivaPRn8JxPBVMyArybnuk5p5BMAD+uf20jS4siG1/rCeUD7NyMtmT36OUHwUjt7ytfCNtPmQHbjKE6wjy9VikIb+QIfNaHxnnlsmdeln8oaZMdk6XU0Z895FsDFnPz1/fIQjZxGEyewyywkoJPJZbo1yuol8kBlba8uQs/RVTFji8DRJoNAFHjDDr26WLLL/maE8dzUn0N2EOA0WX2//TG9a2t68/JswDMOuSOqDf6EErNqSTNDtdwxDS7vQCyb/Omw/62h0hsTCA8HfThXMO2mXVrhzPBxd6AxpF1GFNWnlRtTy16GUrbM5mjP6bzMgP8+wlXX0BSYgEeHG9C/1JEhGE449/bvHJVwuJwYyIDdC8x0EEljyHh1p2nJLokbY0F//jEv1xlBbuOPHyOVi+LacW8B3vuZ5wWLIvjYYWaFgfm2f7qdQBJ8z0SWD+MNBTWmHvzG1Rc4EL19eHdY2/Yiz+YtlyS3mOYW/kkv5v/gpcdlmWV7gaQGy6n4N1LSuVuRrfzOZDvu4l2WIqdVzHAtBxeqXP8cmxBYxby/xr5tfdK6Bl1Nu3/wEt04r1YCML530f2SRh5nylk2lvZ+dUqPsOvDDq+8xmoGsfx6rrhnnGX4O7wer5j9MINa+y1elsTs/fDN5jqn5XfaQa4a+SzewJ+C8F1cAjjfNN2dn/p8XWWUbS6Hme9WHRikTc3vAx0SvfF30Gmg9qZsfP2wOR9cCvC2+bBs2Q22s6QyFGZRzMp1u1eYcNmyH+FE49+X4li0U7jduV2xuSyPAAAA==")}
+.orb-arcane{background-image:url("data:image/webp;base64,UklGRlYDAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSM8AAAABgFvb1rLoZjiZk2lmUwxWzrjGOMWMu3eAS+jufP+7HUTEBEDRmiq8tSeT9ls+aYFgsNRfKvaLAS2Gm+lS4+RKrxT4Xwo+uxQO2kvRSnhPoL0Urjh36H+W4h+GrZsl8RBAcMroOoHSkpqGtc/pWVJLcqLAyr2xnjus1pg14nVYrTfWc56VTbJi5h6nZ0aRkwcCE8bYC+CKcQ4A+me5J90WnGWpmge7wxWZcgj7bbcST06o6g57WsZnOmh0pnsqvZwXguZE9qU1HrdeMnEzFAEAVlA4IGACAACQDACdASogACAAPmEkj0WkIiGb9ABABgS2AE6ZQjgTQZwIMB+L94B5gPOg9Cnn/9Q76AHSdVk3wNqg2gVvehvagpmX0ge3r6O9gb9Wd85arRTx2TBaco2cF4tIlm/PUCjV63mqlYEPSWg1GuWAAP7uoLMsrGpCNKAkdi/EBGdeTdvGhN0MNfBc5nEzdA78pfYv/p1XrrIVT12AF7Dziu1P6K5Yj0NdYcOsfgH/6XPx0cPdl6XYv8n9CGGRxsLMwLTlOkoeiadA/x3V4SgFIs8b5JFDvpE/zoJmsgLAvd4bN3Zyg0j/fyiC/RNVwtguv/oO5FvjuKODhsF/j1DH7h7o/JaI0AL4j73LsomMistoPIllPYsl3fXH2LTaGe5lL96Hng8mT/zXqkPUSEdtAHmK6b8wLOOJ4hXqjF89vM7vLw1d64F8p7I9AYrtCmIOBob+emYfRCQ0kin2ccE70D5ydrkxmMKwnZnrO2PEdPUzEgfKRyB6oUCkPARuXWf0aIIeA7ZpSrV98no848+4fZHUivg1TSvh2jLXpzYYHy0HRNzmL+APyGZ2FhClX2NZMpdyfhD9MCCFR7bfKvOXsFnwblFsTS8kJ4qf3qsLOoK07fGVdOELb9eelZAVgVKPPoqWLF9ufqPee5zwbZZ5jfzIH4oz6qbCa+85P18NvM/SubG6cPbqdz/gm0F1djsYWLFeRnCrXo8T2hRbmxr12oeAJfqzK2r7yvMLaw/r9ucNdE2S448fafMyV+E+pQIVp08bQvjJrEzw7E/GJHpTpgydbzikIkN/dX9ODUDgTAAAAA==")}
+.orb-astra{background-image:url("data:image/webp;base64,UklGRtgCAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSM8AAAABgFvb1rLoZjiZk2lmUwxWzrjGOMWMu3eAS+jufP+7HUTEBEDRmiq8tSeT9ls+aYFgsNRfKvaLAS2Gm+lS4+RKrxT4Xwo+uxQO2kvRSnhPoL0Urjh36H+W4h+GrZsl8RBAcMroOoHSkpqGtc/pWVJLcqLAyr2xnjus1pg14nVYrTfWc56VTbJi5h6nZ0aRkwcCE8bYC+CKcQ4A+me5J90WnGWpmge7wxWZcgj7bbcST06o6g57WsZnOmh0pnsqvZwXguZE9qU1HrdeMnEzFAEAVlA4IOIBAADQCACdASogACAAPm0sk0WkIqGUBqhABsSyAE6M0BLAG8jT5Rlv1/9Af/peWv6X9gcz2b8+6je6Paxj1IvQZKYRt16IjRlZKXVvzqc/M9cAAP73e1Pipl1/j7Oogomshpm2hLd1ZO1i2C5usu9fBz/2lZ4BLKuo9dXRn9tgqld6NIGkEuCeInblCTL1YTyPv6uH7PfHrx5L1d+N7DaEK/tp/9tueNwZE0SThbrrku8wmR3ljnjBvcDe9zxctq+d+T0s1Cr8lU8A/u0sGM7TDh4WAvFw7h3w/wX6u6fXbU/yVa+VBXdR41gjyvT1jbwV/CJ0Al5YqvPcZQOWKVCghqO0SWY+GiS3TOPdgJ6b9oO797lW/lJA8oVOxkKZNATe7hZLbNuNP9e3zCrry17MUcFAMJ+ignrmrP0IWFQY9cPmcSaHTwJz16qkhG08ad9lcmQ+s8KlD8/dTVkJMpkc/L54+eaBtbksBZOeXgXhkXXCbglWNB+J+wq4m9neL6go+9NmtnnTMViyf6Mvt6ajLIUJJy3Nvqur5LYNxpl5hmSjPenX7mXO7B+GF8HK0XzW5n92enXD0dnQYY7UOxGgdEc1CwGIAlJ92fsL1p6p5LSIrqbC3CejtsiQEMClcXZVaNdAAA==")}
+.orb-crux{background-image:url("data:image/webp;base64,UklGRgADAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSM8AAAABgFvb1rLoZjiZk2lmUwxWzrjGOMWMu3eAS+jufP+7HUTEBEDRmiq8tSeT9ls+aYFgsNRfKvaLAS2Gm+lS4+RKrxT4Xwo+uxQO2kvRSnhPoL0Urjh36H+W4h+GrZsl8RBAcMroOoHSkpqGtc/pWVJLcqLAyr2xnjus1pg14nVYrTfWc56VTbJi5h6nZ0aRkwcCE8bYC+CKcQ4A+me5J90WnGWpmge7wxWZcgj7bbcST06o6g57WsZnOmh0pnsqvZwXguZE9qU1HrdeMnEzFAEAVlA4IAoCAABQCgCdASogACAAPl0kjUWjoiEb9AA4BcS2AE6ZQjq4apwCYRwgNtvdru8sWYI0ivw4EdjXc3mNs8f0f7Ae6Vlela/KlXoLb969O06LjoKGzNvlWfoVKQFfI5gAAP7jORElfKlS8gnt6CbBmpBtJnSvkai4Lop/yUyL0+MbaUIuvNe/sgMdnCvab1WKCuQJX2wyJPTyAnVMpYfAIpe3rHd5ZCPL5abIULJnmbCBLpAFINHWhNOwpN+m5Pf0edz/sg+3JD1xv02+oTOmLK+I8ocO4kKdB8/xoKr3EXmfTlY2gTt9u8ScOf/BIJZLnIxBDnuO9RCVq08/f5noJBFbViRGOqsvjF2H+US43NmbW497YYeJU7UR3yVJ+6NkjgkFc+J8uS8UmZ5nfmp7AezGdzugTCjvMlS6bA4bPcyK3RBEb0WdTJtNmTlyjVvrKtPedNN15Ab/3r/uX8H6X5LTvXIfL+I7GCP16eyzbqKPpyo3TwRNZgalthtqy+5qnYcIT1Lhg33HJ+BL+WAtgTq+2aaep4cPLwisfrpINc/xbYa+8aNPDkyRKHKoQAcRstdcYlwn2Rsu2xrt+dl6rVtAnqro+ki/yPMd093pMx5JXq7VM08sL1QcsyenmtUFvkd2sTZUXwJHWUi9jv8C/CIw5LZyFe+lgn0WXrpz0R+MyTbZoGEDFiiKhLR+AAA=")}
+.orb-exia{background-image:url("data:image/webp;base64,UklGRgwDAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSM8AAAABgFvb1rLoZjiZk2lmUwxWzrjGOMWMu3eAS+jufP+7HUTEBEDRmiq8tSeT9ls+aYFgsNRfKvaLAS2Gm+lS4+RKrxT4Xwo+uxQO2kvRSnhPoL0Urjh36H+W4h+GrZsl8RBAcMroOoHSkpqGtc/pWVJLcqLAyr2xnjus1pg14nVYrTfWc56VTbJi5h6nZ0aRkwcCE8bYC+CKcQ4A+me5J90WnGWpmge7wxWZcgj7bbcST06o6g57WsZnOmh0pnsqvZwXguZE9qU1HrdeMnEzFAEAVlA4IBYCAADwCgCdASogACAAPl0kjUWjoiEb9AA4BcS2AE6ZQjqD3TiqXo4CcsZ+gB0ltmCZZ+BvgrR+/lKoIZ148fpn2A/1d3zkr3C/bx+CYvcb4nVrcJGdSoFAmPPQZdva5IE+fGAA/vC8Cu2N0AIaUDDLrPtcPvQ6xxjfbX5NoDOV4nPST/4Nup0Opu3H8fy/dTcnxm3HWxHugDX1piJ355gWbxzDxK/Wf5aLfucVH2J9vG4ATAHtyFv//uqcd0I8vgR4i9Jy6cjAv/3LNcsjf6JpC1NUL6WLekooYxflk/HaGIq4Ncu2BancMX1BS/P/dvpHa/an+8MHIZbQnWXTTLrxz4pTaHRh8VahAh6x9Iirprmf2+YWLCbmyQ5DrSPV7Nj+nqomxK6cpJeXFceEX3UTZ6TRxLLkhdRbbhxsiYsMKphvmwHz4vxz74M+kKWHL27g5riuInyasakH1WGnhgA/eV7YecwslwtKq2gPlmFZJvhiwSpa/yPufIsGuhCikwTkuBEbtq/kp41JQl6HylSdtsu7V3hrtIQvsArd+bndXiCbGOSf8BJ2eKVKSGLFsB03Syn/c0YGAkzvspa5prhj9Sxk7s5IgafRhXxNxwW/PKe526u+kxQHQr8ZemWDTJCjJzpQyir/fRdd9TEqI5Ymo63Ys2njvARoyAHoJUlWmvEfe6ye30UX4jP8WsRKvJf97Vk/sUoMAAA=")}
+.orb-luxem{background-image:url("data:image/webp;base64,UklGRi4DAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSM8AAAABgFvb1rLoZjiZk2lmUwxWzrjGOMWMu3eAS+jufP+7HUTEBEDRmiq8tSeT9ls+aYFgsNRfKvaLAS2Gm+lS4+RKrxT4Xwo+uxQO2kvRSnhPoL0Urjh36H+W4h+GrZsl8RBAcMroOoHSkpqGtc/pWVJLcqLAyr2xnjus1pg14nVYrTfWc56VTbJi5h6nZ0aRkwcCE8bYC+CKcQ4A+me5J90WnGWpmge7wxWZcgj7bbcST06o6g57WsZnOmh0pnsqvZwXguZE9qU1HrdeMnEzFAEAVlA4IDgCAABwCgCdASogACAAPl0kjUWjoiEb9AA4BcS2AE6ZQjzP2bikHDeBBgNtRz2HoA3iLeOP8BQFOSmwGGq1AIZh47vpj2BiHjVFsQ7y+8YsgpWFelfAv5zqST2kqge2eADvlA5clKmG77oQoiue7E29+33ZKV8c91I/X/2EH6ZuBK+R8HpJ6qig4rCRpnfF2/iQmM6lCQGZK7GaaQ/WF/zyZMHr2KYDe96ul6Dg5dfdHjD/nV+TPLdIagkfNpFBCkNtItf2Y0uvY8+pOVq6oiPZtwIylAaof9lzKX9b7CI5W7RfuZpS5B5oC7pn+cqQWDd9VoeOl+V2Hpql6f+9aDK8EeBl1qJdaWQXs9P/O5gRDII/IyYP6z3c0E8Q83/brtwR51GrHoTsL/a7HTSNAWclG3cCYqOagzLftB/89lxHI1SsQ9TwEuwGEGVaiIunjIZp3zLpwH9/xsTP9okNroikwaqW/bi7SMvZ9gCQQ6fZKI/SSMY2J/QU8rmRMPXfm5DKgZwhs7M5hai+v3KuDSL5xSGjURjqeT++vs9w3wZan7inv5pJBVnrpVAi2DXY9/fssu6pRJ5o1Do0MMdrMGcvJtujl0RsOrldLv9YOKWtiJ0Y8ptQDii1OYp3YuMgEZDrG10v87IOVQNxIG+e5TImF0TmL4bB8nFDIDA9nAO6H0ihbiNkU2ZJ/SDziteN/KrQsiKVSQgP7KafESgh0Enc4PrB5yRxa+SOXkFzvBziKde/KDi4kjGWRAAA")}
+.orb-neos{background-image:url("data:image/webp;base64,UklGRiQDAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSM8AAAABgFvb1rLoZjiZk2lmUwxWzrjGOMWMu3eAS+jufP+7HUTEBEDRmiq8tSeT9ls+aYFgsNRfKvaLAS2Gm+lS4+RKrxT4Xwo+uxQO2kvRSnhPoL0Urjh36H+W4h+GrZsl8RBAcMroOoHSkpqGtc/pWVJLcqLAyr2xnjus1pg14nVYrTfWc56VTbJi5h6nZ0aRkwcCE8bYC+CKcQ4A+me5J90WnGWpmge7wxWZcgj7bbcST06o6g57WsZnOmh0pnsqvZwXguZE9qU1HrdeMnEzFAEAVlA4IC4CAABwCQCdASogACAAPl0mjkWjoiGb9AA4BcS2AE6ZQjov0+3DtBBgNtLof/UQbyXPlOLhlfulbAxh7O99UDrIEAI8aVr6jsIYMg6wqf8u4xQNLfB8h8AA/tlcaFYVBE/CFg8gdX00xTeVg2uPPaW6pkOA/1jr53SuxBhhfUpX2kBKCdfxdpDsogXclGEOB6iFa8xK79Fmf018Lrl4DF9adg7zt3XCOQEi6c7uoDGO0entufkNaEmncE+reoy5O1JnNyROWbwBoch3yhwjubw/ETTwwT5BNY/+jmyP3KO4i1ryrn/iyxk3ni/W0plCWnufruVKgtNDvJ28qn5R3zOn7lBpCczrGjORrtaoLgQhx2wSPSwRbfsKnrK99tmHGY3xFWKF8TbCPfK/9/9OX5i136WIHng8Uj+fvK5wP6tyAO/MTU6SYKw4MGx7wsyMf/f0kr5erDhTKZcRnuML76iDjt988bWCV50Q9y2e18hCy/1/uoiFfY1OvRn35pQAFZSdxOelOYkbKel+J5hMKw9NV5ZtZsqGoD7D2dPsR4cp0KrSAVjrekBwKFvFk52YsdtT9CA0e+8w5VM3I0mWNofHb4ApeGKGOqHUut1dXq/InC/DvySiye6HHvff/ofw4oRMj15DahOT07bOOqvql3qHsCP+yL7qdl/hRl5FkvMlzDrONUpt/FpqdeD91mHbysD1gMciur35dOJDeQKVhxtEHfolXa/EYCWr5nBcnxXXQAA=")}
+.orb-norm{background-image:url("data:image/webp;base64,UklGRvgBAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSM8AAAABgFvb1rLoZjiZk2lmUwxWzrjGOMWMu3eAS+jufP+7HUTEBEDRmiq8tSeT9ls+aYFgsNRfKvaLAS2Gm+lS4+RKrxT4Xwo+uxQO2kvRSnhPoL0Urjh36H+W4h+GrZsl8RBAcMroOoHSkpqGtc/pWVJLcqLAyr2xnjus1pg14nVYrTfWc56VTbJi5h6nZ0aRkwcCE8bYC+CKcQ4A+me5J90WnGWpmge7wxWZcgj7bbcST06o6g57WsZnOmh0pnsqvZwXguZE9qU1HrdeMnEzFAEAVlA4IAIBAABwBgCdASogACAAPm0skUWkIqGYDAYAQAbEtIAB8tB2oFXzm2B3uk8W+84AN9fk73NY+4TK5sUREhw8BAAA/sv/Li19jWmnWVVszfD9fHcTW9sxk77vvWLxP6zYN85CH8+W1magE4Lrdm4ngQWUlIoRpH/HCpAuGvLOgCf6MG7N/jZR3A2cXNzOLWA8t5I1FSnk0+jpnaUw86nnHy9th5tnbh0jzoIk0/Xgl9NXO2oshz7JdJ2ojOLXQk7bhVxryfrk03loITmHxiGKW/qEGDFhkek3Wp+MVQeSvpVQAwO5xoNq/EZyU6VWOdwjaG7RPy+Mz5UPzQDXcwK0cFjGY0AAAAA=")}
+.orb-tera{background-image:url("data:image/webp;base64,UklGRowDAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSM8AAAABgFvb1rLoZjiZk2lmUwxWzrjGOMWMu3eAS+jufP+7HUTEBEDRmiq8tSeT9ls+aYFgsNRfKvaLAS2Gm+lS4+RKrxT4Xwo+uxQO2kvRSnhPoL0Urjh36H+W4h+GrZsl8RBAcMroOoHSkpqGtc/pWVJLcqLAyr2xnjus1pg14nVYrTfWc56VTbJi5h6nZ0aRkwcCE8bYC+CKcQ4A+me5J90WnGWpmge7wxWZcgj7bbcST06o6g57WsZnOmh0pnsqvZwXguZE9qU1HrdeMnEzFAEAVlA4IJYCAAAwDACdASogACAAPm0qkUWkIqGYBABABsSzAE6ZQZhwRjnt9MA3kqzBGkWZD3rH2/wH5LZ9/eCLktGA428u//oeTj5+9gT9Xv9fvNy26ET15nJRd4MFHDQq0L2LnAoMJ6ebu40akBgUK1sAAP79nUo9eM7wTlYY0R0H9tj6LJ9P7P1gCVodeZ45hVXRQu5xP3Udv/2sJw8lsqzjKgnmaBfWGn9aHZbO2fJ/PDb242oOk5z47YyiVnz9oXJ3xiAQN8aMhTmOf5yj1Cwa8cU5UnUtvvQ7bkQausvR2PDXEPlBE5QvBju/MsE/rrf9ZvaFaZTJDdPreWp7Nak5Fgg0SYZ47hSr2y3pXYIHintvS9qWKD2N6j+2BvmMJ3n8D/1zd2Pvq3rQ0ZqaMp3q8zw1h1XV9cnj8rEKlZPDxbAugx+t4ARO4txxNLhH/i+WAEQ6R6g02I6RZdOGAIcatr6p/GqO1bBdX5tXTQ2O8KSPsADIX9FVBfOELP334E6VpW9GmS6FfB+qHRFPM8WbrkSc5awq5P/uP4gIfvRgySg2Fnu46DSu7xD+EQfzcelJpw8SidmuiF0OF4zsPRarWUyodWmg1qVHcId+ypOkpx/GWGt16I4APGWHeRPCNWjEtGC4PvcZR5v3Xh4IVaMYymtgdtDYtLPzr3k2tgDbyLtWn91QWTE6NG/W9lnMpWDy6XOuStdXRuTxoLN/iLO8HPcQ3a9pkln2cM9YHG0MTj+08O9zDqsfzJuk7lh/2+2h+MUvPvRATR5+RNMZGc43PK+L83GogGtPJXyvlldmRxdeY19USUtu+x8Vgz6QnCtg4j/7/m6A1BctDUvbpsV8lsSvK13cM8vw3mZ4lfWCOjx71cXl0B6rmAAAAA==")}
+.orb-umbra{background-image:url("data:image/webp;base64,UklGRsICAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSM8AAAABgFvb1rLoZjiZk2lmUwxWzrjGOMWMu3eAS+jufP+7HUTEBEDRmiq8tSeT9ls+aYFgsNRfKvaLAS2Gm+lS4+RKrxT4Xwo+uxQO2kvRSnhPoL0Urjh36H+W4h+GrZsl8RBAcMroOoHSkpqGtc/pWVJLcqLAyr2xnjus1pg14nVYrTfWc56VTbJi5h6nZ0aRkwcCE8bYC+CKcQ4A+me5J90WnGWpmge7wxWZcgj7bbcST06o6g57WsZnOmh0pnsqvZwXguZE9qU1HrdeMnEzFAEAVlA4IMwBAACwCACdASogACAAPm0skkakIqGhMBgIAIANiUATpmMijyfKbR0bqoEcCEb5UXQI9SkrJ3vPhnhqpMeqHu+/r3F4xlGqEhpSsVCw6JXquvAA/vd7U+OIS8KiuYfwrcCHKy7NGApgqoAZ6b9gTv/tZ3OdoUSum3fcviams0S4B3mvXLDbQv6CfwC/7p0hU/IRsGXbxfLWRpqq/6w/ebWb5BQU4Tm83IsNMA3gyukJpmVvz3UYASC1mor3vVbOvlRTZ81omzpf/X8Duvltln92EFr+lrlfxPXxtzh3F396iLKTipcS/DXzmPP9+r4S5YzxkHgIbktenwogjK7RVU58AwUeaYFgKi6kEX06d8Q36mvywkDFaSDqKasd+GE+NJ8Lr7qNa5TkgC7+89b7RCtmR8hI4VhoaMAYbZvckmIugE40Ft+zDa5ettDH0xl1h/FGRELKmZKB6r3Q/2HBXz+b/XBO7k9tKylbJv24PmRpJSVYZyNKYRZlA/wdR5SEUdp9EwJ956MW1OcdnO8m6jWsqFCm7Py4AgN8wn/lBvjYqkrrWk7d15V9gPgt99Bd+m8uUWCve+3HW4opuLBANNKwPnFCXS8AW+9kuh7tZaQA")}
+.more{margin:0 12px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.morebtn{background:transparent;border:1px dashed var(--line);color:var(--accent-2);border-radius:999px;padding:5px 12px;font:inherit;font-size:.82rem;cursor:pointer}
+.hint{color:var(--muted);font-size:.76rem}
+.warn{margin:0 12px 12px;padding:9px 11px;border:1px solid #6b4a1e;background:rgba(217,164,65,.10);border-radius:8px;color:#e8cf9a;font-size:.84rem;line-height:1.6}
+.frow{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.frow select,.frow button{background:var(--panel-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 11px;font:inherit}
+.status{color:var(--muted);font-size:.88rem;margin:10px 2px 0}
+.muted{color:var(--muted);font-size:.82rem}
+/* --- スマホ幅の再現 --- */
+.narrow .qrow{flex-direction:column}
+.narrow .chips{gap:5px}
+.narrow .chip{font-size:.8rem;padding:5px 9px 5px 7px}
+.narrow .frow select,.narrow .frow button{flex:1 1 46%}
+</style></head><body><main>
+<h1>#19 モック: カード検索のAND/OR絞り込みUI</h1>
+<p class="note"><b>操作はできません（見た目の確認用）。</b>エレメントの玉は #15 で作成した実物のアイコン（32px WebP・data URI）を流用。<br>
+選択状態は「エレメント= NORM+WIND を <b>OR</b>」「タイプ= REGALIA+ITEM を <b>AND</b>」「サブタイプ= SPELL」を例示。</p>
+
+<div class="cols">
+  <div>
+    <h2>PC幅</h2>
+    <div class="frame"><div class="filters">
+  <div class="qrow">
+    <input type="search" placeholder="カード名で検索（英語）… 例: lorraine">
+    <input type="search" placeholder="効果テキストで部分検索（英語 / 日本語）">
+  </div>
+  <details class="fgroup" open>
+  <summary><span class="flabel">エレメント</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="">AND</button><button type="button" class="on">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip on"><input type="checkbox" name="el" checked><i class="orb orb-norm"></i><span>ノーム</span><em>NORM</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-fire"></i><span>火</span><em>FIRE</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-water"></i><span>水</span><em>WATER</em></label><label class="chip on"><input type="checkbox" name="el" checked><i class="orb orb-wind"></i><span>風</span><em>WIND</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-arcane"></i><span>アーケイン</span><em>ARCANE</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-astra"></i><span>アストラ</span><em>ASTRA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-crux"></i><span>クラックス</span><em>CRUX</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-exia"></i><span>エクシア</span><em>EXIA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-luxem"></i><span>ラクサム</span><em>LUXEM</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-neos"></i><span>ネオス</span><em>NEOS</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-tera"></i><span>テラ</span><em>TERA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-umbra"></i><span>アンブラ</span><em>UMBRA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-exalted"></i><span>エグザルテッド</span><em>EXALTED</em></label></div>
+  
+</details>
+  <details class="fgroup">
+  <summary><span class="flabel">クラス</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="">AND</button><button type="button" class="on">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip"><input type="checkbox" name="cls" ><span>クレリック</span><em>CLERIC</em></label><label class="chip"><input type="checkbox" name="cls" ><span>ガーディアン</span><em>GUARDIAN</em></label><label class="chip"><input type="checkbox" name="cls" ><span>メイジ</span><em>MAGE</em></label><label class="chip"><input type="checkbox" name="cls" ><span>レンジャー</span><em>RANGER</em></label><label class="chip"><input type="checkbox" name="cls" ><span>ウォリアー</span><em>WARRIOR</em></label><label class="chip"><input type="checkbox" name="cls" ><span>アサシン</span><em>ASSASSIN</em></label><label class="chip"><input type="checkbox" name="cls" ><span>テイマー</span><em>TAMER</em></label><label class="chip"><input type="checkbox" name="cls" ><span>スピリット</span><em>SPIRIT</em></label><label class="chip"><input type="checkbox" name="cls" ><span>アノマリー</span><em>ANOMALY</em></label></div>
+  
+</details>
+  <details class="fgroup" open>
+  <summary><span class="flabel">タイプ</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="on">AND</button><button type="button" class="">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip"><input type="checkbox" name="ty" ><span>アクション</span><em>ACTION</em></label><label class="chip"><input type="checkbox" name="ty" ><span>アライ</span><em>ALLY</em></label><label class="chip"><input type="checkbox" name="ty" ><span>アタック</span><em>ATTACK</em></label><label class="chip"><input type="checkbox" name="ty" ><span>チャンピオン</span><em>CHAMPION</em></label><label class="chip on"><input type="checkbox" name="ty" checked><span>アイテム</span><em>ITEM</em></label><label class="chip on"><input type="checkbox" name="ty" checked><span>レガリア</span><em>REGALIA</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ウェポン</span><em>WEAPON</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ドメイン</span><em>DOMAIN</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ファンタジア</span><em>PHANTASIA</em></label><label class="chip"><input type="checkbox" name="ty" ><span>トークン</span><em>TOKEN</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ユニーク</span><em>UNIQUE</em></label><label class="chip"><input type="checkbox" name="ty" ><span>マスタリー</span><em>MASTERY</em></label></div>
+  
+</details>
+  <details class="fgroup" open>
+  <summary><span class="flabel">サブタイプ</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="on">AND</button><button type="button" class="">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip on"><input type="checkbox" name="sub" checked><span>クレリック</span><em>CLERIC</em></label><label class="chip on"><input type="checkbox" name="sub" checked><span>スペル</span><em>SPELL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>人間</span><em>HUMAN</em></label><label class="chip"><input type="checkbox" name="sub" ><span>メイジ</span><em>MAGE</em></label><label class="chip"><input type="checkbox" name="sub" ><span>テイマー</span><em>TAMER</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ウォリアー</span><em>WARRIOR</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ガーディアン</span><em>GUARDIAN</em></label><label class="chip"><input type="checkbox" name="sub" ><span>スキル</span><em>SKILL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>レンジャー</span><em>RANGER</em></label><label class="chip"><input type="checkbox" name="sub" ><span>アサシン</span><em>ASSASSIN</em></label><label class="chip"><input type="checkbox" name="sub" ><span>リアクション</span><em>REACTION</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ソード</span><em>SWORD</em></label><label class="chip"><input type="checkbox" name="sub" ><span>動物</span><em>ANIMAL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>アクセサリー</span><em>ACCESSORY</em></label><label class="chip"><input type="checkbox" name="sub" ><span>オートマトン</span><em>AUTOMATON</em></label><label class="chip"><input type="checkbox" name="sub" ><span>スペクター</span><em>SPECTER</em></label><label class="chip"><input type="checkbox" name="sub" ><span>エンジェル</span><em>ANGEL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>アーマー</span><em>ARMOR</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ドラゴン</span><em>DRAGON</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ボウ</span><em>BOW</em></label></div>
+  <p class="more"><button type="button" class="morebtn">＋ すべて表示（146種）</button><span class="hint">よく使う20種を表示中。上位20種で全カードをカバーします</span></p>
+</details>
+  <div class="frow">
+    <select><option>フォーマット（全て）</option></select>
+    <select><option>エキスパンション（全て）</option></select>
+    <select><option>名前順</option></select>
+    <button type="button">▲ 昇順</button>
+    <button type="button">リセット</button>
+  </div>
+</div>
+<p class="status">検索結果：<b>1,133</b>件　<span class="muted">（エレメント OR / タイプ AND は表示中の件数）</span></p></div>
+  </div>
+  <div>
+    <h2>スマホ幅（390px）</h2>
+    <div class="frame narrow"><div class="filters">
+  <div class="qrow">
+    <input type="search" placeholder="カード名で検索（英語）… 例: lorraine">
+    <input type="search" placeholder="効果テキストで部分検索（英語 / 日本語）">
+  </div>
+  <details class="fgroup" open>
+  <summary><span class="flabel">エレメント</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="">AND</button><button type="button" class="on">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip on"><input type="checkbox" name="el" checked><i class="orb orb-norm"></i><span>ノーム</span><em>NORM</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-fire"></i><span>火</span><em>FIRE</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-water"></i><span>水</span><em>WATER</em></label><label class="chip on"><input type="checkbox" name="el" checked><i class="orb orb-wind"></i><span>風</span><em>WIND</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-arcane"></i><span>アーケイン</span><em>ARCANE</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-astra"></i><span>アストラ</span><em>ASTRA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-crux"></i><span>クラックス</span><em>CRUX</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-exia"></i><span>エクシア</span><em>EXIA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-luxem"></i><span>ラクサム</span><em>LUXEM</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-neos"></i><span>ネオス</span><em>NEOS</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-tera"></i><span>テラ</span><em>TERA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-umbra"></i><span>アンブラ</span><em>UMBRA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-exalted"></i><span>エグザルテッド</span><em>EXALTED</em></label></div>
+  
+</details>
+  <details class="fgroup">
+  <summary><span class="flabel">クラス</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="">AND</button><button type="button" class="on">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip"><input type="checkbox" name="cls" ><span>クレリック</span><em>CLERIC</em></label><label class="chip"><input type="checkbox" name="cls" ><span>ガーディアン</span><em>GUARDIAN</em></label><label class="chip"><input type="checkbox" name="cls" ><span>メイジ</span><em>MAGE</em></label><label class="chip"><input type="checkbox" name="cls" ><span>レンジャー</span><em>RANGER</em></label><label class="chip"><input type="checkbox" name="cls" ><span>ウォリアー</span><em>WARRIOR</em></label><label class="chip"><input type="checkbox" name="cls" ><span>アサシン</span><em>ASSASSIN</em></label><label class="chip"><input type="checkbox" name="cls" ><span>テイマー</span><em>TAMER</em></label><label class="chip"><input type="checkbox" name="cls" ><span>スピリット</span><em>SPIRIT</em></label><label class="chip"><input type="checkbox" name="cls" ><span>アノマリー</span><em>ANOMALY</em></label></div>
+  
+</details>
+  <details class="fgroup" open>
+  <summary><span class="flabel">タイプ</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="on">AND</button><button type="button" class="">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip"><input type="checkbox" name="ty" ><span>アクション</span><em>ACTION</em></label><label class="chip"><input type="checkbox" name="ty" ><span>アライ</span><em>ALLY</em></label><label class="chip"><input type="checkbox" name="ty" ><span>アタック</span><em>ATTACK</em></label><label class="chip"><input type="checkbox" name="ty" ><span>チャンピオン</span><em>CHAMPION</em></label><label class="chip on"><input type="checkbox" name="ty" checked><span>アイテム</span><em>ITEM</em></label><label class="chip on"><input type="checkbox" name="ty" checked><span>レガリア</span><em>REGALIA</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ウェポン</span><em>WEAPON</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ドメイン</span><em>DOMAIN</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ファンタジア</span><em>PHANTASIA</em></label><label class="chip"><input type="checkbox" name="ty" ><span>トークン</span><em>TOKEN</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ユニーク</span><em>UNIQUE</em></label><label class="chip"><input type="checkbox" name="ty" ><span>マスタリー</span><em>MASTERY</em></label></div>
+  
+</details>
+  <details class="fgroup" open>
+  <summary><span class="flabel">サブタイプ</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="on">AND</button><button type="button" class="">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip on"><input type="checkbox" name="sub" checked><span>クレリック</span><em>CLERIC</em></label><label class="chip on"><input type="checkbox" name="sub" checked><span>スペル</span><em>SPELL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>人間</span><em>HUMAN</em></label><label class="chip"><input type="checkbox" name="sub" ><span>メイジ</span><em>MAGE</em></label><label class="chip"><input type="checkbox" name="sub" ><span>テイマー</span><em>TAMER</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ウォリアー</span><em>WARRIOR</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ガーディアン</span><em>GUARDIAN</em></label><label class="chip"><input type="checkbox" name="sub" ><span>スキル</span><em>SKILL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>レンジャー</span><em>RANGER</em></label><label class="chip"><input type="checkbox" name="sub" ><span>アサシン</span><em>ASSASSIN</em></label><label class="chip"><input type="checkbox" name="sub" ><span>リアクション</span><em>REACTION</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ソード</span><em>SWORD</em></label><label class="chip"><input type="checkbox" name="sub" ><span>動物</span><em>ANIMAL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>アクセサリー</span><em>ACCESSORY</em></label><label class="chip"><input type="checkbox" name="sub" ><span>オートマトン</span><em>AUTOMATON</em></label><label class="chip"><input type="checkbox" name="sub" ><span>スペクター</span><em>SPECTER</em></label><label class="chip"><input type="checkbox" name="sub" ><span>エンジェル</span><em>ANGEL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>アーマー</span><em>ARMOR</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ドラゴン</span><em>DRAGON</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ボウ</span><em>BOW</em></label></div>
+  <p class="more"><button type="button" class="morebtn">＋ すべて表示（146種）</button><span class="hint">よく使う20種を表示中。上位20種で全カードをカバーします</span></p>
+</details>
+  <div class="frow">
+    <select><option>フォーマット（全て）</option></select>
+    <select><option>エキスパンション（全て）</option></select>
+    <select><option>名前順</option></select>
+    <button type="button">▲ 昇順</button>
+    <button type="button">リセット</button>
+  </div>
+</div>
+<p class="status">検索結果：<b>1,133</b>件　<span class="muted">（エレメント OR / タイプ AND は表示中の件数）</span></p></div>
+  </div>
+</div>
+
+<h2>エレメントANDで成立しない組み合わせを選んだとき</h2>
+<p class="note">FIRE + WIND を <b>AND</b> で指定した場合。複属性カードは「EXALTED＋基本属性」しか存在しないため、検索する前に警告を出す。</p>
+<div class="cols">
+  <div><div class="frame"><div class="filters">
+  <div class="qrow">
+    <input type="search" placeholder="カード名で検索（英語）… 例: lorraine">
+    <input type="search" placeholder="効果テキストで部分検索（英語 / 日本語）">
+  </div>
+  <details class="fgroup" open>
+  <summary><span class="flabel">エレメント</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="on">AND</button><button type="button" class="">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-norm"></i><span>ノーム</span><em>NORM</em></label><label class="chip on"><input type="checkbox" name="el" checked><i class="orb orb-fire"></i><span>火</span><em>FIRE</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-water"></i><span>水</span><em>WATER</em></label><label class="chip on"><input type="checkbox" name="el" checked><i class="orb orb-wind"></i><span>風</span><em>WIND</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-arcane"></i><span>アーケイン</span><em>ARCANE</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-astra"></i><span>アストラ</span><em>ASTRA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-crux"></i><span>クラックス</span><em>CRUX</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-exia"></i><span>エクシア</span><em>EXIA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-luxem"></i><span>ラクサム</span><em>LUXEM</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-neos"></i><span>ネオス</span><em>NEOS</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-tera"></i><span>テラ</span><em>TERA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-umbra"></i><span>アンブラ</span><em>UMBRA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-exalted"></i><span>エグザルテッド</span><em>EXALTED</em></label></div>
+  <p class="warn" role="status">⚠️ この組み合わせに該当するカードはありません。複数エレメントを持つカードは「<b>EXALTED＋基本属性（NORM/FIRE/WATER/WIND）</b>」の組み合わせのみです。</p>
+</details>
+  <details class="fgroup">
+  <summary><span class="flabel">クラス</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="">AND</button><button type="button" class="on">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip"><input type="checkbox" name="cls" ><span>クレリック</span><em>CLERIC</em></label><label class="chip"><input type="checkbox" name="cls" ><span>ガーディアン</span><em>GUARDIAN</em></label><label class="chip"><input type="checkbox" name="cls" ><span>メイジ</span><em>MAGE</em></label><label class="chip"><input type="checkbox" name="cls" ><span>レンジャー</span><em>RANGER</em></label><label class="chip"><input type="checkbox" name="cls" ><span>ウォリアー</span><em>WARRIOR</em></label><label class="chip"><input type="checkbox" name="cls" ><span>アサシン</span><em>ASSASSIN</em></label><label class="chip"><input type="checkbox" name="cls" ><span>テイマー</span><em>TAMER</em></label><label class="chip"><input type="checkbox" name="cls" ><span>スピリット</span><em>SPIRIT</em></label><label class="chip"><input type="checkbox" name="cls" ><span>アノマリー</span><em>ANOMALY</em></label></div>
+  
+</details>
+  <details class="fgroup">
+  <summary><span class="flabel">タイプ</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="on">AND</button><button type="button" class="">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip"><input type="checkbox" name="ty" ><span>アクション</span><em>ACTION</em></label><label class="chip"><input type="checkbox" name="ty" ><span>アライ</span><em>ALLY</em></label><label class="chip"><input type="checkbox" name="ty" ><span>アタック</span><em>ATTACK</em></label><label class="chip"><input type="checkbox" name="ty" ><span>チャンピオン</span><em>CHAMPION</em></label><label class="chip on"><input type="checkbox" name="ty" checked><span>アイテム</span><em>ITEM</em></label><label class="chip on"><input type="checkbox" name="ty" checked><span>レガリア</span><em>REGALIA</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ウェポン</span><em>WEAPON</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ドメイン</span><em>DOMAIN</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ファンタジア</span><em>PHANTASIA</em></label><label class="chip"><input type="checkbox" name="ty" ><span>トークン</span><em>TOKEN</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ユニーク</span><em>UNIQUE</em></label><label class="chip"><input type="checkbox" name="ty" ><span>マスタリー</span><em>MASTERY</em></label></div>
+  
+</details>
+  <details class="fgroup">
+  <summary><span class="flabel">サブタイプ</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="on">AND</button><button type="button" class="">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip on"><input type="checkbox" name="sub" checked><span>クレリック</span><em>CLERIC</em></label><label class="chip on"><input type="checkbox" name="sub" checked><span>スペル</span><em>SPELL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>人間</span><em>HUMAN</em></label><label class="chip"><input type="checkbox" name="sub" ><span>メイジ</span><em>MAGE</em></label><label class="chip"><input type="checkbox" name="sub" ><span>テイマー</span><em>TAMER</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ウォリアー</span><em>WARRIOR</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ガーディアン</span><em>GUARDIAN</em></label><label class="chip"><input type="checkbox" name="sub" ><span>スキル</span><em>SKILL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>レンジャー</span><em>RANGER</em></label><label class="chip"><input type="checkbox" name="sub" ><span>アサシン</span><em>ASSASSIN</em></label><label class="chip"><input type="checkbox" name="sub" ><span>リアクション</span><em>REACTION</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ソード</span><em>SWORD</em></label><label class="chip"><input type="checkbox" name="sub" ><span>動物</span><em>ANIMAL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>アクセサリー</span><em>ACCESSORY</em></label><label class="chip"><input type="checkbox" name="sub" ><span>オートマトン</span><em>AUTOMATON</em></label><label class="chip"><input type="checkbox" name="sub" ><span>スペクター</span><em>SPECTER</em></label><label class="chip"><input type="checkbox" name="sub" ><span>エンジェル</span><em>ANGEL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>アーマー</span><em>ARMOR</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ドラゴン</span><em>DRAGON</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ボウ</span><em>BOW</em></label></div>
+  <p class="more"><button type="button" class="morebtn">＋ すべて表示（146種）</button><span class="hint">よく使う20種を表示中。上位20種で全カードをカバーします</span></p>
+</details>
+  <div class="frow">
+    <select><option>フォーマット（全て）</option></select>
+    <select><option>エキスパンション（全て）</option></select>
+    <select><option>名前順</option></select>
+    <button type="button">▲ 昇順</button>
+    <button type="button">リセット</button>
+  </div>
+</div>
+<p class="status">検索条件を見直してください</p></div></div>
+  <div><div class="frame narrow"><div class="filters">
+  <div class="qrow">
+    <input type="search" placeholder="カード名で検索（英語）… 例: lorraine">
+    <input type="search" placeholder="効果テキストで部分検索（英語 / 日本語）">
+  </div>
+  <details class="fgroup" open>
+  <summary><span class="flabel">エレメント</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="on">AND</button><button type="button" class="">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-norm"></i><span>ノーム</span><em>NORM</em></label><label class="chip on"><input type="checkbox" name="el" checked><i class="orb orb-fire"></i><span>火</span><em>FIRE</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-water"></i><span>水</span><em>WATER</em></label><label class="chip on"><input type="checkbox" name="el" checked><i class="orb orb-wind"></i><span>風</span><em>WIND</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-arcane"></i><span>アーケイン</span><em>ARCANE</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-astra"></i><span>アストラ</span><em>ASTRA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-crux"></i><span>クラックス</span><em>CRUX</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-exia"></i><span>エクシア</span><em>EXIA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-luxem"></i><span>ラクサム</span><em>LUXEM</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-neos"></i><span>ネオス</span><em>NEOS</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-tera"></i><span>テラ</span><em>TERA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-umbra"></i><span>アンブラ</span><em>UMBRA</em></label><label class="chip"><input type="checkbox" name="el" ><i class="orb orb-exalted"></i><span>エグザルテッド</span><em>EXALTED</em></label></div>
+  <p class="warn" role="status">⚠️ この組み合わせに該当するカードはありません。複数エレメントを持つカードは「<b>EXALTED＋基本属性（NORM/FIRE/WATER/WIND）</b>」の組み合わせのみです。</p>
+</details>
+  <details class="fgroup">
+  <summary><span class="flabel">クラス</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="">AND</button><button type="button" class="on">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip"><input type="checkbox" name="cls" ><span>クレリック</span><em>CLERIC</em></label><label class="chip"><input type="checkbox" name="cls" ><span>ガーディアン</span><em>GUARDIAN</em></label><label class="chip"><input type="checkbox" name="cls" ><span>メイジ</span><em>MAGE</em></label><label class="chip"><input type="checkbox" name="cls" ><span>レンジャー</span><em>RANGER</em></label><label class="chip"><input type="checkbox" name="cls" ><span>ウォリアー</span><em>WARRIOR</em></label><label class="chip"><input type="checkbox" name="cls" ><span>アサシン</span><em>ASSASSIN</em></label><label class="chip"><input type="checkbox" name="cls" ><span>テイマー</span><em>TAMER</em></label><label class="chip"><input type="checkbox" name="cls" ><span>スピリット</span><em>SPIRIT</em></label><label class="chip"><input type="checkbox" name="cls" ><span>アノマリー</span><em>ANOMALY</em></label></div>
+  
+</details>
+  <details class="fgroup">
+  <summary><span class="flabel">タイプ</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="on">AND</button><button type="button" class="">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip"><input type="checkbox" name="ty" ><span>アクション</span><em>ACTION</em></label><label class="chip"><input type="checkbox" name="ty" ><span>アライ</span><em>ALLY</em></label><label class="chip"><input type="checkbox" name="ty" ><span>アタック</span><em>ATTACK</em></label><label class="chip"><input type="checkbox" name="ty" ><span>チャンピオン</span><em>CHAMPION</em></label><label class="chip on"><input type="checkbox" name="ty" checked><span>アイテム</span><em>ITEM</em></label><label class="chip on"><input type="checkbox" name="ty" checked><span>レガリア</span><em>REGALIA</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ウェポン</span><em>WEAPON</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ドメイン</span><em>DOMAIN</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ファンタジア</span><em>PHANTASIA</em></label><label class="chip"><input type="checkbox" name="ty" ><span>トークン</span><em>TOKEN</em></label><label class="chip"><input type="checkbox" name="ty" ><span>ユニーク</span><em>UNIQUE</em></label><label class="chip"><input type="checkbox" name="ty" ><span>マスタリー</span><em>MASTERY</em></label></div>
+  
+</details>
+  <details class="fgroup">
+  <summary><span class="flabel">サブタイプ</span><span class="badge">2</span><span class="andor" role="group" aria-label="AND/OR切り替え">
+    <button type="button" class="on">AND</button><button type="button" class="">OR</button>
+  </span></summary>
+  <div class="chips"><label class="chip on"><input type="checkbox" name="sub" checked><span>クレリック</span><em>CLERIC</em></label><label class="chip on"><input type="checkbox" name="sub" checked><span>スペル</span><em>SPELL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>人間</span><em>HUMAN</em></label><label class="chip"><input type="checkbox" name="sub" ><span>メイジ</span><em>MAGE</em></label><label class="chip"><input type="checkbox" name="sub" ><span>テイマー</span><em>TAMER</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ウォリアー</span><em>WARRIOR</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ガーディアン</span><em>GUARDIAN</em></label><label class="chip"><input type="checkbox" name="sub" ><span>スキル</span><em>SKILL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>レンジャー</span><em>RANGER</em></label><label class="chip"><input type="checkbox" name="sub" ><span>アサシン</span><em>ASSASSIN</em></label><label class="chip"><input type="checkbox" name="sub" ><span>リアクション</span><em>REACTION</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ソード</span><em>SWORD</em></label><label class="chip"><input type="checkbox" name="sub" ><span>動物</span><em>ANIMAL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>アクセサリー</span><em>ACCESSORY</em></label><label class="chip"><input type="checkbox" name="sub" ><span>オートマトン</span><em>AUTOMATON</em></label><label class="chip"><input type="checkbox" name="sub" ><span>スペクター</span><em>SPECTER</em></label><label class="chip"><input type="checkbox" name="sub" ><span>エンジェル</span><em>ANGEL</em></label><label class="chip"><input type="checkbox" name="sub" ><span>アーマー</span><em>ARMOR</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ドラゴン</span><em>DRAGON</em></label><label class="chip"><input type="checkbox" name="sub" ><span>ボウ</span><em>BOW</em></label></div>
+  <p class="more"><button type="button" class="morebtn">＋ すべて表示（146種）</button><span class="hint">よく使う20種を表示中。上位20種で全カードをカバーします</span></p>
+</details>
+  <div class="frow">
+    <select><option>フォーマット（全て）</option></select>
+    <select><option>エキスパンション（全て）</option></select>
+    <select><option>名前順</option></select>
+    <button type="button">▲ 昇順</button>
+    <button type="button">リセット</button>
+  </div>
+</div>
+<p class="status">検索条件を見直してください</p></div></div>
+</div>
+</main></body></html>
