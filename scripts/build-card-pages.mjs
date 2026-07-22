@@ -188,7 +188,7 @@ function breadcrumbLd(items) {
 }
 
 function siteHeader() {
-  return `<header class="cp-site"><a href="/" class="cp-brand"><span class="cp-mark">GA</span>Grand Archive 日本語カードDB</a><nav><a href="/cards/">エキスパンション一覧</a><a href="/tools/deck-builder/">デッキ構築</a></nav></header>`;
+  return `<header class="cp-site"><a href="/" class="cp-brand"><span class="cp-mark">GA</span>Grand Archive 日本語カードDB</a><nav><a href="/cards/">エキスパンション一覧</a><a href="/tools/deck-builder/">デッキ構築</a><a href="/tournaments/">大会デッキ</a></nav></header>`;
 }
 
 function siteFooter() {
@@ -596,19 +596,16 @@ const CARDS_JS = `// カード個別ページ・セット一覧(静的生成)用
 })();
 `;
 
-// 大会入賞デッキ(scripts/build-tournament-pages.mjs が生成)のURLを集める。
+// 大会デッキ(scripts/build-tournament-pages.mjs が生成)のURLを集める。
 // データが無ければ何も返さない(大会スキャン→カードページ生成の順に実行する運用)。
 function tournamentUrls() {
   const dir = path.join(ROOT, "data", "tournaments", "events");
   if (!existsSync(dir)) return [];
+  // デッキは大会詳細ページに内包されるため、URLは「一覧＋大会数」だけになる
   const out = [{ loc: `${SITE}/tournaments/`, lastmod: null, changefreq: "daily", priority: "0.8" }];
   for (const f of readdirSync(dir).filter((n) => n.endsWith(".json"))) {
     const ev = JSON.parse(readFileSync(path.join(dir, f), "utf8"));
-    const lastmod = day(ev.startAt) || null;
-    out.push({ loc: `${SITE}/tournaments/${ev.id}/`, lastmod, changefreq: "yearly", priority: "0.7" });
-    for (const d of ev.decklists || []) {
-      out.push({ loc: `${SITE}/tournaments/${ev.id}/decks/${d.player}/`, lastmod, changefreq: "yearly", priority: "0.5" });
-    }
+    out.push({ loc: `${SITE}/tournaments/${ev.id}/`, lastmod: day(ev.startAt) || null, changefreq: "yearly", priority: "0.7" });
   }
   return out;
 }
@@ -630,7 +627,8 @@ function buildSitemap(cards, setsSorted) {
   const body = urls.map((u) =>
     `  <url>\n    <loc>${u.loc}</loc>\n${u.lastmod ? `    <lastmod>${u.lastmod}</lastmod>\n` : ""}    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>`
   ).join("\n");
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
+  // 件数はログ用(大会分を含むため、呼び出し側で数え直さない)
+  return { xml: `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`, count: urls.length };
 }
 
 // ---------- main ----------
@@ -687,10 +685,11 @@ async function main() {
   writeFileSync(path.join(ROOT, "cards", "index.html"), indexPage(groups, bySets, cards.length));
   writeFileSync(path.join(ROOT, "cards", "cards.css"), CARDS_CSS);
   writeFileSync(path.join(ROOT, "cards", "cards.js"), CARDS_JS);
-  writeFileSync(path.join(ROOT, "sitemap.xml"), buildSitemap(cards, setsSorted));
+  const sitemap = buildSitemap(cards, setsSorted);
+  writeFileSync(path.join(ROOT, "sitemap.xml"), sitemap.xml);
 
   const translated = cards.filter((c) => CI.isTranslated(c)).length;
-  process.stderr.write(`\n生成完了: カード${cards.length}ページ(和訳あり${translated}) / セット${setsSorted.length}ページ / 索引 / sitemap.xml(${5 + setsSorted.length + cards.length}URL)\n`);
+  process.stderr.write(`\n生成完了: カード${cards.length}ページ(和訳あり${translated}) / セット${setsSorted.length}ページ / 索引 / sitemap.xml(${sitemap.count}URL)\n`);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

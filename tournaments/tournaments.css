@@ -1,0 +1,151 @@
+/* 大会デッキ検索(静的生成)用。生成元: scripts/build-tournament-pages.mjs
+   トークン・共通部品は cards/cards.css と揃えている(cp- 接頭辞は共通) */
+:root { --bg:#12141a; --panel:#171a21; --panel-2:#1f232c; --line:#262b36; --text:#e6e8ee; --muted:#9aa2b1; --accent:#d9a441; --accent-2:#6ea8fe; }
+* { box-sizing:border-box; }
+[hidden] { display:none !important; }
+body { margin:0; background:var(--bg); color:var(--text); font:15px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif; }
+a { color:var(--accent-2); text-decoration:none; }
+a:hover { text-decoration:underline; }
+.cp-site { display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; justify-content:space-between; padding:12px 20px; border-bottom:1px solid var(--line); }
+.cp-brand { display:flex; align-items:center; gap:10px; color:var(--text); font-weight:700; }
+.cp-mark { display:grid; place-items:center; width:34px; height:34px; border-radius:8px; background:var(--accent); color:#201a0a; font-weight:800; letter-spacing:1px; }
+.cp-site nav { display:flex; gap:14px; font-size:.9rem; }
+.cp-crumb { padding:10px 20px; font-size:.82rem; color:var(--muted); max-width:1080px; margin:0 auto; }
+.cp-crumb span { color:var(--text); }
+.cp-main { max-width:1080px; margin:0 auto; padding:8px 20px 40px; }
+.cp-scroll { overflow-x:auto; }
+.cp-muted { color:var(--muted); font-size:.86rem; }
+h1 { font-size:1.45rem; margin:.2em 0 .4em; line-height:1.35; }
+h2 { font-size:1.02rem; border-left:3px solid var(--accent); padding-left:10px; margin:26px 0 10px; }
+.sub { color:var(--muted); margin:0 0 18px; font-size:.92rem; }
+
+/* ---- 一覧 ---- */
+.filter-box { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:18px; }
+/* スマホでは縦に長くなりすぎるため折りたたむ(PC幅では summary を隠して常時展開) */
+.filter-box > summary { display:none; cursor:pointer; font-weight:600; font-size:.9rem; }
+.filter-count { display:inline-block; margin-left:8px; background:var(--accent); color:#201a0a; border-radius:999px; padding:0 8px; font-size:.75rem; font-weight:700; }
+.filter-row { display:flex; flex-wrap:wrap; gap:8px 10px; }
+.filter-row select, .filter-row input, .filter-row button { background:var(--panel-2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:7px 12px; font:inherit; font-size:.88rem; }
+.filter-row input[type="search"] { flex:1; min-width:200px; }
+.filter-row button { cursor:pointer; }
+.filter-row button:hover { border-color:var(--accent); }
+.filter-row select:focus, .filter-row input:focus, .filter-row button:focus-visible { outline:2px solid var(--accent-2); outline-offset:1px; }
+.filter-hits { margin:10px 0 0; font-size:.82rem; color:var(--muted); }
+.filter-period { align-items:center; margin-top:10px; font-size:.85rem; color:var(--muted); }
+.filter-period input[type="date"] { background:var(--panel-2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font:inherit; font-size:.85rem; }
+
+table { width:100%; border-collapse:collapse; font-size:.9rem; }
+thead th { text-align:left; padding:8px 10px; color:var(--muted); font-weight:600; font-size:.78rem; letter-spacing:.04em; border-bottom:1px solid var(--line); white-space:nowrap; }
+tbody td { padding:10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+tbody tr.tr-link { cursor:pointer; }
+tbody tr.tr-link:hover { background:rgba(255,255,255,.04); }
+td.date { white-space:nowrap; color:var(--muted); font-variant-numeric:tabular-nums; }
+td.num { text-align:right; font-variant-numeric:tabular-nums; color:var(--muted); }
+.ev-name { font-weight:600; }
+.ev-name a { color:var(--text); }
+.ev-name a:hover { color:var(--accent-2); }
+.ev-host { color:var(--muted); font-size:.8rem; margin-top:2px; }
+.cat-badge { display:inline-block; border-radius:999px; padding:2px 10px; font-size:.74rem; font-weight:600; white-space:nowrap; }
+/* 一覧の種別バッジ: 列が狭いPC幅は略称、カード表示になるスマホ幅は正式名を出す */
+.cat-full { display:none; }
+.cat-store { background:rgba(217,164,65,.15); color:var(--accent); border:1px solid rgba(217,164,65,.4); }
+.cat-regional { background:rgba(110,168,254,.15); color:var(--accent-2); border:1px solid rgba(110,168,254,.4); }
+.cat-nationals { background:rgba(47,158,107,.15); color:#7fd4a8; border:1px solid rgba(47,158,107,.4); }
+.cat-ascent { background:rgba(224,123,208,.15); color:#e9a8dd; border:1px solid rgba(224,123,208,.4); }
+td.country { white-space:nowrap; }
+
+/* ---- 大会詳細 ---- */
+.ev-head { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px; }
+.ev-head h1 { margin:0 0 6px; font-size:1.3rem; }
+.meta-row { display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; font-size:.88rem; color:var(--muted); }
+td.rank { font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
+tr.top1 { background:rgba(217,164,65,.08); }
+.player-name { font-weight:600; }
+td.rec, td.pct { font-variant-numeric:tabular-nums; color:var(--muted); white-space:nowrap; }
+.deck-link { white-space:nowrap; }
+.no-deck { color:var(--muted); font-size:.82rem; }
+
+td.score, th.score { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+td.score { font-weight:600; }
+
+/* 順位表の折りたたみ(101名以上の大会のみ。1つ開くと他は閉じる=tournaments/deck.js) */
+.rank-block { border:1px solid var(--line); border-radius:12px; background:var(--panel); margin-bottom:8px; }
+.rank-block > summary { cursor:pointer; padding:10px 16px; font-weight:600; font-size:.9rem; display:flex; gap:10px; align-items:baseline; }
+.rank-block > summary:hover { background:rgba(255,255,255,.03); }
+.rank-block > summary:focus-visible { outline:2px solid var(--accent-2); outline-offset:-2px; }
+.rank-block[open] > summary { border-bottom:1px solid var(--line); }
+.rank-block > .cp-scroll { padding:0 6px 6px; }
+
+/* ---- デッキ(ダイアログ表示。中身は共有デッキ画面と同一の .view-grid/.cardph) ---- */
+/* 重ね順はカード詳細(.gacd-modal = z-index 60)より下。カード詳細が上に重なる */
+.deck-modal { position:fixed; inset:0; z-index:50; }
+.deck-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.6); }
+.deck-body { position:relative; background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:14px; max-width:900px; max-height:90vh; margin:5vh auto; padding:18px 20px; overflow:auto; }
+.deck-close { position:absolute; top:8px; right:10px; background:none; border:none; color:var(--muted); font-size:1.6rem; line-height:1; cursor:pointer; padding:4px 8px; }
+.deck-close:hover { color:var(--text); }
+.deck-modal-title { margin:0 30px .6em 0; font-size:1rem; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.deck-modal-content .view-zone:first-child { padding-top:0; }
+.deck-modal-content .view-zone { padding-left:0; padding-right:0; }
+.deck-msg { color:var(--muted); font-size:.88rem; padding:20px 0; }
+.deck-retry { margin-left:10px; background:var(--panel-2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:4px 12px; font:inherit; font-size:.82rem; cursor:pointer; }
+.deck-retry:hover { border-color:var(--accent); }
+.deck-player { font-weight:600; }
+.rank-badge { background:rgba(217,164,65,.15); color:var(--accent); border:1px solid rgba(217,164,65,.4); border-radius:999px; padding:1px 10px; font-size:.78rem; font-weight:700; white-space:nowrap; }
+.view-zone { padding:14px 16px 0; }
+.deck-acc > .view-zone:last-of-type { padding-bottom:16px; }
+.view-zone h4 { font-size:.85rem; color:var(--muted); font-weight:600; letter-spacing:.04em; margin:0 0 10px; padding-bottom:8px; border-bottom:1px solid var(--line); }
+.view-zone h4 b { color:var(--text); font-variant-numeric:tabular-nums; }
+.view-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(124px,1fr)); gap:12px; }
+.cardph { position:relative; border-radius:10px; overflow:hidden; border:1px solid var(--line); background:var(--panel-2); }
+.cardph img { width:100%; aspect-ratio:63/88; object-fit:cover; display:block; }
+.cardph .noimg { aspect-ratio:63/88; display:grid; place-items:center; padding:8px; color:var(--muted); font-size:.72rem; text-align:center; word-break:break-all; }
+.qty-badge { position:absolute; top:8px; right:8px; background:rgba(8,9,12,.82); color:#fff; border:1px solid rgba(255,255,255,.35); font-size:.7rem; font-weight:800; border-radius:999px; padding:2px 8px; font-variant-numeric:tabular-nums; }
+.cardph.clickable { cursor:pointer; }
+.cardph.clickable:hover { border-color:var(--accent); }
+.cardph.clickable:focus-visible { outline:2px solid var(--accent-2); outline-offset:2px; }
+
+.cp-foot { border-top:1px solid var(--line); margin-top:30px; padding:16px 20px; color:var(--muted); font-size:.8rem; }
+.cp-foot p { max-width:1080px; margin:0 auto; }
+/* ---- スマホ幅(2026-07-22): 表のままでは列を削っても右が見切れるため、1件=1カードに組み替える ----
+   HTMLは共通。表の各セルに付けたクラスを目印にgridへ再配置し、隠したヘッダの代わりに
+   ラベルを ::before で補う(生成CSS内で完結するため style-src 'self' に抵触しない) */
+@media (max-width:640px) {
+  /* 絞り込みはトグルにする(既定は閉じる=tournaments.js。適用中の件数はバッジで見せる) */
+  .filter-box > summary { display:block; }
+  .filter-box[open] > summary { margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid var(--line); }
+  .cp-scroll { overflow-x:visible; }
+  table, tbody, tr, td { display:block; }
+  thead { display:none; }
+  tbody td { border:none; padding:0; }
+  tbody tr { border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:12px 14px; margin-bottom:10px; }
+
+  /* 一覧: 大会名 / 開催日・開催国・種別 / 主催 / フォーマット・参加者数 の4行。
+     メタ行は幅が足りなければ自然に折り返させたいのでflexで並べる(種別バッジは分断しない) */
+  #ev-table tbody tr.tr-link { display:flex; flex-wrap:wrap; align-items:baseline; column-gap:6px; row-gap:3px; }
+  #ev-table tbody tr.tr-link > td:nth-child(2) { display:contents; } /* 大会名・主催を行の直接の子として並べる */
+  .ev-name { flex-basis:100%; order:1; font-size:.95rem; }
+  td.date, td.country, td.cat { order:2; }
+  .ev-host { flex-basis:100%; order:3; }
+  td.format, td.num { order:4; color:var(--muted); font-size:.82rem; }
+  td.num { text-align:left; }
+  /* 区切りの中点。種別はバッジ自体が独立して見えるため付けない(折り返したとき行頭に中点が残らない) */
+  td.country::before, td.num::before { content:"・"; color:var(--muted); margin-right:6px; }
+  .cat-short { display:none; }
+  .cat-full { display:inline; }
+
+  /* 順位表: 順位・プレイヤー名・デッキ導線 / 勝ち点・成績 の2行 */
+  .standings tbody tr { display:grid; grid-template-columns:auto 1fr auto; gap:2px 8px; align-items:baseline; }
+  .standings td.rank { grid-column:1; grid-row:1; }
+  .standings td.player-name { grid-column:2; grid-row:1; }
+  .standings tbody td:last-child { grid-column:3; grid-row:1; text-align:right; }
+  .standings td.score { grid-column:1; grid-row:2; text-align:left; }
+  .standings td.score::before { content:"勝ち点 "; color:var(--muted); font-weight:400; font-size:.82rem; }
+  .standings td.rec { grid-column:2/-1; grid-row:2; white-space:normal; }
+  .standings td.rec::before { content:"・"; color:var(--muted); margin-right:4px; }
+  /* タイブレーカーの参考値(GW%・MW%)はスマホでは出さない */
+  .standings th.pct, .standings td.pct { display:none; }
+  .rank-block > .cp-scroll { padding:0; }
+
+  .deck-body { margin:0; max-width:none; min-height:100%; max-height:100vh; border-radius:0; padding:16px; }
+  .view-grid { grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:8px; }
+}

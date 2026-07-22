@@ -8,6 +8,10 @@
   X-Frame-Options: DENY
   Permissions-Policy: camera=(), microphone=(), geolocation=()
 
+# 大会デッキのHTML断片: 単独のページではなくダイアログ表示用の部品のため、検索エンジンには載せない。
+/tournaments/*/decks.html
+  X-Robots-Tag: noindex
+
 # カードDB（ルート）: 公式API api.gatcg.com と Cloudflare Web Analytics のみ通信を許可。
 # img-src の cdn.discordapp.com はデッキ構築ツールのDiscordアバター用。
 # (Pagesは一致した全ルールのCSPヘッダを重複して送り積集合で効くため、
