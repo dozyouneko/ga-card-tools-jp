@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>#15 モック: 順位表の属性アイコン・チャンピオン名</title>
+<style>
+:root{--bg:#12141a;--panel:#171a21;--panel-2:#1f232c;--line:#262b36;--text:#e6e8ee;--muted:#9aa2b1;--accent:#d9a441;--accent-2:#6ea8fe}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1040px;margin:0 auto;padding:20px}
+h1{font-size:1.2rem}h2{font-size:1rem;margin-top:28px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.note{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:var(--muted);font-size:.9rem}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{color:var(--muted);font-weight:600;font-size:.82rem}
+tr.top1{background:rgba(217,164,65,.10)}
+td.rank{white-space:nowrap;font-weight:700}
+td.player-name{font-weight:600}
+td.score{text-align:right;font-variant-numeric:tabular-nums}
+td.rec,td.pct{color:var(--muted);white-space:nowrap}
+a.deck-link{color:var(--accent-2);text-decoration:none;white-space:nowrap}
+/* ▼ #15 の追加分 */
+.deck-id{display:flex;align-items:center;gap:8px;min-width:0}
+.orbs{display:inline-flex;gap:2px;flex:0 0 auto}
+.orb{width:18px;height:18px;display:inline-block;border-radius:50%;background-size:cover;box-shadow:0 0 0 1px rgba(0,0,0,.55)}
+.orb-fire{background-image:url(data:image/webp;base64,UklGRpwCAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSD8AAAABYNy2kSP13/TMbLLn4jciJoDj2OIN0RCyEtajMB+EfRONF4lWIJofIH4/XTwAPcwdXAQfexenHkQNXcG74xgAVlA4IDYCAADwCgCdASogACAAPmkqjkWkIqEYBgBABoS2AE6ZQjp7wVzs8auwD0APCA+Dz9t6Eps67gO6nMVZ13qb/n+q1/uRUwQ+joCceWFcKdQF/mRgAhVF1D2AbTKfj4T0UL8uOgAA/ujx0rDy1zhW8T8cTF8f0fZ7JaBy/fTcznqyL09aT/8WSdvg7f9A7DZDuee8Tym1tJz0+Q6GYnoV0fPKnm9D9/TvUcfrfjN4Vkzf3nWwm+qMiw/thRIsYla6yN/N6sLg6vtZppn7cJgebrIA9jcEsmaBuaNpuC6feb1QodtCQZQIt38CQp/OKW4Dj/2b2yd9Pd6F/Id9DcjcGjAntMMDcuWDl0d6AjA6MWQEpOsTgkQp5sAHL+K0fSkgehP/aEADnGqcvlOthJwVaWJb2WpSf/tzWY8D5p6PE4HwBP8ua0WMr50XdjWBqIPoSSSaPvM+skyFykBEfgCw/i+55oOCridTH7AVYPYKk83OA4MU1Pr/VV+Z/2snx8+t0QYFa5M0aepZNQP/bjodK8319VG/T+tqrbEOUWWtpF9eWkptDbBiU1zPlvubYmnpof9bzlO6m5/3UHVUUfiUdLGC0SXpuSje9FUfbJO+mO9ZlHqGgPXis9vpJ/dgQOWCbwax7EGw35MaNyc9q6KSl694bBnxpvWyuuBUfrAMOQUZ3lDLlKFE4HMssLovrPWB5Il6MJhXGscJinrmm8V+wDwd2B+zVD54wubp+wWVfF4N8iLzWQQVeAAAAA==)}
+.orb-wind{background-image:url(data:image/webp;base64,UklGRvICAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSD8AAAABYNy2kSP13/TMbLLn4jciJoDj2OIN0RCyEtajMB+EfRONF4lWIJofIH4/XTwAPcwdXAQfexenHkQNXcG74xgAVlA4IIwCAADQCgCdASogACAAAUAmJbACdMoRwJoM4EGA2ye4A86PqAPQA8sP2FP3DoSnFjYC0UcQGkCmceNb6G9gn9YutH6EBsVhtrFj3/Ikddcmji0bEvp5FpHbSPYQP+Jsm78hgADvdtPtLuRQTqbVXYy+Ld2DfIVZ7T1gkr/bh2v9C8s/EETtov+lXPcEHjXiyYg+NGAJ2TJZ94Snalgi/nLFNawr7ruGz1ESsCX99L/nM4uIJ5lqmn5sYlbM77/hDU4DWWIG0t2XtcGsnfc5ztu5bPHtrXH8Zcae5rWctzsyMqwbpmIl9JR8MzTJBTM+7huUOmY+NMifRrO4MWMevkFHwrRBqzCST6M2rrUSt1kyp7DoeP/iuWmyv5QulA3rWdwfwJAs0T1tTsh6Tp2mgfsQeFgCAC19YihPcvyVPpVMiyEDpzdL7TQt7xl6cNJqElMJI5N4v4uwdgxDMbL3yncUaXLrbH93vTUFZq0yMSu/nBv+WJptl7XL24wgv9C/LQWy9VG4lAPlmTj+/wCiV6wP4hht6wKMNhY1/o+lX9pibw3oICkDHq3BfGkbXBr+0EPIIl+F2CjOQSiy0a7t8f/jadD+P2o5aux6PgZ2dhTptwjkfFVHy4FEW3LYLMl123wE5wfDxyOpOg0+Nbbv7jZL1t2nWxXeBtJJch9yDNcl4O6fAGpgqZmc+hFuufh7pmPbd8GV2g/hGvR0/wa9jgqU7b9aPnGLE13ZTR33z1f5WUEMuW7maytOf1tRrj6TxmpS+ABvP4HHlcijvTo7+b/ImBlgbvbVZYGqdN5T3e4QvNZMk5Jx8uamgS/yvS6NktneHZwvY60Uuwu7La/E0Nn6UWNht1XYVoztk1YnAAAA)}
+.orb-water{background-image:url(data:image/webp;base64,UklGRpwCAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSD8AAAABYNy2kSP13/TMbLLn4jciJoDj2OIN0RCyEtajMB+EfRONF4lWIJofIH4/XTwAPcwdXAQfexenHkQNXcG74xgAVlA4IDYCAAAwCgCdASogACAAPl0kjUWjoiEb9AA4BcS2AE6ZQjgTmtwIMBtmtxBvAHPrex7PlOMRk0QBDNfHjqB7pWUEaSoV0eY5FBTP1mE63okyBvj+QGgnpkCtgKUq7sAA/rn9zbp3slVPNz0olRVxbXyEQ8Sk7uJx/Sp/UjfXWm9EvjombPYjiYr9x8/oB9gtRTujlzKVJ+2hj7O9uFBveSnu3L6oeMqKz+6dwrTF96SuJFjvLA/p0wWCHqi/Y+bvIH0XtAKQP7TZH8Tq5IwL6tT8fT81NeDk9P3H2TBq7hESUcWOBKaEs+l+NDiVJcewATE9COA5cW6mRE+JcvgJT0I9XJo8rWVUnH0q7mGMOQNltz6MqzIp0e/Bp7o9H+7h4FYu2MzZjfx2Z0jO2/nlmc+xSUummoS+uxQ+t+/rWi1PmL4RtWkUTvegt2K9zuEbUTYD37n7eADxOKK0CJZP9owQp/GkWoFzlISSqOKPrPAGuP3jeBDzY7lO2lPlkPf9Og5/RfUrjBrqpMZ6SP3SdQtjs9SN4xkLu4fwMrIZbDtShxe5mkz+mU6RaSylnt7JoBa8V5vPUqaZWeiXNa/9vTt1cyGz2BNu/v/yMaEct9UkIQchmTIU91dqVB4m/8A9yBLbZzG7IYY4TP+ZNiFfrWsXQDjCaHe48Jz77mORUwiXABUNvClfjrlPHzr+hhdFskGxkJRFRxCYeR3IvIEfgV5TyRWpQi3J97/8uGxBDCfdjHrNkZW7gkgAAA==)}
+.orb-luxem{background-image:url(data:image/webp;base64,UklGRooCAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSD8AAAABYNy2kSP13/TMbLLn4jciJoDj2OIN0RCyEtajMB+EfRONF4lWIJofIH4/XTwAPcwdXAQfexenHkQNXcG74xgAVlA4ICQCAACwCgCdASogACAAPl0kjkWjoiEb9AA4BcS2AE6ZQj/Aalrd4HAA2yfPj+hjeL95I/x1oCNIs4zcHfJ3AxirPg9K+wQPPcrHt5r8KxbPGB1Xp3lpcrBiQN5ZPJhxAiwAAP6uP2DoCnoGY7VisdEs+l1mRg+EqYFmy7knO3QWjxZgc84zTlciMZRn4pS1Q6rd5MnDIc67/2Xmm7IQ/zRHZbe+WThGTm9e36y1EjTfrmdu1mv+n3Vm3bCtDYekUHIndI9x8vpMCjEzuyWY8y0RIV15n36O4gt3eQVHXtb7xx2Cj7g1kpopUozUcVWVvXRNkE1Y757YGa/hRmPxBfHOTOKl8lxhqA5YoKq0YZ1V6ALEAupmrhGig56OGcPZ93evq6nT2oEIUmppx5nzlpG4+lngZ5z5BcWhh22Z70v2Sb4kM0WjjDsw+b0kl+DX1HS5/ze3DcNpLpd8EIYXfgbqtbvWhai/xqnU3uC92BqnnuBnhhxeLlPA2A2N/5y2ZXT2geG8153T5h4RB8O5lSV9aLxWwPFKPS4cl2fzFYfzUgCrX7BGGhfd0Xwt1pQksgsiH0Ylcamg3Lo3MjA6f2NOZgzDvP5gASRvU7i0uQlAgehQGgHp+j3zJSCRq2U6HRZ1Xd6/kJKiYBPD+klTntO8Q7ThdBD00OjK7My60pv383XkMh8b0x0M/NOPGTaIDliz2Z69aT7bsuav6rpsyR5Ouh7SbBMAAA==)}
+.orb-umbra{background-image:url(data:image/webp;base64,UklGRiYCAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSD8AAAABYNy2kSP13/TMbLLn4jciJoDj2OIN0RCyEtajMB+EfRONF4lWIJofIH4/XTwAPcwdXAQfexenHkQNXcG74xgAVlA4IMABAADwBwCdASogACAAPm0qkUWkIqGYBABABsSxgE6ZnSovnynJfY3KBhgmcv2eGCGr51CcAToU23vQILDOk7l7IcJd6U+pytkdHJQA/vQu/RQn9dXFdcYKPWDoNmMb0vSCMR6cBV9jo8Xi0gq1fG8OAJUc58R2O8FiAyJlzm4HeLEvuyXNhajMeF/VTfqtcuBOekEnLo8gNK8hUDYOfVZSqNmAXnHz/ZBSkW+vtTd0jAXnL4vP+gMD+P71HOep7fH7B+P85puQ69JOEgAKSYTW3OiQBu5iQV/ZJpaBflYlTT9kcRD2/6iSstTKgGum/cgHuUsB/JmC7kHOs6OZIuykmfCf4/dwe48Dgf9wniTeCe0BGJQjmJm37c3IZHcLUgBv+JLitwMHVx3zmCcvbAtW5qwIP39Wgq8L6jFsa24MEGn7nVgT3sffRAKOgG/7GECx1QPMRwRX4+rrt1g4g+S5b5RV1bOr/JVW3CSyaDJXgrCtejXzWj86YzWBMm5P7d+kO0nK68WMQ2zImCuDsIStg748ky7sIEK14eOrTrePTU5OX2zMnXM64X2CdLwtJcvDSLo4phokOSsWRCtuDY7aFdgA)}
+.orb-crux{background-image:url(data:image/webp;base64,UklGRlgCAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSD8AAAABYNy2kSP13/TMbLLn4jciJoDj2OIN0RCyEtajMB+EfRONF4lWIJofIH4/XTwAPcwdXAQfexenHkQNXcG74xgAVlA4IPIBAABQCgCdASogACAAPmEqj0WkIqEb/VQAQAYEtgBOmUI6uGqcAthnNAwG2n3DG9APi38A9rsQLek9TewBulaWfp4C8C2qvy71/Mj1hXv0GD6BZHzigPc6/jW6S8/AAP659ZUx2aebE2PVuu8TSF/2d8lO32LyK1ype1/WzvHOITIfAwsIu0MsiJYf15XdmzcWgRA6MJPiCIqy5qsTY4sycAyM3QKmSXnP1IjHvVA+SsbcmtWInDPxjOWsW7qmCQouI4vIsMobNyVVYE5IWcrxbXBXAmc9WoNWhW8V4m9BuU7vXEDqY76bTCANPdSNjswxAGtOKsMUEnNBAeByEjjQz5jHrQ1XwoStioyplKbQ//S123acCw41msqSFOJ6hfDlcjiJo0nUGE96x6w7yQI09tfajAM9yUa9XicLfFG5ZURGciZ5zzZOCf82wwDdtd57QbzZ9ycV+wrVn5F0OBLqKNoRnPowVpJw/sgM60Q/u1ZKWQiNu8ZqYqis4XjeRJk83xPLf/zT/otuX/6lDi5Rv7nE9ETekMOFL6k2fehdcXVy/t/KbIiBPBFu2A9ViraBb+Qq7x6ern13ZuqLsmVscZGoTYILi9hd+xrxUKkkAb1+QAj3v1f4/vIPW6TRHeYBB0NsB3nPaxU11ognAlb13F6IAAA=)}
+.orb-tera{background-image:url(data:image/webp;base64,UklGRtQCAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSD8AAAABYNy2kSP13/TMbLLn4jciJoDj2OIN0RCyEtajMB+EfRONF4lWIJofIH4/XTwAPcwdXAQfexenHkQNXcG74xgAVlA4IG4CAABwDACdASogACAAPmUkj0WkIaEb/VQAQAZEtABOmXDqBwGNsxz1WmAbzTZghxv3rIL/w/iBdA/HnEB2wHGDGD84H0b/1vcD/lH9W/3fA1tVxYci2V2dXaYQeFXrbgBhkMNRyEBI/vuUwKZHY8AA/vysX7Ip/RJk0b9f1XxXOYbhJ9mIn83v4q9Kqf3gM+97HL9//umYHyRnHbQe3LS4xie37mo20rxeTx9MM6Y78cjA9IH8TWiGn+KySnuZxiATt2lxe/9Y46p9fahO342ZdOn4Ocjc41X92wginQIK9OANrNkJFKHwnLJvO3/Y/n1/L5MfpGAG+1QlY7EqspGblyPdogy4m3HDuZAQWaBHSxa4SzAuzXZH+3/Olq0vgWns4lJCcM2FIITYloG35rXlDx1FzqoZkp59lg4iI1mN/uAClNGG0wvBKqiUvMe0KYcCFpusYs9tj1kg5jVZkkYJ2m/JwshVWorndwOS7SKrfX0y77FV3XqtnKzyo7DKmRMDOjxZbVXWbvep+LBOHN6P0Bz8ODKWokgXQGNd42pVoNavf9ojLuQax1nsQAbt5xOmtGdpGusdMJEiDMO973MtSayFmhxJUEfYAKbcN4Azw2dvH8mWSAZyAG4zv6H/x+EYjatTjXnJASLoPJuGyso0nIiaDJmBhGrCDhc/9idN7Uy92zSapAsr+Td1xsTiC/OV/igGUjVX+TUK6kh2IyFhr947UqSpJTJsPGk87/wyrqx3/MUVXFZT9r3fvynq5l+8AjLGG5x8E3lN/vA8TVrAT6FczC8Dw+EIxXikw1pdNB/rcjbKfJ5L1/GVBLp7AAAA)}
+.orb-exia{background-image:url(data:image/webp;base64,UklGRoACAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSD8AAAABYNy2kSP13/TMbLLn4jciJoDj2OIN0RCyEtajMB+EfRONF4lWIJofIH4/XTwAPcwdXAQfexenHkQNXcG74xgAVlA4IBoCAABQCgCdASogACAAPl0kjUWjoiEb9AA4BcS2AE6ZQjqD3Tiw3e4C2FZ+gDeOd4pnynHGAFUBYNpm3jo+nPYFJWtzagwDH08aNisSrzXJTVFKvFOzIUJpxbp8oBYAAP7o8FNFemTZEmXm/Q5sDlRf+ru6MeZ7rniarf/HRzLr/VTVVfj+qfH8U/O8kQtkBoWgvZu+SoTKajv7vJ+f8tquXQY2E635FpfzlMfbsH/Q3vpZlgqucsdJZe3OGtEp51iNQKuWlW+Wg8+vtejxENL/UWe7CX+lgpo//EPpatmVY6CxqhLtPcWhI7zcX+v/f24NHp2q0/huyf/cNY/+NasnP4G8d+8YFUzGA9KnD8uh9WacJ9Tb6jQdkW0UmjYsNOq0UsgEBrRCjgH5mAucBo3SHFaIJ7Zxva5hS3z/ZExhPMc4bqfcLte0zv6Mm2g4PYQVBBf9T4VQdZADqikn1UtfOj1qfBdGfCjbugJn0Jc0V4N50yHsZ6vaS+Q+M+t33mWCx56zfo1JTqVHCEqJ+c1o1rw8apLJlXRqjVWJrXDASC6N61KdSlhbYxVQFvDCT1wRlbKtey5dGeiMQ6M8XbzUy8fnzC/i0r4JJnsYACmP2SKK5ZpvfP49i7Rzh36zVa4T62v11Xl2bkyxYXuL3yBvLXX2AV6A4MHEP16AumhNLloRYudDtWsZXB1kC9vpM9tpn+Ja1qbzTvsxisAA)}
+.orb-astra{background-image:url(data:image/webp;base64,UklGRkICAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSD8AAAABYNy2kSP13/TMbLLn4jciJoDj2OIN0RCyEtajMB+EfRONF4lWIJofIH4/XTwAPcwdXAQfexenHkQNXcG74xgAVlA4INwBAACwCACdASogACAAPm0ukkYkIqGhKA1QgA2JQBOhgrU+C2dj8GK3Vpb/jeYb6P9gUzr2Ce6kyOKfoP23w6DxMoPRLzKJzk9NHUVjQMGFa8gA/vaSvrZNhU0X2bT/ffNjSasPR/tNaBIYV0aqJfPvrR4U/GtlOgWEaBeel3+1dKDIT5SpU+W1/le9E6EUVn+GhYiDePY3ac0ovlpcBjqjvn/5SHEf9jFQE4LVnsS9kYv3O+Gze5RBcalou6+Ni0R/UZZzkj6U0u//5ESgTq4YcpK765ECJIAHDbBn14V/7nffsXv/7rIWNC3t/6NGqw3KXrYJIFv0lr30ig08hftgQcD3gV7swDBOr4jrPVOFI6PfXdfyxV1S4vzNuMGpO+YqyeMNf4/qxb/tgv9H+4UGwWv/mPN+z6dIWbp0C8uWZcwViti7PrwdCOX7KmgK6mFucm3iQbfMpYRUeDCeNpPJWrHvtKGMplw+1Kf8lz46mpiHNhdXjYdZxf26uVSIRHsTafpWpE4mUGdic0yQ3HCVeAxwCQcZucUpPdcJ7q7MOmL8DBxCD1LXsoi9FSw8xkQAHmbOx0O9llLztWLjiRe3K3rlVx2ozpthwesCER5+mxBBgGBZPpKHY9cYYSRwAA==)}
+.orb-arcane{background-image:url(data:image/webp;base64,UklGRtoCAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSD8AAAABYNy2kSP13/TMbLLn4jciJoDj2OIN0RCyEtajMB+EfRONF4lWIJofIH4/XTwAPcwdXAQfexenHkQNXcG74xgAVlA4IHQCAADwDACdASogACAAPm0qkUWkIqGYBABABsS2AE6ZQjq72b8VeZTcN42GA2zHmA85n0Aeer1Du8e+VVcxq7iYa9zhwKv8f7VfbF9EewJ+qH+s4EBZ0bmouLaASlOFFUKy9IFpXzI6H9hSSnKKpfcKf9EAAP4WHSjOMju+EiAi5cTRBtxH5DHA9dbz3hnLBTrJFn7Otf/6vugdol5fSgf8f2XeOIvd4tEYtsMCZGo7JNybp/eN8OxD12HA31w07eMQaR3RJLVaoTJd/4AZf0+tPAvDHpi9atv/73niV4zoOKSld3dmUGC/e43c3SxMxFu6UvLIrB9yXOWuE1zpQ/GfuCgLLe05N0BQ0eI/OoLxuUZ5e0Vl6LOE/E2lOm0BQZVIWF9aVQz2WNUe0Gg32hznR4GaFy4yAzTzbaY91yhPdEDoxdiYK4rtj3XGSsaBWuxo73yqz55YRRihgMCE+1zhEQz0Af8WcFNKC2PHnV0+wf/8tBwKfHfolwztA05d9RgHIgyD38hJqf4Qv4Z3cmvgdyLx1QxdP7LCCOiOcJ5c++3fAkpGQVXg8+0qZ9qMbYe+IiE01slKvsr7CtfXdqj0gi6Fuwkv3DYr3X1Q/Ea1vU88y/Br9+Xq+/nrX1uGVURxDXJ/m4taMv0Y63p08V9debOdznD4amGIVnQywKuP55f2vc1xlP5s4qdM9xvpbamd3+6tLx6AgcAGGK6ipQsaAvged9AtuyHBaYfYg/VX7TH1bs6pgjgmYDzqMAcf5Uj6RHBqekq5gFz9USg7mybAggZPI/VU+o+ZQHnbgQMYYUtosKFCL8V0Uj8Ktzard7r/qX9b4AAA)}
+.orb-neos{background-image:url(data:image/webp;base64,UklGRpYCAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSD8AAAABYNy2kSP13/TMbLLn4jciJoDj2OIN0RCyEtajMB+EfRONF4lWIJofIH4/XTwAPcwdXAQfexenHkQNXcG74xgAVlA4IDACAACQCgCdASogACAAPm0ykkckIyGhKAqogA2JbACdMoR0l6rbh21wzW2g56TowOoz3kifKbJMcUoEc3OAlQQyDyQ/S3sDk6JnMG9086ZWfIjz2EAzSoXXl67uAgY/1WAA/tlTW18LQXLVNluyaxi0cqXUScyofw6S6/3qigLUUvjFDbOkV+Q3xbcMm7OqA4zOxesAskkJ/AkBfJ+rFokGg+MQfdaCFXSAwRiVgvu7trXC3opd13y7GCHkM/yzC8mvbc/niDmfSi0wYd7+3SJJgzb/6zhgmVYdqs8kPfocu3LBuSn7b9+hsuuRT+SJlH27wrIGRd5C4D73LfP+lIVUUL8Cu4TWn7DWDjC2pofSZe/gL75DpgRLKM68w/xIQgb3DZCtiIUcAN3k3T1McCyXJf3/6aFHJf4CDen0lnO3AgrX1hEb8wn28CuYh77DKpv7AtQDlld/qWoTCifYv0I+PpNZKFY6i0IO/7R1xcAPkxpuEOZD2/kbkv5O5agI3jU28yam8iwfZ9YF4+EpYB0VosneGrR3R9S5ZRXAqY0ugZNH08Xm8Y5NSbz0YtNHZ+8Psuq+LsFYVhgSOspJXzAIHDsXX94cp2a/UI9f40Ggvw9UzSfXGcN6fsNF1FvckzDuKMH2DCf3poo1UB0bqfL/hR669HGz4iAbFmq0mJlWYHP/rBAiv35hJduWkaHmBDxfgW/fLruIb4rxmMbZyu8e/lwdAYcr2UEkfWckLf6QC5wAAA==)}
+.orb-norm{background-image:url(data:image/webp;base64,UklGRmABAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSD8AAAABYNy2kSP13/TMbLLn4jciJoDj2OIN0RCyEtajMB+EfRONF4lWIJofIH4/XTwAPcwdXAQfexenHkQNXcG74xgAVlA4IPoAAACwBgCdASogACAAPm0skkWkIqGYDAYAQAbEs4BfngQLoB1rh9wW0V7F8vXleq+6I676zC3fVyyg225nkj/ZAAD56piUA8s40ZtBoXtLVo4jLMYfHLzfkh/gK7vW2vHxkTx4XJXjj5b7ykN78xx5QeJ6TZqYxmWdb2yx+HNQhlmvZGBwSpqeGNza7/pqIgfIJ0TE/CkiXLCC+EbbKYKTYcwiIpO0QR7A29AS2XaUWr2tbLmuO+r/gjIaA7DXZzNzOuGbJ6Cs7n1V8cEHu1hndWgSDvChcJLNSNoJookMu2un4XvlvBh/IjU9YNzSTN4dE+tSJ0Y4Dt7yAAAA)}
+.champ{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.frame{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel);margin-top:10px}
+.frame > .inner{padding:10px 12px}
+.narrow{max-width:390px}
+/* スマホ幅の2行カード(#14 O-2)に属性・チャンピオンを足した形 */
+.narrow table,.narrow tbody,.narrow tr,.narrow td{display:block}
+.narrow thead{display:none}
+.narrow tbody td{border:none;padding:0}
+.narrow tbody tr{display:grid;grid-template-columns:auto 1fr auto;gap:2px 8px;align-items:baseline;border:1px solid var(--line);border-radius:12px;background:var(--panel-2);padding:10px 12px;margin-bottom:8px}
+.narrow td.rank{grid-column:1;grid-row:1}
+.narrow td.player-name{grid-column:2;grid-row:1}
+.narrow tbody td:last-child{grid-column:3;grid-row:1;text-align:right}
+.narrow td.deck-id{grid-column:1/-1;grid-row:2}
+.narrow td.score{grid-column:1;grid-row:3;text-align:left}
+.narrow td.score::before{content:"勝ち点 ";color:var(--muted);font-weight:400;font-size:.82rem}
+.narrow td.rec{grid-column:2/-1;grid-row:3}
+.narrow td.rec::before{content:"・";color:var(--muted);margin-right:4px}
+.narrow td.pct{display:none}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.legend span{display:inline-flex;align-items:center;gap:5px;font-size:.85rem;color:var(--muted)}
+</style></head><body><main>
+<h1>#15 モック: 順位表に属性アイコン・チャンピオン名を表示</h1>
+<p class="note">実データ(イベント <b>#57690</b> CANTRIP RDOストアチャンピオンシップ・22名)で生成。属性アイコンは<b>公式カード画像から玉を切り出して32px WebPにしdata URIで埋め込んだもの</b>(12属性で合計約10KB)。外部リクエストは発生しない。</p>
+
+<h2>全属性(12種)</h2>
+<div class="legend"><span><i class="orb orb-fire"></i> 火（FIRE）</span><span><i class="orb orb-wind"></i> 風（WIND）</span><span><i class="orb orb-water"></i> 水（WATER）</span><span><i class="orb orb-luxem"></i> ラクサム（LUXEM）</span><span><i class="orb orb-umbra"></i> アンブラ（UMBRA）</span><span><i class="orb orb-crux"></i> クラックス（CRUX）</span><span><i class="orb orb-tera"></i> テラ（TERA）</span><span><i class="orb orb-exia"></i> エクシア（EXIA）</span><span><i class="orb orb-astra"></i> アストラ（ASTRA）</span><span><i class="orb orb-arcane"></i> アーケイン（ARCANE）</span><span><i class="orb orb-neos"></i> ネオス（NEOS）</span><span><i class="orb orb-norm"></i> ノーム（NORM）</span></div>
+
+<h2>PC幅</h2>
+<div class="frame"><div class="inner"><table>
+<thead><tr><th>順位</th><th>プレイヤー</th><th>デッキ</th><th>勝ち点</th><th>成績</th><th>GW%</th><th>MW%</th><th></th></tr></thead>
+<tbody><tr class="top1">
+  <td class="rank">🥇1</td>
+  <td class="player-name">yokomi</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i></span><span class="champ">Arisanna（アリサナ）</span></td>
+  <td class="score">13</td>
+  <td class="rec">4-0-1</td>
+  <td class="pct">88.889%</td>
+  <td class="pct">80%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">🥈2</td>
+  <td class="player-name">hachico</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i><i class="orb orb-umbra" role="img" aria-label="アンブラ" title="アンブラ"></i></span><span class="champ">Ciel（シエル）</span></td>
+  <td class="score">12</td>
+  <td class="rec">4-1-0</td>
+  <td class="pct">69.231%</td>
+  <td class="pct">80%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">🥉3</td>
+  <td class="player-name">AkiraKasumi</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i></span><span class="champ">Diao Chan（ダオ・チャン）</span></td>
+  <td class="score">12</td>
+  <td class="rec">4-1-0</td>
+  <td class="pct">72.727%</td>
+  <td class="pct">80%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">4</td>
+  <td class="player-name">naruge</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i></span><span class="champ">Guo Jia（グオ・ジア）</span></td>
+  <td class="score">10</td>
+  <td class="rec">3-1-1</td>
+  <td class="pct">77.778%</td>
+  <td class="pct">60%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">5</td>
+  <td class="player-name">Kaoru</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-umbra" role="img" aria-label="アンブラ" title="アンブラ"></i></span><span class="champ">Tristan（トリスタン）</span></td>
+  <td class="score">10</td>
+  <td class="rec">3-1-1</td>
+  <td class="pct">58.333%</td>
+  <td class="pct">60%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">6</td>
+  <td class="player-name">barbarian</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-umbra" role="img" aria-label="アンブラ" title="アンブラ"></i></span><span class="champ">Tristan（トリスタン）</span></td>
+  <td class="score">10</td>
+  <td class="rec">3-1-1</td>
+  <td class="pct">63.636%</td>
+  <td class="pct">60%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">7</td>
+  <td class="player-name">Bayabayashi</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-luxem" role="img" aria-label="ラクサム" title="ラクサム"></i></span><span class="champ">Guo Jia（グオ・ジア）</span></td>
+  <td class="score">9</td>
+  <td class="rec">3-2-0</td>
+  <td class="pct">50%</td>
+  <td class="pct">60%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">8</td>
+  <td class="player-name">Ruruca</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-arcane" role="img" aria-label="アーケイン" title="アーケイン"></i></span><span class="champ">Rai（ライ）</span></td>
+  <td class="score">9</td>
+  <td class="rec">3-2-0</td>
+  <td class="pct">58.333%</td>
+  <td class="pct">60%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">9</td>
+  <td class="player-name">KingArmo</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i><i class="orb orb-arcane" role="img" aria-label="アーケイン" title="アーケイン"></i></span><span class="champ">Rai（ライ）</span></td>
+  <td class="score">9</td>
+  <td class="rec">3-2-0</td>
+  <td class="pct">57.143%</td>
+  <td class="pct">60%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">10</td>
+  <td class="player-name">sura</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-luxem" role="img" aria-label="ラクサム" title="ラクサム"></i></span><span class="champ">Guo Jia（グオ・ジア）</span></td>
+  <td class="score">9</td>
+  <td class="rec">3-2-0</td>
+  <td class="pct">54.545%</td>
+  <td class="pct">60%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">11</td>
+  <td class="player-name">Yuumu</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i><i class="orb orb-astra" role="img" aria-label="アストラ" title="アストラ"></i></span><span class="champ">Diana（ダイアナ）</span></td>
+  <td class="score">6</td>
+  <td class="rec">2-3-0</td>
+  <td class="pct">50%</td>
+  <td class="pct">40%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">12</td>
+  <td class="player-name">ShibaSho</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-luxem" role="img" aria-label="ラクサム" title="ラクサム"></i></span><span class="champ">Guo Jia（グオ・ジア）</span></td>
+  <td class="score">6</td>
+  <td class="rec">2-3-0</td>
+  <td class="pct">45.455%</td>
+  <td class="pct">40%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">13</td>
+  <td class="player-name">kiri</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i><i class="orb orb-umbra" role="img" aria-label="アンブラ" title="アンブラ"></i></span><span class="champ">Ciel（シエル）</span></td>
+  <td class="score">6</td>
+  <td class="rec">2-3-0</td>
+  <td class="pct">41.667%</td>
+  <td class="pct">40%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">14</td>
+  <td class="player-name">hiroshi5</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i><i class="orb orb-umbra" role="img" aria-label="アンブラ" title="アンブラ"></i></span><span class="champ">Alice（アリス）</span></td>
+  <td class="score">6</td>
+  <td class="rec">2-3-0</td>
+  <td class="pct">36.364%</td>
+  <td class="pct">40%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">15</td>
+  <td class="player-name">Goblin1496</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i><i class="orb orb-tera" role="img" aria-label="テラ" title="テラ"></i></span><span class="champ">Silvie（シルヴィ）</span></td>
+  <td class="score">6</td>
+  <td class="rec">2-3-0</td>
+  <td class="pct">41.667%</td>
+  <td class="pct">40%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">16</td>
+  <td class="player-name">daimaru</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-luxem" role="img" aria-label="ラクサム" title="ラクサム"></i></span><span class="champ">Guo Jia（グオ・ジア）</span></td>
+  <td class="score">6</td>
+  <td class="rec">2-3-0</td>
+  <td class="pct">45.455%</td>
+  <td class="pct">40%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">17</td>
+  <td class="player-name">ishi</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i><i class="orb orb-umbra" role="img" aria-label="アンブラ" title="アンブラ"></i></span><span class="champ">Alice（アリス）</span></td>
+  <td class="score">6</td>
+  <td class="rec">2-3-0（うち不戦勝1）</td>
+  <td class="pct">25%</td>
+  <td class="pct">25%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">18</td>
+  <td class="player-name">Old1496</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i><i class="orb orb-luxem" role="img" aria-label="ラクサム" title="ラクサム"></i></span><span class="champ">Guo Jia（グオ・ジア）</span></td>
+  <td class="score">4</td>
+  <td class="rec">1-3-1</td>
+  <td class="pct">36.364%</td>
+  <td class="pct">20%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">19</td>
+  <td class="player-name">YamaGA</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i><i class="orb orb-astra" role="img" aria-label="アストラ" title="アストラ"></i></span><span class="champ">Diana（ダイアナ）</span></td>
+  <td class="score">4</td>
+  <td class="rec">1-2-1</td>
+  <td class="pct">44.444%</td>
+  <td class="pct">25%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">20</td>
+  <td class="player-name">LOVERIVER</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i><i class="orb orb-crux" role="img" aria-label="クラックス" title="クラックス"></i></span><span class="champ">Merlin（マーリン）</span></td>
+  <td class="score">3</td>
+  <td class="rec">1-4-0</td>
+  <td class="pct">20%</td>
+  <td class="pct">20%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">21</td>
+  <td class="player-name">GOTTI</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i><i class="orb orb-exia" role="img" aria-label="エクシア" title="エクシア"></i></span><span class="champ">Jin（ジン）</span></td>
+  <td class="score">3</td>
+  <td class="rec">1-4-0（うち不戦勝1）</td>
+  <td class="pct">20%</td>
+  <td class="pct">0%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">22</td>
+  <td class="player-name">morita</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i></span><span class="champ">Guo Jia（グオ・ジア）</span></td>
+  <td class="score">0</td>
+  <td class="rec">0-2-0</td>
+  <td class="pct">20%</td>
+  <td class="pct">0%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr></tbody></table></div></div>
+
+<h2>スマホ幅(390px)</h2>
+<div class="frame narrow"><div class="inner"><table>
+<thead><tr><th>順位</th><th>プレイヤー</th><th>デッキ</th><th>勝ち点</th><th>成績</th><th>GW%</th><th>MW%</th><th></th></tr></thead>
+<tbody><tr class="top1">
+  <td class="rank">🥇1</td>
+  <td class="player-name">yokomi</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i></span><span class="champ">Arisanna（アリサナ）</span></td>
+  <td class="score">13</td>
+  <td class="rec">4-0-1</td>
+  <td class="pct">88.889%</td>
+  <td class="pct">80%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">🥈2</td>
+  <td class="player-name">hachico</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i><i class="orb orb-umbra" role="img" aria-label="アンブラ" title="アンブラ"></i></span><span class="champ">Ciel（シエル）</span></td>
+  <td class="score">12</td>
+  <td class="rec">4-1-0</td>
+  <td class="pct">69.231%</td>
+  <td class="pct">80%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">🥉3</td>
+  <td class="player-name">AkiraKasumi</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i></span><span class="champ">Diao Chan（ダオ・チャン）</span></td>
+  <td class="score">12</td>
+  <td class="rec">4-1-0</td>
+  <td class="pct">72.727%</td>
+  <td class="pct">80%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">4</td>
+  <td class="player-name">naruge</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i></span><span class="champ">Guo Jia（グオ・ジア）</span></td>
+  <td class="score">10</td>
+  <td class="rec">3-1-1</td>
+  <td class="pct">77.778%</td>
+  <td class="pct">60%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">5</td>
+  <td class="player-name">Kaoru</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-umbra" role="img" aria-label="アンブラ" title="アンブラ"></i></span><span class="champ">Tristan（トリスタン）</span></td>
+  <td class="score">10</td>
+  <td class="rec">3-1-1</td>
+  <td class="pct">58.333%</td>
+  <td class="pct">60%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">6</td>
+  <td class="player-name">barbarian</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-umbra" role="img" aria-label="アンブラ" title="アンブラ"></i></span><span class="champ">Tristan（トリスタン）</span></td>
+  <td class="score">10</td>
+  <td class="rec">3-1-1</td>
+  <td class="pct">63.636%</td>
+  <td class="pct">60%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">7</td>
+  <td class="player-name">Bayabayashi</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-luxem" role="img" aria-label="ラクサム" title="ラクサム"></i></span><span class="champ">Guo Jia（グオ・ジア）</span></td>
+  <td class="score">9</td>
+  <td class="rec">3-2-0</td>
+  <td class="pct">50%</td>
+  <td class="pct">60%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">8</td>
+  <td class="player-name">Ruruca</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-arcane" role="img" aria-label="アーケイン" title="アーケイン"></i></span><span class="champ">Rai（ライ）</span></td>
+  <td class="score">9</td>
+  <td class="rec">3-2-0</td>
+  <td class="pct">58.333%</td>
+  <td class="pct">60%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">9</td>
+  <td class="player-name">KingArmo</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i><i class="orb orb-arcane" role="img" aria-label="アーケイン" title="アーケイン"></i></span><span class="champ">Rai（ライ）</span></td>
+  <td class="score">9</td>
+  <td class="rec">3-2-0</td>
+  <td class="pct">57.143%</td>
+  <td class="pct">60%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">10</td>
+  <td class="player-name">sura</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-luxem" role="img" aria-label="ラクサム" title="ラクサム"></i></span><span class="champ">Guo Jia（グオ・ジア）</span></td>
+  <td class="score">9</td>
+  <td class="rec">3-2-0</td>
+  <td class="pct">54.545%</td>
+  <td class="pct">60%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">11</td>
+  <td class="player-name">Yuumu</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i><i class="orb orb-astra" role="img" aria-label="アストラ" title="アストラ"></i></span><span class="champ">Diana（ダイアナ）</span></td>
+  <td class="score">6</td>
+  <td class="rec">2-3-0</td>
+  <td class="pct">50%</td>
+  <td class="pct">40%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">12</td>
+  <td class="player-name">ShibaSho</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-luxem" role="img" aria-label="ラクサム" title="ラクサム"></i></span><span class="champ">Guo Jia（グオ・ジア）</span></td>
+  <td class="score">6</td>
+  <td class="rec">2-3-0</td>
+  <td class="pct">45.455%</td>
+  <td class="pct">40%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">13</td>
+  <td class="player-name">kiri</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i><i class="orb orb-umbra" role="img" aria-label="アンブラ" title="アンブラ"></i></span><span class="champ">Ciel（シエル）</span></td>
+  <td class="score">6</td>
+  <td class="rec">2-3-0</td>
+  <td class="pct">41.667%</td>
+  <td class="pct">40%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">14</td>
+  <td class="player-name">hiroshi5</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i><i class="orb orb-umbra" role="img" aria-label="アンブラ" title="アンブラ"></i></span><span class="champ">Alice（アリス）</span></td>
+  <td class="score">6</td>
+  <td class="rec">2-3-0</td>
+  <td class="pct">36.364%</td>
+  <td class="pct">40%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">15</td>
+  <td class="player-name">Goblin1496</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i><i class="orb orb-tera" role="img" aria-label="テラ" title="テラ"></i></span><span class="champ">Silvie（シルヴィ）</span></td>
+  <td class="score">6</td>
+  <td class="rec">2-3-0</td>
+  <td class="pct">41.667%</td>
+  <td class="pct">40%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">16</td>
+  <td class="player-name">daimaru</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-wind" role="img" aria-label="風" title="風"></i><i class="orb orb-luxem" role="img" aria-label="ラクサム" title="ラクサム"></i></span><span class="champ">Guo Jia（グオ・ジア）</span></td>
+  <td class="score">6</td>
+  <td class="rec">2-3-0</td>
+  <td class="pct">45.455%</td>
+  <td class="pct">40%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">17</td>
+  <td class="player-name">ishi</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i><i class="orb orb-umbra" role="img" aria-label="アンブラ" title="アンブラ"></i></span><span class="champ">Alice（アリス）</span></td>
+  <td class="score">6</td>
+  <td class="rec">2-3-0（うち不戦勝1）</td>
+  <td class="pct">25%</td>
+  <td class="pct">25%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">18</td>
+  <td class="player-name">Old1496</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i><i class="orb orb-luxem" role="img" aria-label="ラクサム" title="ラクサム"></i></span><span class="champ">Guo Jia（グオ・ジア）</span></td>
+  <td class="score">4</td>
+  <td class="rec">1-3-1</td>
+  <td class="pct">36.364%</td>
+  <td class="pct">20%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">19</td>
+  <td class="player-name">YamaGA</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i><i class="orb orb-astra" role="img" aria-label="アストラ" title="アストラ"></i></span><span class="champ">Diana（ダイアナ）</span></td>
+  <td class="score">4</td>
+  <td class="rec">1-2-1</td>
+  <td class="pct">44.444%</td>
+  <td class="pct">25%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">20</td>
+  <td class="player-name">LOVERIVER</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i><i class="orb orb-crux" role="img" aria-label="クラックス" title="クラックス"></i></span><span class="champ">Merlin（マーリン）</span></td>
+  <td class="score">3</td>
+  <td class="rec">1-4-0</td>
+  <td class="pct">20%</td>
+  <td class="pct">20%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">21</td>
+  <td class="player-name">GOTTI</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-water" role="img" aria-label="水" title="水"></i><i class="orb orb-exia" role="img" aria-label="エクシア" title="エクシア"></i></span><span class="champ">Jin（ジン）</span></td>
+  <td class="score">3</td>
+  <td class="rec">1-4-0（うち不戦勝1）</td>
+  <td class="pct">20%</td>
+  <td class="pct">0%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr>
+<tr>
+  <td class="rank">22</td>
+  <td class="player-name">morita</td>
+  <td class="deck-id"><span class="orbs"><i class="orb orb-fire" role="img" aria-label="火" title="火"></i></span><span class="champ">Guo Jia（グオ・ジア）</span></td>
+  <td class="score">0</td>
+  <td class="rec">0-2-0</td>
+  <td class="pct">20%</td>
+  <td class="pct">0%</td>
+  <td><a class="deck-link" href="#">📄 デッキを見る</a></td>
+</tr></tbody></table></div></div>
+</main></body></html>
