@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>issue#18 モック — 大会デッキ検索の注釈と件数表示</title>
+<style>
+:root { --bg:#12141a; --panel:#171a21; --panel-2:#1f232c; --line:#262b36; --text:#e6e8ee; --muted:#9aa2b1; --accent:#d9a441; --accent-2:#6ea8fe; }
+* { box-sizing:border-box; }
+body { margin:0; background:#0b0d12; color:var(--text); font:15px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif; padding:20px; }
+h1.mk { font-size:1.15rem; margin:0 0 4px; }
+p.mk-note { color:var(--muted); font-size:.85rem; margin:0 0 22px; max-width:900px; }
+h2.mk { font-size:1rem; margin:30px 0 10px; border-left:3px solid var(--accent); padding-left:10px; }
+.pair { display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; }
+.col { flex:0 0 390px; max-width:390px; }
+.cap { font-size:.8rem; color:var(--muted); margin:0 0 6px; }
+.cap b { color:var(--text); }
+.cap .bad { color:#f0a3a3; }
+.cap .good { color:#9fd8a3; }
+/* 端末枠(390px) */
+.phone { width:390px; border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--bg); }
+.phone .inner { padding:0; }
+.ruler { font-size:.72rem; color:var(--muted); text-align:right; padding:4px 8px; border-top:1px dashed var(--line); }
+
+/* ---- 実サイト相当のスタイル ---- */
+.cp-site { display:flex; gap:10px 16px; align-items:center; padding:12px 14px; border-bottom:1px solid var(--line); font-size:.85rem; }
+.cp-mark { display:grid; place-items:center; width:28px; height:28px; border-radius:8px; background:var(--accent); color:#201a0a; font-weight:800; font-size:.8rem; }
+.cp-crumb { padding:8px 14px; font-size:.78rem; color:var(--muted); }
+.cp-main { padding:0 14px 14px; }
+h1.pg { font-size:1.3rem; margin:8px 0 6px; }
+h2.pg { font-size:1rem; border-left:3px solid var(--accent); padding-left:10px; margin:20px 0 10px; }
+.sub { color:var(--muted); margin:0 0 18px; font-size:.92rem; }
+.cp-muted { color:var(--muted); font-size:.86rem; }
+.filter-box { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:18px; }
+.filter-box > summary { display:block; cursor:pointer; font-weight:600; font-size:.9rem; list-style:none; }
+.filter-count { display:inline-block; margin-left:8px; background:var(--accent); color:#201a0a; border-radius:999px; padding:0 8px; font-size:.75rem; font-weight:700; }
+.filter-hits { margin:0 0 8px; font-size:.82rem; color:var(--muted); }
+.filter-hits.old { margin:10px 0 0; }
+.ev { border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:12px 14px; margin-bottom:10px; }
+.ev .nm { font-size:.95rem; font-weight:600; }
+.ev .meta { font-size:.85rem; color:var(--muted); margin-top:3px; }
+.badge { display:inline-block; background:rgba(217,164,65,.16); color:var(--accent); border:1px solid rgba(217,164,65,.5); border-radius:6px; padding:0 7px; font-size:.75rem; }
+.ev-empty { color:var(--muted); font-size:.88rem; margin:0; padding:14px 0; }
+/* 折りたたみ注釈(変更後) */
+.about { margin:0 0 18px; }
+.about > summary { cursor:pointer; font-size:.92rem; color:var(--muted); list-style:none; }
+.about > summary::-webkit-details-marker { display:none; }
+.about .sub { margin:8px 0 0; }
+/* 詳細ページ */
+.evhead { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:6px; }
+.evhead .t { font-size:1.15rem; font-weight:700; margin-bottom:8px; }
+.evhead .m { color:var(--muted); font-size:.88rem; }
+.rank-filter { background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:8px 12px; color:var(--muted); font-size:.85rem; margin-bottom:10px; }
+.st { border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:12px 14px; margin-bottom:10px; }
+.st .p { font-weight:600; }
+.st .m { color:var(--muted); font-size:.85rem; }
+.hl { outline:2px solid var(--accent-2); outline-offset:3px; border-radius:6px; }
+.mk-legend { font-size:.8rem; color:var(--muted); margin:8px 0 0; }
+mark.dim { background:rgba(240,163,163,.18); color:#f0a3a3; padding:0 3px; border-radius:3px; }
+mark.add { background:rgba(159,216,163,.18); color:#9fd8a3; padding:0 3px; border-radius:3px; }
+</style>
+</head>
+<body>
+
+<h1 class="mk">issue#18 モック — 大会デッキ検索の注釈と件数表示</h1>
+<p class="mk-note">
+  スマホ390px幅で<b>現行</b>と<b>変更後</b>を並べたもの。見た目の確認用で操作はできない(折りたたみだけ開閉します)。
+  数値は 2026-07-23 に Playwright で実画面を計測した実測値。
+</p>
+
+<h2 class="mk">① 一覧ページ — 初期表示(絞り込みなし)</h2>
+<div class="pair">
+  <div class="col">
+    <p class="cap"><b>現行</b> — 注釈が3行75px。件数は<span class="bad">絞り込み枠の中にあり見えない</span>。表の上端 <b>355px</b></p>
+    <div class="phone"><div class="inner">
+      <div class="cp-site"><span class="cp-mark">GA</span><span><b>Grand Archive</b> 日本語カードDB</span></div>
+      <div class="cp-crumb">トップ › 大会デッキ</div>
+      <div class="cp-main">
+        <h1 class="pg">🏆 大会デッキ検索</h1>
+        <p class="sub">主要大会(Store Championship・Regionals・Nationals・Ascent)の提出デッキを日本語訳付きで見られます。<mark class="dim">収録 420 大会。</mark></p>
+        <div class="filter-box"><div style="font-weight:600;font-size:.9rem">絞り込み</div></div>
+        <div class="ev"><div class="nm">MSG Radiant Origins Store Championship</div><div class="meta">2026-07-19 ・ カナダ <span class="badge">Store Championship</span></div><div class="meta">スタンダード ・ 13名</div></div>
+        <div class="ev"><div class="nm">Oinker's Island RDO Store Championship</div><div class="meta">2026-07-19 ・ アメリカ <span class="badge">Store Championship</span></div><div class="meta">スタンダード ・ 15名</div></div>
+      </div>
+      <div class="ruler">表の上端 355px / ビューポート844px</div>
+    </div></div>
+  </div>
+
+  <div class="col">
+    <p class="cap"><b>変更後</b> — 注釈は1行25px。件数を<span class="good">表の直上に常時表示</span>。表の上端 <b>約305px</b></p>
+    <div class="phone"><div class="inner">
+      <div class="cp-site"><span class="cp-mark">GA</span><span><b>Grand Archive</b> 日本語カードDB</span></div>
+      <div class="cp-crumb">トップ › 大会デッキ</div>
+      <div class="cp-main">
+        <h1 class="pg">🏆 大会デッキ検索</h1>
+        <details class="about"><summary>ℹ️ このページについて</summary>
+          <p class="sub">主要大会(Store Championship・Regionals・Nationals・Ascent)の提出デッキを日本語訳付きで見られます。</p>
+        </details>
+        <div class="filter-box"><div style="font-weight:600;font-size:.9rem">絞り込み</div></div>
+        <p class="filter-hits hl"><mark class="add">全 420 件</mark></p>
+        <div class="ev"><div class="nm">MSG Radiant Origins Store Championship</div><div class="meta">2026-07-19 ・ カナダ <span class="badge">Store Championship</span></div><div class="meta">スタンダード ・ 13名</div></div>
+        <div class="ev"><div class="nm">Oinker's Island RDO Store Championship</div><div class="meta">2026-07-19 ・ アメリカ <span class="badge">Store Championship</span></div><div class="meta">スタンダード ・ 15名</div></div>
+      </div>
+      <div class="ruler">表の上端 約305px(件数行を含む) / ビューポート844px</div>
+    </div></div>
+  </div>
+</div>
+<p class="mk-legend">※「ℹ️ このページについて」はタップで開きます。PC幅(641px以上)では見出しを出さず、現行どおり1行のテキストとして常時表示します。</p>
+
+<h2 class="mk">② 一覧ページ — 絞り込み中(開催国=日本 / 8件)</h2>
+<div class="pair">
+  <div class="col">
+    <p class="cap"><b>現行</b> — 画面には<span class="bad">条件数バッジ「1」しか出ず</span>、注釈は<span class="bad">「収録 420 大会」と矛盾</span></p>
+    <div class="phone"><div class="inner">
+      <div class="cp-site"><span class="cp-mark">GA</span><span><b>Grand Archive</b> 日本語カードDB</span></div>
+      <div class="cp-crumb">トップ › 大会デッキ</div>
+      <div class="cp-main">
+        <h1 class="pg">🏆 大会デッキ検索</h1>
+        <p class="sub">主要大会(Store Championship・Regionals・Nationals・Ascent)の提出デッキを日本語訳付きで見られます。<mark class="dim">収録 420 大会。</mark></p>
+        <div class="filter-box"><div style="font-weight:600;font-size:.9rem">絞り込み<span class="filter-count">1</span></div></div>
+        <div class="ev"><div class="nm">RDO Store Championship　in 昭和町店</div><div class="meta">2026-07-19 ・ 日本 <span class="badge">Store Championship</span></div><div class="meta">スタンダード ・ 5名</div></div>
+        <div class="ev"><div class="nm">CANTRIP RDOストアチャンピオンシップ</div><div class="meta">2026-07-12 ・ 日本 <span class="badge">Store Championship</span></div><div class="meta">スタンダード ・ 22名</div></div>
+      </div>
+      <div class="ruler">件数(8件)はどこにも出ていない</div>
+    </div></div>
+  </div>
+
+  <div class="col">
+    <p class="cap"><b>変更後</b> — <span class="good">「検索結果：8件」</span>が表の直上に出る。矛盾する「収録420大会」は消える</p>
+    <div class="phone"><div class="inner">
+      <div class="cp-site"><span class="cp-mark">GA</span><span><b>Grand Archive</b> 日本語カードDB</span></div>
+      <div class="cp-crumb">トップ › 大会デッキ</div>
+      <div class="cp-main">
+        <h1 class="pg">🏆 大会デッキ検索</h1>
+        <details class="about"><summary>ℹ️ このページについて</summary>
+          <p class="sub">主要大会(Store Championship・Regionals・Nationals・Ascent)の提出デッキを日本語訳付きで見られます。</p>
+        </details>
+        <div class="filter-box"><div style="font-weight:600;font-size:.9rem">絞り込み<span class="filter-count">1</span></div></div>
+        <p class="filter-hits hl"><mark class="add">検索結果：8件</mark></p>
+        <div class="ev"><div class="nm">RDO Store Championship　in 昭和町店</div><div class="meta">2026-07-19 ・ 日本 <span class="badge">Store Championship</span></div><div class="meta">スタンダード ・ 5名</div></div>
+        <div class="ev"><div class="nm">CANTRIP RDOストアチャンピオンシップ</div><div class="meta">2026-07-12 ・ 日本 <span class="badge">Store Championship</span></div><div class="meta">スタンダード ・ 22名</div></div>
+      </div>
+      <div class="ruler">バッジ「1」＝適用中の条件数、件数行＝ヒット件数(役割が分かれる)</div>
+    </div></div>
+  </div>
+</div>
+
+<h2 class="mk">③ 一覧ページ — 0件のとき</h2>
+<div class="pair">
+  <div class="col">
+    <p class="cap"><b>現行</b> — <span class="bad">表が空になり文言も出ない</span>(絞り込みを閉じていると何も見えない)</p>
+    <div class="phone"><div class="inner">
+      <div class="cp-site"><span class="cp-mark">GA</span><span><b>Grand Archive</b> 日本語カードDB</span></div>
+      <div class="cp-crumb">トップ › 大会デッキ</div>
+      <div class="cp-main">
+        <h1 class="pg">🏆 大会デッキ検索</h1>
+        <p class="sub">主要大会(Store Championship・Regionals・Nationals・Ascent)の提出デッキを日本語訳付きで見られます。収録 420 大会。</p>
+        <div class="filter-box"><div style="font-weight:600;font-size:.9rem">絞り込み<span class="filter-count">1</span></div></div>
+      </div>
+      <div class="ruler">ヘッダとフッタの間が空白になる</div>
+    </div></div>
+  </div>
+
+  <div class="col">
+    <p class="cap"><b>変更後</b> — <span class="good">件数0と該当なしの案内</span>が出る(詳細ページの `#rank-empty` と同じ形)</p>
+    <div class="phone"><div class="inner">
+      <div class="cp-site"><span class="cp-mark">GA</span><span><b>Grand Archive</b> 日本語カードDB</span></div>
+      <div class="cp-crumb">トップ › 大会デッキ</div>
+      <div class="cp-main">
+        <h1 class="pg">🏆 大会デッキ検索</h1>
+        <details class="about"><summary>ℹ️ このページについて</summary>
+          <p class="sub">主要大会(Store Championship・Regionals・Nationals・Ascent)の提出デッキを日本語訳付きで見られます。</p>
+        </details>
+        <div class="filter-box"><div style="font-weight:600;font-size:.9rem">絞り込み<span class="filter-count">1</span></div></div>
+        <p class="filter-hits hl"><mark class="add">検索結果：0件</mark></p>
+        <p class="ev-empty"><mark class="add">該当する大会がありません。条件を変えてお試しください。</mark></p>
+      </div>
+      <div class="ruler">絞り込みを閉じていても状況が分かる</div>
+    </div></div>
+  </div>
+</div>
+
+<h2 class="mk">④ 大会詳細ページ — 順位表の上の注釈</h2>
+<div class="pair">
+  <div class="col">
+    <p class="cap"><b>現行</b> — 96文字の注釈が<span class="bad">94px</span>を占め、順位表を押し下げる(順位表の上端 587px)</p>
+    <div class="phone"><div class="inner">
+      <div class="cp-site"><span class="cp-mark">GA</span><span><b>Grand Archive</b> 日本語カードDB</span></div>
+      <div class="cp-crumb">トップ › 大会デッキ › Epicly Games Store Champs</div>
+      <div class="cp-main">
+        <div class="evhead">
+          <div class="t">Epicly Games Store Champs</div>
+          <div class="m"><span class="badge">Store Championship</span>　2026-07-11</div>
+          <div class="m">オーストラリア・Epicly Games</div>
+          <div class="m">フォーマット: スタンダード　参加7名</div>
+        </div>
+        <h2 class="pg">順位表（7名・スイス終了時点）</h2>
+        <p class="cp-muted"><mark class="dim">「デッキを見る」で提出デッキ（7件）をダイアログ表示します。</mark>カードをクリックすると日本語の詳細が開きます。<mark class="dim">当時のフォーマットで提出されたリストのため、現行ルールでの使用可否は判定していません。</mark></p>
+        <div class="rank-filter">プレイヤー名・チャンピオン名・属性で絞り込み…</div>
+        <div class="st"><div class="p">🥇1　xFrostyFrostyx　<span style="color:var(--accent-2)">📄 デッキを見る</span></div><div class="m">Guo Jia（グオ・ジア）／ 勝ち点 9 ・ 3-0-0</div></div>
+      </div>
+      <div class="ruler">順位表の上端 587px</div>
+    </div></div>
+  </div>
+
+  <div class="col">
+    <p class="cap"><b>変更後</b> — 上は<span class="good">操作ヒント1文だけ</span>。免責文は<span class="good">表の下の注釈へ移動</span>(消さない)</p>
+    <div class="phone"><div class="inner">
+      <div class="cp-site"><span class="cp-mark">GA</span><span><b>Grand Archive</b> 日本語カードDB</span></div>
+      <div class="cp-crumb">トップ › 大会デッキ › Epicly Games Store Champs</div>
+      <div class="cp-main">
+        <div class="evhead">
+          <div class="t">Epicly Games Store Champs</div>
+          <div class="m"><span class="badge">Store Championship</span>　2026-07-11</div>
+          <div class="m">オーストラリア・Epicly Games</div>
+          <div class="m">フォーマット: スタンダード　参加7名</div>
+        </div>
+        <h2 class="pg">順位表（7名・スイス終了時点）</h2>
+        <p class="cp-muted hl">カードをクリックすると日本語の詳細が開きます。</p>
+        <div class="rank-filter">プレイヤー名・チャンピオン名・属性で絞り込み…</div>
+        <div class="st"><div class="p">🥇1　xFrostyFrostyx　<span style="color:var(--accent-2)">📄 デッキを見る</span></div><div class="m">Guo Jia（グオ・ジア）／ 勝ち点 9 ・ 3-0-0</div></div>
+        <div class="st"><div class="p">🥈2　Darkghost500　<span style="color:var(--accent-2)">📄 デッキを見る</span></div><div class="m">Rai（ライ）／ 勝ち点 6 ・ 2-1-0</div></div>
+      </div>
+      <div class="ruler">順位表が約2件ぶん上に来る</div>
+    </div></div>
+  </div>
+</div>
+
+<h2 class="mk">⑤ 大会詳細ページ — 表の下(免責文の移動先)</h2>
+<div class="phone" style="width:390px"><div class="inner"><div class="cp-main">
+  <div class="st"><div class="p">🥉3　BladeHail　<span style="color:var(--accent-2)">📄 デッキを見る</span></div><div class="m">勝ち点 6 ・ 2-1-0</div></div>
+  <p class="cp-muted">順位は勝ち点順で、同点はタイブレーカー（GW%＝ゲーム勝率、MW%＝マッチ勝率）によります。勝ち点には不戦勝（bye）を含みます。順位はスイスラウンド終了時点のもので、決勝トーナメントの結果は含みません。<mark class="add">当時のフォーマットで提出されたリストのため、現行ルールでの使用可否は判定していません。</mark></p>
+  <p class="cp-muted">出典: <span style="color:var(--accent-2)">Omnidex 公式イベントページ #50047</span></p>
+</div></div></div>
+<p class="mk-legend">※免責文(緑)は既存の「順位は勝ち点順で…」の段落へ合流させる。表の下は現状でも注釈が2つ並んでおり、レイアウトを増やさずに収まる。</p>
+
+</body>
+</html>
