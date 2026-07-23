@@ -233,8 +233,11 @@ new URL("#card/abc", "https://x.jp/index.html?element=WIND").href
 | 区分 | 内容 |
 |---|---|
 | 実装待ち | **なし**(追加作業なしで承認) |
-| ユーザー確認待ち | Z1〜Z5(`npm run dev` でのローカル確認) |
-| push後 | P1〜P4(本番確認)。push可否はユーザー判断 |
+| ユーザー確認 | Z1〜Z5 **完了**(2026-07-23・問題なし) |
+| push | **完了**(2026-07-23・`3b9358a9` まで) |
+| 本番確認 | P1〜P4 **完了**(下記) |
+
+**本issueは完了。** 本番確認の結果は「push後の本番確認」節に記録した。
 
 ### 承認した設計からの逸脱 — `popstate` ガードの判定方法
 
@@ -292,12 +295,33 @@ new URL("#card/abc", "https://x.jp/index.html?element=WIND").href
 `_headers` の挙動などローカルで再現しない差分があるため、公開後に実物で確認する
 (CLAUDE.md「リリース後に `curl -sI` で実物を確認する」)。
 
-| # | 確認内容 |
-|---|---|
-| P1 | `curl -sI "https://ga-card-tools-jp.pages.dev/?element=NORM&element=WIND&subtype_op=AND"` が **200** を返すこと(リダイレクトや400にならないこと) |
-| P2 | 同URLをブラウザで開き、絞り込みが復元されて検索結果が出ること(**Nortonの証明書検査がある環境でも**外形上200であること) |
-| P3 | 長いクエリ(サブタイプ10種以上)でも200であること。※事前実測では16,000文字まで200 |
-| P4 | `?qtext=` 単独の既存リンク([tools/glossary/](../../../tools/glossary/) 経由)が本番で従来どおり動くこと |
+**実施結果(2026-07-23・push後・全項目 合格)**
+
+| # | 確認内容 | 結果 |
+|---|---|---|
+| P1 | 絞り込み条件つきURLが **200** を返すこと(リダイレクトや400にならないこと) | ✅ `HTTP/2 200` |
+| P2 | 同URLをブラウザで開き、絞り込みが復元されて検索結果が出ること | ✅ エレメント`NORM,WIND`・サブタイプ`CLERIC,SPELL`・モード`AND`・両グループ`open`・バッジ`4`・**8件描画** |
+| P3 | 長いクエリでも200であること | ✅ サブタイプ12種+エレメント3種(**233文字**)で `HTTP/2 200` |
+| P4 | `?qtext=` 単独の既存リンク([tools/glossary/](../../../tools/glossary/) 経由)が本番で従来どおり動くこと | ✅ 下記 |
+
+### P4の補足 — `.html` トリムの308はクエリを保持する
+
+解説ページのリンクは `../../index.html?qtext=Materialize` を生成するため、
+CLAUDE.mdに記録のある**Cloudflare Pagesの拡張子トリム(308)を必ず通る**。
+クエリが落ちないことを実物で確認した。
+
+```text
+$ curl -sI "https://ga-card-tools-jp.pages.dev/index.html?qtext=Materialize"
+HTTP/2 308
+location: /?qtext=Materialize          ← クエリは保持される
+（追跡後）HTTP/2 200
+```
+
+実ブラウザでも解説ページのリンクをクリック → `/?qtext=Materialize` に着地し、
+効果テキスト欄に `Materialize` が入って「50 件を表示 / 全 75 件」を確認した。
+
+**デプロイ反映まで約9分**かかった(pushからCloudflare Pagesの配信更新まで)。
+本番確認は反映を待ってから行うこと。
 
 ## 未決定・確認事項
 
