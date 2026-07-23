@@ -375,8 +375,17 @@ async function generateProxyPdf() {
       for (let i = 0; i < it.qty; i++) flat.push(img);
       done++;
     }
-    status.textContent = "PDFエンジンを読み込み中…";
-    const { jsPDF } = await loadJsPdf();
+    // jsPDFの取得失敗は「画像取得に失敗」ではないので、下の catch に流さず個別に扱う
+    // （genBtn の再有効化は外側の finally が確実に行う）
+    let jsPDF;
+    try {
+      status.textContent = "PDFエンジンを読み込み中…";
+      ({ jsPDF } = await loadJsPdf());
+    } catch (err) {
+      console.error(err);
+      status.textContent = "❌ エラー: " + err.message;
+      return;
+    }
     const opt = {
       cutMarks: document.getElementById("t-cutmarks").checked,
       outline: document.getElementById("t-outline").checked,
