@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>ページが見つかりません - Grand Archive 日本語カードDB</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<!-- 任意のパスで配信されるため、リンク・CSSはすべて絶対パスで書く（相対パスだと /cards/xxx/ 等で壊れる）。
+     JSは読み込まない（#22・CSPのため案内リンクはHTMLだけで完結させる） -->
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand brand-link" href="/">
+      <span class="brand-mark">GA</span>
+      <div>
+        <h1>Grand Archive 日本語カードDB</h1>
+        <p class="tagline">英語カードに日本語訳を重ねる非公式データベース（プロトタイプ）</p>
+      </div>
+    </a>
+  </header>
+
+  <main class="notfound">
+    <p class="notfound-code">404 NOT FOUND</p>
+    <h2>ページが見つかりません</h2>
+    <p class="notfound-lead">お探しのページは削除されたか、URLが変更された可能性があります。<br>
+      下のいずれかからお進みください。</p>
+
+    <ul class="notfound-links">
+      <li><a href="/"><span class="nf-name">🔍 カードDB（トップ）</span><span class="nf-desc">カード名・効果テキストで検索</span></a></li>
+      <li><a href="/cards/"><span class="nf-name">🃏 エキスパンション一覧</span><span class="nf-desc">セットごとにカードを見る</span></a></li>
+      <li><a href="/tournaments/"><span class="nf-name">🏆 大会デッキ検索</span><span class="nf-desc">入賞デッキを探す</span></a></li>
+      <li><a href="/tools/deck-builder/"><span class="nf-name">🗂️ デッキ構築ツール</span><span class="nf-desc">デッキを組んで共有する</span></a></li>
+      <li><a href="/tools/glossary/"><span class="nf-name">📖 ひとくちキーワード解説</span><span class="nf-desc">用語・キーワード能力を調べる</span></a></li>
+      <li><a href="/tools/print/"><span class="nf-name">🖨️ 印刷用PDF作成</span><span class="nf-desc">カード画像をA4に並べて印刷</span></a></li>
+    </ul>
+  </main>
+
+  <footer class="site-footer">
+    <p>
+      本サイトは非公式のファンプロジェクトです。カードデータ・画像は
+      <a href="https://api.gatcg.com" target="_blank" rel="noopener">公式API (api.gatcg.com)</a>
+      から取得しており、著作権は Weebs of the Shore に帰属します。日本語訳はコミュニティによる非公式訳です。
+    </p>
+  </footer>
+</body>
+</html>

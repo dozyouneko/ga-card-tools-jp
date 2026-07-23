@@ -342,6 +342,21 @@ function renderTray() {
   summary.textContent = `合計 ${n}枚 ・ A4 ${CardSheet.pageCountFor(n)}ページ（1ページ 9枚）`;
 }
 
+// jsPDF（356KB）はPDF生成のときだけ要る。トップページの初期読み込みから外し、
+// 「PDF生成」を押した時点で取得する（クロール予算とスマホの初期表示を軽くするため）
+let jspdfPromise = null;
+function loadJsPdf() {
+  if (jspdfPromise) return jspdfPromise;
+  jspdfPromise = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "shared/vendor/jspdf.umd.min.js";
+    s.onload = () => resolve(window.jspdf);
+    s.onerror = () => { jspdfPromise = null; reject(new Error("PDFエンジンの読み込みに失敗しました")); };
+    document.head.appendChild(s);
+  });
+  return jspdfPromise;
+}
+
 async function generateProxyPdf() {
   const status = document.getElementById("tray-status");
   const genBtn = document.getElementById("tray-generate");
@@ -360,7 +375,8 @@ async function generateProxyPdf() {
       for (let i = 0; i < it.qty; i++) flat.push(img);
       done++;
     }
-    const { jsPDF } = window.jspdf;
+    status.textContent = "PDFエンジンを読み込み中…";
+    const { jsPDF } = await loadJsPdf();
     const opt = {
       cutMarks: document.getElementById("t-cutmarks").checked,
       outline: document.getElementById("t-outline").checked,

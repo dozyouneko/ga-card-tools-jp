@@ -8,6 +8,11 @@
   X-Frame-Options: DENY
   Permissions-Policy: camera=(), microphone=(), geolocation=()
 
+# jsPDFは遅延読み込み(#22)。90日で1回しか変わっていないベンダーライブラリのため長期キャッシュする。
+# ⚠️ 差し替えるときは必ずファイル名を変えること(このヘッダのままだと更新が届かない)
+/shared/vendor/*
+  Cache-Control: public, max-age=31536000, immutable
+
 # 大会デッキのHTML断片: 単独のページではなくダイアログ表示用の部品のため、検索エンジンには載せない。
 # Pagesは /foo.html を /foo へ308でトリムするため、トリム後のパスにも同じ指定が要る
 # (.html 側だけだと実際に本文を返すURLにヘッダが付かない)。

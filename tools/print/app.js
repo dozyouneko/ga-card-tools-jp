@@ -5,8 +5,22 @@
  * shared/pdf/card-sheet.js（window.CardSheet）に委譲する。
  */
 
-const { jsPDF } = window.jspdf;
 const CardSheet = window.CardSheet;
+
+// jsPDF（356KB）はPDF生成のときだけ要る。初期読み込みから外し、
+// 「PDFを生成する」を押した時点で取得する（#22）
+let jspdfPromise = null;
+function loadJsPdf() {
+  if (jspdfPromise) return jspdfPromise;
+  jspdfPromise = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "../../shared/vendor/jspdf.umd.min.js";
+    s.onload = () => resolve(window.jspdf);
+    s.onerror = () => { jspdfPromise = null; reject(new Error("PDFエンジンの読み込みに失敗しました")); };
+    document.head.appendChild(s);
+  });
+  return jspdfPromise;
+}
 
 const state = {
   cards: [], // { dataUrl, img }
@@ -109,9 +123,20 @@ function images() {
 }
 
 // ---- PDF生成 ----
-generateBtn.addEventListener("click", () => {
+generateBtn.addEventListener("click", async () => {
   if (state.cards.length === 0) return;
+  // 生成処理に入る前に jsPDF を用意する（未定義のまま buildPdf に渡さない）
+  setStatus("PDFエンジンを読み込み中…");
+  let jsPDF;
+  try {
+    ({ jsPDF } = await loadJsPdf());
+  } catch (err) {
+    console.error(err);
+    setStatus("❌ エラー: " + err.message);
+    return;
+  }
   setStatus("生成中…");
+  // 「生成中…」を描画させてから同期の重い処理に入るためのウェイト（従来どおり）
   setTimeout(() => {
     try {
       const pdf = CardSheet.buildPdf(images(), getOptions(), jsPDF);
