@@ -597,8 +597,10 @@ ${crumb([["トップ", "/"], ["大会デッキ"]])}
     </div>
   </details>
 
-  <!-- 件数は絞り込み枠の外・表の直上に置く(枠を畳むスマホでも見えるように) -->
-  <p class="filter-hits" id="f-hits" role="status"></p>
+  <!-- 件数は絞り込み枠の外・表の直上に置く(枠を畳むスマホでも見えるように)。
+       初期値を書き出しておく: JS無効でも件数が読め、読み込み直後のちらつきも避けられる
+       (JS有効時は apply() が同じ文字列で上書きするため挙動は変わらない) -->
+  <p class="filter-hits" id="f-hits" role="status">全 ${events.length} 件</p>
 
   <div class="cp-scroll"><table id="ev-table">
     <thead><tr><th>開催日</th><th>大会名</th><th>開催国</th><th>フォーマット</th><th>種別</th><th>参加</th></tr></thead>
