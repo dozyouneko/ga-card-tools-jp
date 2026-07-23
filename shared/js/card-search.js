@@ -36,6 +36,20 @@ window.GA_CARD_SEARCH = (() => {
     return s ? s.prefixes : [];
   }
 
+  // URL共有(#20)用の添字⇔キー変換。<select> の value は SETS の添字だが、
+  // 添字はリストの並びが変わると別の版を指してしまうため、URLには prefixes[0]
+  // （全55版で1個かつ一意）を安定キーとして書く。
+  function setKeyOf(val) {
+    const pre = setPrefixes(val);
+    return pre.length ? pre[0] : "";
+  }
+  function setIndexOf(key) {
+    if (!key) return "";
+    const k = String(key).toUpperCase();
+    const i = SETS.findIndex((s) => s.prefixes && s.prefixes.length && s.prefixes[0].toUpperCase() === k);
+    return i >= 0 ? String(i) : ""; // 無ければ「全て」（古いURL・手打ちで壊れないように）
+  }
+
   // ---------- フィルタ選択肢の生成 ----------
 
   // エレメントの表示順: 基本属性(ノーム→火→水→風)→上級属性(アルファベット順)→EXALTED。
@@ -213,6 +227,27 @@ window.GA_CARD_SEARCH = (() => {
 
     details.getValues = getValues;
     details.getMode = () => mode;
+    // URLからの復元用（#20）。復元中に1項目ずつ検索が走らないよう onChange は発火させない
+    details.setValues = (list) => {
+      const want = new Set((list || []).map((v) => String(v).toUpperCase()));
+      let inRest = false;
+      Array.from(boxes()).forEach((b) => {
+        b.checked = want.has(b.value.toUpperCase());
+        if (b.checked && restChips && restChips.contains(b)) inRest = true;
+      });
+      // 「すべて表示」に隠れた値を復元したときは展開する（バッジだけ増えてチップが見えないのを防ぐ）
+      if (inRest && restChips.hidden) {
+        restChips.hidden = false;
+        moreBtn.textContent = "− よく使う分だけ表示";
+      }
+      sync();
+    };
+    details.setMode = (m) => {
+      const up = String(m || "").toUpperCase();
+      if (up !== "AND" && up !== "OR") return; // 不正値は無視
+      mode = up;
+      sync();
+    };
     details.onChange = (cb) => { changed = cb; };
     details.warnEl = warn;
     details.reset = () => {
@@ -481,7 +516,8 @@ window.GA_CARD_SEARCH = (() => {
   }
 
   return {
-    create, fillSelect, fillChips, fillSetSelect, fillFormatSelect, setPrefixes,
+    create, fillSelect, fillChips, fillSetSelect, fillFormatSelect,
+    setPrefixes, setKeyOf, setIndexOf,
     SUBTYPE_TOP, ELEMENT_AND_MESSAGE,
   };
 })();

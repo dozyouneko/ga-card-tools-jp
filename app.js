@@ -13,7 +13,7 @@ const el = {
   q: document.getElementById("q"),
   qtext: document.getElementById("qtext"),
   // クラス/エレメント/タイプ/サブタイプは複数選択（AND/OR）のチップ群。
-  // 中身は GA_CARD_SEARCH.fillChips() が構築し、getValues()/getMode()/reset() を持つ
+  // 中身は GA_CARD_SEARCH.fillChips() が構築し、getValues()/getMode()/setValues()/setMode()/reset() を持つ
   gClass: document.getElementById("g-class"),
   gElement: document.getElementById("g-element"),
   gType: document.getElementById("g-type"),
@@ -76,6 +76,9 @@ const searchCtl = GA_CARD_SEARCH.create({
   pageSize: 50,
   jpPageSize: 40,
   onStart: (reset) => {
+    // 絞り込みを変える経路（チップ・セレクト・並び替え・テキスト入力・リセット）は
+    // すべて runSearch(true) を通るため、URLへの書き戻しはここ1箇所に集約する
+    if (reset) saveQuery();
     el.status.textContent = reset ? "検索中…" : "読み込み中…";
     el.loadMore.disabled = true;
     if (reset) {
@@ -402,17 +405,86 @@ function resetControls() {
   el.fFormat.value = "";
   el.fSet.value = "";
   el.sort.value = "name";
-  el.order.dataset.dir = "ASC";
-  el.order.textContent = "▲ 昇順";
+  setOrder("ASC");
 }
 
-// 他ページ（ひとくちキーワード解説など）からのリンクで ?qtext=... が付いていれば、効果テキスト検索欄に反映する
+function setOrder(dir) {
+  el.order.dataset.dir = dir;
+  el.order.textContent = dir === "ASC" ? "▲ 昇順" : "▼ 降順";
+}
+
+// ---------- 絞り込み条件のURL共有（#20）----------
+// クエリ名はAPIのパラメータ名に合わせ、既定値（未選択・OR・名前順・昇順）は書かない。
+// 値は内部表現のまま大文字で書き、読み取りは大文字小文字を無視する（手打ちURLで壊れないように）。
+
+// URLのクエリ名 ⇔ 絞り込みグループ
+const urlGroups = () => [
+  ["element", el.gElement], ["class", el.gClass], ["type", el.gType], ["subtype", el.gSubtype],
+];
+const filterGroups = () => urlGroups().map(([, g]) => g);
+
+const currentQs = () => location.search.replace(/^\?/, "");
+const hasOption = (sel, v) => Array.from(sel.options).some((o) => o.value === v);
+
+// 現在の絞り込みをクエリ文字列にする
+function queryString() {
+  const p = new URLSearchParams();
+  if (el.q.value.trim()) p.set("q", el.q.value.trim());
+  if (el.qtext.value.trim()) p.set("qtext", el.qtext.value.trim());
+  urlGroups().forEach(([name, g]) => {
+    const list = g.getValues();
+    if (!list.length) return;
+    list.forEach((v) => p.append(name, v)); // 同名パラメータの繰り返し（buildQuery と同じ規約）
+    if (g.getMode() === "AND") p.set(name + "_op", "AND"); // ORは既定なので書かない
+  });
+  if (el.fFormat.value) p.set("format", el.fFormat.value);
+  const setKey = GA_CARD_SEARCH.setKeyOf(el.fSet.value); // 添字ではなく prefix を書く（並び順に依存しない）
+  if (setKey) p.set("set", setKey);
+  if (el.sort.value && el.sort.value !== "name") p.set("sort", el.sort.value);
+  if ((el.order.dataset.dir || "ASC") === "DESC") p.set("order", "DESC");
+  return p.toString();
+}
+
+// 現在の絞り込みをURLに反映する（履歴を増やさない replaceState）。
+// ⚠️ location.hash の連結は必須。クエリだけを指定すると #card/<slug> が落ちる
+function saveQuery() {
+  const qs = queryString();
+  history.replaceState(null, "", location.pathname + (qs ? "?" + qs : "") + location.hash);
+}
+
+// URLのクエリから絞り込みを復元する（共有リンク・他ページからの ?qtext= リンク・履歴移動・bfcache復帰）。
+// 選択肢に無い値・未知のパラメータは黙って無視する。復元中はイベントを発火させないため、
+// 呼び出し側で updateFilterBadge() と runSearch(true) を1回だけ行う
 function applyUrlQuery() {
-  const qtext = new URLSearchParams(location.search).get("qtext");
+  const p = new URLSearchParams(location.search);
+  const q = p.get("q");
+  if (q) el.q.value = q;
+  const qtext = p.get("qtext"); // 「ひとくちキーワード解説」からのリンクで従来から使われている
   if (qtext) el.qtext.value = qtext;
+  urlGroups().forEach(([name, g]) => {
+    const list = p.getAll(name);
+    if (list.length) g.setValues(list);
+    g.setMode(p.get(name + "_op") || "OR");
+    // 受け取った人が「何で絞られているか」を一目で確認できるよう、値のあるグループは開く
+    if (g.getValues().length) g.open = true;
+  });
+  const format = p.get("format");
+  if (format && hasOption(el.fFormat, format)) el.fFormat.value = format;
+  const setIdx = GA_CARD_SEARCH.setIndexOf(p.get("set"));
+  if (setIdx) el.fSet.value = setIdx;
+  const sort = (p.get("sort") || "").toLowerCase();
+  if (sort && hasOption(el.sort, sort)) el.sort.value = sort;
+  const order = (p.get("order") || "").toUpperCase();
+  if (order === "ASC" || order === "DESC") setOrder(order);
 }
 
-const filterGroups = () => [el.gElement, el.gClass, el.gType, el.gSubtype];
+// URL（クエリ）を唯一の入力として画面を作り直す。履歴移動・bfcache復帰の共通処理
+function reloadFromUrl() {
+  resetControls();
+  applyUrlQuery();
+  updateFilterBadge();
+  runSearch(true);
+}
 
 // スマホでは絞り込み全体が畳まれるため、畳んだ状態でも選択件数が分かるようにトグルへバッジを出す
 function updateFilterBadge() {
@@ -430,16 +502,15 @@ function init() {
   GA_CARD_SEARCH.fillFormatSelect(el.fFormat);
   GA_CARD_SEARCH.fillSetSelect(el.fSet);
   resetControls(); // 起動時は必ず「全て」から開始（前回選択の復元を打ち消す）
-  applyUrlQuery();
+  applyUrlQuery(); // URLに条件が書いてあるときだけ復元する（順序を入れ替えると復元が消える）
+  updateFilterBadge();
 
   el.q.addEventListener("input", debounce(() => runSearch(true), 350));
   el.qtext.addEventListener("input", debounce(() => runSearch(true), 350));
   [el.fFormat, el.fSet, el.sort].forEach((s) => s.addEventListener("change", () => runSearch(true)));
   filterGroups().forEach((g) => g.onChange(() => { updateFilterBadge(); runSearch(true); }));
   el.order.addEventListener("click", () => {
-    const next = (el.order.dataset.dir || "ASC") === "ASC" ? "DESC" : "ASC";
-    el.order.dataset.dir = next;
-    el.order.textContent = next === "ASC" ? "▲ 昇順" : "▼ 降順";
+    setOrder((el.order.dataset.dir || "ASC") === "ASC" ? "DESC" : "ASC");
     runSearch(true);
   });
   el.loadMore.addEventListener("click", () => searchCtl.loadMore());
@@ -520,8 +591,12 @@ function init() {
   });
 
   window.addEventListener("hashchange", handleHash);
-  // bfcache 復帰時（戻る/進む等）にブラウザがフォームを復元することがあるため、初期化し直す
-  window.addEventListener("pageshow", (e) => { if (e.persisted) { resetControls(); runSearch(true); } });
+  // bfcache 復帰時（戻る/進む等）にブラウザがフォームを復元することがあるため、初期化し直す。
+  // bfcache はURLごと復元するので、初期化のあとURLの条件を復元し直す（クリアされないように）
+  window.addEventListener("pageshow", (e) => { if (e.persisted) reloadFromUrl(); });
+  // bfcacheが効かない環境での復帰（履歴移動でクエリだけ変わった場合も追従する）。
+  // 画面が既にURLどおりなら何もしない（ハッシュ操作で無駄な検索を走らせないため）
+  window.addEventListener("popstate", () => { if (currentQs() !== queryString()) reloadFromUrl(); });
 
   updatePrintBar(); // localStorage から復元
   runSearch(true); // 初期表示（名前順の先頭ページ）
