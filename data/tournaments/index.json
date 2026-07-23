@@ -1,10 +1,22 @@
 {
-  "updatedAt": "2026-07-22T21:44:06.678Z",
+  "updatedAt": "2026-07-23T21:39:33.550Z",
   "scan": {
     "minId": 46500,
-    "maxId": 58724
+    "maxId": 58783
   },
   "events": [
+    {
+      "id": 58504,
+      "name": "Gaming Giant RDO Store Championship (Actual)",
+      "category": "store-championships",
+      "format": "standard",
+      "startAt": "2026-07-23T15:00:00.000Z",
+      "season": "RDO",
+      "country": "US",
+      "host": "Gaming Giant",
+      "playerCount": 10,
+      "deckCount": 10
+    },
     {
       "id": 58230,
       "name": "MSG Radiant Origins Store Championship",

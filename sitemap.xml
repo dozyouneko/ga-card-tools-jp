@@ -2551,6 +2551,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/tournaments/58504/</loc>
+    <lastmod>2026-07-23</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/rdo/</loc>
     <lastmod>2026-04-02</lastmod>
     <changefreq>monthly</changefreq>

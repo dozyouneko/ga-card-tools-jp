@@ -30,12 +30,6 @@
     "startAt": "2026-07-26T09:30:00.000Z"
   },
   {
-    "id": 53610,
-    "firstSeenAt": "2026-07-20",
-    "category": "store-championships",
-    "startAt": "2026-06-13T17:00:00.000Z"
-  },
-  {
     "id": 54070,
     "firstSeenAt": "2026-07-20",
     "category": "store-championships",
@@ -126,9 +120,15 @@
     "startAt": "2026-07-24T22:30:00.000Z"
   },
   {
-    "id": 58504,
-    "firstSeenAt": "2026-07-20",
+    "id": 58745,
+    "firstSeenAt": "2026-07-23",
     "category": "store-championships",
-    "startAt": "2026-07-25T15:00:00.000Z"
+    "startAt": "2026-07-25T06:00:00.000Z"
+  },
+  {
+    "id": 58750,
+    "firstSeenAt": "2026-07-23",
+    "category": "regionals",
+    "startAt": "2026-07-25T00:30:00.000Z"
   }
 ]
