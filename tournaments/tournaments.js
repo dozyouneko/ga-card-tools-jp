@@ -12,6 +12,8 @@
   const from = document.getElementById("f-from");
   const to = document.getElementById("f-to");
   const box = document.getElementById("filter-box");
+  const about = document.getElementById("about-box");
+  const emptyEl = document.getElementById("ev-empty");
   const count = document.getElementById("f-count");
   // <select id="f-xxx"> と行の data-xxx を対応づける
   const selects = [["cat", "cat"], ["country", "country"], ["format", "format"], ["season", "season"]]
@@ -32,7 +34,10 @@
       r.hidden = !ok;
       if (ok) n++;
     });
-    hits.textContent = n === rows.length ? `${rows.length} 大会` : `${n} / ${rows.length} 大会`;
+    // 絞り込んでいないときは全体の収録件数、絞り込み中は結果件数を出す
+    hits.textContent = n === rows.length ? `全 ${rows.length} 件` : `検索結果：${n}件`;
+    // 0件で画面が空になるのを防ぐ(収録0件のときは表内の案内が出るので二重に出さない)
+    emptyEl.hidden = n !== 0 || rows.length === 0;
     saveQuery();
   }
 
@@ -85,9 +90,9 @@
     });
   });
 
-  // スマホ幅では絞り込みを畳んでおく(HTMLは open で出力してJS無効時も使えるようにしてある)
+  // スマホ幅では絞り込みと説明文を畳んでおく(HTMLは open で出力してJS無効時も使えるようにしてある)
   const narrow = matchMedia("(max-width:640px)");
-  const fitViewport = () => { box.open = !narrow.matches; };
+  const fitViewport = () => { box.open = !narrow.matches; about.open = !narrow.matches; };
   narrow.addEventListener("change", fitViewport);
   fitViewport();
 

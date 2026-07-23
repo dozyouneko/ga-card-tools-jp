@@ -574,7 +574,11 @@ ${siteHeader()}
 ${crumb([["トップ", "/"], ["大会デッキ"]])}
 <main class="cp-main">
   <h1>🏆 大会デッキ検索</h1>
-  <p class="sub">主要大会(Store Championship・Regionals・Nationals・Ascent)の提出デッキを日本語訳付きで見られます。収録 ${events.length} 大会。</p>
+  <!-- 説明文。スマホでは畳んで一覧を見せる(閉じるのは tournaments.js。JS無効なら open のまま読める) -->
+  <details class="about" id="about-box" open>
+    <summary>ℹ️ このページについて</summary>
+    <p class="sub">主要大会(Store Championship・Regionals・Nationals・Ascent)の提出デッキを日本語訳付きで見られます。</p>
+  </details>
 
   <details class="filter-box" id="filter-box" open>
     <summary>絞り込み<span class="filter-count" id="f-count" hidden></span></summary>
@@ -591,8 +595,10 @@ ${crumb([["トップ", "/"], ["大会デッキ"]])}
       <span>〜</span>
       <input type="date" id="f-to" aria-label="開催日の終了">
     </div>
-    <p class="filter-hits" id="f-hits" role="status"></p>
   </details>
+
+  <!-- 件数は絞り込み枠の外・表の直上に置く(枠を畳むスマホでも見えるように) -->
+  <p class="filter-hits" id="f-hits" role="status"></p>
 
   <div class="cp-scroll"><table id="ev-table">
     <thead><tr><th>開催日</th><th>大会名</th><th>開催国</th><th>フォーマット</th><th>種別</th><th>参加</th></tr></thead>
@@ -600,6 +606,7 @@ ${crumb([["トップ", "/"], ["大会デッキ"]])}
 ${rows || '<tr><td colspan="6">収録済みの大会がありません。</td></tr>'}
     </tbody>
   </table></div>
+  <p class="ev-empty" id="ev-empty" hidden>該当する大会がありません。条件を変えてお試しください。</p>
 </main>
 ${siteFooter()}
 </body>
@@ -716,7 +723,8 @@ ${crumb([["トップ", "/"], ["大会デッキ", "/tournaments/"], [ev.name]])}
   </div>
 
   <h2>順位表（${ev.standings.length}名・スイス終了時点）</h2>
-  <p class="cp-muted">「デッキを見る」で提出デッキ（${ev.decklists.length}件）をダイアログ表示します。カードをクリックすると日本語の詳細が開きます。当時のフォーマットで提出されたリストのため、現行ルールでの使用可否は判定していません。</p>
+  <!-- 順位表の上には操作ヒントだけ残し、免責文は表の下の注釈群へ移す(#18) -->
+  <p class="cp-muted">カードをクリックすると日本語の詳細が開きます。</p>
   <div class="rank-filter">
     <input type="search" id="rank-q" placeholder="プレイヤー名・チャンピオン名・属性で絞り込み…" aria-label="順位表をプレイヤー名・チャンピオン名・属性で絞り込み">
     <span class="rank-hits" id="rank-hits" role="status"></span>
@@ -726,6 +734,7 @@ ${standingsHtml}
   </div>
   <p class="rank-empty" id="rank-empty" hidden>該当する選手がいません。</p>
   <p class="cp-muted">順位は勝ち点順で、同点はタイブレーカー（GW%＝ゲーム勝率、MW%＝マッチ勝率）によります。勝ち点には不戦勝（bye）を含みます。順位はスイスラウンド終了時点のもので、決勝トーナメントの結果は含みません。</p>
+  <p class="cp-muted">当時のフォーマットで提出されたリストのため、現行ルールでの使用可否は判定していません。</p>
 
   <p class="cp-muted">出典: <a href="${esc(ev.url || `https://omni.gatcg.com/events/${ev.id}`)}" rel="external nofollow">Omnidex 公式イベントページ #${ev.id}</a></p>
 </main>
@@ -830,6 +839,10 @@ h2 { font-size:1.02rem; border-left:3px solid var(--accent); padding-left:10px; 
 .sub { color:var(--muted); margin:0 0 18px; font-size:.92rem; }
 
 /* ---- 一覧 ---- */
+/* 説明文もスマホでは折りたたむ(PC幅では summary を隠して常時展開=従来と同じ1行表示) */
+.about { margin:0 0 18px; }
+.about > summary { display:none; cursor:pointer; font-weight:600; font-size:.9rem; color:var(--muted); }
+.about > .sub { margin:0; }
 .filter-box { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:18px; }
 /* スマホでは縦に長くなりすぎるため折りたたむ(PC幅では summary を隠して常時展開) */
 .filter-box > summary { display:none; cursor:pointer; font-weight:600; font-size:.9rem; }
@@ -840,7 +853,7 @@ h2 { font-size:1.02rem; border-left:3px solid var(--accent); padding-left:10px; 
 .filter-row button { cursor:pointer; }
 .filter-row button:hover { border-color:var(--accent); }
 .filter-row select:focus, .filter-row input:focus, .filter-row button:focus-visible { outline:2px solid var(--accent-2); outline-offset:1px; }
-.filter-hits { margin:10px 0 0; font-size:.82rem; color:var(--muted); }
+.filter-hits { margin:0 0 10px; font-size:.82rem; color:var(--muted); }
 .filter-period { align-items:center; margin-top:10px; font-size:.85rem; color:var(--muted); }
 .filter-period input[type="date"] { background:var(--panel-2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font:inherit; font-size:.85rem; }
 
@@ -892,7 +905,8 @@ ${ORB_CSS}
 .rank-filter input[type="search"] { flex:1; min-width:220px; max-width:420px; background:var(--panel-2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:7px 12px; font:inherit; font-size:.88rem; }
 .rank-filter input:focus { outline:2px solid var(--accent-2); outline-offset:1px; }
 .rank-hits { color:var(--muted); font-size:.82rem; }
-.rank-empty { color:var(--muted); font-size:.88rem; }
+/* 0件のときの案内(一覧・順位表で共用) */
+.rank-empty, .ev-empty { color:var(--muted); font-size:.88rem; }
 /* 絞り込み中は100行ごとの折りたたみを無視して該当行を平坦に出す(折りたたみの中に隠さない) */
 #standings-wrap.filtering .rank-block { border:none; background:none; margin-bottom:0; }
 #standings-wrap.filtering .rank-block > summary { display:none; }
@@ -943,6 +957,9 @@ ${ORB_CSS}
   /* 絞り込みはトグルにする(既定は閉じる=tournaments.js。適用中の件数はバッジで見せる) */
   .filter-box > summary { display:block; }
   .filter-box[open] > summary { margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid var(--line); }
+  /* 説明文も同じ手法でトグルにする(既定は閉じる=tournaments.js) */
+  .about > summary { display:block; }
+  .about[open] > summary { margin-bottom:8px; }
   .cp-scroll { overflow-x:visible; }
   table, tbody, tr, td { display:block; }
   thead { display:none; }
@@ -998,6 +1015,8 @@ const LIST_JS = `// 大会一覧のクライアント側フィルタ。生成元
   const from = document.getElementById("f-from");
   const to = document.getElementById("f-to");
   const box = document.getElementById("filter-box");
+  const about = document.getElementById("about-box");
+  const emptyEl = document.getElementById("ev-empty");
   const count = document.getElementById("f-count");
   // <select id="f-xxx"> と行の data-xxx を対応づける
   const selects = [["cat", "cat"], ["country", "country"], ["format", "format"], ["season", "season"]]
@@ -1018,7 +1037,10 @@ const LIST_JS = `// 大会一覧のクライアント側フィルタ。生成元
       r.hidden = !ok;
       if (ok) n++;
     });
-    hits.textContent = n === rows.length ? \`\${rows.length} 大会\` : \`\${n} / \${rows.length} 大会\`;
+    // 絞り込んでいないときは全体の収録件数、絞り込み中は結果件数を出す
+    hits.textContent = n === rows.length ? \`全 \${rows.length} 件\` : \`検索結果：\${n}件\`;
+    // 0件で画面が空になるのを防ぐ(収録0件のときは表内の案内が出るので二重に出さない)
+    emptyEl.hidden = n !== 0 || rows.length === 0;
     saveQuery();
   }
 
@@ -1071,9 +1093,9 @@ const LIST_JS = `// 大会一覧のクライアント側フィルタ。生成元
     });
   });
 
-  // スマホ幅では絞り込みを畳んでおく(HTMLは open で出力してJS無効時も使えるようにしてある)
+  // スマホ幅では絞り込みと説明文を畳んでおく(HTMLは open で出力してJS無効時も使えるようにしてある)
   const narrow = matchMedia("(max-width:640px)");
-  const fitViewport = () => { box.open = !narrow.matches; };
+  const fitViewport = () => { box.open = !narrow.matches; about.open = !narrow.matches; };
   narrow.addEventListener("change", fitViewport);
   fitViewport();
 

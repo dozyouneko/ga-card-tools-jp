@@ -20,6 +20,10 @@ h2 { font-size:1.02rem; border-left:3px solid var(--accent); padding-left:10px; 
 .sub { color:var(--muted); margin:0 0 18px; font-size:.92rem; }
 
 /* ---- 一覧 ---- */
+/* 説明文もスマホでは折りたたむ(PC幅では summary を隠して常時展開=従来と同じ1行表示) */
+.about { margin:0 0 18px; }
+.about > summary { display:none; cursor:pointer; font-weight:600; font-size:.9rem; color:var(--muted); }
+.about > .sub { margin:0; }
 .filter-box { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:18px; }
 /* スマホでは縦に長くなりすぎるため折りたたむ(PC幅では summary を隠して常時展開) */
 .filter-box > summary { display:none; cursor:pointer; font-weight:600; font-size:.9rem; }
@@ -30,7 +34,7 @@ h2 { font-size:1.02rem; border-left:3px solid var(--accent); padding-left:10px; 
 .filter-row button { cursor:pointer; }
 .filter-row button:hover { border-color:var(--accent); }
 .filter-row select:focus, .filter-row input:focus, .filter-row button:focus-visible { outline:2px solid var(--accent-2); outline-offset:1px; }
-.filter-hits { margin:10px 0 0; font-size:.82rem; color:var(--muted); }
+.filter-hits { margin:0 0 10px; font-size:.82rem; color:var(--muted); }
 .filter-period { align-items:center; margin-top:10px; font-size:.85rem; color:var(--muted); }
 .filter-period input[type="date"] { background:var(--panel-2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font:inherit; font-size:.85rem; }
 
@@ -93,7 +97,8 @@ td.deck-id { display:flex; align-items:center; gap:8px; min-width:0; }
 .rank-filter input[type="search"] { flex:1; min-width:220px; max-width:420px; background:var(--panel-2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:7px 12px; font:inherit; font-size:.88rem; }
 .rank-filter input:focus { outline:2px solid var(--accent-2); outline-offset:1px; }
 .rank-hits { color:var(--muted); font-size:.82rem; }
-.rank-empty { color:var(--muted); font-size:.88rem; }
+/* 0件のときの案内(一覧・順位表で共用) */
+.rank-empty, .ev-empty { color:var(--muted); font-size:.88rem; }
 /* 絞り込み中は100行ごとの折りたたみを無視して該当行を平坦に出す(折りたたみの中に隠さない) */
 #standings-wrap.filtering .rank-block { border:none; background:none; margin-bottom:0; }
 #standings-wrap.filtering .rank-block > summary { display:none; }
@@ -144,6 +149,9 @@ td.deck-id { display:flex; align-items:center; gap:8px; min-width:0; }
   /* 絞り込みはトグルにする(既定は閉じる=tournaments.js。適用中の件数はバッジで見せる) */
   .filter-box > summary { display:block; }
   .filter-box[open] > summary { margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid var(--line); }
+  /* 説明文も同じ手法でトグルにする(既定は閉じる=tournaments.js) */
+  .about > summary { display:block; }
+  .about[open] > summary { margin-bottom:8px; }
   .cp-scroll { overflow-x:visible; }
   table, tbody, tr, td { display:block; }
   thead { display:none; }

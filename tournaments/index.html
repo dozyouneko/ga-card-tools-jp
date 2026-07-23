@@ -31,7 +31,11 @@
 <nav class="cp-crumb"><a href="/">トップ</a> › <span>大会デッキ</span></nav>
 <main class="cp-main">
   <h1>🏆 大会デッキ検索</h1>
-  <p class="sub">主要大会(Store Championship・Regionals・Nationals・Ascent)の提出デッキを日本語訳付きで見られます。収録 420 大会。</p>
+  <!-- 説明文。スマホでは畳んで一覧を見せる(閉じるのは tournaments.js。JS無効なら open のまま読める) -->
+  <details class="about" id="about-box" open>
+    <summary>ℹ️ このページについて</summary>
+    <p class="sub">主要大会(Store Championship・Regionals・Nationals・Ascent)の提出デッキを日本語訳付きで見られます。</p>
+  </details>
 
   <details class="filter-box" id="filter-box" open>
     <summary>絞り込み<span class="filter-count" id="f-count" hidden></span></summary>
@@ -49,8 +53,10 @@
       <span>〜</span>
       <input type="date" id="f-to" aria-label="開催日の終了">
     </div>
-    <p class="filter-hits" id="f-hits" role="status"></p>
   </details>
+
+  <!-- 件数は絞り込み枠の外・表の直上に置く(枠を畳むスマホでも見えるように) -->
+  <p class="filter-hits" id="f-hits" role="status"></p>
 
   <div class="cp-scroll"><table id="ev-table">
     <thead><tr><th>開催日</th><th>大会名</th><th>開催国</th><th>フォーマット</th><th>種別</th><th>参加</th></tr></thead>
@@ -4677,6 +4683,7 @@
       </tr>
     </tbody>
   </table></div>
+  <p class="ev-empty" id="ev-empty" hidden>該当する大会がありません。条件を変えてお試しください。</p>
 </main>
 <footer class="cp-foot"><p>本サイトは非公式のファンサイトです。カードの著作権は <a href="https://grandarchivetcg.com/" rel="external">Weebs of the Shore</a> に帰属します。大会結果・デッキリストは公式API(api.gatcg.com の Omnidex エンドポイント)を利用しています。カード名・効果の日本語訳は当サイトによる非公式の独自翻訳です（公式の訳ではありません）。プレイの際は英語原文をご確認ください。</p></footer>
 </body>
