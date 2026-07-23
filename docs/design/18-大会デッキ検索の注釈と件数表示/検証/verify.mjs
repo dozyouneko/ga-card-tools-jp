@@ -151,10 +151,19 @@ const s4 = await nj.evaluate(() => ({
   subText: document.querySelector("#about-box .sub").textContent.slice(0, 20),
   emptyHidden: document.getElementById("ev-empty").hidden,
   rows: Array.from(document.querySelectorAll("#ev-table tbody tr")).filter((r) => r.dataset.href && !r.hidden).length,
+  hitsText: document.getElementById("f-hits").textContent,
+  hitsVisible: document.getElementById("f-hits").checkVisibility(),
 }));
 ok(4, "JS無効でも注釈は開いたまま読め、表も出る",
   s4.aboutOpen === true && s4.subVisible === true && s4.subText.startsWith("主要大会") &&
   s4.emptyHidden === true && s4.rows === 420, JSON.stringify(s4));
+ok("4b", "JS無効でも件数が読める（#f-hits の初期値）",
+  s4.hitsText === "全 420 件" && s4.hitsVisible === true, `"${s4.hitsText}" visible=${s4.hitsVisible}`);
+// HTMLの静的な中身にも総件数が入っていること（JS実行前・クローラ向け）
+const listHtml = readFileSync("/workspaces/claude-test-vsc/tournaments/index.html", "utf8");
+ok("4b", "生成HTMLの本文に総件数が含まれる（JS実行前・ちらつき防止）",
+  /<p class="filter-hits" id="f-hits" role="status">全 420 件<\/p>/.test(listHtml),
+  (listHtml.match(/<p class="filter-hits"[^>]*>[^<]*<\/p>/) || ["(見つからない)"])[0]);
 
 // ---- 12 / 13: 大会詳細ページ ----
 const dt = await page(mobile, DETAIL);
