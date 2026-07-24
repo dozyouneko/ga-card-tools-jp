@@ -261,9 +261,15 @@ a { color: var(--accent-2); }
   color: #fff; background: var(--no);   /* 既存の未翻訳色 #7a6320 を流用 */
   padding: 1px 6px; border-radius: 999px;
 }
+/* 左下バッジ群（format-badge / flip-badge）を縦積みして座標衝突を防ぐ（issue #25） */
+.badges-bl {
+  position: absolute; left: 8px; bottom: 8px;
+  display: flex; flex-direction: column-reverse;  /* DOM先頭(format)を下に、flipを上へ積む */
+  align-items: flex-start; gap: 6px;
+}
 /* フォーマット別バッジ（検索結果カード）：禁止フォーマット／専用フォーマットのどちらかを表示 */
 .format-badge {
-  position: absolute; left: 8px; bottom: 8px;
+  position: static;
   font-size: .7rem; padding: 2px 8px; border-radius: 999px;
   color: #fff; font-weight: 700;
 }
@@ -281,9 +287,9 @@ a { color: var(--accent-2); }
 }
 .art-badge:hover { background: var(--accent-2); }
 
-/* 両面カード：一覧の表裏切替バッジ（左下） */
+/* 両面カード：一覧の表裏切替バッジ（左下・.badges-bl 内で縦積み） */
 .flip-badge {
-  position: absolute; left: 8px; bottom: 8px;
+  position: static;
   border: none; border-radius: 999px;
   background: rgba(15, 17, 21, .82);
   color: #fff; font-size: .7rem; line-height: 1;
