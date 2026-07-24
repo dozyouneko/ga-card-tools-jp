@@ -39,6 +39,9 @@ const CATEGORY_JP = {
   nationals: { label: "Nationals", full: "Nationals", cls: "nationals" },
   ascent: { label: "Ascent", full: "Ascent", cls: "ascent" },
 };
+// 種別ソート用の階層ランク(定義順: store=0 → regionals=1 → nationals=2 → ascent=3)。
+// 降順で上位大会(Ascent)が先頭に来る。未知カテゴリは -1 で最下位扱い(#16)
+const CAT_RANK = Object.fromEntries(Object.keys(CATEGORY_JP).map((k, i) => [k, i]));
 
 // 国コード → 日本語国名(2026-07-22: 国旗絵文字はWindowsにグリフが無く「JP JP」と重複表示に
 // なるため廃止)。収録実績のある31カ国を定数で持ち、未知のコードはそのまま表示する。
@@ -547,7 +550,7 @@ function listPage(events) {
 
   const rows = events.map((e) => {
     const c = catInfo(e.category);
-    return `<tr class="tr-link" data-href="${eventUrl(e.id)}" data-cat="${esc(e.category)}" data-country="${esc(e.host.country)}" data-format="${esc(e.format)}" data-season="${esc(seasonKey(e))}" data-date="${esc(day(e.startAt))}" data-search="${esc(searchBlob(e))}">
+    return `<tr class="tr-link" data-href="${eventUrl(e.id)}" data-cat="${esc(e.category)}" data-country="${esc(e.host.country)}" data-format="${esc(e.format)}" data-season="${esc(seasonKey(e))}" data-date="${esc(day(e.startAt))}" data-search="${esc(searchBlob(e))}" data-name="${esc(e.name)}" data-country-sort="${esc(countryLabelText(e.host.country))}" data-format-sort="${esc(formatJp(e.format))}" data-cat-sort="${CAT_RANK[e.category] ?? -1}" data-players="${e.playerCount ?? 0}">
         <td class="date">${esc(day(e.startAt))}</td>
         <td>
           <div class="ev-name"><a href="${eventUrl(e.id)}">${esc(e.name)}</a></div>
@@ -602,8 +605,28 @@ ${crumb([["トップ", "/"], ["大会デッキ"]])}
        (JS有効時は apply() が同じ文字列で上書きするため挙動は変わらない) -->
   <p class="filter-hits" id="f-hits" role="status">全 ${events.length} 件</p>
 
+  <!-- スマホは thead を隠すため見出しクリックが使えない。件数の近く(絞り込み枠の外)に並べ替えselectを置く(#16) -->
+  <div class="sort-mobile">
+    <label for="f-sort">並べ替え</label>
+    <select id="f-sort" aria-label="一覧の並べ替え">
+      <optgroup label="開催日"><option value="date-desc">新しい順</option><option value="date-asc">古い順</option></optgroup>
+      <optgroup label="参加者数"><option value="players-desc">多い順</option><option value="players-asc">少ない順</option></optgroup>
+      <optgroup label="大会名"><option value="name-asc">A→Z</option><option value="name-desc">Z→A</option></optgroup>
+      <optgroup label="開催国"><option value="country-asc">昇順</option><option value="country-desc">降順</option></optgroup>
+      <optgroup label="フォーマット"><option value="format-asc">昇順</option><option value="format-desc">降順</option></optgroup>
+      <optgroup label="種別"><option value="cat-desc">上位から</option><option value="cat-asc">下位から</option></optgroup>
+    </select>
+  </div>
+
   <div class="cp-scroll"><table id="ev-table">
-    <thead><tr><th>開催日</th><th>大会名</th><th>開催国</th><th>フォーマット</th><th>種別</th><th>参加</th></tr></thead>
+    <thead><tr>
+      <th data-sort="date" aria-sort="descending"><button type="button" class="th-sort">開催日</button></th>
+      <th data-sort="name"><button type="button" class="th-sort">大会名</button></th>
+      <th data-sort="country"><button type="button" class="th-sort">開催国</button></th>
+      <th data-sort="format"><button type="button" class="th-sort">フォーマット</button></th>
+      <th data-sort="cat"><button type="button" class="th-sort">種別</button></th>
+      <th data-sort="players"><button type="button" class="th-sort">参加</button></th>
+    </tr></thead>
     <tbody>
 ${rows || '<tr><td colspan="6">収録済みの大会がありません。</td></tr>'}
     </tbody>
@@ -861,6 +884,18 @@ h2 { font-size:1.02rem; border-left:3px solid var(--accent); padding-left:10px; 
 
 table { width:100%; border-collapse:collapse; font-size:.9rem; }
 thead th { text-align:left; padding:8px 10px; color:var(--muted); font-weight:600; font-size:.78rem; letter-spacing:.04em; border-bottom:1px solid var(--line); white-space:nowrap; }
+/* ソート可能な見出し。▲▼は CSS ::after + aria-sort で出す(inline style 不使用=CSP style-src 'self' 準拠, #16) */
+th[data-sort] { cursor:pointer; }
+.th-sort { font:inherit; color:inherit; letter-spacing:inherit; background:none; border:none; padding:0; cursor:pointer; }
+.th-sort:hover { color:var(--text); }
+.th-sort:focus-visible { outline:2px solid var(--accent-2); outline-offset:2px; }
+th[data-sort] .th-sort::after { content:"⇅"; opacity:.35; margin-left:4px; }
+th[aria-sort="ascending"] .th-sort::after { content:"▲"; opacity:1; }
+th[aria-sort="descending"] .th-sort::after { content:"▼"; opacity:1; }
+/* スマホ用の並べ替えselect(PCは見出しクリックを使うので隠す, #16) */
+.sort-mobile { display:none; align-items:center; gap:8px; margin:0 0 10px; font-size:.85rem; color:var(--muted); }
+.sort-mobile select { background:var(--panel-2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font:inherit; font-size:.85rem; }
+.sort-mobile select:focus { outline:2px solid var(--accent-2); outline-offset:1px; }
 tbody td { padding:10px; border-bottom:1px solid var(--line); vertical-align:middle; }
 tbody tr.tr-link { cursor:pointer; }
 tbody tr.tr-link:hover { background:rgba(255,255,255,.04); }
@@ -962,6 +997,8 @@ ${ORB_CSS}
   /* 説明文も同じ手法でトグルにする(既定は閉じる=tournaments.js) */
   .about > summary { display:block; }
   .about[open] > summary { margin-bottom:8px; }
+  /* 見出しクリックが使えないスマホでは並べ替えselectを表示する(#16) */
+  .sort-mobile { display:flex; }
   .cp-scroll { overflow-x:visible; }
   table, tbody, tr, td { display:block; }
   thead { display:none; }
@@ -1027,6 +1064,44 @@ const LIST_JS = `// 大会一覧のクライアント側フィルタ。生成元
   // クエリ名 → 入力要素(復元・書き戻しの対応表)
   const fields = [...selects.map(([el, key]) => [key, el]), ["q", text], ["from", from], ["to", to]];
 
+  // ---- 並べ替え(#16) ----
+  // 列キー → 行の dataset 名・数値比較か・初回クリック時の既定方向
+  const SORT_COLS = {
+    date: { attr: "date", num: false, def: "desc" },
+    name: { attr: "name", num: false, def: "asc" },
+    country: { attr: "countrySort", num: false, def: "asc" },
+    format: { attr: "formatSort", num: false, def: "asc" },
+    cat: { attr: "catSort", num: true, def: "desc" },
+    players: { attr: "players", num: true, def: "desc" },
+  };
+  const DEFAULT_SORT = "date-desc"; // 既定(=SSRの開催日降順)。この値のときはURLに書かない
+  const headers = table.tHead ? Array.from(table.tHead.querySelectorAll("th[data-sort]")) : [];
+  const sortSelect = document.getElementById("f-sort");
+  // 取得時のDOM順(既定の開催日降順・id降順)を安定タイブレークの基準として記憶する
+  const rowOrder = new Map(rows.map((r, i) => [r, i]));
+  let sortKey = "date", sortDir = "desc";
+
+  function sortBy(key, dir) {
+    const col = SORT_COLS[key];
+    if (!col) return;
+    sortKey = key;
+    sortDir = dir === "asc" ? "asc" : "desc";
+    const sign = sortDir === "asc" ? 1 : -1;
+    const tbody = table.tBodies[0];
+    rows.slice().sort((a, b) => {
+      const va = a.dataset[col.attr] ?? "", vb = b.dataset[col.attr] ?? "";
+      let c = col.num ? Number(va) - Number(vb) : String(va).localeCompare(String(vb), "ja");
+      if (c) return sign * c;
+      return rowOrder.get(a) - rowOrder.get(b); // 同値は取得時DOM順で安定化
+    }).forEach((r) => tbody.appendChild(r)); // appendChild は既存要素を移動(hidden状態は保持=絞り込みと独立)
+    headers.forEach((th) => {
+      if (th.dataset.sort === sortKey) th.setAttribute("aria-sort", sortDir === "asc" ? "ascending" : "descending");
+      else th.removeAttribute("aria-sort");
+    });
+    if (sortSelect) sortSelect.value = sortKey + "-" + sortDir;
+    saveQuery();
+  }
+
   function apply() {
     const q = text.value.trim().toLowerCase();
     const lo = from.value, hi = to.value;
@@ -1052,6 +1127,9 @@ const LIST_JS = `// 大会一覧のクライアント側フィルタ。生成元
     const p = new URLSearchParams();
     let active = 0;
     fields.forEach(([name, el]) => { if (el.value) { p.set(name, el.value); active++; } });
+    // 並べ替えは既定(date-desc)以外のときだけURLに残す(既定でURLを汚さない)。件数バッジには数えない
+    const curSort = sortKey + "-" + sortDir;
+    if (curSort !== DEFAULT_SORT) p.set("sort", curSort);
     const qs = p.toString();
     history.replaceState(null, "", qs ? location.pathname + "?" + qs : location.pathname);
     count.hidden = !active;
@@ -1075,6 +1153,13 @@ const LIST_JS = `// 大会一覧のクライアント側フィルタ。生成元
       if (el.tagName === "SELECT" && !Array.from(el.options).some((o) => o.value === v)) return;
       el.value = v;
     });
+    // 並べ替えの復元。sort が無ければ既定に戻す(popstateで既定URLへ戻ったときに前の並びが残らないように)
+    sortKey = "date"; sortDir = "desc";
+    const s = p.get("sort");
+    if (s) {
+      const [k, d] = s.split("-");
+      if (SORT_COLS[k] && (d === "asc" || d === "desc")) { sortKey = k; sortDir = d; }
+    }
   }
 
   selects.forEach(([el]) => el.addEventListener("change", apply));
@@ -1083,9 +1168,26 @@ const LIST_JS = `// 大会一覧のクライアント側フィルタ。生成元
     fields.forEach(([, el]) => { el.value = ""; });
     apply();
   });
+  // 見出しクリック(button なのでキーボードEnter/Spaceでも発火): 同じ列なら方向反転、別列ならその列の既定方向
+  headers.forEach((th) => {
+    const btn = th.querySelector(".th-sort");
+    if (!btn) return;
+    btn.addEventListener("click", () => {
+      const key = th.dataset.sort;
+      const col = SORT_COLS[key];
+      if (!col) return;
+      sortBy(key, key === sortKey ? (sortDir === "asc" ? "desc" : "asc") : col.def);
+    });
+  });
+  // スマホ用select: "key-dir" を分解して適用(見出しクリックとは sortBy 経由で相互同期)
+  if (sortSelect) sortSelect.addEventListener("change", () => {
+    const [key, dir] = sortSelect.value.split("-");
+    if (SORT_COLS[key]) sortBy(key, dir);
+  });
   // bfcacheが効かない環境での復帰(履歴移動でURLだけ変わった場合も追従する)
-  addEventListener("popstate", () => { loadQuery(); apply(); });
+  addEventListener("popstate", () => { loadQuery(); sortBy(sortKey, sortDir); apply(); });
   loadQuery();
+  sortBy(sortKey, sortDir); // URL(または既定)の並べ替えを初期反映してから絞り込みを適用する
 
   // 行全体をクリックできるようにする(セル内リンクのクリックはそのまま活かす)
   rows.forEach((r) => {

@@ -40,6 +40,18 @@ h2 { font-size:1.02rem; border-left:3px solid var(--accent); padding-left:10px; 
 
 table { width:100%; border-collapse:collapse; font-size:.9rem; }
 thead th { text-align:left; padding:8px 10px; color:var(--muted); font-weight:600; font-size:.78rem; letter-spacing:.04em; border-bottom:1px solid var(--line); white-space:nowrap; }
+/* ソート可能な見出し。▲▼は CSS ::after + aria-sort で出す(inline style 不使用=CSP style-src 'self' 準拠, #16) */
+th[data-sort] { cursor:pointer; }
+.th-sort { font:inherit; color:inherit; letter-spacing:inherit; background:none; border:none; padding:0; cursor:pointer; }
+.th-sort:hover { color:var(--text); }
+.th-sort:focus-visible { outline:2px solid var(--accent-2); outline-offset:2px; }
+th[data-sort] .th-sort::after { content:"⇅"; opacity:.35; margin-left:4px; }
+th[aria-sort="ascending"] .th-sort::after { content:"▲"; opacity:1; }
+th[aria-sort="descending"] .th-sort::after { content:"▼"; opacity:1; }
+/* スマホ用の並べ替えselect(PCは見出しクリックを使うので隠す, #16) */
+.sort-mobile { display:none; align-items:center; gap:8px; margin:0 0 10px; font-size:.85rem; color:var(--muted); }
+.sort-mobile select { background:var(--panel-2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font:inherit; font-size:.85rem; }
+.sort-mobile select:focus { outline:2px solid var(--accent-2); outline-offset:1px; }
 tbody td { padding:10px; border-bottom:1px solid var(--line); vertical-align:middle; }
 tbody tr.tr-link { cursor:pointer; }
 tbody tr.tr-link:hover { background:rgba(255,255,255,.04); }
@@ -152,6 +164,8 @@ td.deck-id { display:flex; align-items:center; gap:8px; min-width:0; }
   /* 説明文も同じ手法でトグルにする(既定は閉じる=tournaments.js) */
   .about > summary { display:block; }
   .about[open] > summary { margin-bottom:8px; }
+  /* 見出しクリックが使えないスマホでは並べ替えselectを表示する(#16) */
+  .sort-mobile { display:flex; }
   .cp-scroll { overflow-x:visible; }
   table, tbody, tr, td { display:block; }
   thead { display:none; }
