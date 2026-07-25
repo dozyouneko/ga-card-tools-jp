@@ -6,19 +6,19 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https://api.gatcg.com; script-src 'self' https://static.cloudflareinsights.com; connect-src 'self' https://api.gatcg.com https://cloudflareinsights.com; style-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>大会デッキ検索 - Grand Archive 日本語カードDB</title>
-<meta name="description" content="Grand Archive の主要大会(Store Championship・Regionals・Nationals・Ascent)421件の提出デッキを日本語訳付きで検索・閲覧できます。">
+<meta name="description" content="Grand Archive の主要大会(Store Championship・Regionals・Nationals・Ascent)426件の提出デッキを日本語訳付きで検索・閲覧できます。">
 <link rel="canonical" href="https://ga-card-tools-jp.pages.dev/tournaments/">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Grand Archive 日本語カードDB">
 <meta property="og:title" content="大会デッキ検索 - Grand Archive 日本語カードDB">
-<meta property="og:description" content="Grand Archive の主要大会(Store Championship・Regionals・Nationals・Ascent)421件の提出デッキを日本語訳付きで検索・閲覧できます。">
+<meta property="og:description" content="Grand Archive の主要大会(Store Championship・Regionals・Nationals・Ascent)426件の提出デッキを日本語訳付きで検索・閲覧できます。">
 <meta property="og:url" content="https://ga-card-tools-jp.pages.dev/tournaments/">
 <meta property="og:image" content="https://ga-card-tools-jp.pages.dev/ogp.png">
 <meta property="og:locale" content="ja_JP">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="大会デッキ検索 - Grand Archive 日本語カードDB">
-<meta name="twitter:description" content="Grand Archive の主要大会(Store Championship・Regionals・Nationals・Ascent)421件の提出デッキを日本語訳付きで検索・閲覧できます。">
+<meta name="twitter:description" content="Grand Archive の主要大会(Store Championship・Regionals・Nationals・Ascent)426件の提出デッキを日本語訳付きで検索・閲覧できます。">
 <meta name="twitter:image" content="https://ga-card-tools-jp.pages.dev/ogp.png">
 <link rel="stylesheet" href="/tournaments/tournaments.css">
 <!-- Cloudflare Web Analytics -->
@@ -41,7 +41,7 @@
     <summary>絞り込み<span class="filter-count" id="f-count" hidden></span></summary>
     <div class="filter-row">
       <select id="f-cat" aria-label="カテゴリで絞り込み"><option value="">カテゴリ（全て）</option><option value="store-championships">Store Championship</option><option value="regionals">Regionals</option><option value="nationals">Nationals</option><option value="ascent">Ascent</option></select>
-      <select id="f-country" aria-label="開催国で絞り込み"><option value="">開催国（全て）</option><option value="AE">UAE</option><option value="AU">オーストラリア</option><option value="BE">ベルギー</option><option value="BN">ブルネイ</option><option value="CA">カナダ</option><option value="CL">チリ</option><option value="CZ">チェコ</option><option value="DE">ドイツ</option><option value="DK">デンマーク</option><option value="ES">スペイン</option><option value="GB">イギリス</option><option value="HK">香港</option><option value="HR">クロアチア</option><option value="HU">ハンガリー</option><option value="ID">インドネシア</option><option value="IT">イタリア</option><option value="JP">日本</option><option value="KR">韓国</option><option value="KW">クウェート</option><option value="LB">レバノン</option><option value="MY">マレーシア</option><option value="NL">オランダ</option><option value="NO">ノルウェー</option><option value="NZ">ニュージーランド</option><option value="PH">フィリピン</option><option value="PL">ポーランド</option><option value="PR">プエルトリコ</option><option value="SG">シンガポール</option><option value="SI">スロベニア</option><option value="TW">台湾</option><option value="US">アメリカ</option></select>
+      <select id="f-country" aria-label="開催国で絞り込み"><option value="">開催国（全て）</option><option value="AE">UAE</option><option value="AU">オーストラリア</option><option value="BE">ベルギー</option><option value="BN">ブルネイ</option><option value="CA">カナダ</option><option value="CL">チリ</option><option value="CZ">チェコ</option><option value="DE">ドイツ</option><option value="DK">デンマーク</option><option value="ES">スペイン</option><option value="GB">イギリス</option><option value="GR">GR</option><option value="HK">香港</option><option value="HR">クロアチア</option><option value="HU">ハンガリー</option><option value="ID">インドネシア</option><option value="IT">イタリア</option><option value="JP">日本</option><option value="KR">韓国</option><option value="KW">クウェート</option><option value="LB">レバノン</option><option value="LV">LV</option><option value="MY">マレーシア</option><option value="NL">オランダ</option><option value="NO">ノルウェー</option><option value="NZ">ニュージーランド</option><option value="PH">フィリピン</option><option value="PL">ポーランド</option><option value="PR">プエルトリコ</option><option value="SG">シンガポール</option><option value="SI">スロベニア</option><option value="TH">TH</option><option value="TW">台湾</option><option value="US">アメリカ</option></select>
       <select id="f-format" aria-label="フォーマットで絞り込み"><option value="">フォーマット（全て）</option><option value="standard">スタンダード</option></select>
       <select id="f-season" aria-label="シーズンで絞り込み"><option value="">シーズン（全て）</option><option value="RDO">Radiant Origins（RDO）</option></select>
       <input type="search" id="f-text" placeholder="大会名・主催・プレイヤー名・大会IDで検索…" aria-label="大会名・主催・プレイヤー名・大会IDで検索">
@@ -58,7 +58,7 @@
   <!-- 件数は絞り込み枠の外・表の直上に置く(枠を畳むスマホでも見えるように)。
        初期値を書き出しておく: JS無効でも件数が読め、読み込み直後のちらつきも避けられる
        (JS有効時は apply() が同じ文字列で上書きするため挙動は変わらない) -->
-  <p class="filter-hits" id="f-hits" role="status">全 421 件</p>
+  <p class="filter-hits" id="f-hits" role="status">全 426 件</p>
 
   <!-- スマホは thead を隠すため見出しクリックが使えない。件数の近く(絞り込み枠の外)に並べ替えselectを置く(#16) -->
   <div class="sort-mobile">
@@ -83,6 +83,61 @@
       <th data-sort="players"><button type="button" class="th-sort">参加</button></th>
     </tr></thead>
     <tbody>
+<tr class="tr-link" data-href="/tournaments/57691/" data-cat="store-championships" data-country="LV" data-format="standard" data-season="RDO" data-date="2026-07-25" data-search="57691 Store Championship 2026 RDO🏆 Darkwood Tavern LV LV スタンダード Store Championship CrossUp DKAleX Aschess Helkarir LedumUdr Zander（ザンダー） Arisanna（アリサナ） Diao Chan（ダオ・チャン） Tristan（トリスタン）" data-name="Store Championship 2026 RDO🏆" data-country-sort="LV" data-format-sort="スタンダード" data-cat-sort="0" data-players="5">
+        <td class="date">2026-07-25</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/57691/">Store Championship 2026 RDO🏆</a></div>
+          <div class="ev-host">Darkwood Tavern</div>
+        </td>
+        <td class="country">LV</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">5名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/57934/" data-cat="store-championships" data-country="GR" data-format="standard" data-season="RDO" data-date="2026-07-25" data-search="57934 Radiant Origins Store Championship No Label X GR GR スタンダード Store Championship Qbone TatPap Expaler Munas Diao Chan（ダオ・チャン） Merlin（マーリン） Arisanna（アリサナ） Tristan（トリスタン）" data-name="Radiant Origins Store Championship" data-country-sort="GR" data-format-sort="スタンダード" data-cat-sort="0" data-players="4">
+        <td class="date">2026-07-25</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/57934/">Radiant Origins Store Championship</a></div>
+          <div class="ev-host">No Label X</div>
+        </td>
+        <td class="country">GR</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">4名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/58745/" data-cat="store-championships" data-country="TH" data-format="standard" data-season="RDO" data-date="2026-07-25" data-search="58745 Metagame Thailand RDO Store Championship Metagame Thailand TH TH スタンダード Store Championship Chaane Azulia NicoPie I2INGKEN ZeRoMagus Shuri Winss HOR Genesis999 Jetnipatl Inwcongo888 Exess I2ist InNoCenT DWIRAY Bus Wertee ChanSris2312 KinsagiYuirin Bayblade Mobius255 Lordpedzod Bigon OZE Qermaster Pongdanai Merlin（マーリン） Rai（ライ） Alice（アリス） Zander（ザンダー） Tonoris（トノリス） Diao Chan（ダオ・チャン） Lorraine（ロレイン） Ciel（シエル） Lorraine（ロレイン） / Merlin（マーリン） Silvie（シルヴィ） Tristan（トリスタン） Diana（ダイアナ） Arisanna（アリサナ） Jin（ジン） Lorraine（ロレイン） / Mordred（モードレッド）" data-name="Metagame Thailand RDO Store Championship" data-country-sort="TH" data-format-sort="スタンダード" data-cat-sort="0" data-players="26">
+        <td class="date">2026-07-25</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/58745/">Metagame Thailand RDO Store Championship</a></div>
+          <div class="ev-host">Metagame Thailand</div>
+        </td>
+        <td class="country">TH</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">26名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/58750/" data-cat="regionals" data-country="MY" data-format="standard" data-season="RDO" data-date="2026-07-25" data-search="58750 Games Haven Southkey Regionals  Games Haven Southkey MY マレーシア スタンダード Regionals MingYee CRISPR Joseph PNG itzShota xferous Severn Jinzkakz ruixiang RuiXin YingJie Goodboy Daniel83 Pierrot UBVOLA Nickson Daedaene Inaki Moko Miffy Lsentinel Atayo RubyZura93 fateseal oSallyo DeAn3 JKern Legilus FREEPIZZA Render eDWIN EwiseiQ Amoslim Mahadhir CHOCO Kohlongtan wenwen AdamMikhal KuroNeko DomChua Empty Blankets Kukujiao BrandonYeoh KwekKwek joyyuan Arick HeeLun Moo Cashkidz E92Y Alvintee 0416ronin MP997 Killac Crisp Liekkii hong9119 Lam J0ka YYY6777 Chuwubs Lip Miaotato TwistedKaito Kailun1841 chu TCJ DuskInstinct NsanShachou Senza23 Jeraz Mikutan ShiroHikari WinterVul TheOneSky RipSoon GODEMPEROR Jacob0w0 Terry Pikachu645 Maelstrom ChunCher DeXtra Sselous sugarsoap SoSollys Zealotan Lorraine（ロレイン） Merlin（マーリン） Ciel（シエル） Diao Chan（ダオ・チャン） Guo Jia（グオ・ジア） Arisanna（アリサナ） Rai（ライ） Silvie（シルヴィ） Kongming（コンミン） Nico（ニコ） Lorraine（ロレイン） / Merlin（マーリン） Diana（ダイアナ） Jin（ジン） Zander（ザンダー） Alice（アリス） Tonoris（トノリス）" data-name="Games Haven Southkey Regionals " data-country-sort="マレーシア" data-format-sort="スタンダード" data-cat-sort="1" data-players="88">
+        <td class="date">2026-07-25</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/58750/">Games Haven Southkey Regionals </a></div>
+          <div class="ev-host">Games Haven Southkey</div>
+        </td>
+        <td class="country">マレーシア</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-regional"><span class="cat-short">Regionals</span><span class="cat-full">Regionals</span></span></td>
+        <td class="num">88名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/58426/" data-cat="store-championships" data-country="US" data-format="standard" data-season="RDO" data-date="2026-07-24" data-search="58426 GDG Store Champ  Green Dice Games US アメリカ スタンダード Store Championship stevo7653 DarthRevons Gestalt Weasel929 Gebby Jin（ジン） Arisanna（アリサナ） Vanitas（ヴァニタス） Guo Jia（グオ・ジア） Lorraine（ロレイン）" data-name="GDG Store Champ " data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="5">
+        <td class="date">2026-07-24</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/58426/">GDG Store Champ </a></div>
+          <div class="ev-host">Green Dice Games</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">5名</td>
+      </tr>
 <tr class="tr-link" data-href="/tournaments/58504/" data-cat="store-championships" data-country="US" data-format="standard" data-season="RDO" data-date="2026-07-23" data-search="58504 Gaming Giant RDO Store Championship (Actual) Gaming Giant US アメリカ スタンダード Store Championship stevo7653 AtsuyaShilo ChatterB0X Efferus Wolfgang 404Bassics Collapsed Hi1sup Kitterfox AliceSavor Jin（ジン） Arisanna（アリサナ） Zander（ザンダー） Silvie（シルヴィ） Rai（ライ） Kongming（コンミン） Diana（ダイアナ） Lorraine（ロレイン）" data-name="Gaming Giant RDO Store Championship (Actual)" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="10">
         <td class="date">2026-07-23</td>
         <td>

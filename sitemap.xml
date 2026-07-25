@@ -2467,6 +2467,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/tournaments/57691/</loc>
+    <lastmod>2026-07-25</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/tournaments/57694/</loc>
     <lastmod>2026-07-18</lastmod>
     <changefreq>yearly</changefreq>
@@ -2499,6 +2505,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/tournaments/57902/</loc>
     <lastmod>2026-07-12</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/tournaments/57934/</loc>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2545,6 +2557,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/tournaments/58426/</loc>
+    <lastmod>2026-07-24</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/tournaments/58483/</loc>
     <lastmod>2026-07-18</lastmod>
     <changefreq>yearly</changefreq>
@@ -2553,6 +2571,18 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/tournaments/58504/</loc>
     <lastmod>2026-07-23</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/tournaments/58745/</loc>
+    <lastmod>2026-07-25</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/tournaments/58750/</loc>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.7</priority>
   </url>
