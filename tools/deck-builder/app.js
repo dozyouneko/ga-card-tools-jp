@@ -16,6 +16,13 @@ const {
   FORMAT_JP, EXCLUSIVE_FORMAT_INFO, bannedFormats, exclusiveFormat, exclusiveNote,
 } = window.GA_CARD_I18N;
 
+// 訳データ(#22 フェーズ2)。トップページと同じく data/tl/*.js の <script> をやめてJSONを読む。
+// 名前はデッキ一覧・ゾーンのカード名に要るので init() で待つ。効果は詳細ダイアログ／
+// 日本語効果検索のときだけ取得する。相対パスがトップページと違うので ../../ を付ける
+const TL_NAMES_URL = "../../data/tl-names.json";
+const TL_EFFECTS_URL = "../../data/tl-effects.json";
+const namesReady = window.GA_CARD_I18N.loadNames(TL_NAMES_URL);
+
 const ZONES = ["material", "main", "side", "maybe"];
 const ZONE_LABEL = { material: "マテリアルデッキ", main: "メインデッキ", side: "サイドボード", maybe: "検討中" };
 const ZONE_SHORT = { material: "マテリアル", main: "メイン", side: "サイド", maybe: "検討中" };
@@ -1023,6 +1030,7 @@ const searchCtl = GA_CARD_SEARCH.create({
   pageSize: 24,
   jpPageSize: 24,
   metaIndexUrl: "../../data/card-meta-index.json", // JP検索の取得前フィルタ用メタ索引(#27)
+  effectsUrl: TL_EFFECTS_URL, // 効果欄に日本語が入ったときだけ取得する訳データ(#22)
   fetchCard: getCard,
   onStart: (reset) => {
     if (reset) {
@@ -2165,6 +2173,8 @@ window.addEventListener("hashchange", route);
   // 詳細を閉じたとき、下に検索結果等のモーダルが開いたままならスクロールロックを維持する
   GA_CARD_DETAIL.init({
     fetchCard: getCard,
+    namesUrl: TL_NAMES_URL,
+    effectsUrl: TL_EFFECTS_URL, // 日本語の効果・フレーバーはダイアログを開くときに取得する(#22)
     onAfterClose: () => {
       if (!el.resultModal.hidden || !el.omniModal.hidden) document.body.style.overflow = "hidden";
     },
@@ -2175,6 +2185,9 @@ window.addEventListener("hashchange", route);
   GA_CARD_SEARCH.fillSelect(el.sSubtype, "subtypes");
   GA_CARD_SEARCH.fillFormatSelect(el.sFormat);
   GA_CARD_SEARCH.fillSetSelect(el.sSet);
+  // 画面(デッキ一覧・ゾーン)を描く前にカード名の訳を入れる。失敗しても resolve する
+  // （fail-open＝英語名で描画されるだけ・#22 R3）
+  await namesReady;
   try {
     const data = await api("/api/me");
     me = data.user;

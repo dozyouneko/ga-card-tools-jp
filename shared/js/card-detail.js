@@ -7,6 +7,8 @@
  * 使い方:
  *   GA_CARD_DETAIL.init({
  *     fetchCard(slug),          // openBySlug用のカード取得(省略時は公式APIをfetch)
+ *     namesUrl, effectsUrl,     // 訳データJSONのURL(#22)。open()の前に取得を待ち合わせる。
+ *                               // 省略したページは、そのページが自前で読み込んだ訳だけを使う
  *     preferredArtIndex(imgs),  // 初期表示するイラスト番号(省略時は0)
  *     action: { label(card), disabled(card), onClick(card) }, // 右下のアクションボタン(省略可)
  *     backAction: { label(back), disabled(back), onClick(back) }, // 両面カードの裏面用アクション(省略可)
@@ -23,7 +25,7 @@ window.GA_CARD_DETAIL = (() => {
     tr, isTranslated, jpName, label,
     cardImages, rarityCode, speedLabel,
     FORMAT_JP, EXCLUSIVE_FORMAT_INFO, bannedFormats, exclusiveFormat, exclusiveNote,
-    backFace,
+    backFace, loadNames, loadEffects,
   } = window.GA_CARD_I18N;
   const I18N = window.GA_I18N || { meta: {}, terms: {}, cards: {} };
 
@@ -135,7 +137,24 @@ window.GA_CARD_DETAIL = (() => {
 
   function $(id) { return document.getElementById(id); }
 
-  function open(card) {
+  // 日本語の効果・フレーバーが要るのはこのダイアログを開いたときが最初（#22 フェーズ2）。
+  // init() に namesUrl / effectsUrl が渡っていれば、描画の前にここで取得を待ち合わせる。
+  // 2回目以降は GA_CARD_I18N 側でメモ化されているので即座に解決する。
+  // 大会ページのように名前も遅延させるページがあるため、名前も同じ便で待つ。
+  let openSeq = 0;
+  async function open(card) {
+    const mySeq = ++openSeq;
+    const waits = [];
+    if (opts.namesUrl) waits.push(loadNames(opts.namesUrl));
+    if (opts.effectsUrl) waits.push(loadEffects(opts.effectsUrl));
+    if (waits.length) {
+      await Promise.all(waits);
+      if (mySeq !== openSeq) return; // 取得中に別のカードが開かれたら、そちらに任せる
+    }
+    render(card);
+  }
+
+  function render(card) {
     const t = tr(card);
     const imgs = cardImages(card);
     const initialAi = Math.min(Math.max(opts.preferredArtIndex ? opts.preferredArtIndex(imgs) : 0, 0), Math.max(imgs.length - 1, 0));
@@ -228,7 +247,7 @@ window.GA_CARD_DETAIL = (() => {
         const res = await fetch(`${API}/cards/${encodeURIComponent(slug)}`);
         card = res.ok ? await res.json() : null;
       }
-      if (card) open(card);
+      if (card) await open(card);
     } catch (err) {
       console.error("カードの取得に失敗:", err);
     }

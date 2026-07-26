@@ -38,11 +38,13 @@ window.GA_CARD_I18N = (() => {
     return (I18N.cards && I18N.cards[card.slug]) || null;
   }
 
-  // 訳データが存在し、かつ name か effect のどちらかが埋まっているか
-  // （空欄スキャフォルドは「未訳＝翻訳募集中」として扱う）
+  // 訳データのエントリが存在するか。
+  // data/tl-names.json / tl-effects.json には「name か effect か flavor のどれかが埋まっている
+  // slug だけ」を出力しているため、エントリの存在＝訳が存在する（#22 フェーズ2・変更3）。
+  // ⚠️ 効果を遅延読み込みするようになったので「name か effect が埋まっているか」では
+  // 判定できない（名前が空欄で効果だけ訳されたカードが未翻訳と誤表示される）。
   function isTranslated(card) {
-    const t = tr(card);
-    return !!(t && (t.name || t.effect));
+    return !!tr(card);
   }
 
   function jpName(card) {
@@ -54,6 +56,53 @@ window.GA_CARD_I18N = (() => {
   function label(kind, value) {
     const map = (I18N.meta && I18N.meta[kind]) || {};
     return map[value] ? `${value}（${map[value]}）` : value;
+  }
+
+  // ---------- 訳データの読み込み（#22 フェーズ2）----------
+  // data/tl/*.js（38本・gzip 257 KB）を <script> で読むのをやめ、生成物の JSON を fetch する。
+  //   名前   … グリッド描画に要るので初期表示前に1回だけ読む
+  //   効果   … 描画には1文字も使わないので「詳細ダイアログ」「効果欄の日本語検索」のときだけ読む
+  // どちらも Promise をメモ化して2回目以降は再取得しない（card-cache.js の mem と同じ方式）。
+  // 取得失敗は null に倒す＝fail-open（英語名・英語効果で動き続ける。エラー表示はしない）。
+  // URL は呼び出し側から渡す（ページによって相対パスが違うため。#27 の metaIndexUrl と同じ方式）。
+  let namesPromise = null;
+  let effectsPromise = null;
+
+  function fetchJson(url) {
+    return fetch(url).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  }
+
+  function entry(slug) {
+    I18N.cards = I18N.cards || {};
+    return (I18N.cards[slug] = I18N.cards[slug] || {});
+  }
+
+  // { slug: 名前 } を I18N.cards[slug].name へ流し込む
+  function loadNames(url) {
+    if (namesPromise) return namesPromise;
+    if (!url) { namesPromise = Promise.resolve(null); return namesPromise; }
+    namesPromise = fetchJson(url).then((map) => {
+      if (!map || typeof map !== "object") return null;
+      for (const slug in map) entry(slug).name = map[slug];
+      return map;
+    });
+    return namesPromise;
+  }
+
+  // { e: { slug: 効果 }, f: { slug: フレーバー } } を I18N.cards[slug] へ流し込む。
+  // フレーバーも詳細ダイアログでしか使わないので効果と同じ便に載せてある。
+  function loadEffects(url) {
+    if (effectsPromise) return effectsPromise;
+    if (!url) { effectsPromise = Promise.resolve(null); return effectsPromise; }
+    effectsPromise = fetchJson(url).then((json) => {
+      if (!json || typeof json !== "object") return null;
+      const e = json.e || {};
+      const f = json.f || {};
+      for (const slug in e) entry(slug).effect = e[slug];
+      for (const slug in f) entry(slug).flavor = f[slug];
+      return json;
+    });
+    return effectsPromise;
   }
 
   // ---------- 画像・収録 ----------
@@ -186,7 +235,7 @@ window.GA_CARD_I18N = (() => {
 
   return {
     escapeHtml, hasJapanese, renderEffect,
-    tr, isTranslated, jpName, label,
+    tr, isTranslated, jpName, label, loadNames, loadEffects,
     firstEdition, imageUrl, cardImages, rarityCode, speedLabel,
     ALL_FORMATS, FORMAT_JP, FORMAT_SHORT, EXCLUSIVE_FORMAT_INFO,
     bannedFormats, legalFormats, exclusiveFormat, exclusiveNote, formatBadgeHtml,

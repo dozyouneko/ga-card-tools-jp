@@ -8,6 +8,8 @@
  *   const ctl = GA_CARD_SEARCH.create({
  *     els: { name, text, cls, element, type, subtype, set, sort, order }, // 使わない欄は省略可
  *     pageSize: 50, jpPageSize: 40,
+ *     metaIndexUrl,      // JP検索の取得前フィルタ用メタ索引(#27)
+ *     effectsUrl,        // 訳の効果JSON(#22)。効果欄に日本語が入ったときだけ取得する
  *     fetchCard(slug),   // 日本語検索時のカード取得(省略時は公式APIをfetch)
  *     onStart(reset),
  *     onResults(cards, { reset, jpMode, total, hasMore, andMode, approxTotal, blocked }),
@@ -24,7 +26,7 @@
 window.GA_CARD_SEARCH = (() => {
   const API = "https://api.gatcg.com";
   const I18N = window.GA_I18N || { meta: {}, terms: {}, cards: {} };
-  const { hasJapanese, bannedFormats } = window.GA_CARD_I18N;
+  const { hasJapanese, bannedFormats, loadEffects } = window.GA_CARD_I18N;
 
   // エキスパンション定義（製品ライン → prefix 群）
   const SETS = (I18N.meta && I18N.meta.sets) || [];
@@ -500,13 +502,22 @@ window.GA_CARD_SEARCH = (() => {
 
     async function run(reset) {
       const mySeq = ++seq;
+      // onStart は「検索中…」表示とグリッドのクリアを行うため、効果JSONの取得(下)より前に呼ぶ。
+      // 初回の日本語効果検索はここで待ちが入るので、その間もユーザーには進行中と分かる(R1)
+      if (opts.onStart) opts.onStart(reset);
       if (reset) {
+        // 日本語の効果検索は I18N.cards[].effect を走査する。効果は遅延読み込みなので
+        // 「効果欄に日本語が入っているときだけ」ここで取得を待つ(#22 フェーズ2)。
+        // 名前だけの日本語検索では取得しない — ここが緩むとフェーズ2の意味が消える
+        if (jpEffectQuery()) {
+          await loadEffects(opts.effectsUrl);
+          if (mySeq !== seq) return;
+        }
         pager.page = 1;
         jpSlugs = isJpTextMode() ? localJpSlugs() : null;
         jpCand = null;   // 索引での取得前絞り込みは jpSlugs 確定後に1回だけ作る
         jpApprox = false;
       }
-      if (opts.onStart) opts.onStart(reset);
       try {
         let cards, total, hasMore;
         if (elementAndBlocked()) {

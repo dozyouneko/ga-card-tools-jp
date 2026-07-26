@@ -8,11 +8,13 @@
 //   - emptyEffect（effect: "" ＝バニラカード。数の報告のみ、エラー扱いにはしない）
 //   - 韓国語混入（0 でなければ NG）
 //   - BOM（先頭 U+FEFF があれば NG）
-// さらに全ファイルを vm 評価して構文エラーが無いか（＝ブラウザで読めるか）を確認する。
+// さらに全ファイルを vm 評価して構文エラーが無いか（＝ブラウザで読めるか）を確認し、
+// data/tl-*.json（ブラウザが読む生成物）が data/tl/*.js と一致しているかを検査する（#22 フェーズ2）。
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadI18n } from "./lib/load-i18n.mjs";
+import { buildTlJson, serialize, NAMES_FILE, EFFECTS_FILE } from "./gen-tl-json.mjs";
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 
@@ -65,12 +67,41 @@ for (const f of files) {
 }
 
 // 構文（ブラウザ読み込み相当）チェック
+let loaded = null;
 try {
   const { i18n } = loadI18n(root);
+  loaded = i18n;
   console.log(`\nloaded OK — total cards: ${Object.keys(i18n.cards).length}`);
 } catch (e) {
   problems++;
   console.error(`\nLOAD ERROR: ${e.message}`);
+}
+
+// 生成物の陳腐化チェック（#22 フェーズ2）
+// ブラウザは data/tl/*.js ではなく data/tl-*.json を読むため、訳を追記して再生成を忘れると
+// 新しい訳が本番に出ない。ここで落として node scripts/gen-tl-json.mjs を促す。
+if (loaded) {
+  const { names, effects } = buildTlJson(loaded.cards || {});
+  const expected = [[NAMES_FILE, names], [EFFECTS_FILE, effects]];
+  const stale = [];
+  for (const [rel, obj] of expected) {
+    let actual = null;
+    try {
+      actual = readFileSync(path.join(root, rel), "utf8");
+    } catch {
+      stale.push(`${rel} がありません`);
+      continue;
+    }
+    if (actual !== serialize(obj)) stale.push(`${rel} が data/tl/*.js と一致しません`);
+  }
+  if (stale.length) {
+    problems++;
+    console.error(`\nSTALE GENERATED JSON:`);
+    stale.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → node scripts/gen-tl-json.mjs を実行して生成し直し、コミットしてください`);
+  } else {
+    console.log(`generated JSON up to date — ${NAMES_FILE} / ${EFFECTS_FILE}`);
+  }
 }
 
 if (problems > 0) {

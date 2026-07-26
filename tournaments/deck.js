@@ -159,7 +159,13 @@
 
   if (!window.GA_CARD_DETAIL) return;
   // カード詳細を閉じてもデッキダイアログが開いていれば背面のスクロール停止を維持する
-  GA_CARD_DETAIL.init({ onAfterClose: () => { if (!modal.hidden) document.body.style.overflow = "hidden"; } });
+  // 訳データ(名前・効果・フレーバー)はカードを1枚も開かなければ要らないため、
+  // このページでは <script> で読まずカード詳細を開くときに fetch する(#22 フェーズ2)
+  GA_CARD_DETAIL.init({
+    namesUrl: "/data/tl-names.json",
+    effectsUrl: "/data/tl-effects.json",
+    onAfterClose: () => { if (!modal.hidden) document.body.style.overflow = "hidden"; },
+  });
   // ---- カードタイル。1ダイアログに数百個並びうるため個別登録せず文書単位で委譲する ----
   const tileOf = (e) => e.target.closest(".cardph[data-slug]");
   document.addEventListener("click", (e) => {

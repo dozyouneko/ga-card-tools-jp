@@ -86,8 +86,18 @@ const log = (s) => process.stderr.write(s + "\n");
 
 // ---------- 翻訳・共通ヘルパー(build-card-pages.mjs と共用) ----------
 
-const { I18N, CI, dataFiles } = loadPageI18n(ROOT);
+const { I18N, CI } = loadPageI18n(ROOT);
 const esc = CI.escapeHtml;
+
+// 大会詳細ページが実行時に読む <script>。#22フェーズ2以前は data/tl/*.js 38本を
+// そのまま並べていたが(1ページあたり gzip 257 KB)、カードを1枚も開かなければ使わないため
+// 撤去した。訳は tournaments/deck.js が GA_CARD_DETAIL 経由で必要時に fetch する。
+// data/translations.js は meta/terms(ラベル・用語解説)を同期的に使うので残す。
+const RUNTIME_SCRIPTS = [
+  "data/translations.js",
+  "shared/js/card-i18n.js",
+  "shared/js/card-detail.js",
+];
 
 // 属性玉(32px WebPのbase64)。scripts/gen-element-orbs.mjs が生成しコミットしてある定数を
 // 読むだけなので、日次cronのビルドは画像処理ライブラリにも公式カード画像にも依存しない
@@ -765,7 +775,7 @@ ${standingsHtml}
 </main>
 ${deckModal()}
 ${siteFooter()}
-${[...dataFiles, "shared/js/card-i18n.js", "shared/js/card-detail.js"].map((f) => `<script src="/${f}"></script>`).join("\n")}
+${RUNTIME_SCRIPTS.map((f) => `<script src="/${f}" defer></script>`).join("\n")}
 <script src="/tournaments/deck.js" defer></script>
 </body>
 </html>
@@ -1368,7 +1378,13 @@ const DECK_JS = `// 大会詳細ページのデッキ表示まわり。生成元
 
   if (!window.GA_CARD_DETAIL) return;
   // カード詳細を閉じてもデッキダイアログが開いていれば背面のスクロール停止を維持する
-  GA_CARD_DETAIL.init({ onAfterClose: () => { if (!modal.hidden) document.body.style.overflow = "hidden"; } });
+  // 訳データ(名前・効果・フレーバー)はカードを1枚も開かなければ要らないため、
+  // このページでは <script> で読まずカード詳細を開くときに fetch する(#22 フェーズ2)
+  GA_CARD_DETAIL.init({
+    namesUrl: "/data/tl-names.json",
+    effectsUrl: "/data/tl-effects.json",
+    onAfterClose: () => { if (!modal.hidden) document.body.style.overflow = "hidden"; },
+  });
   // ---- カードタイル。1ダイアログに数百個並びうるため個別登録せず文書単位で委譲する ----
   const tileOf = (e) => e.target.closest(".cardph[data-slug]");
   document.addEventListener("click", (e) => {

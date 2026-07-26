@@ -42,6 +42,13 @@ const {
 // クエリ構築・日本語ローカル検索・ページング・setPrefixes は shared/js/card-search.js に共通化
 const { setPrefixes } = window.GA_CARD_SEARCH;
 
+// 訳データ(#22 フェーズ2)。data/tl/*.js 38本の <script> をやめ、生成物のJSONを読む。
+// 名前はグリッド描画に要るのでここ(app.js 評価時＝最速)で取得を開始し、初期表示の前に待つ。
+// 効果は詳細ダイアログ・日本語効果検索でしか要らないので、URLを渡すだけで取得はしない。
+const TL_NAMES_URL = "data/tl-names.json";
+const TL_EFFECTS_URL = "data/tl-effects.json";
+const namesReady = window.GA_CARD_I18N.loadNames(TL_NAMES_URL);
+
 // ---------- ユーティリティ ----------
 // escapeHtml / renderEffect / isTranslated / label / rarityCode / フォーマット判定 /
 // cardImages / speedLabel は shared/js/card-i18n.js に共通化済み。
@@ -76,6 +83,7 @@ const searchCtl = GA_CARD_SEARCH.create({
   pageSize: 50,
   jpPageSize: 40,
   metaIndexUrl: "data/card-meta-index.json", // JP検索の取得前フィルタ用メタ索引(#27)
+  effectsUrl: TL_EFFECTS_URL, // 効果欄に日本語が入ったときだけ取得する訳データ(#22)
   onStart: (reset) => {
     // 絞り込みを変える経路（チップ・セレクト・並び替え・テキスト入力・リセット）は
     // すべて runSearch(true) を通るため、URLへの書き戻しはここ1箇所に集約する
@@ -575,6 +583,8 @@ function init() {
   // カード詳細モーダル（共通コンポーネント）。印刷ボタンとハッシュ連動はこのページ固有
   GA_CARD_DETAIL.init({
     preferredArtIndex,
+    namesUrl: TL_NAMES_URL,
+    effectsUrl: TL_EFFECTS_URL, // 日本語の効果・フレーバーはダイアログを開くときに取得する(#22)
     action: {
       label: (card) => (imageUrl(card) ? "🖨️ 印刷リストに追加" : "画像がないため追加できません"),
       disabled: (card) => !imageUrl(card),
@@ -631,8 +641,13 @@ function init() {
   window.addEventListener("popstate", () => { if (currentQs() !== queryString()) reloadFromUrl(); });
 
   updatePrintBar(); // localStorage から復元
-  runSearch(true); // 初期表示（名前順の先頭ページ）
-  handleHash(); // 共有リンク（#card/<slug>）で開かれた場合は該当カードを表示
+
+  // 名前の訳が入る前に描画すると英語名のグリッドが一瞬出るため、初期表示だけは取得を待つ。
+  // 取得失敗時も resolve する（fail-open＝英語名で描画されるだけ・#22 R3）
+  namesReady.then(() => {
+    runSearch(true); // 初期表示（名前順の先頭ページ）
+    handleHash(); // 共有リンク（#card/<slug>）で開かれた場合は該当カードを表示
+  });
 }
 
 init();
