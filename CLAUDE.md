@@ -99,6 +99,13 @@ issueコメントが「実装→設計」の報告経路になる(2セッショ�
 - `npm run pages:dev` — Cloudflare Pages Functions込みのローカル実行(wrangler、ポート8788)
 - `npm run validate` — データ検証
 - `npm run build:cards` — カード個別ページ・セット別ページ・`sitemap.xml` を生成
+- `node scripts/gen-tl-json.mjs` — 翻訳データを**ブラウザ用のJSONに変換**する(#22フェーズ2)。
+  `data/tl/*.js`(人間が訳を書く原本)から `data/tl-names.json`(名前)と
+  `data/tl-effects.json`(効果・フレーバー)を生成する。**生成物はコミットする**。オフラインで実行できる
+  - **訳を追記・修正したら必ず実行する**。トップ・デッキ構築・大会詳細ページは
+    `data/tl/*.js` を**実行時に読まなくなった**ため、再生成しないと**新しい訳が本番に出ない**
+  - ✅ 忘れても **`npm run validate` が exit 1 で落ちる**(生成物と `data/tl/*.js` の一致を検査する)。
+    #27 の索引と違い「気づけない」問題にはならない
 - `node scripts/gen-card-meta-index.mjs` — 日本語効果検索の**取得前フィルタ用メタ索引**(#27)
   `data/card-meta-index.json` を生成(引数なし・**ネットワーク必須**・生成物はコミットする)。
   `tmp/api-cache/cards-snapshot.json` があれば再利用し、スナップショット未収録のフリップ面22件は
