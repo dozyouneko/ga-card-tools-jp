@@ -135,8 +135,14 @@ GET /cards/byakko-white-tiger  →  slug = "fabled-emerald-fatestone"
 **実行タイミング: 手動のみ。** `gen-element-orbs.mjs` と同じ扱いで、**日次cronから呼んではいけない**。
 理由: [build-tournaments.yml:38](../../../.github/workflows/build-tournaments.yml#L38) は日次で `build-card-pages.mjs` を実行しており、
 そこに索引生成を混ぜると**毎日索引の差分が自動コミットされる**。索引が古くても**変更2のフォールバックで結果は正しいまま**なので、
-鮮度を自動化する必要がない。CLAUDE.md の「開発コマンド」に**新カードを翻訳したら実行する**旨を追記する
-(⚠️ CLAUDE.md はルート直下=本番配信物のため、**pushはユーザーの指示を待つ**)。
+鮮度を自動化する必要がない。
+
+この運用ルール(新カードを翻訳したら再生成する)は CLAUDE.md の「開発コマンド」に追記するが、
+**この追記は設計担当が行う**。CLAUDE.md のgit運用で担当パスが
+「設計担当は `docs/` と `CLAUDE.md`、開発担当は `scripts/` と生成物」と決まっているため
+(⚠️ CLAUDE.md はルート直下=本番配信物なので **pushはユーザーの指示を待つ**)。
+→ **開発担当は CLAUDE.md を触らないこと。** スクリプト名・オプションが設計と変わった場合は
+issueに書けば、設計担当が確定した名前で追記する。
 
 ### 変更2: JPモードで絞り込みを取得前に適用([card-search.js](../../../shared/js/card-search.js))
 
@@ -221,7 +227,7 @@ Promiseをモジュール内に保持して以降は再利用する(`card-cache.
 | [shared/js/card-search.js](../../../shared/js/card-search.js) | JP分岐の順序変更・`metaIndex()`/`metaMatches()` 追加・`approxTotal` 算出 |
 | [app.js](../../../app.js#L77) | `metaIndexUrl` 指定・JPモード時の注記文言 |
 | [tools/deck-builder/app.js](../../../tools/deck-builder/app.js#L1024) | `metaIndexUrl` 指定 |
-| `CLAUDE.md` | 索引の再生成タイミングを追記(**pushはユーザー判断**) |
+| `CLAUDE.md` | 索引の再生成タイミングを追記。**設計担当が行う**(担当パスの分担。開発担当は触らない) |
 
 **非JPモードには一切手を入れない**(APIのページングで正確なため)。
 
@@ -268,7 +274,7 @@ Promiseをモジュール内に保持して以降は再利用する(`card-cache.
 | 変更2 取得前フィルタ+フォールバック | **実装待ち** |
 | 変更3 件数の正確化+文言 | **実装待ち** |
 | 変更4 `jpPageSize` 据え置き | 変更なし(据え置きの明示) |
-| CLAUDE.md への再生成タイミング追記 | **実装待ち**(pushはユーザー判断) |
+| CLAUDE.md への再生成タイミング追記 | **設計担当のタスク**(実装確定後に追記・pushはユーザー判断) |
 
 ## 開発担当への申し送り
 
