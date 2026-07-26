@@ -51,6 +51,8 @@
 .gacd-modal .name-en { margin: 0 0 12px; color: var(--muted, #9aa2b1); }
 
 .gacd-modal .badge { display: inline-block; font-size: .72rem; padding: 3px 10px; border-radius: 999px; color: #fff; }
+/* display 指定が [hidden] より強いため、非表示を明示する（訳データが読めなかったとき・#22 変更6） */
+.gacd-modal .badge[hidden] { display: none; }
 .gacd-modal .badge-yes { background: var(--yes, #2f9e6b); }
 .gacd-modal .badge-no  { background: var(--no, #7a6320); }
 

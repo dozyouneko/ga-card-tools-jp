@@ -22,7 +22,7 @@ window.GA_CARD_DETAIL = (() => {
   const API = "https://api.gatcg.com";
   const {
     escapeHtml, hasJapanese, renderEffect,
-    tr, isTranslated, jpName, label,
+    tr, isTranslated, jpName, label, translationsReady,
     cardImages, rarityCode, speedLabel,
     FORMAT_JP, EXCLUSIVE_FORMAT_INFO, bannedFormats, exclusiveFormat, exclusiveNote,
     backFace, loadNames, loadEffects,
@@ -182,8 +182,10 @@ window.GA_CARD_DETAIL = (() => {
       artsEl.hidden = true;
     }
 
+    // 訳データが読めていないときはバッジ自体を出さない（誤った「未翻訳」を見せない・変更6）
     const translated = isTranslated(card);
     const badge = $("d-badge");
+    badge.hidden = !translated && !translationsReady();
     badge.textContent = translated ? "日本語訳あり" : "未翻訳";
     badge.className = "badge " + (translated ? "badge-yes" : "badge-no");
 
@@ -320,7 +322,7 @@ window.GA_CARD_DETAIL = (() => {
       <div class="detail back-detail">
         <div class="detail-image">${imgHtml}</div>
         <div class="detail-info">
-          <span class="badge ${translated ? "badge-yes" : "badge-no"}">${translated ? "日本語訳あり" : "未翻訳"}</span>
+          ${translated || translationsReady() ? `<span class="badge ${translated ? "badge-yes" : "badge-no"}">${translated ? "日本語訳あり" : "未翻訳"}</span>` : ""}
           <h2>${escapeHtml(jpName(back))}</h2>
           <p class="name-en">${escapeHtml(back.name || "")}</p>
           <dl class="meta">${metaHtml(back)}</dl>

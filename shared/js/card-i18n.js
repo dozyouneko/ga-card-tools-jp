@@ -67,6 +67,9 @@ window.GA_CARD_I18N = (() => {
   // URL は呼び出し側から渡す（ページによって相対パスが違うため。#27 の metaIndexUrl と同じ方式）。
   let namesPromise = null;
   let effectsPromise = null;
+  // 名前データの取得状態。"none"=loadNames を使っていないページ / "ok"=取得成功 / "failed"=取得失敗。
+  // 「取得に失敗したと分かっているとき」だけ false を返す（変更6）
+  let namesState = "none";
 
   function fetchJson(url) {
     return fetch(url).then((r) => (r.ok ? r.json() : null)).catch(() => null);
@@ -82,11 +85,21 @@ window.GA_CARD_I18N = (() => {
     if (namesPromise) return namesPromise;
     if (!url) { namesPromise = Promise.resolve(null); return namesPromise; }
     namesPromise = fetchJson(url).then((map) => {
-      if (!map || typeof map !== "object") return null;
+      if (!map || typeof map !== "object") { namesState = "failed"; return null; }
       for (const slug in map) entry(slug).name = map[slug];
+      namesState = "ok";
       return map;
     });
     return namesPromise;
+  }
+
+  // 訳データ（名前）が使える状態か。false のときは isTranslated() が
+  // 「エントリが無い＝未訳」と「まだ／もう読めていない」を区別できないため、
+  // 呼び出し側は「未翻訳」バッジを出してはいけない（変更6・#22）。
+  // ⚠️ loadNames() を使っていないページ（訳を別経路で持つページ）では true を返す。
+  // 「取得に失敗したと分かっているとき」だけ false になる
+  function translationsReady() {
+    return namesState !== "failed";
   }
 
   // { e: { slug: 効果 }, f: { slug: フレーバー } } を I18N.cards[slug] へ流し込む。
@@ -235,7 +248,7 @@ window.GA_CARD_I18N = (() => {
 
   return {
     escapeHtml, hasJapanese, renderEffect,
-    tr, isTranslated, jpName, label, loadNames, loadEffects,
+    tr, isTranslated, jpName, label, loadNames, loadEffects, translationsReady,
     firstEdition, imageUrl, cardImages, rarityCode, speedLabel,
     ALL_FORMATS, FORMAT_JP, FORMAT_SHORT, EXCLUSIVE_FORMAT_INFO,
     bannedFormats, legalFormats, exclusiveFormat, exclusiveNote, formatBadgeHtml,

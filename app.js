@@ -35,7 +35,7 @@ const el = {
 // 共通ヘルパー(shared/js/card-i18n.js)。トップページとデッキ構築ツールで共用
 const {
   tr, jpName, firstEdition, imageUrl, flipEdition, backFace,
-  escapeHtml, hasJapanese, renderEffect, label, isTranslated,
+  escapeHtml, hasJapanese, renderEffect, label, isTranslated, translationsReady,
   cardImages, rarityCode, speedLabel, formatBadgeHtml,
 } = window.GA_CARD_I18N;
 
@@ -168,7 +168,9 @@ function appendGrid(cards) {
     const slug = card.slug || card.uuid;
     if (slug && shownSlugs.has(slug)) return; // 重複表示を防ぐ
     if (slug) shownSlugs.add(slug);
-    const translated = isTranslated(card);
+    // 訳データが読めていないときは「未翻訳」を出さない。エントリの不在が「未訳」なのか
+    // 「名前JSONが取れなかった」のか区別できず、訳のあるカードを誤って未翻訳と示すため（変更6・#22）
+    const showUntranslated = !isTranslated(card) && translationsReady();
     const imgs = cardImages(card);
     const initialAi = preferredArtIndex(imgs);
     const img = imgs.length ? imgs[initialAi].url : null;
@@ -195,7 +197,7 @@ function appendGrid(cards) {
         ${img ? `<button class="card-add" type="button" title="印刷リストに追加" aria-label="印刷リストに追加">＋🖨️</button>` : ""}
       </div>
       <div class="card-body">
-        <p class="card-name">${translated ? "" : `<span class="badge-untranslated">未翻訳</span>`}${escapeHtml(jpName(card))}</p>
+        <p class="card-name">${showUntranslated ? `<span class="badge-untranslated">未翻訳</span>` : ""}${escapeHtml(jpName(card))}</p>
         <p class="card-name-en">${escapeHtml(card.name)}</p>
         <p class="card-chips">
           ${typeChips ? `<span class="chip">${escapeHtml(typeChips)}</span>` : ""}
