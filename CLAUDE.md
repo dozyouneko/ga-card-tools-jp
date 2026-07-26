@@ -99,6 +99,18 @@ issueコメントが「実装→設計」の報告経路になる(2セッショ�
 - `npm run pages:dev` — Cloudflare Pages Functions込みのローカル実行(wrangler、ポート8788)
 - `npm run validate` — データ検証
 - `npm run build:cards` — カード個別ページ・セット別ページ・`sitemap.xml` を生成
+- `node scripts/gen-card-meta-index.mjs` — 日本語効果検索の**取得前フィルタ用メタ索引**(#27)
+  `data/card-meta-index.json` を生成(引数なし・**ネットワーク必須**・生成物はコミットする)。
+  `tmp/api-cache/cards-snapshot.json` があれば再利用し、スナップショット未収録のフリップ面22件は
+  `/cards/:slug` で個別取得する。**手動実行専用**で、`gen-element-orbs.mjs` と同じく日次cronから呼ばない
+  - ⚠️ **再生成が必要なタイミングは3つ**(いずれかを忘れると日本語検索で**カードが黙って落ちる**):
+    1. **新カードを翻訳したとき**(索引に無いslugは fail-open で落ちないが、絞り込みが取得後になり件数が概算になる)
+    2. **禁止改定があったとき** — 索引の `bannedFormats` が腐り、
+       「スタンダード禁止」等のフォーマット絞り込み×日本語効果検索で**該当カードが出てこなくなる**
+    3. **再録が出たとき** — 索引の `setPrefixes` が腐り、新エキスパンション絞り込み×日本語効果検索で**漏れる**
+  - 索引は「候補を絞る」役で最終判断は取得後の `matchesActiveFilters` だが、
+    **候補から外れたカードはそもそも取得されない**ため、2・3の陳腐化は取得後フィルタでは救えない
+    (詳細は `docs/design/27-JP検索の絞り込み埋もれ/` の「保証の範囲」)。恒久対策は #29 で検討中
 - `npm run build:tournaments` — 大会デッキ(#14)のスキャン+ページ生成。
   sitemapへ反映するには **`build:tournaments` → `build:cards` の順**に実行する
   - `node scripts/build-tournament-pages.mjs --no-scan` で**APIを叩かず既存データからページのみ再生成**できる
