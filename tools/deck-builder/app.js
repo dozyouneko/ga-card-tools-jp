@@ -1022,6 +1022,7 @@ const searchCtl = GA_CARD_SEARCH.create({
   },
   pageSize: 24,
   jpPageSize: 24,
+  metaIndexUrl: "../../data/card-meta-index.json", // JP検索の取得前フィルタ用メタ索引(#27)
   fetchCard: getCard,
   onStart: (reset) => {
     if (reset) {

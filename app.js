@@ -75,6 +75,7 @@ const searchCtl = GA_CARD_SEARCH.create({
   },
   pageSize: 50,
   jpPageSize: 40,
+  metaIndexUrl: "data/card-meta-index.json", // JP検索の取得前フィルタ用メタ索引(#27)
   onStart: (reset) => {
     // 絞り込みを変える経路（チップ・セレクト・並び替え・テキスト入力・リセット）は
     // すべて runSearch(true) を通るため、URLへの書き戻しはここ1箇所に集約する
@@ -140,7 +141,12 @@ function updateSearchStatus(info) {
   // 客側で後段フィルタが入る場合（AND指定・日本語モードでの絞り込み）は総件数を正確に出せない
   const totalPart = !info.approxTotal && info.total > shown ? ` / 全 ${info.total} 件` : "";
   let suffix = info.jpMode ? "（日本語テキスト一致・翻訳済みのみ）" : "";
-  if (info.approxTotal) suffix += "（AND条件などは取得済みのページに適用するため、総件数は表示できません）";
+  if (info.approxTotal) {
+    // JPモードは索引で取得前に絞るためANDも件数を出せる。概算になるのは索引が使えない/未収録slugが混じるときだけ
+    suffix += info.jpMode
+      ? "（一部のカードは取得後に判定するため総件数は概算です）"
+      : "（AND条件などは取得済みのページに適用するため、総件数は表示できません）";
+  }
   el.status.textContent = `${shown} 件を表示${totalPart}${suffix}`;
   el.loadMore.hidden = !info.hasMore;
 }

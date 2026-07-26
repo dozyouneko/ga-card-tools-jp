@@ -320,6 +320,9 @@ window.GA_CARD_SEARCH = (() => {
     const pager = { page: 1, total: 0, hasMore: false };
     let seq = 0;       // 競合するリクエストの取り違え防止
     let jpSlugs = null; // 日本語検索モード中のローカル一致slug一覧(新規検索ごとに作り直す)
+    let jpCand = null;  // 上記を索引で「取得前」に絞った候補(#27)。新規検索ごとに作り直す
+    let jpApprox = false; // JPモードの件数が概算か(索引が使えず/未収録slugが混じるとき)
+    let metaIdxPromise = null; // 索引fetchのメモ化(初回JP検索のときだけ実行し以降は再利用)
 
     const trimmed = (elm) => (elm ? elm.value.trim() : "");
     const val = (elm) => (elm ? elm.value : "");
@@ -362,12 +365,53 @@ window.GA_CARD_SEARCH = (() => {
       return MULTI.every(([key, , field]) => !isAnd(key) || matchesMulti(card, key, field));
     }
 
-    // 総件数が実際の該当件数より多く出る状態か（客側フィルタが後段に入るため正確に出せない）
-    function isApproxTotal(jp) {
-      if (!jp) return anyAnd();
+    // JPモードで class/element/type/subtype/format/set のいずれかを絞り込んでいるか。
+    // 総件数が概算になるか(jpApprox)の判定に使う。非JPモードの概算判定は anyAnd()。
+    function hasJpFilters() {
       return MULTI.some(([key]) => vals(key).length > 0)
         || !!val(els.format)
         || setPrefixes(val(els.set)).length > 0;
+    }
+
+    // ---------- JPモードの取得前フィルタ用メタ索引（#27）----------
+    // data/card-meta-index.json を「JPモードに初めて入ったとき」だけ fetch し、Promiseを保持して再利用する
+    // （card-cache.js の mem と同じ方式）。失敗・不正・未設定は null に倒す（fail-open）。
+    function metaIndex() {
+      if (metaIdxPromise) return metaIdxPromise;
+      const url = opts.metaIndexUrl;
+      if (!url) { metaIdxPromise = Promise.resolve(null); return metaIdxPromise; }
+      metaIdxPromise = fetch(url)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j) => (j && Array.isArray(j.d) && j.m ? j : null))
+        .catch(() => null);
+      return metaIdxPromise;
+    }
+
+    // 索引エントリ（トークンID配列）に絞り込みが合致するか。matchesActiveFilters と同じ規則を、
+    // カード本体の代わりに索引の列挙値へ適用する。索引に無いslugは true（候補に残す=fail-open）。
+    function metaMatches(idx, slug) {
+      const entry = idx.m[slug];
+      if (!entry) return true; // 索引未収録は除外しない（取得後フィルタが判定する）
+      const d = idx.d;
+      const dec = (arr) => (arr || []).map((i) => d[i]);
+      const pseudo = {
+        classes: dec(entry[0]), elements: dec(entry[1]),
+        types: dec(entry[2]), subtypes: dec(entry[3]),
+      };
+      for (const [key, , field] of MULTI) {
+        if (!matchesMulti(pseudo, key, field)) return false;
+      }
+      if (val(els.format)) {
+        const [fmt, state] = val(els.format).split(":");
+        const banned = dec(entry[5]).includes(fmt);
+        if (state === "LEGAL" ? banned : !banned) return false;
+      }
+      const pre = setPrefixes(val(els.set));
+      if (pre.length) {
+        const prefixes = dec(entry[4]);
+        if (!pre.some((x) => prefixes.includes(x))) return false;
+      }
+      return true;
     }
 
     // 名前欄・効果テキスト欄それぞれの日本語入力を返す（無ければ ""）
@@ -459,6 +503,8 @@ window.GA_CARD_SEARCH = (() => {
       if (reset) {
         pager.page = 1;
         jpSlugs = isJpTextMode() ? localJpSlugs() : null;
+        jpCand = null;   // 索引での取得前絞り込みは jpSlugs 確定後に1回だけ作る
+        jpApprox = false;
       }
       if (opts.onStart) opts.onStart(reset);
       try {
@@ -474,13 +520,29 @@ window.GA_CARD_SEARCH = (() => {
           return;
         }
         if (jpSlugs) {
+          // 候補は新規検索(reset)時に1回だけ作って保持する。loadMore で作り直すと、
+          // その間に絞り込みUIが変わった場合にページ境界がずれるため。
+          if (jpCand === null) {
+            const idx = await metaIndex();
+            if (mySeq !== seq) return;
+            if (idx) {
+              jpCand = jpSlugs.filter((s) => metaMatches(idx, s));
+              // 索引未収録slug（新規翻訳・フリップ面漏れ等）が絞り込み下で候補に残ると総数が過大に出る
+              jpApprox = hasJpFilters() && jpSlugs.some((s) => !idx.m[s]);
+            } else {
+              // 索引が使えない → 現状の挙動に劣化（全件を候補にして取得後フィルタに委ねる）
+              jpCand = jpSlugs;
+              jpApprox = hasJpFilters();
+            }
+          }
           const from = (pager.page - 1) * JP_PAGE_SIZE;
-          const batch = jpSlugs.slice(from, from + JP_PAGE_SIZE);
+          const batch = jpCand.slice(from, from + JP_PAGE_SIZE);
           const fetched = await Promise.all(batch.map((s) => fetchCard(s)));
           if (mySeq !== seq) return;
+          // 索引はコミット済みの静的データで古くなり得るため、取得後フィルタを最終判断として残す
           cards = fetched.filter((c) => c && matchesActiveFilters(c));
-          total = jpSlugs.length; // 追加の絞り込みは客側適用のため、総数には反映されない
-          hasMore = from + JP_PAGE_SIZE < jpSlugs.length;
+          total = jpCand.length;
+          hasMore = from + JP_PAGE_SIZE < jpCand.length;
         } else {
           const res = await fetch(`${API}/cards/search?${buildQuery(pager.page)}`);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -497,7 +559,7 @@ window.GA_CARD_SEARCH = (() => {
         pager.hasMore = hasMore;
         opts.onResults(cards, {
           reset, jpMode: !!jpSlugs, total, hasMore,
-          andMode: anyAnd(), approxTotal: isApproxTotal(!!jpSlugs), blocked: null,
+          andMode: anyAnd(), approxTotal: jpSlugs ? jpApprox : anyAnd(), blocked: null,
         });
       } catch (err) {
         if (mySeq !== seq) return;
