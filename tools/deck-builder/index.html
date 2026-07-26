@@ -22,6 +22,8 @@
 <meta name="twitter:description" content="Grand Archiveのデッキを日本語で構築・保存・共有できる無料ツール。">
 <meta name="twitter:image" content="https://ga-card-tools-jp.pages.dev/ogp.png">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="../../shared/css/filter-chips.css">
+<link rel="stylesheet" href="../../shared/css/element-orbs.css">
 <link rel="stylesheet" href="../../shared/css/card-detail.css">
 <!-- Cloudflare Web Analytics -->
 <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "79f367803da7466d9b8edd3476edb554"}'></script>
@@ -99,12 +101,13 @@
       <input type="search" id="s-name" placeholder="カード名で検索（英語 / 日本語）" autocomplete="off">
       <input type="search" id="s-text" placeholder="効果テキストで部分検索（英語 / 日本語）" autocomplete="off">
     </div>
-    <button id="s-toggle" class="filter-toggle" type="button" aria-expanded="false" aria-controls="s-filter-row">絞り込み ▾</button>
+    <button id="s-toggle" class="filter-toggle" type="button" aria-expanded="false" aria-controls="s-filter-row"><span id="s-toggle-label">絞り込み ▾</span><span id="s-filter-badge" class="fbadge" hidden></span></button>
     <div class="row filter-row" id="s-filter-row">
-      <select id="s-class"><option value="">クラス（全て）</option></select>
-      <select id="s-element"><option value="">エレメント（全て）</option></select>
-      <select id="s-type"><option value="">タイプ（全て）</option></select>
-      <select id="s-subtype"><option value="">サブタイプ（全て）</option></select>
+      <!-- 複数選択（AND/OR）の絞り込み。中身は shared/js/card-search.js の fillChips() が構築する（#31） -->
+      <details class="fgroup" id="s-g-element"></details>
+      <details class="fgroup" id="s-g-class"></details>
+      <details class="fgroup" id="s-g-type"></details>
+      <details class="fgroup" id="s-g-subtype"></details>
       <select id="s-format"><option value="">フォーマット（全て）</option></select>
       <select id="s-set"><option value="">エキスパンション（全て）</option></select>
     </div>

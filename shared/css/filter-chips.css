@@ -1,0 +1,120 @@
+/* 複数選択（AND/OR）の絞り込みグループ — チップUIの見た目（#19 / #31）
+ *
+ * shared/js/card-search.js の fillChips() が組み立てる DOM 専用のスタイル。
+ * トップページ（カードDB）とデッキ構築ツールの両方が読み込む（#31 でルート style.css から切り出し）。
+ *
+ * ⚠️ ここには「チップUIそのものの見た目」だけを置く。グループをどう並べるか（グリッド／フレックス）は
+ *    ページごとに違うため各ページの CSS に残す:
+ *      - トップ … style.css の .filter-row / .fgroup[open], .filter-rest
+ *      - デッキ構築 … tools/deck-builder/style.css の .search-top .filter-row .fgroup
+ * ⚠️ テーマ変数（--accent 等）はここでは定義しない。ページ側の :root が持つ
+ *    （共通CSSが持つとページごとの配色を上書きできなくなるため）
+ * ⚠️ カード一覧の .chip（種別・レベル表示の汎用チップ）とはクラス名が同じで別物。
+ *    このファイルのチップは必ず .fgroup で限定する
+ */
+
+/* 4グループを開いたままにするとチップが50個以上並びカード一覧が押し出されるため、
+   各グループは <details> で既定は閉じる。閉じていても選択件数はバッジで分かる。 */
+.fgroup {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+.fgroup summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+.fgroup summary::-webkit-details-marker { display: none; }
+.fgroup summary:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 1px; }
+.flabel { font-weight: 700; font-size: .92rem; }
+.fbadge {
+  background: var(--accent);
+  color: #201a0a;
+  border-radius: 10px;
+  font-size: .72rem;
+  font-weight: 700;
+  padding: 1px 8px;
+}
+.fbadge[hidden] { display: none; }
+
+/* AND/OR トグル（項目ごとに1つ。既定はOR） */
+.andor {
+  margin-left: auto;
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.fgroup .andor button {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 700;
+  padding: 6px 11px;
+}
+.fgroup .andor button.on { background: var(--accent); color: #201a0a; }
+
+/* 選択チップ。カード一覧の .chip（別物）と名前が同じため .fgroup で必ず限定する */
+.fgroup .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 12px; }
+.fgroup .chips[hidden] { display: none; }
+.fgroup .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 11px 5px 8px;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  font-size: .85rem;
+}
+.fgroup .chip:hover { border-color: var(--accent); }
+.fgroup .chip.on { border-color: var(--accent); background: rgba(217,164,65,.14); }
+/* min-width:0 は必須。デッキ構築の .search-top input が min-width:180px を掛けるため、
+   これが無いと「見えないが幅180pxの入力欄」が絶対配置で残る（#31） */
+.fgroup .chip input { position: absolute; opacity: 0; width: 0; height: 0; min-width: 0; }
+.fgroup .chip:has(input:focus-visible) { outline: 2px solid var(--accent-2); outline-offset: 1px; }
+.fgroup .chip em { font-style: normal; color: var(--muted); font-size: .72rem; }
+
+/* サブタイプは146種あるため既定は上位20種のみ。残りは「すべて表示」で開く */
+.fgroup .more { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 12px 12px; }
+.fgroup .morebtn {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--accent-2);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: .82rem;
+  cursor: pointer;
+}
+.fgroup .hint { color: var(--muted); font-size: .76rem; }
+
+/* エレメントANDで0件が確定する組み合わせの注意書き */
+.fwarn {
+  margin: 0 12px 12px;
+  padding: 9px 11px;
+  border: 1px solid #6b4a1e;
+  background: rgba(217,164,65,.10);
+  border-radius: 8px;
+  color: #e8cf9a;
+  font-size: .84rem;
+  line-height: 1.6;
+}
+.fwarn[hidden] { display: none; }
+
+/* スマホ：絞り込みグループを開いても各グループは閉じたまま（2段構え）。
+   ページ側がモバイルで掛ける一括指定（font-size:16px・padding:11px）は
+   チップ側では大きすぎるので戻す */
+@media (max-width: 640px) {
+  .fgroup .chips { gap: 5px; }
+  .fgroup .chip { font-size: .8rem; padding: 6px 10px 6px 8px; }
+  .fgroup .andor button { font-size: .78rem; padding: 8px 12px; }
+  .fgroup .morebtn { font-size: .82rem; padding: 7px 12px; }
+}

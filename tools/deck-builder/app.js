@@ -48,10 +48,11 @@ const el = {
   memoStatus: $("memo-status"),
   sName: $("s-name"),
   sText: $("s-text"),
-  sClass: $("s-class"),
-  sElement: $("s-element"),
-  sType: $("s-type"),
-  sSubtype: $("s-subtype"),
+  // 複数選択(AND/OR)の絞り込みグループ。<select> ではなく fillChips() が構築する <details>(#31)
+  sGClass: $("s-g-class"),
+  sGElement: $("s-g-element"),
+  sGType: $("s-g-type"),
+  sGSubtype: $("s-g-subtype"),
   sFormat: $("s-format"),
   sSet: $("s-set"),
   sSort: $("s-sort"),
@@ -60,6 +61,8 @@ const el = {
   sSearch: $("s-search"),
   searchTop: $("search-top"),
   sToggle: $("s-toggle"),
+  sToggleLabel: $("s-toggle-label"),
+  sFilterBadge: $("s-filter-badge"),
   resultModal: $("result-modal"),
   resultTitle: $("result-title"),
   resultCount: $("result-count"),
@@ -438,18 +441,31 @@ function endSave() {
   }
 }
 
-// 読み込み中に前回開いていたデッキの内容が見えないよう、編集ビューを空にする
-// (デッキ一覧・共有閲覧の innerHTML="" と同じ役割)
+// 複数選択(AND/OR)の絞り込みグループ。中身は init() の fillChips() が構築する(#31)
+const filterGroups = () => [el.sGElement, el.sGClass, el.sGType, el.sGSubtype];
+
+// スマホでは絞り込み全体が畳まれるため、畳んだ状態でも選択件数が分かるようトグルへバッジを出す
+function updateFilterBadge() {
+  const n = filterGroups().reduce((sum, g) => sum + g.getValues().length, 0);
+  el.sFilterBadge.hidden = n === 0;
+  el.sFilterBadge.textContent = String(n);
+}
+
 // 検索フォームを初期状態に戻す(リセットボタンとデッキ切替時の両方から使う)
 function resetSearchForm() {
   el.sName.value = "";
   el.sText.value = "";
-  [el.sClass, el.sElement, el.sType, el.sSubtype, el.sFormat, el.sSet].forEach((s) => { s.value = ""; });
+  // 選択チップ・AND/OR・開閉状態をまとめて戻す(#31)
+  filterGroups().forEach((g) => g.reset());
+  [el.sFormat, el.sSet].forEach((s) => { s.value = ""; });
   el.sSort.value = "name";
   el.sOrder.dataset.dir = "ASC";
   el.sOrder.textContent = "▲ 昇順";
+  updateFilterBadge();
 }
 
+// 読み込み中に前回開いていたデッキの内容が見えないよう、編集ビューを空にする
+// (デッキ一覧・共有閲覧の innerHTML="" と同じ役割)
 function clearEditor() {
   clearTimeout(memoTimer); // 前のデッキのメモ自動保存が新しいデッキに書かれるのを防ぐ
   resetSearchForm(); // 前のデッキで入力した検索条件を持ち越さない
@@ -1024,7 +1040,7 @@ function openDetail(slug) {
 const searchCtl = GA_CARD_SEARCH.create({
   els: {
     name: el.sName, text: el.sText,
-    cls: el.sClass, element: el.sElement, type: el.sType, subtype: el.sSubtype,
+    cls: el.sGClass, element: el.sGElement, type: el.sGType, subtype: el.sGSubtype,
     format: el.sFormat, set: el.sSet, sort: el.sSort, order: el.sOrder,
   },
   pageSize: 24,
@@ -1043,10 +1059,8 @@ const searchCtl = GA_CARD_SEARCH.create({
   onResults: (cards, info) => {
     cards.forEach((card) => { cardCache.set(card.slug, Promise.resolve(card)); });
     appendResults(cards);
-    const shown = el.resultGrid.childElementCount;
-    el.resultCount.textContent = shown === 0
-      ? "該当するカードがありません。条件を変えてお試しください。"
-      : `${shown} 件を表示${info.total > shown ? ` / 全 ${info.total} 件` : ""}${info.jpMode ? "（日本語一致・翻訳済みのみ）" : ""}`;
+    updateElementWarn(info);
+    el.resultCount.textContent = searchStatusText(info);
     el.resultMore.hidden = !info.hasMore;
     el.resultMore.disabled = false;
   },
@@ -1057,6 +1071,47 @@ const searchCtl = GA_CARD_SEARCH.create({
 });
 
 function runSearch(reset) { searchCtl.run(reset); }
+
+// エレメントANDで0件が確定する組み合わせの注意書き(#31)。
+// 結果ダイアログが検索フォームを覆うので、文言はダイアログ側(searchStatusText)にも出す。
+// ここではダイアログを閉じたときに原因が分かるよう、グループを開いて警告を残す。
+function updateElementWarn(info) {
+  const warn = el.sGElement.warnEl;
+  if (!warn) return;
+  const blocked = info.blocked === "element-and";
+  warn.hidden = !blocked;
+  if (blocked) {
+    warn.textContent = `⚠️ ${GA_CARD_SEARCH.ELEMENT_AND_MESSAGE}`;
+    el.sGElement.open = true;
+    el.searchTop.classList.add("filters-open"); // スマホでは絞り込み自体が畳まれているため開く
+    el.sToggle.setAttribute("aria-expanded", "true");
+    el.sToggleLabel.textContent = "絞り込み ▲";
+  }
+}
+
+// 結果ダイアログの件数表示。AND指定・日本語モードでは客側で後段フィルタが入るため、
+// 総件数を正確に出せないことがある(#31 変更6)。
+function searchStatusText(info) {
+  const shown = el.resultGrid.childElementCount;
+  if (info.blocked === "element-and") return GA_CARD_SEARCH.ELEMENT_AND_MESSAGE;
+  if (shown === 0) {
+    // AND条件は取得済みのページに対して適用するため、このページに1件も残らないことがある。
+    // 続きのページに該当が残っている場合は「もっと見る」で続けられる
+    if (info.hasMore) return "このページには該当がありませんでした。「もっと見る」で続きを検索できます。";
+    return info.jpMode
+      ? "日本語テキストに一致する翻訳済みカードが見つかりませんでした（未翻訳のカードは日本語検索できません。英語での検索もお試しください）。"
+      : "該当するカードがありません。条件を変えてお試しください。";
+  }
+  const totalPart = !info.approxTotal && info.total > shown ? ` / 全 ${info.total} 件` : "";
+  let suffix = info.jpMode ? "（日本語一致・翻訳済みのみ）" : "";
+  if (info.approxTotal) {
+    // JPモードは索引で取得前に絞るためANDでも件数を出せる。概算になるのは索引が使えないときだけ(#27)
+    suffix += info.jpMode
+      ? "（一部のカードは取得後に判定するため総件数は概算です）"
+      : "（AND条件などは取得済みのページに適用するため、総件数は表示できません）";
+  }
+  return `${shown} 件を表示${totalPart}${suffix}`;
+}
 
 // デッキ全体(全ゾーン)での投入枚数(ダイアログのバッジ用)
 function totalQtyInDeck(slug) {
@@ -1236,11 +1291,12 @@ el.sOrder.addEventListener("click", () => {
   el.sOrder.textContent = next === "ASC" ? "▲ 昇順" : "▼ 降順";
   if (!el.resultModal.hidden) runSearch(true); // ダイアログ表示中なら即再検索
 });
-// スマホでは絞り込みセレクトを折りたたむ(トップページの検索ツールと同じ挙動)
+// スマホでは絞り込みを折りたたむ(トップページの検索ツールと同じ挙動)。
+// 文言はラベル用の子要素に書く — ボタン直下には選択件数バッジも入るため textContent では消えてしまう
 el.sToggle.addEventListener("click", () => {
   const open = el.searchTop.classList.toggle("filters-open");
   el.sToggle.setAttribute("aria-expanded", open ? "true" : "false");
-  el.sToggle.textContent = "絞り込み " + (open ? "▲" : "▾");
+  el.sToggleLabel.textContent = "絞り込み " + (open ? "▲" : "▾");
 });
 el.sReset.addEventListener("click", resetSearchForm);
 
@@ -2179,12 +2235,18 @@ window.addEventListener("hashchange", route);
       if (!el.resultModal.hidden || !el.omniModal.hidden) document.body.style.overflow = "hidden";
     },
   });
-  GA_CARD_SEARCH.fillSelect(el.sClass, "classes");
-  GA_CARD_SEARCH.fillSelect(el.sElement, "elements");
-  GA_CARD_SEARCH.fillSelect(el.sType, "types");
-  GA_CARD_SEARCH.fillSelect(el.sSubtype, "subtypes");
+  // 複数選択(AND/OR)の絞り込みグループ。既定は閉じた状態(開くとチップが50個以上並ぶため)。
+  // サブタイプは146種あるため上位のみ既定表示にする(#31)
+  GA_CARD_SEARCH.fillChips(el.sGElement, "elements", { label: "エレメント", orbs: true });
+  GA_CARD_SEARCH.fillChips(el.sGClass, "classes", { label: "クラス" });
+  GA_CARD_SEARCH.fillChips(el.sGType, "types", { label: "タイプ" });
+  GA_CARD_SEARCH.fillChips(el.sGSubtype, "subtypes", { label: "サブタイプ", top: GA_CARD_SEARCH.SUBTYPE_TOP });
   GA_CARD_SEARCH.fillFormatSelect(el.sFormat);
   GA_CARD_SEARCH.fillSetSelect(el.sSet);
+  // 絞り込みは「🔍 検索」ボタン(とEnter)で走らせる既存挙動を保つ。
+  // チップの変更では再検索せず、畳んだときに見えるバッジだけ更新する
+  filterGroups().forEach((g) => g.onChange(updateFilterBadge));
+  updateFilterBadge();
   // 画面(デッキ一覧・ゾーン)を描く前にカード名の訳を入れる。失敗しても resolve する
   // （fail-open＝英語名で描画されるだけ・#22 R3）
   await namesReady;
