@@ -7,6 +7,7 @@ GitHub issue: [#30](https://github.com/dozyouneko/ga-card-tools-jp/issues/30)(si
 
 | 日付 | 版 | 内容 |
 |---|---|---|
+| 2026-07-27 | 実装レビュー | 開発担当の実装(`497c92dc`)を設計適合レビューし**条件付き承認**。設計担当が**報告値を使わず独立に検算**: 索引は旧版とトークンIDを実文字列に復号して比較し **13,572集合すべて一致(不一致0)**・slug 2262→2262・辞書 233→233(重複なし)・ID範囲外参照0・未ソート配列0(**並びのみ2,521集合で変化**)、sitemap突合はカード2240/2240・大会441/441で**乖離0**、`npm run validate` exit 0、コミット範囲は3ファイルで `CLAUDE.md`・`docs/` の混入なし。**R1(初回差分)は0件**で、CI同等条件(スナップショット退避+API再取得)でも0件だった。⚠️ **初版が見落としていた失敗モードを2件検出し、変更5・変更6として追加**(いずれも「静かに壊れる」経路): (1) 索引の個別取得が1件でも恒久失敗すると `continue-on-error` によりjobは緑のまま**索引が永久凍結**する、(2) `/featured-sets` の取得失敗時の fail-open が、案A適用後は**劣化した57ファイルの自動publish**になる。**pushは2件の修正後にまとめて行う** |
 | 2026-07-27 | 初版 | [build-tournaments.yml](../../../.github/workflows/build-tournaments.yml)・[build-card-pages.mjs](../../../scripts/build-card-pages.mjs)・[gen-card-meta-index.mjs](../../../scripts/gen-card-meta-index.mjs)・[cards-snapshot.mjs](../../../scripts/lib/cards-snapshot.mjs)・[card-search.js](../../../shared/js/card-search.js) を精読して設計。**ユーザー判断(2026-07-27)で #30 は案A(cronで `cards`/`sets` もコミット)を採用**し、#29(索引をcronに載せる)を同じ設計書で扱うことも決定。2件は「cronの `git add` 対象と生成物の決定性」という同一の問題のため統合 |
 
 ## 目的
@@ -150,6 +151,53 @@ cronから呼ぶことになるため、次の2箇所が事実と食い違う:
 (ルート直下のファイルは本番配信されるため、**pushはユーザーの指示待ち**)。
 `gen-card-meta-index.mjs` 冒頭コメントの修正は**実装と同じコミットで開発担当が行う**。
 
+### 変更5(実装レビューで追加・#29): 索引の個別取得を**slug単位で fail-open** にする
+
+[gen-card-meta-index.mjs:85-89](../../../scripts/gen-card-meta-index.mjs#L85) のスナップショット未収録slug(現在22件)の
+個別取得は **try/catch が無く、1件でも落ちるとスクリプト全体が `exit 1`** する。
+変更3の `continue-on-error: true` と組み合わさると、この失敗は次のように**完全に無音**になる:
+
+1. **jobは緑のまま**(`continue-on-error` はstep失敗をjob失敗にしない)
+2. `data/card-meta-index.json` は更新されず、`git add` に差分が出ないのでコミットも通常どおり進む
+3. → **索引だけが更新されなくなったことに誰も気づかない**
+
+一過性の失敗なら翌日回復するが、**恒久的な失敗は永久に回復しない**。恒久化する経路は実在する:
+
+- `data/tl/*.js` に**slugの綴りミス**が入る(翻訳追記時の typo)
+- 公式が**カードのslugを変更・削除**する
+
+⚠️ **`npm run validate` はオフラインの構造検査だけで、slugの実在を検証しない**(確認済み)ため、
+この経路は他のどの検査にも掛からない。**#29 が解こうとしている「索引が黙って腐る」問題を、別の入口から再導入している。**
+
+**変更内容**: 個別取得のループを **slug単位の try/catch にし、失敗したslugはスキップ+ログ出力で続行**する
+(スクリプトは `exit 0` で完走)。索引から漏れたslugは消費側が **fail-open** するため安全
+([card-search.js:396](../../../shared/js/card-search.js#L396) の `if (!entry) return true;`)。
+
+これで `continue-on-error` は「**APIの全面障害だけを受け止める最後の網**」という本来の役回りに戻る
+(全面障害は先行の `build-card-pages.mjs` が `continue-on-error` なしで落ちるため、**大きな音を立てて**job失敗になる)。
+
+### 変更6(実装レビューで追加・#30): `/featured-sets` 取得失敗時に**劣化ページを自動publishしない**
+
+[build-card-pages.mjs:34-48](../../../scripts/build-card-pages.mjs#L34) の `loadFeaturedSets()` は
+**取得失敗をcatchして `[]` を返し続行**する(fail-open)。CIでは `tmp/` が空なので**毎回このfetchが走る**。
+`[]` になったときの出力:
+
+| 影響 | 実体 |
+|---|---|
+| **セットページ56枚** | ロゴ `<img>` が消え、`og:image` が `/ogp.png` にフォールバック([build-card-pages.mjs:397,404](../../../scripts/build-card-pages.mjs#L397)) |
+| **`cards/index.html`** | 全56セットが「その他（プロモ・デモ・イベントパック等）」1グループに潰れる([build-card-pages.mjs:661-670](../../../scripts/build-card-pages.mjs#L661)) |
+
+**#30適用前はこの生成物を捨てていたため無害だった。案A適用後は、この劣化した57ファイルがそのままコミット・pushされ本番公開される**
+(jobは緑・誰もレビューしない)。翌日のcronで自動修復されるが、**最大24時間その状態**になり、履歴にも無意味な往復差分が残る。
+
+**変更内容**: 取得成功時のキャッシュを**リポジトリ管理下**(`data/featured-sets.json`)へ移し、
+**取得失敗時は `[]` ではなくそのコミット済みコピーへフォールバック**する。
+毎回取り直す挙動(新エキスパンショングループの自動反映)は維持され、失敗時だけ「前回の正しい内容」で生成されるため
+**劣化publishが起きない**。両方無い場合のみ現状どおり `[]` で続行する。
+
+⚠️ `data/featured-sets.json` の新規コミットを伴う(公式APIの応答そのもの・小さいJSON)。
+`git add` の対象にも追加すること。
+
 ## 決定性の根拠(実測・2026-07-27)
 
 案Aが「毎日ノイズコミットを生む」ことにならない根拠:
@@ -215,6 +263,8 @@ cronから呼ぶことになるため、次の2箇所が事実と食い違う:
 | **5** | 索引の消費側が壊れないこと | `npm run dev` でトップとデッキ構築を開き、**日本語効果検索×エレメント絞り込み**(#27の再現ケース: 効果「ファンタジア」×WIND=10枚)を実行 | 10枚が1ページ目に出る(#27 の挙動を維持) |
 | **6** | sitemapと実ページの一致 | `sitemap.xml` の `cards/`・`sets/` のURL集合と、`git ls-files 'cards/*/index.html' 'sets/*/index.html'` の集合を突合 | **両方向とも差分0** |
 | **7** | `npm run validate` | そのまま実行 | exit 0 |
+| **11** | **索引のslug単位 fail-open(変更5)** | `data/tl/` に**存在しないslug**を1件だけ足した状態で `node scripts/gen-card-meta-index.mjs` を実行(検証後は戻す) | **exit 0 で完走**。当該slugがスキップされたログが出て、他のslugは通常どおり索引に入る |
+| **12** | **featured-sets のフォールバック(変更6)** | `data/featured-sets.json` がコミット済みの状態で、`/featured-sets` が失敗する状況を再現(URLを不正値に一時変更など)して `npm run build:cards` | セットページのロゴ・`cards/index.html` のグループ分けが**通常時と同一**(`git status --short cards sets` が0行) |
 
 ### CI(workflow_dispatch・push後)
 
@@ -240,7 +290,7 @@ cronから呼ぶことになるため、次の2箇所が事実と食い違う:
 
 ## 担当
 
-- **開発担当**: 変更1〜3、変更4のうち `gen-card-meta-index.mjs` 冒頭コメント。検証項目1〜7(+ユーザー承認後に8〜10)
+- **開発担当**: 変更1〜3、変更4のうち `gen-card-meta-index.mjs` 冒頭コメント(**`497c92dc` で完了**)。**変更5・変更6は実装レビューで追加(未着手)**。検証項目1〜7(**完了**)・11・12(+ユーザー承認後に8〜10)
 - **設計担当**: 変更4のうち `CLAUDE.md`(実装が本番に載ってから。pushはユーザー指示待ち)
 
 ## 関連
