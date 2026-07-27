@@ -7,6 +7,7 @@ GitHub issue: [#30](https://github.com/dozyouneko/ga-card-tools-jp/issues/30)(si
 
 | 日付 | 版 | 内容 |
 |---|---|---|
+| 2026-07-27 | 再レビュー | 指摘2件の修正(`241bb48b`)を検算し**変更5・変更6を承認**。設計担当が独立に確認: 索引の try/catch はループ内側で `exit 1` 経路が消滅、`data/card-meta-index.json` は `497c92dc` から**差分ゼロ**(検証11の一時改変の残留なし)、**コミット済みの `data/featured-sets.json` は公式APIの現物と一致**(`curl` で取得した HTTP 200・8,442バイトと 9グループ・同じ整形でバイト一致)、`npm run validate` exit 0。⚠️ **初版レビューの「57ファイル」は誤り**で、**ロゴを持つセットは35件のみ**のため劣化するのは**36ファイル**(開発担当の実測が正しい。設計担当も `data/featured-sets.json` から検算し一致)。**同種の穴が1つ残っていたため変更7を追加**(HTTP 200 で空応答が返ると catch を通らず、劣化publish+フォールバック破壊が起きる) |
 | 2026-07-27 | 実装レビュー | 開発担当の実装(`497c92dc`)を設計適合レビューし**条件付き承認**。設計担当が**報告値を使わず独立に検算**: 索引は旧版とトークンIDを実文字列に復号して比較し **13,572集合すべて一致(不一致0)**・slug 2262→2262・辞書 233→233(重複なし)・ID範囲外参照0・未ソート配列0(**並びのみ2,521集合で変化**)、sitemap突合はカード2240/2240・大会441/441で**乖離0**、`npm run validate` exit 0、コミット範囲は3ファイルで `CLAUDE.md`・`docs/` の混入なし。**R1(初回差分)は0件**で、CI同等条件(スナップショット退避+API再取得)でも0件だった。⚠️ **初版が見落としていた失敗モードを2件検出し、変更5・変更6として追加**(いずれも「静かに壊れる」経路): (1) 索引の個別取得が1件でも恒久失敗すると `continue-on-error` によりjobは緑のまま**索引が永久凍結**する、(2) `/featured-sets` の取得失敗時の fail-open が、案A適用後は**劣化した57ファイルの自動publish**になる。**pushは2件の修正後にまとめて行う** |
 | 2026-07-27 | 初版 | [build-tournaments.yml](../../../.github/workflows/build-tournaments.yml)・[build-card-pages.mjs](../../../scripts/build-card-pages.mjs)・[gen-card-meta-index.mjs](../../../scripts/gen-card-meta-index.mjs)・[cards-snapshot.mjs](../../../scripts/lib/cards-snapshot.mjs)・[card-search.js](../../../shared/js/card-search.js) を精読して設計。**ユーザー判断(2026-07-27)で #30 は案A(cronで `cards`/`sets` もコミット)を採用**し、#29(索引をcronに載せる)を同じ設計書で扱うことも決定。2件は「cronの `git add` 対象と生成物の決定性」という同一の問題のため統合 |
 
@@ -198,6 +199,31 @@ cronから呼ぶことになるため、次の2箇所が事実と食い違う:
 ⚠️ `data/featured-sets.json` の新規コミットを伴う(公式APIの応答そのもの・小さいJSON)。
 `git add` の対象にも追加すること。
 
+**実測(2026-07-27)**: 劣化するのは **36ファイル**(ロゴを持つ35セットページ + `cards/index.html`)。
+初版レビューの「57ファイル」は「全56セット+索引」の机上計算による誤りで、
+`data/featured-sets.json` は **9グループ・セット合計35・全35にロゴあり**(残り21セットは元から
+「その他」グループでロゴ無しのため出力が変わらない)。
+
+### 変更7(再レビューで追加・#30): **空応答を失敗として扱う**
+
+変更6を入れても、**HTTP 200 で `[]` が返るケースは catch を通らない**ため同じ穴に落ちる
+(上流のデータ移行・部分障害でよくある形):
+
+1. `groups` が `[]` → **変更6で直したはずの劣化publishがそのまま起きる**(36ファイル)
+2. さらに **`data/featured-sets.json` が `[]` で上書きされ、フォールバック自体が壊れる**
+
+**変更内容**: `try` の中で空応答を失敗として扱う。
+
+```js
+const groups = await fetchJson(`${API}/featured-sets`);
+if (!Array.isArray(groups) || !groups.length) throw new Error(`空応答(${JSON.stringify(groups).slice(0, 40)})`);
+```
+
+これで空応答は既存のcatchに落ち、**コミット済みコピーで生成が続き、フォールバックも上書きされない**。
+配列以外(オブジェクト等)が返るケースは後段の `for (const g of featured)`
+([build-card-pages.mjs:661](../../../scripts/build-card-pages.mjs#L661))が例外で落ちて**job失敗になる**ため、
+大きな音が出て問題ない。**この1行で「静かに劣化する」経路はすべて塞がる。**
+
 ## 決定性の根拠(実測・2026-07-27)
 
 案Aが「毎日ノイズコミットを生む」ことにならない根拠:
@@ -265,6 +291,7 @@ cronから呼ぶことになるため、次の2箇所が事実と食い違う:
 | **7** | `npm run validate` | そのまま実行 | exit 0 |
 | **11** | **索引のslug単位 fail-open(変更5)** | `data/tl/` に**存在しないslug**を1件だけ足した状態で `node scripts/gen-card-meta-index.mjs` を実行(検証後は戻す) | **exit 0 で完走**。当該slugがスキップされたログが出て、他のslugは通常どおり索引に入る |
 | **12** | **featured-sets のフォールバック(変更6)** | `data/featured-sets.json` がコミット済みの状態で、`/featured-sets` が失敗する状況を再現(URLを不正値に一時変更など)して `npm run build:cards` | セットページのロゴ・`cards/index.html` のグループ分けが**通常時と同一**(`git status --short cards sets` が0行) |
+| **13** | **空応答の扱い(変更7)** | 検証12のラッパーの戻り値を `[]` にして `npm run build:cards` | 生成物が正常時と同一(`git status --short cards sets` が0行)かつ **`data/featured-sets.json` が上書きされていない** |
 
 ### CI(workflow_dispatch・push後)
 
@@ -290,7 +317,7 @@ cronから呼ぶことになるため、次の2箇所が事実と食い違う:
 
 ## 担当
 
-- **開発担当**: 変更1〜3、変更4のうち `gen-card-meta-index.mjs` 冒頭コメント(**`497c92dc` で完了**)。**変更5・変更6は実装レビューで追加(未着手)**。検証項目1〜7(**完了**)・11・12(+ユーザー承認後に8〜10)
+- **開発担当**: 変更1〜3、変更4のうち `gen-card-meta-index.mjs` 冒頭コメント(**`497c92dc` で完了**)。**変更5・変更6は `241bb48b` で完了(承認済み)**。**変更7は再レビューで追加(未着手)**。検証項目1〜7・11・12(**完了**)・13(+ユーザー承認後に8〜10)
 - **設計担当**: 変更4のうち `CLAUDE.md`(実装が本番に載ってから。pushはユーザー指示待ち)
 
 ## 関連
