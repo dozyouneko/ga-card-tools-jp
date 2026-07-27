@@ -35,6 +35,8 @@ jobs:
       # カードページ・セットページ・sitemap.xml を再生成する(tournaments/ のURLもここで合流)。
       # 生成物はすべて下の git add 対象(#30)。sitemapだけをコミットしていた頃は、
       # 新セット追加日にsitemapが存在しないカードページを指して404になっていた。
+      # data/featured-sets.json は公式APIの応答の保存先で、取得失敗時のフォールバック用
+      # (取得できた日だけ更新される。詳細は build-card-pages.mjs の loadFeaturedSets)。
       - name: カード・セットページと sitemap.xml を再生成
         run: node scripts/build-card-pages.mjs
 
@@ -52,7 +54,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/tournaments tournaments sitemap.xml cards sets data/card-meta-index.json
+          git add data/tournaments tournaments sitemap.xml cards sets data/card-meta-index.json data/featured-sets.json
           if git diff --cached --quiet; then
             echo "更新なし(新しく確定した大会はありませんでした)"
           else

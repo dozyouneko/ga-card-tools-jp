@@ -18,7 +18,8 @@ import { loadPageI18n } from "./lib/page-i18n.mjs";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = "https://ga-card-tools-jp.pages.dev";
 const API = "https://api.gatcg.com";
-const FEATURED = path.join(ROOT, "tmp", "api-cache", "featured-sets.json");
+const FEATURED = path.join(ROOT, "tmp", "api-cache", "featured-sets.json"); // ローカルの一時キャッシュ(git管理外)
+const FEATURED_FALLBACK = path.join(ROOT, "data", "featured-sets.json"); // 取得失敗時のフォールバック(コミットする)
 const REFRESH = process.argv.includes("--refresh");
 
 // ---------- 翻訳・共通ヘルパーの読み込み(ブラウザと同じ順序) ----------
@@ -30,7 +31,13 @@ const esc = CI.escapeHtml;
 // ---------- スナップショット取得 ----------
 // 取得・保存の実体は scripts/lib/cards-snapshot.mjs(build-tournament-pages.mjs と共用)
 
-// エキスパンショングループ(公式ロゴ付き)。--refresh 時またはキャッシュ未生成時に取得
+// エキスパンショングループ(公式ロゴ付き)。--refresh 時またはキャッシュ未生成時に取得。
+//
+// ⚠ 取得に成功した内容は data/featured-sets.json にも保存し、失敗時はそのコミット済みコピーへ
+//   フォールバックする(#30 のレビュー指摘2)。空配列で続行すると logoByPrefix と grouped が
+//   空になり、セットページ56枚からロゴと og:image が消え、cards/index.html の全セットが
+//   「その他」1グループに潰れる。日次cronは tmp/ が無いため毎回この取得を行うので、
+//   一度の失敗がそのまま「劣化した57ファイルの自動publish」になってしまう。
 async function loadFeaturedSets() {
   if (!REFRESH && existsSync(FEATURED)) {
     return JSON.parse(readFileSync(FEATURED, "utf8"));
@@ -39,10 +46,16 @@ async function loadFeaturedSets() {
     const groups = await fetchJson(`${API}/featured-sets`);
     mkdirSync(path.dirname(FEATURED), { recursive: true });
     writeFileSync(FEATURED, JSON.stringify(groups));
+    writeFileSync(FEATURED_FALLBACK, JSON.stringify(groups, null, 2) + "\n");
     process.stderr.write(`エキスパンショングループ取得: ${groups.length}件(公式ロゴ付き)\n`);
     return groups;
   } catch (e) {
-    process.stderr.write(`featured-sets 取得失敗(ロゴなしで続行): ${e.message}\n`);
+    if (existsSync(FEATURED_FALLBACK)) {
+      const groups = JSON.parse(readFileSync(FEATURED_FALLBACK, "utf8"));
+      process.stderr.write(`featured-sets 取得失敗 → ${path.relative(ROOT, FEATURED_FALLBACK)}(コミット済み${groups.length}件)で続行: ${e.message}\n`);
+      return groups;
+    }
+    process.stderr.write(`featured-sets 取得失敗・フォールバックも無し(ロゴなしで続行): ${e.message}\n`);
     return [];
   }
 }

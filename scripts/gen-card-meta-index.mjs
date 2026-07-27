@@ -21,6 +21,8 @@
 // 対象は翻訳済みslugのみ（JP検索の対象がそれだけ）。スナップショット（/cards/search）に
 // 無いフリップ面のslugは /cards/:slug で個別取得する。返るのは表面カードで、実行時の
 // fetchCard(slug) が表面カードを返して matchesActiveFilters を適用する挙動と一致する。
+// 個別取得に失敗したslugは索引から除外して続行する（消費側が fail-open するため安全。
+// ここで exit 1 すると cron 上で索引だけが静かに更新されなくなる。詳細は main() 内のコメント）。
 
 import { writeFileSync } from "node:fs";
 import path from "node:path";
@@ -82,12 +84,30 @@ async function main() {
 
   // スナップショットに無い翻訳済みslug（フリップ面など）を個別取得。
   // 返る表面カードのメタを、そのslugのキーに格納する（実行時の fetchCard と一致）。
+  //
+  // ⚠ 失敗したslugはスキップして続行する（スクリプト全体を exit 1 にしない）。
+  //   ここで落とすと、日次cronは continue-on-error のため job が緑のまま索引だけが
+  //   更新されなくなり、「索引が黙って腐る」状態に誰も気づけない。綴りミスや公式の
+  //   slug変更で恒久的に失敗すると永久に回復しない（#29 のレビュー指摘1）。
+  //   索引から漏れたslugは消費側が fail-open するので安全（card-search.js:396 の
+  //   `if (!entry) return true;` により候補に残り、取得後フィルタで正しく判定される）。
   if (missing.length) {
     log(`スナップショット未収録slug: ${missing.length}件 → /cards/:slug で個別取得`);
+    const failed = [];
     for (const slug of missing) {
-      const c = await fetchJson(`${API}/cards/${encodeURIComponent(slug)}`);
-      meta[slug] = metaOf(c);
-      log(`  ${slug} → ${c.slug}`);
+      try {
+        const c = await fetchJson(`${API}/cards/${encodeURIComponent(slug)}`);
+        meta[slug] = metaOf(c);
+        log(`  ${slug} → ${c.slug}`);
+      } catch (e) {
+        failed.push(slug);
+        log(`  ⚠ ${slug}: 取得失敗のため索引から除外して続行（${e.message}）`);
+      }
+    }
+    if (failed.length) {
+      log(`⚠ 個別取得に失敗: ${failed.length}/${missing.length}件 → ${failed.join(", ")}`);
+      log("  これらのslugは索引に載りません（消費側が fail-open するため検索結果は正しいまま、");
+      log("  取得前の絞り込みが効かず件数が概算になります）。恒久的に失敗する場合は綴り・公式のslug変更を確認してください。");
     }
   }
 
