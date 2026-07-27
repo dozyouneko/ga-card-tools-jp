@@ -28,6 +28,23 @@ const REFRESH = process.argv.includes("--refresh");
 const { I18N, CI } = loadPageI18n(ROOT);
 const esc = CI.escapeHtml;
 
+// ---------- シーズン禁止(#34) ----------
+// 公式APIが持たない情報のため自前JSONを読み、ブラウザと同じ判定(CI.seasonalBanState)を使う。
+//
+// ⚠️ これによりこのスクリプトの出力に「日付依存」が入る。CLAUDE.md の
+//    「出力は決定的でなければならない」に対する **意図的な例外** である(#34 設計書で合意済み):
+//      - 出力が変わるのは effectiveFrom / effectiveTo の境界日だけで、毎日変わるわけではない
+//      - 変わるのも対象カードのページのみ(現行データでは3枚)
+//      - #30 でカードページも日次cronが再生成・コミットするようになったため、
+//        境界日の翌朝までに自動追従する(手動ビルドは不要)
+//    ファイルが無い/壊れている場合は空リストに倒れ、シーズン禁止の段落が出ないだけになる(fail-open)。
+const SEASONAL_FILE = path.join(ROOT, "data", "seasonal-banlist.json");
+try {
+  CI.setSeasonalBanlist(JSON.parse(readFileSync(SEASONAL_FILE, "utf8")));
+} catch (e) {
+  process.stderr.write(`シーズン禁止データを読めませんでした(表示なしで続行): ${e.message}\n`);
+}
+
 // ---------- スナップショット取得 ----------
 // 取得・保存の実体は scripts/lib/cards-snapshot.mjs(build-tournament-pages.mjs と共用)
 
@@ -252,6 +269,14 @@ function formatBanner(card) {
   return "";
 }
 
+// シーズン禁止の予告/禁止バナー(#34)。使用可否バナーとは別のリストなので必ず別段落で出す。
+// 該当なし・失効済みは空文字(＝ページから消える)
+function seasonalBanner(card) {
+  const info = CI.seasonalBanState(card);
+  if (!info) return "";
+  return `<p class="cp-banner cp-banner-season-${info.state}">${esc(CI.seasonalBannerText(info))}</p>`;
+}
+
 function effectSections(face, terms) {
   const enBlock = face.effect
     ? `<section class="cp-block"><h2>効果（英語原文）</h2><p class="cp-effect cp-en">${CI.renderEffect(face.effect, face.name)}</p></section>`
@@ -373,7 +398,7 @@ ${siteHeader()}
     <div class="cp-body">
       <h1>${esc(h1)}${jpNm ? `<span class="cp-en-name">${esc(enName)}</span>` : ""}</h1>
       ${translationBadge(card)}
-      ${formatBanner(card)}
+      ${formatBanner(card)}${seasonalBanner(card)}
       ${infoTable(card)}
       ${effectSections(card, terms)}
       ${flavorBlock}
@@ -507,6 +532,8 @@ h2 { font-size:1.02rem; border-left:3px solid var(--accent); padding-left:10px; 
 .cp-banner-pantheon { background:rgba(124,58,237,.15); border-color:#7c3aed; color:#c4b5fd; }
 .cp-banner-draft { background:rgba(14,116,144,.15); border-color:#0e7490; color:#67e8f9; }
 .cp-banner-standard { background:rgba(180,83,9,.15); border-color:#b45309; color:#fcd34d; }
+.cp-banner-season-announced { background:rgba(161,98,7,.15); border-color:#a16207; color:#fcd34d; }
+.cp-banner-season-active { background:rgba(134,25,143,.15); border-color:#86198f; color:#f0abfc; }
 .cp-terms { list-style:none; padding:0; margin:0; }
 .cp-terms li { padding:7px 0; border-bottom:1px dashed var(--line); }
 .cp-term-jp { display:block; font-weight:700; color:var(--accent-2); }

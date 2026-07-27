@@ -14,6 +14,7 @@ const {
   jpName, imageUrl, backFace, cardImages, label,
   escapeHtml, hasJapanese,
   FORMAT_JP, EXCLUSIVE_FORMAT_INFO, bannedFormats, exclusiveFormat, exclusiveNote,
+  seasonalBanState, seasonalIcon, seasonalTitle, seasonalName,
 } = window.GA_CARD_I18N;
 
 // 訳データ(#22 フェーズ2)。トップページと同じく data/tl/*.js の <script> をやめてJSONを読む。
@@ -22,6 +23,11 @@ const {
 const TL_NAMES_URL = "../../data/tl-names.json";
 const TL_EFFECTS_URL = "../../data/tl-effects.json";
 const namesReady = window.GA_CARD_I18N.loadNames(TL_NAMES_URL);
+
+// シーズン禁止(#34)。公式APIに無い情報なので自前JSONを読む。タイルのアイコンとフォーマット
+// 適合判定の両方が要るため init() で待つ(取得失敗は空リストに倒れる＝既存挙動のまま)
+const SEASONAL_URL = "../../data/seasonal-banlist.json";
+const seasonalReady = window.GA_CARD_I18N.loadSeasonalBanlist(SEASONAL_URL);
 
 const ZONES = ["material", "main", "side", "maybe"];
 const ZONE_LABEL = { material: "マテリアルデッキ", main: "メインデッキ", side: "サイドボード", maybe: "検討中" };
@@ -172,6 +178,12 @@ function formatIconInfo(card) {
   const banned = bannedFormats(card);
   if (banned.length) {
     return { icon: "🚫", title: `${banned.map((f) => FORMAT_JP[f]).join("・")}で使用禁止` };
+  }
+  // シーズン禁止(#34)。タイルのアイコン枠は1つしかないため、恒久禁止・専用フォーマットが
+  // あるときはそちら(より強い制限)を優先し、無いときだけ ⏳/⛔ を出す
+  const season = seasonalBanState(card);
+  if (season) {
+    return { icon: seasonalIcon(season), title: seasonalTitle(season) };
   }
   return null;
 }
@@ -1378,16 +1390,24 @@ function computeDeckStats(cards, bySlug) {
   // フォーマット適合: 禁止カード+枚数制限をFORMAT_RULESに沿って判定する
   const format = {};
   Object.entries(FORMAT_RULES).forEach(([key, rule]) => {
-    const banned = [];   // 禁止カード(判定対象ゾーン内)
+    const banned = [];   // 恒久禁止カード(判定対象ゾーン内)
     const overMain = []; // メインの同名枚数制限超過
     const overMaterial = []; // マテリアルの同名1枚制限超過
+    // シーズン禁止(#34)。恒久禁止とは別のリストなので別カウントにする(合算しない)
+    const seasonalActive = []; // 発効済み＝不適合として扱う
+    const seasonalSoon = [];   // 予告(発効前)＝まだ使えるので不適合にはしない
     perSlug.forEach(({ card, qty }) => {
       const inScope = rule.zones.reduce((s, z) => s + qty[z], 0);
       if (inScope && bannedFormats(card).includes(key)) banned.push({ name: cardNameEJ(card), qty: inScope });
       if (qty.main > rule.mainCopyLimit) overMain.push({ name: cardNameEJ(card), qty: qty.main });
       if (qty.material > 1) overMaterial.push({ name: cardNameEJ(card), qty: qty.material });
+      const season = inScope ? seasonalBanState(card) : null;
+      if (season && season.season.format === key) {
+        const row = { name: cardNameEJ(card), qty: inScope, season: season.season };
+        (season.state === "active" ? seasonalActive : seasonalSoon).push(row);
+      }
     });
-    format[key] = { banned, overMain, overMaterial };
+    format[key] = { banned, overMain, overMaterial, seasonalActive, seasonalSoon };
   });
 
   return { byZone, total, format };
@@ -1474,6 +1494,11 @@ function formatCardHtml(fmt) {
       const n = f.banned.reduce((s, b) => s + b.qty, 0);
       issues.push(`⚠️ 禁止カード ${n}枚 — ${listCardNames(f.banned)}`);
     }
+    // シーズン禁止(#34)は恒久禁止と行を分ける(公式が別のリストと明言しているため合算しない)
+    if (f.seasonalActive.length) {
+      const n = f.seasonalActive.reduce((s, b) => s + b.qty, 0);
+      issues.push(`⚠️ シーズン禁止カード ${n}枚（${escapeHtml(seasonalName(f.seasonalActive[0].season))}） — ${listCardNames(f.seasonalActive)}`);
+    }
     if (f.overMain.length) {
       const limit = FORMAT_RULES[key].mainCopyLimit;
       issues.push(`⚠️ メイン同名${limit}枚制限の超過 ${f.overMain.length}種 — ${listCardNames(f.overMain)}`);
@@ -1481,10 +1506,19 @@ function formatCardHtml(fmt) {
     if (f.overMaterial.length) {
       issues.push(`⚠️ マテリアル同名1枚制限の超過 — ${listCardNames(f.overMaterial)}`);
     }
+    // 予告(発効前)は違反ではないので ✅ 使用可能 を消さず、情報行として必ず見える位置に添える(#34)
+    const notes = [];
+    if (f.seasonalSoon.length) {
+      const n = f.seasonalSoon.reduce((s, b) => s + b.qty, 0);
+      notes.push(`ℹ️ ${escapeHtml(f.seasonalSoon[0].season.effectiveFrom)}からシーズン禁止になるカード ${n}枚 — ${listCardNames(f.seasonalSoon)}`);
+    }
     const body = issues.length
       ? `<span class="fmt-issues">${issues.map((i) => `<span class="fmt-ng">${i}</span>`).join("")}</span>`
       : `<span class="fmt-ok">✅ 使用可能</span>`;
-    return `<div class="fmt-row"><span class="fmt-name">${name}</span>${body}</div>`;
+    const noteHtml = notes.length
+      ? `<span class="fmt-notes">${notes.map((i) => `<span class="fmt-info">${i}</span>`).join("")}</span>`
+      : "";
+    return `<div class="fmt-row"><span class="fmt-name">${name}</span>${body}${noteHtml}</div>`;
   };
   return `<div class="stat-card"><h3>フォーマット適合 <span class="cnt">スタンダード=メイン+マテリアル+サイド／パンテオン=メイン+マテリアルで判定</span></h3>`
     + rowFor("STANDARD") + rowFor("PANTHEON")
@@ -1504,9 +1538,12 @@ function statsHtml(cards, bySlug) {
   const std = stats.format.STANDARD;
   const stdBannedN = std.banned.reduce((s, b) => s + b.qty, 0);
   const stdOverN = std.overMain.length + std.overMaterial.length;
-  if (stdBannedN || stdOverN) {
+  // シーズン禁止は発効後(active)だけ不適合の理由に加える。予告(announced)は違反ではないためバナーを出さない(#34)
+  const stdSeasonN = std.seasonalActive.reduce((s, b) => s + b.qty, 0);
+  if (stdBannedN || stdOverN || stdSeasonN) {
     const reasons = [];
     if (stdBannedN) reasons.push(`禁止カード ${stdBannedN}枚`);
+    if (stdSeasonN) reasons.push(`シーズン禁止カード ${stdSeasonN}枚`);
     if (stdOverN) reasons.push(`枚数制限の超過 ${stdOverN}種`);
     parts.push(`<div class="warn-banner"><span class="fmt-ng">⚠️ スタンダードで使用できない構成です（${reasons.join("・")}）</span>`
       + ` <span class="warn-hint">（詳細は最下部の「フォーマット適合」へ）</span></div>`);
@@ -2231,6 +2268,7 @@ window.addEventListener("hashchange", route);
     fetchCard: getCard,
     namesUrl: TL_NAMES_URL,
     effectsUrl: TL_EFFECTS_URL, // 日本語の効果・フレーバーはダイアログを開くときに取得する(#22)
+    seasonalUrl: SEASONAL_URL, // シーズン禁止(#34)。init() で取得済みのためここでは待たずに解決する
     onAfterClose: () => {
       if (!el.resultModal.hidden || !el.omniModal.hidden) document.body.style.overflow = "hidden";
     },
@@ -2250,6 +2288,7 @@ window.addEventListener("hashchange", route);
   // 画面(デッキ一覧・ゾーン)を描く前にカード名の訳を入れる。失敗しても resolve する
   // （fail-open＝英語名で描画されるだけ・#22 R3）
   await namesReady;
+  await seasonalReady; // シーズン禁止(#34)。タイル・フォーマット適合の描画前に確定させる
   try {
     const data = await api("/api/me");
     me = data.user;

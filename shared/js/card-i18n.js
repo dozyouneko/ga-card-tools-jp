@@ -211,6 +211,97 @@ window.GA_CARD_I18N = (() => {
     return "";
   }
 
+  // ---------- シーズン禁止（Seasonal Banlist・#34）----------
+  // 公式APIは季節禁止を持たない（legality は恒久禁止だけ・/formats や /banlist は404）ため、
+  // data/seasonal-banlist.json を自前で持ち、ここ1箇所で判定する（ブラウザ5面＋ビルドが共用）。
+  // ⚠️ 恒久禁止（bannedFormats）とは公式が明言する「別のリスト」。混ぜない・合算しない。
+  // データが無い／読めないときは全カードで null を返す＝表示も判定も消える（fail-open＝ロールバック手段）。
+
+  let seasonal = { seasons: [] };
+
+  // 「今日」をJSTの暦日（YYYY-MM-DD）で得る。以降は文字列の辞書順比較だけで判定し、
+  // Date のパースを挟まない。new Date() はブラウザのローカルTZ・CIはUTCで動くため、
+  // 素直に日付計算すると環境で境界がずれる（日次cronは 03:00 JST ＝ 前日 18:00 UTC）。
+  function todayJst() {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo" }).format(new Date());
+  }
+
+  // 境界日の切り替わりを確認するためのテスト用シーム（検証2・5）。null で解除＝本番の挙動に戻る。
+  let todayOverride = null;
+  function setTodayForTest(ymd) { todayOverride = ymd || null; }
+  function today() { return todayOverride || todayJst(); }
+
+  // 読み込んだJSONを保持する。不正・欠損は空リストに倒す
+  function setSeasonalBanlist(data) {
+    seasonal = data && Array.isArray(data.seasons) ? { seasons: data.seasons } : { seasons: [] };
+    return seasonal;
+  }
+
+  // ブラウザ用。Promise をメモ化して再利用する（loadNames / metaIndex と同じ方式）。
+  // ⚠️ 呼び出し側は検索結果を描画する前にこの Promise を await すること（バッジの出し漏れ防止）。
+  let seasonalPromise = null;
+  function loadSeasonalBanlist(url) {
+    if (seasonalPromise) return seasonalPromise;
+    seasonalPromise = (url ? fetchJson(url) : Promise.resolve(null)).then((json) => setSeasonalBanlist(json));
+    return seasonalPromise;
+  }
+
+  // カードの季節禁止の状態。該当なし・失効済みは null（＝どこにも表示しない）。
+  //   announced … today < effectiveFrom（予告。まだ使える）
+  //   active    … effectiveFrom <= today かつ（effectiveTo が null または today <= effectiveTo）
+  // effectiveTo: null は「終了日未定＝まだ有効」の意味（次シーズン告知時に埋める運用）。
+  function seasonalBanState(card, todayYmd) {
+    const slug = card && card.slug;
+    if (!slug) return null;
+    const d = todayYmd || today();
+    for (const s of seasonal.seasons) {
+      if (!s || !s.effectiveFrom || !Array.isArray(s.slugs) || !s.slugs.includes(slug)) continue;
+      if (s.effectiveTo && d > s.effectiveTo) continue; // シーズン終了で自動失効（過去シーズンは残しておいてよい）
+      return { state: d < s.effectiveFrom ? "announced" : "active", season: s };
+    }
+    return null;
+  }
+
+  // ---- 文言（5面で同じ表現を使う）----
+  const SEASONAL_ICON = { announced: "⏳", active: "⛔" };
+  const seasonalIcon = (info) => SEASONAL_ICON[info.state];
+  const seasonalName = (season) => season.nameJp || season.name || season.id || "";
+  const seasonalFormatJp = (season) => FORMAT_JP[season.format] || season.format || "";
+  // "2026-08-21" → "8/21"（バッジは幅が限られるため月日だけにする。正確な日付は title に入る）
+  function monthDay(ymd) {
+    const p = String(ymd).split("-");
+    return p.length === 3 ? `${Number(p[1])}/${Number(p[2])}` : String(ymd);
+  }
+
+  // バッジ本文（アイコン込み）
+  function seasonalText(info) {
+    return info.state === "announced"
+      ? `${SEASONAL_ICON.announced} ${monthDay(info.season.effectiveFrom)}〜禁止`
+      : `${SEASONAL_ICON.active} シーズン禁止`;
+  }
+  // ツールチップ（バッジ・デッキ構築のタイルアイコン）
+  function seasonalTitle(info) {
+    const s = info.season;
+    return info.state === "announced"
+      ? `${s.effectiveFrom}から${seasonalName(s)}のシーズン禁止カードになります（${seasonalFormatJp(s)}）`
+      : `${seasonalName(s)}のシーズン禁止カード（${seasonalFormatJp(s)}・${s.effectiveFrom}〜）。恒久的な禁止とは別のリストです`;
+  }
+  // 1行バナー（詳細モーダル・カード個別ページ）
+  function seasonalBannerText(info) {
+    const s = info.season;
+    return info.state === "announced"
+      ? `${SEASONAL_ICON.announced} ${s.effectiveFrom}から${seasonalName(s)}のシーズン禁止カードになります（${seasonalFormatJp(s)}）。恒久的な禁止とは別のリストです`
+      : `${SEASONAL_ICON.active} ${seasonalName(s)}のシーズン禁止カード（${seasonalFormatJp(s)}・${s.effectiveFrom}〜）。恒久的な禁止とは別のリストです`;
+  }
+
+  // 検索結果カードの季節禁止バッジ。該当なしは空文字。
+  // ⚠️ 恒久禁止の 🚫（.badges-bl＝左下）とは位置も色も分ける。別概念であることを見た目で伝えるため。
+  function seasonalBadgeHtml(card, todayYmd) {
+    const info = seasonalBanState(card, todayYmd);
+    if (!info) return "";
+    return `<span class="season-badge season-${info.state}" title="${escapeHtml(seasonalTitle(info))}">${escapeHtml(seasonalText(info))}</span>`;
+  }
+
   // ---------- 両面（flip）カード ----------
   // 公式APIは常に「表面」のカードを返し、裏面は edition.other_orientations[0] に格納する。
   // 画像は other_orientations[0].edition.image、裏面は独自の slug/name/effect を持つ。
@@ -252,6 +343,8 @@ window.GA_CARD_I18N = (() => {
     firstEdition, imageUrl, cardImages, rarityCode, speedLabel,
     ALL_FORMATS, FORMAT_JP, FORMAT_SHORT, EXCLUSIVE_FORMAT_INFO,
     bannedFormats, legalFormats, exclusiveFormat, exclusiveNote, formatBadgeHtml,
+    todayJst, setTodayForTest, setSeasonalBanlist, loadSeasonalBanlist, seasonalBanState,
+    seasonalIcon, seasonalName, seasonalText, seasonalTitle, seasonalBannerText, seasonalBadgeHtml,
     flipEdition, backFace,
   };
 })();

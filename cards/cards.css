@@ -41,6 +41,8 @@ h2 { font-size:1.02rem; border-left:3px solid var(--accent); padding-left:10px; 
 .cp-banner-pantheon { background:rgba(124,58,237,.15); border-color:#7c3aed; color:#c4b5fd; }
 .cp-banner-draft { background:rgba(14,116,144,.15); border-color:#0e7490; color:#67e8f9; }
 .cp-banner-standard { background:rgba(180,83,9,.15); border-color:#b45309; color:#fcd34d; }
+.cp-banner-season-announced { background:rgba(161,98,7,.15); border-color:#a16207; color:#fcd34d; }
+.cp-banner-season-active { background:rgba(134,25,143,.15); border-color:#86198f; color:#f0abfc; }
 .cp-terms { list-style:none; padding:0; margin:0; }
 .cp-terms li { padding:7px 0; border-bottom:1px dashed var(--line); }
 .cp-term-jp { display:block; font-weight:700; color:var(--accent-2); }

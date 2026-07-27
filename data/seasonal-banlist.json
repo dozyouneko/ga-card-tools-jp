@@ -1,0 +1,20 @@
+{
+  "_comment": "シーズン禁止（Seasonal Banlist・#34）。公式APIが持たない情報のため自前で管理する。恒久禁止（B&R）とは別物なので混ぜないこと。更新手順: 新シーズンを seasons に1ブロック追記し、同時に前シーズンの effectiveTo（＝新シーズン開始日の前日）を埋める。ロールバックは seasons を [] にするだけでよい。",
+  "seasons": [
+    {
+      "id": "PRD",
+      "name": ".asphodel/paradise",
+      "nameJp": "PRDシーズン",
+      "format": "STANDARD",
+      "announcedAt": "2026-07-25",
+      "effectiveFrom": "2026-08-21",
+      "effectiveTo": null,
+      "sourceUrl": "https://www.gatcg.com/article/introducing-seasonal-banlists",
+      "slugs": [
+        "baleful-oblation",
+        "fabled-azurite-fatestone",
+        "spirit-blade-ascension"
+      ]
+    }
+  ]
+}

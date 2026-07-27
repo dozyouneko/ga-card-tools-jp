@@ -9,6 +9,7 @@
  *     fetchCard(slug),          // openBySlug用のカード取得(省略時は公式APIをfetch)
  *     namesUrl, effectsUrl,     // 訳データJSONのURL(#22)。open()の前に取得を待ち合わせる。
  *                               // 省略したページは、そのページが自前で読み込んだ訳だけを使う
+ *     seasonalUrl,              // シーズン禁止JSONのURL(#34)。省略するとシーズン禁止の行は出ない
  *     preferredArtIndex(imgs),  // 初期表示するイラスト番号(省略時は0)
  *     action: { label(card), disabled(card), onClick(card) }, // 右下のアクションボタン(省略可)
  *     backAction: { label(back), disabled(back), onClick(back) }, // 両面カードの裏面用アクション(省略可)
@@ -26,6 +27,7 @@ window.GA_CARD_DETAIL = (() => {
     cardImages, rarityCode, speedLabel,
     FORMAT_JP, EXCLUSIVE_FORMAT_INFO, bannedFormats, exclusiveFormat, exclusiveNote,
     backFace, loadNames, loadEffects,
+    loadSeasonalBanlist, seasonalBanState, seasonalBannerText,
   } = window.GA_CARD_I18N;
   const I18N = window.GA_I18N || { meta: {}, terms: {}, cards: {} };
 
@@ -147,6 +149,7 @@ window.GA_CARD_DETAIL = (() => {
     const waits = [];
     if (opts.namesUrl) waits.push(loadNames(opts.namesUrl));
     if (opts.effectsUrl) waits.push(loadEffects(opts.effectsUrl));
+    if (opts.seasonalUrl) waits.push(loadSeasonalBanlist(opts.seasonalUrl)); // シーズン禁止(#34)
     if (waits.length) {
       await Promise.all(waits);
       if (mySeq !== openSeq) return; // 取得中に別のカードが開かれたら、そちらに任せる
@@ -209,6 +212,14 @@ window.GA_CARD_DETAIL = (() => {
       bannedEl.className = "banned-banner";
       bannedEl.hidden = true;
     }
+
+    // シーズン禁止(#34)。恒久禁止・専用フォーマットとは公式が明言する別のリストなので、
+    // 上のバナーに混ぜず必ず別行で出す
+    const seasonInfo = seasonalBanState(card);
+    const seasonEl = $("d-season-ban");
+    seasonEl.textContent = seasonInfo ? seasonalBannerText(seasonInfo) : "";
+    seasonEl.className = `banned-banner${seasonInfo ? ` season-banner-${seasonInfo.state}` : ""}`;
+    seasonEl.hidden = !seasonInfo;
 
     $("d-meta").innerHTML = metaHtml(card);
 
@@ -363,6 +374,7 @@ window.GA_CARD_DETAIL = (() => {
         <h2 id="d-name"></h2>
         <p id="d-name-en" class="name-en"></p>
         <p id="d-banned" class="banned-banner" hidden></p>
+        <p id="d-season-ban" class="banned-banner" hidden></p>
         <dl id="d-meta" class="meta"></dl>
 
         <section class="effect-block">

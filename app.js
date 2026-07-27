@@ -36,7 +36,7 @@ const el = {
 const {
   tr, jpName, firstEdition, imageUrl, flipEdition, backFace,
   escapeHtml, hasJapanese, renderEffect, label, isTranslated, translationsReady,
-  cardImages, rarityCode, speedLabel, formatBadgeHtml,
+  cardImages, rarityCode, speedLabel, formatBadgeHtml, seasonalBadgeHtml,
 } = window.GA_CARD_I18N;
 
 // クエリ構築・日本語ローカル検索・ページング・setPrefixes は shared/js/card-search.js に共通化
@@ -48,6 +48,12 @@ const { setPrefixes } = window.GA_CARD_SEARCH;
 const TL_NAMES_URL = "data/tl-names.json";
 const TL_EFFECTS_URL = "data/tl-effects.json";
 const namesReady = window.GA_CARD_I18N.loadNames(TL_NAMES_URL);
+
+// シーズン禁止(#34)。公式APIに無い情報なので自前JSONを読む。300バイト程度なので
+// 初期表示の前に待ち合わせる(バッジが「たまに出ない」状態を作らないため)。
+// 取得失敗は空リストに倒れる＝バッジが出ないだけで既存表示は無傷(fail-open)
+const SEASONAL_URL = "data/seasonal-banlist.json";
+const seasonalReady = window.GA_CARD_I18N.loadSeasonalBanlist(SEASONAL_URL);
 
 // ---------- ユーティリティ ----------
 // escapeHtml / renderEffect / isTranslated / label / rarityCode / フォーマット判定 /
@@ -194,7 +200,10 @@ function appendGrid(cards) {
           ${back ? `<button class="flip-badge" type="button" title="両面カード：表裏を切り替え" aria-label="裏面を表示">🔄 両面</button>` : ""}
         </div>
         ${imgs.length > 1 ? `<button class="art-badge" type="button" title="イラスト/版を切り替え（${imgs.length}種）" aria-label="イラストを切り替え">🎨 ${imgs.length}・${escapeHtml(imgs[initialAi].prefix)}</button>` : ""}
-        ${img ? `<button class="card-add" type="button" title="印刷リストに追加" aria-label="印刷リストに追加">＋🖨️</button>` : ""}
+        <div class="badges-tr">
+          ${img ? `<button class="card-add" type="button" title="印刷リストに追加" aria-label="印刷リストに追加">＋🖨️</button>` : ""}
+          ${seasonalBadgeHtml(card)}
+        </div>
       </div>
       <div class="card-body">
         <p class="card-name">${showUntranslated ? `<span class="badge-untranslated">未翻訳</span>` : ""}${escapeHtml(jpName(card))}</p>
@@ -587,6 +596,7 @@ function init() {
     preferredArtIndex,
     namesUrl: TL_NAMES_URL,
     effectsUrl: TL_EFFECTS_URL, // 日本語の効果・フレーバーはダイアログを開くときに取得する(#22)
+    seasonalUrl: SEASONAL_URL, // シーズン禁止(#34)。初期表示で取得済みのためここでは待たずに解決する
     action: {
       label: (card) => (imageUrl(card) ? "🖨️ 印刷リストに追加" : "画像がないため追加できません"),
       disabled: (card) => !imageUrl(card),
@@ -645,8 +655,9 @@ function init() {
   updatePrintBar(); // localStorage から復元
 
   // 名前の訳が入る前に描画すると英語名のグリッドが一瞬出るため、初期表示だけは取得を待つ。
+  // シーズン禁止(#34)のバッジも描画時に要るので同じ便で待つ（描画とのレースを作らない）。
   // 取得失敗時も resolve する（fail-open＝英語名で描画されるだけ・#22 R3）
-  namesReady.then(() => {
+  Promise.all([namesReady, seasonalReady]).then(() => {
     runSearch(true); // 初期表示（名前順の先頭ページ）
     handleHash(); // 共有リンク（#card/<slug>）で開かれた場合は該当カードを表示
   });

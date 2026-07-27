@@ -164,6 +164,7 @@
   GA_CARD_DETAIL.init({
     namesUrl: "/data/tl-names.json",
     effectsUrl: "/data/tl-effects.json",
+    seasonalUrl: "/data/seasonal-banlist.json", // シーズン禁止(#34)。ダイアログを開くときに取得する
     onAfterClose: () => { if (!modal.hidden) document.body.style.overflow = "hidden"; },
   });
   // ---- カードタイル。1ダイアログに数百個並びうるため個別登録せず文書単位で委譲する ----

@@ -66,6 +66,9 @@
 .gacd-modal .format-banner-pantheon { background: rgba(124, 58, 237, .15); border-color: #7c3aed; color: #c4b5fd; }
 .gacd-modal .format-banner-draft    { background: rgba(14, 116, 144, .15); border-color: #0e7490; color: #67e8f9; }
 .gacd-modal .format-banner-standard { background: rgba(180, 83, 9, .15); border-color: #b45309; color: #fcd34d; }
+/* シーズン禁止(#34)。恒久禁止の赤とは別系統の色で「別のリスト」であることを示す */
+.gacd-modal .season-banner-announced { background: rgba(161, 98, 7, .15); border-color: #a16207; color: #fcd34d; }
+.gacd-modal .season-banner-active    { background: rgba(134, 25, 143, .15); border-color: #86198f; color: #f0abfc; }
 
 .gacd-modal .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 18px; margin: 0 0 16px; }
 .gacd-modal .meta-row { display: flex; gap: 8px; border-bottom: 1px dashed var(--border, #2a2f3a); padding: 4px 0; }
