@@ -35,15 +35,18 @@ const esc = CI.escapeHtml;
 //
 // ⚠ 取得に成功した内容は data/featured-sets.json にも保存し、失敗時はそのコミット済みコピーへ
 //   フォールバックする(#30 のレビュー指摘2)。空配列で続行すると logoByPrefix と grouped が
-//   空になり、セットページ56枚からロゴと og:image が消え、cards/index.html の全セットが
-//   「その他」1グループに潰れる。日次cronは tmp/ が無いため毎回この取得を行うので、
-//   一度の失敗がそのまま「劣化した57ファイルの自動publish」になってしまう。
+//   空になり、ロゴを持つセットページ35枚からロゴと og:image が消え、cards/index.html の
+//   グループ見出しが10個から「その他」1個に潰れる(実測36ファイル)。日次cronは tmp/ が
+//   無いため毎回この取得を行うので、一度の失敗がそのまま劣化ページの自動publishになる。
 async function loadFeaturedSets() {
   if (!REFRESH && existsSync(FEATURED)) {
     return JSON.parse(readFileSync(FEATURED, "utf8"));
   }
   try {
     const groups = await fetchJson(`${API}/featured-sets`);
+    // HTTP 200 の空応答も失敗として扱う。これを通すと [] のまま生成が進んで劣化publishになり、
+    // さらにフォールバック自体が [] で上書きされて壊れる(catchを通らない同じ穴)。
+    if (!Array.isArray(groups) || !groups.length) throw new Error(`空応答(${JSON.stringify(groups).slice(0, 40)})`);
     mkdirSync(path.dirname(FEATURED), { recursive: true });
     writeFileSync(FEATURED, JSON.stringify(groups));
     writeFileSync(FEATURED_FALLBACK, JSON.stringify(groups, null, 2) + "\n");
