@@ -32,16 +32,27 @@ jobs:
       - name: 大会データをスキャンしてページ生成
         run: node scripts/build-tournament-pages.mjs
 
-      # sitemap.xml は build-card-pages.mjs 側が生成する(tournaments/ のURLもここで合流)。
-      # cards/・sets/ の再生成物は下の git add 対象外なので、コミットには含めない。
-      - name: sitemap.xml を再生成
+      # カードページ・セットページ・sitemap.xml を再生成する(tournaments/ のURLもここで合流)。
+      # 生成物はすべて下の git add 対象(#30)。sitemapだけをコミットしていた頃は、
+      # 新セット追加日にsitemapが存在しないカードページを指して404になっていた。
+      - name: カード・セットページと sitemap.xml を再生成
         run: node scripts/build-card-pages.mjs
+
+      # 日本語検索の取得前フィルタ用メタ索引(#29)。禁止改定・再録で索引が腐ると
+      # 該当カードが黙って候補から落ちるため、日次で鮮度を回復させる。
+      # 先行ステップが取得済みのスナップショット(tmp/)に相乗りするので追加は22リクエストのみ。
+      # ⚠ continue-on-error は必須。この生成は個別APIリクエストを伴い1件でも落ちると exit 1 するため、
+      #   job失敗にすると後段のコミットステップに到達せずその日の大会データごと巻き添えで失われる。
+      #   失敗した日は索引が更新されないだけ(差分が出ないのでコミットは通常どおり進む)で、翌日回復する。
+      - name: 日本語検索メタ索引を再生成
+        run: node scripts/gen-card-meta-index.mjs
+        continue-on-error: true
 
       - name: 変更があればコミット・push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/tournaments tournaments sitemap.xml
+          git add data/tournaments tournaments sitemap.xml cards sets data/card-meta-index.json
           if git diff --cached --quiet; then
             echo "更新なし(新しく確定した大会はありませんでした)"
           else

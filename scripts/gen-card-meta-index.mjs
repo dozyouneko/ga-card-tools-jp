@@ -8,12 +8,14 @@
 // （索引が古くても誤結果は出ない設計）。詳細は
 // docs/design/27-JP検索の絞り込み埋もれ/JP検索の絞り込み埋もれ_設計.md を参照。
 //
-// ⚠ このスクリプトは手動実行専用（新カードを翻訳したら再生成する）。
-//    gen-element-orbs.mjs と同じ扱いで、日次cron（build-tournaments.yml）から呼んではいけない。
-//    索引が古くてもフォールバック（取得後フィルタ）で結果は正しいままなので、鮮度の自動化は不要。
+// 日次cron（build-tournaments.yml）が毎日実行する（#29）。禁止改定・再録で索引の
+// bannedFormats / setPrefixes が腐ると、該当カードが取得前フィルタで黙って候補から落ちるため、
+// 鮮度を24時間以内に回復させる。手動実行は「訳を追記して即日反映したいとき」の任意手段。
+// ⚠ 出力は決定的でなければならない（中身が変わらない日に差分が出るとcronが毎日ノイズコミットする）。
+//    タイムスタンプを入れず、列挙値はソートしてからトークン化すること。
 //
 // 形式（トークン辞書 + ID配列。生の列挙値をそのまま持つとサイズが倍近くなるため辞書化）:
-//   { generated_at, d: [token,...], m: { slug: [[c],[e],[t],[s],[p],[b]] } }
+//   { d: [token,...], m: { slug: [[c],[e],[t],[s],[p],[b]] } }
 //   各配列は d のインデックス。順序は classes / elements / types / subtypes / setPrefixes / bannedFormats で固定。
 //
 // 対象は翻訳済みslugのみ（JP検索の対象がそれだけ）。スナップショット（/cards/search）に
@@ -37,18 +39,24 @@ const log = (s) => process.stderr.write(s + "\n");
 
 // カード（スナップショット or /cards/:slug の応答）から絞り込みに使うメタ情報を取り出す。
 // matchesActiveFilters（card-search.js:432）が参照するフィールドと同じものだけを拾う。
+//
+// 各配列はソートして返す（#29）。公式APIが classes / elements / editions を返す順序に
+// 保証がなく、順序が変わるだけで辞書のトークンID採番がずれて全ファイル差分になるため。
+// 読み手（card-search.js:403-415）は includes() の集合判定なので順序は意味を持たない。
+const sorted = (a) => [...a].sort();
+
 function metaOf(card) {
   const eds = card.editions || card.result_editions || [];
   const prefixes = [...new Set(eds.map((e) => e.set && e.set.prefix).filter(Boolean))];
   const leg = card.legality || {};
   const banned = ALL_FORMATS.filter((f) => leg[f] && leg[f].limit === 0);
   return {
-    classes: card.classes || [],
-    elements: card.elements || [],
-    types: card.types || [],
-    subtypes: card.subtypes || [],
-    prefixes,
-    banned,
+    classes: sorted(card.classes || []),
+    elements: sorted(card.elements || []),
+    types: sorted(card.types || []),
+    subtypes: sorted(card.subtypes || []),
+    prefixes: sorted(prefixes),
+    banned: sorted(banned),
   };
 }
 
@@ -103,7 +111,7 @@ async function main() {
     ];
   }
 
-  const json = JSON.stringify({ generated_at: new Date().toISOString(), d, m });
+  const json = JSON.stringify({ d, m });
   writeFileSync(OUT, json + "\n");
   log(`\n生成: ${Object.keys(m).length}slug / 辞書${d.length}トークン / ${(json.length / 1024).toFixed(1)}KB → ${path.relative(ROOT, OUT)}`);
 }
