@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>バッジ位置の統一 画面モック（#35）</title>
+<!--
+  issue#35 のモック。禁止・シーズン禁止バッジの位置を「カード画像の左下に縦積み」で
+  カードDB／デッキ構築の両画面に統一する案。
+  - カード画像・メタ情報は公式API実測（2026-07-27取得）。表示にはネットワーク接続が要る
+  - 寸法・色は実物のCSSから写している:
+      style.css（.card / .badges-bl / .format-badge / .season-badge）
+      tools/deck-builder/style.css（.resultgrid=minmax(170px) / .zone-grid=minmax(124px) /
+        .fmt-icon=top6,left6 / .qty-badge=top8,right8 / .pt-tag=top34,right8 /
+        .ctrl-strip=下辺全幅・スマホ(≤860px)では常時表示 / .in-deck / .flip-badge / .art-badge）
+-->
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel-2: #1f232c; --border: #2a2f3a;
+    --text: #e7e9ee; --muted: #9aa2b1; --accent: #d9a441; --accent-2: #6ea8fe; --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.6;
+    font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 20px 20px 80px; }
+  h1 { font-size: 1.3rem; margin: 0 0 4px; }
+  h2 { font-size: 1.05rem; margin: 36px 0 6px; border-left: 3px solid var(--accent); padding-left: 10px; }
+  h3 { font-size: .88rem; margin: 16px 0 8px; color: var(--muted); font-weight: 700; }
+  p.lead { color: var(--muted); margin: 0 0 16px; font-size: .9rem; }
+  .note { background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--accent-2);
+    border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: .86rem; }
+  .note.warn { border-left-color: #e0703a; }
+  .note.ok { border-left-color: #2f9e6b; }
+  .note b { color: var(--accent); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+  .col > h4 { margin: 0 0 8px; font-size: .82rem; letter-spacing: .04em; }
+  .col.before > h4 { color: #fca5a5; }
+  .col.after  > h4 { color: #86efac; }
+
+  /* ===== カードDB（トップ）の検索結果 ===== */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .card-img { position: relative; }
+  .card-img img { width: 100%; display: block; aspect-ratio: 63/88; object-fit: cover; background: #0b0d11; }
+  .card-body { padding: 10px 12px 14px; }
+  .card-name { margin: 0; font-weight: 700; font-size: .95rem; }
+  .card-name-en { margin: 2px 0 0; color: var(--muted); font-size: .76rem; }
+
+  .badges-bl { position: absolute; left: 8px; bottom: 8px; display: flex; flex-direction: column-reverse;
+    align-items: flex-start; gap: 6px; }
+  .badges-tr { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column;
+    align-items: flex-end; gap: 6px; }
+  .format-badge { font-size: .7rem; padding: 2px 8px; border-radius: 999px; color: #fff; font-weight: 700; }
+  .format-banned { background: #b91c1c; } .format-draft { background: #0e7490; }
+  .season-badge { font-size: .68rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; color: #fff;
+    border: 1px solid rgba(255,255,255,.5); box-shadow: 0 1px 4px rgba(0,0,0,.6); white-space: nowrap; }
+  .season-announced { background: #a16207; }
+  .flip-badge { border: none; border-radius: 999px; background: rgba(15,17,21,.82); color: #fff;
+    font-size: .7rem; line-height: 1; font-weight: 700; padding: 4px 8px; }
+  .art-badge { position: absolute; right: 8px; bottom: 8px; border: none; border-radius: 8px;
+    background: rgba(15,17,21,.82); color: #fff; font-size: .72rem; padding: 4px 8px; }
+  .card-add { border: none; border-radius: 8px; background: rgba(15,17,21,.78); color: #fff;
+    font-size: .8rem; padding: 6px 8px; }
+  .hover-on .card-add { outline: 1px dashed var(--accent-2); }
+
+  /* ===== デッキ構築 検索結果（.resultgrid=minmax(170px)） ===== */
+  .resultgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; }
+  .result .cardph { position: relative; border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--border); background: var(--panel-2); }
+  .result .cardph img { width: 100%; aspect-ratio: 63/88; object-fit: cover; display: block; background: #0b0d11; }
+  .rname { margin: 6px 0 0; font-size: .8rem; font-weight: 700; }
+  .rname span { display: block; color: var(--muted); font-weight: 400; font-size: .72rem; }
+  .in-deck { position: absolute; top: 8px; right: 8px; background: var(--accent); color: #201a0a;
+    font-size: .68rem; font-weight: 800; border-radius: 999px; padding: 2px 8px; }
+  .fmt-icon { position: absolute; background: rgba(8,9,12,.92); border: 1px solid rgba(255,255,255,.5);
+    font-size: .95rem; line-height: 1; border-radius: 8px; padding: 4px 5px; box-shadow: 0 1px 4px rgba(0,0,0,.6); }
+  .fmt-icon.at-tl { top: 6px; left: 6px; }          /* 現状 */
+  .fmt-icon.at-bl { left: 6px; bottom: 36px; }      /* 案: ctrl-strip の上に載せる */
+  .fmt-icon.at-bl-bad { left: 6px; bottom: 8px; }   /* 比較用: 操作バーに隠れてしまう位置 */
+
+  /* ===== デッキ構築 ゾーンタイル（.zone-grid=minmax(124px)） ===== */
+  .zone-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 12px; }
+  .gtile { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--border);
+    background: var(--panel-2); }
+  .gtile img { width: 100%; aspect-ratio: 63/88; object-fit: cover; display: block; background: #0b0d11; }
+  .qty-badge { position: absolute; top: 8px; right: 8px; background: rgba(8,9,12,.82); color: #fff;
+    border: 1px solid rgba(255,255,255,.35); font-size: .7rem; font-weight: 800; border-radius: 999px; padding: 2px 8px; }
+  .pt-tag { position: absolute; top: 34px; right: 8px; background: rgba(110,168,254,.9); color: #0a1220;
+    font-size: .62rem; font-weight: 800; border-radius: 999px; padding: 1px 7px; }
+  .ctrl-strip { position: absolute; inset: auto 0 0 0; display: flex; gap: 1px; background: var(--border); opacity: 0; }
+  .strip-on .ctrl-strip { opacity: 1; }
+  .ctrl-strip button, .ctrl-strip .qv { border: none; background: rgba(15,17,21,.94); color: var(--text);
+    font-size: .85rem; font-weight: 700; padding: 6px 0; flex: 1; text-align: center; }
+  .ctrl-strip .qv { color: var(--accent); font-weight: 800; }
+
+  .phone { width: 375px; max-width: 100%; border: 1px solid var(--border); border-radius: 14px;
+    padding: 10px; background: #0b0d11; }
+  .phone .grid, .phone .resultgrid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .phone .zone-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .phone-label { font-size: .74rem; color: var(--muted); margin: 0 0 8px; }
+  .phones { display: flex; gap: 18px; flex-wrap: wrap; }
+  table { border-collapse: collapse; width: 100%; font-size: .84rem; margin: 10px 0 0; }
+  th, td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--panel-2); }
+  code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-size: .85em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>禁止バッジ位置の統一 — 画面モック（#35）</h1>
+<p class="lead">
+  2026-07-27 作成。カード画像・タイプ・属性は公式API実測。<b>画像の表示にネットワーク接続が要ります。</b><br>
+  方針: <b>禁止・シーズン禁止バッジを「カード画像の左下に縦積み」でカードDB／デッキ構築の両画面に統一する</b>。
+  カード画像の上端2隅（左上=コスト・右上=属性シンボル）を空ける。
+</p>
+
+<!-- ========================================================= -->
+<h2>1. カードDB（トップページ）</h2>
+<p class="lead">変更は<b>シーズン禁止バッジの位置だけ</b>（右上 → 左下）。禁止・両面は元から左下。</p>
+<div class="cols">
+  <div class="col before"><h4>▼ 現状：シーズン禁止だけ右上</h4><div class="grid" id="db_before"></div></div>
+  <div class="col after"><h4>▲ 変更後：すべて左下に縦積み</h4><div class="grid" id="db_after"></div></div>
+</div>
+<div class="note">
+  <b>積む順は下から「禁止 → シーズン禁止 → 両面」</b>。<code>.badges-bl</code> は <code>flex-direction: column-reverse</code> のため
+  DOM順の先頭が一番下に来ます。禁止系の2つを隣接させています。
+</div>
+<div class="note warn">
+  <b>右上には印刷ボタン（＋🖨️）だけが残ります。</b> ＝ <a href="https://github.com/dozyouneko/ga-card-tools-jp/issues/26">#26</a>
+  「印刷ボタンが属性シンボルを覆う」は<b>本issueでは解決しません</b>（別途対応）。
+  上のモックでは印刷ボタンを常時表示にしていますが、実物はPCではホバー時のみ表示です。
+</div>
+
+<!-- ========================================================= -->
+<h2>2. デッキ構築 — 検索結果</h2>
+<p class="lead">今回の報告箇所。<b>左上のアイコン（コストに重なる）をやめ、カードDBと同じテキストバッジを左下へ。</b></p>
+<div class="cols">
+  <div class="col before"><h4>▼ 現状：左上にアイコン（⏳/🚫）＝コストが読めない</h4><div class="resultgrid" id="dk_before"></div></div>
+  <div class="col after"><h4>▲ 変更後：左下にテキストバッジ（カードDBと同一）</h4><div class="resultgrid" id="dk_after"></div></div>
+</div>
+<div class="note ok">
+  <b>左上のコストが読めるようになります。</b> 「呪わしき供物」の左上（コスト <b>5</b>）と、
+  「強欲の剣」の左上（コスト <b>2</b>）で見比べてください。
+</div>
+
+<!-- ========================================================= -->
+<h2>3. デッキ構築 — ゾーンタイル（124px）</h2>
+<p class="lead">
+  タイルが小さく<b>カード名の欄も無い</b>ため、ここだけは<b>アイコンのまま</b>とし、位置だけ変えます。
+  右上は <code>.qty-badge</code>（×N）と <code>.pt-tag</code>（3pt）が占有済み。
+</p>
+<div class="cols">
+  <div class="col before"><h4>▼ 現状：左上（コストに重なる）</h4><div class="zone-grid" id="zn_before"></div></div>
+  <div class="col after"><h4>▲ 変更後：左下・操作バーの上（<code>bottom: 36px</code>）</h4><div class="zone-grid" id="zn_after"></div></div>
+</div>
+<h3>操作バー（.ctrl-strip）が出ている状態 — PCのホバー時／スマホは常時</h3>
+<div class="cols">
+  <div class="col before"><h4>▼ もし bottom: 8px にすると…操作バーに隠れる</h4><div class="zone-grid" id="zn_bad"></div></div>
+  <div class="col after"><h4>▲ bottom: 36px なら操作バーの上に残る</h4><div class="zone-grid" id="zn_good"></div></div>
+</div>
+<div class="note warn">
+  <b>ここが実装時の注意点です。</b> <code>.ctrl-strip</code> はPCではホバー時のみですが
+  <b>スマホ幅（≤860px）では常時表示</b>です。左下に置くなら操作バーの高さぶん上げる必要があります。
+  モックでは <code>bottom: 36px</code> にしていますが、<b>実装時に実測して確定してください</b>。
+</div>
+
+<!-- ========================================================= -->
+<h2>4. 3段重なる最悪ケース</h2>
+<p class="lead">禁止 ＋ シーズン禁止 ＋ 両面 が同時に付くカード（合成データ）。</p>
+<div class="cols">
+  <div class="col after"><h4>カードDB</h4><div class="grid" id="worst_db"></div></div>
+  <div class="col after"><h4>デッキ構築 検索結果</h4><div class="resultgrid" id="worst_dk"></div></div>
+</div>
+<div class="note">
+  絵柄の下半分が隠れます。<b>現行データでこの組み合わせは存在しません</b>（シーズン禁止3枚はいずれも
+  恒久禁止・専用フォーマットに該当せず、両面でもない）。将来出たときの見え方の確認用です。
+</div>
+
+<!-- ========================================================= -->
+<h2>5. スマホ幅（375px）</h2>
+<div class="phones">
+  <div class="phone"><p class="phone-label">カードDB（2列）</p><div class="grid" id="ph_db"></div></div>
+  <div class="phone"><p class="phone-label">デッキ構築 検索結果（2列）</p><div class="resultgrid" id="ph_dk"></div></div>
+  <div class="phone"><p class="phone-label">ゾーンタイル（3列・操作バー常時表示）</p><div class="zone-grid" id="ph_zn"></div></div>
+</div>
+
+<h2>変更のまとめ</h2>
+<table>
+  <tr><th>画面</th><th>現状</th><th>変更後</th></tr>
+  <tr><td>カードDB 検索結果</td><td>禁止＝左下 ／ <b>シーズン禁止＝右上</b></td><td>禁止・シーズン禁止とも<b>左下</b></td></tr>
+  <tr><td>デッキ構築 検索結果</td><td><b>左上にアイコン</b>（コストに重なる）</td><td><b>左下にテキストバッジ</b>（カードDBと同一）</td></tr>
+  <tr><td>デッキ構築 ゾーンタイル</td><td>左上にアイコン（コストに重なる）</td><td><b>左下にアイコン</b>（操作バーの上）</td></tr>
+  <tr><td>CSSの置き場所</td><td>root <code>style.css</code> のみ（デッキ構築は読んでいない）</td><td><code>shared/css/card-badges.css</code> に切り出して両方から読む</td></tr>
+</table>
+
+<script>
+// 公式API実測（2026-07-27）
+const C = {
+  fate:   { jp: "懇願の運命石", en: "Beseeched Fatestone", img: "https://api.gatcg.com/cards/images/1ad93vlnnp.jpg", flip: true },
+  balef:  { jp: "呪わしき供物", en: "Baleful Oblation", img: "https://api.gatcg.com/cards/images/vmyiuir380.jpg", season: true },
+  sword:  { jp: "強欲の剣", en: "Sword of Avarice", img: "https://api.gatcg.com/cards/images/2vgnnmp5af.jpg", banned: "🚫 スタン禁止", arts: 2 },
+  spirit: { jp: "スピリットブレード：昇華", en: "Spirit Blade: Ascension", img: "https://api.gatcg.com/cards/images/dohjdue0ym.jpg", season: true, arts: 7 },
+  amorph: { jp: "無定形のミサイル", en: "Amorphous Missile", img: "https://api.gatcg.com/cards/images/ky97x0hfux.jpg", draft: "🎴 ドラフト専用" },
+  abneg:  { jp: "自己否定", en: "Abnegation", img: "https://api.gatcg.com/cards/images/4MLJvZNYeu.jpg" },
+};
+const SET = [C.balef, C.sword, C.spirit, C.fate, C.amorph, C.abneg];
+const WORST = { jp: "【合成】3段ケース", en: "(synthetic)", img: "https://api.gatcg.com/cards/images/ky97x0hfux.jpg",
+                banned: "🚫 スタン禁止", season: true, flip: true };
+
+const fmtBadge = (c) => c.banned ? `<span class="format-badge format-banned">${c.banned}</span>`
+                      : c.draft  ? `<span class="format-badge format-draft">${c.draft}</span>` : "";
+const seasonBadge = () => `<span class="season-badge season-announced">⏳ 8/21〜禁止</span>`;
+const flipBadge = () => `<button class="flip-badge">🔄 両面</button>`;
+const icon = (c) => c.banned ? "🚫" : c.draft ? "🎴" : c.season ? "⏳" : "";
+
+// --- カードDB ---
+function dbCard(c, after) {
+  const bl = [fmtBadge(c), after && c.season ? seasonBadge() : "", c.flip ? flipBadge() : ""].filter(Boolean).join("");
+  const tr = [`<button class="card-add">＋🖨️</button>`, !after && c.season ? seasonBadge() : ""].filter(Boolean).join("");
+  return `<div class="card"><div class="card-img"><img loading="lazy" src="${c.img}" alt="">
+      ${bl ? `<div class="badges-bl">${bl}</div>` : ""}
+      <div class="badges-tr">${tr}</div>
+      ${c.arts ? `<button class="art-badge">🎨 ${c.arts}</button>` : ""}
+    </div><div class="card-body"><p class="card-name">${c.jp}</p><p class="card-name-en">${c.en}</p></div></div>`;
+}
+// --- デッキ構築 検索結果 ---
+function dkCard(c, after) {
+  const bl = [fmtBadge(c), c.season ? seasonBadge() : "", c.flip ? flipBadge() : ""].filter(Boolean).join("");
+  const ic = icon(c);
+  return `<div class="result"><div class="cardph"><img loading="lazy" src="${c.img}" alt="">
+      ${after ? (bl ? `<div class="badges-bl">${bl}</div>` : "") : (ic ? `<span class="fmt-icon at-tl">${ic}</span>` : "")}
+      ${c.arts ? `<button class="art-badge">🎨 ${c.arts}</button>` : ""}
+      ${c === C.spirit ? `<span class="in-deck">2枚</span>` : ""}
+    </div><p class="rname">${c.jp}<span>${c.en}</span></p></div>`;
+}
+// --- ゾーンタイル ---
+function znTile(c, pos, strip) {
+  const ic = icon(c);
+  return `<div class="gtile ${strip ? "strip-on" : ""}"><img loading="lazy" src="${c.img}" alt="">
+      ${ic ? `<span class="fmt-icon ${pos}">${ic}</span>` : ""}
+      <span class="qty-badge">×2</span>
+      <div class="ctrl-strip"><button>−</button><span class="qv">2</span><button>＋</button><button>⋯</button></div>
+    </div>`;
+}
+const j = (arr, fn) => arr.map(fn).join("");
+db_before.innerHTML = j(SET, (c) => dbCard(c, false));
+db_after.innerHTML  = j(SET, (c) => dbCard(c, true));
+dk_before.innerHTML = j(SET, (c) => dkCard(c, false));
+dk_after.innerHTML  = j(SET, (c) => dkCard(c, true));
+const ZN = [C.balef, C.sword, C.spirit, C.amorph];
+zn_before.innerHTML = j(ZN, (c) => znTile(c, "at-tl", false));
+zn_after.innerHTML  = j(ZN, (c) => znTile(c, "at-bl", false));
+zn_bad.innerHTML    = j(ZN.slice(0, 3), (c) => znTile(c, "at-bl-bad", true));
+zn_good.innerHTML   = j(ZN.slice(0, 3), (c) => znTile(c, "at-bl", true));
+worst_db.innerHTML  = dbCard(WORST, true);
+worst_dk.innerHTML  = dkCard(WORST, true);
+ph_db.innerHTML     = j([C.balef, C.sword, C.fate, C.abneg], (c) => dbCard(c, true));
+ph_dk.innerHTML     = j([C.balef, C.sword, C.fate, C.abneg], (c) => dkCard(c, true));
+ph_zn.innerHTML     = j(ZN.slice(0, 3), (c) => znTile(c, "at-bl", true));
+// ⚠️ 位置はすべてCSSクラスで与えている（実物はCSPが style-src 'self' のためstyle属性を使えない）
+</script>
+
+</div>
+</body>
+</html>
