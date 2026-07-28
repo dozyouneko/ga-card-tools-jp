@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>カード下段バッジ 画面モック（#36）</title>
+<!--
+  issue#36 検索結果カードのバッジをカード画像の上から「名前の下の欄」へ移す案のモック。
+  - カード画像・メタ情報は公式API実測（2026-07-27取得）。表示にはネットワーク接続が要る
+  - 既存の style.css の値（--bg 等の変数・.card / .card-body / .card-chips の寸法）をそのまま写している
+  - 現状（A）と案（B・C）を同じカードで並べ、PC幅とスマホ幅(375px)の両方で見比べられるようにした
+-->
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel-2: #1f232c; --border: #2a2f3a;
+    --text: #e7e9ee; --muted: #9aa2b1; --accent: #d9a441; --accent-2: #6ea8fe;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+    line-height: 1.6; font-size: 15px;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 80px; }
+  h1 { font-size: 1.3rem; margin: 0 0 4px; }
+  h2 { font-size: 1.05rem; margin: 34px 0 6px; border-left: 3px solid var(--accent); padding-left: 10px; }
+  h3 { font-size: .9rem; margin: 18px 0 8px; color: var(--muted); font-weight: 700; }
+  p.lead { color: var(--muted); margin: 0 0 18px; font-size: .9rem; }
+  .note { background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--accent-2);
+          border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: .86rem; }
+  .note.warn { border-left-color: #e0703a; }
+  .note b { color: var(--accent); }
+
+  /* ---------- 実物の style.css から写した部分 ---------- */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+  .card {
+    text-align: left; background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 0; overflow: hidden; cursor: pointer;
+  }
+  .card-img { position: relative; }
+  .card-img img { width: 100%; display: block; aspect-ratio: 63/88; object-fit: cover; background: #0b0d11; }
+  .card-body { padding: 10px 12px 14px; }
+  .card-name { margin: 0; font-weight: 700; font-size: .98rem; }
+  .card-name-en { margin: 2px 0 0; color: var(--muted); font-size: .78rem; }
+  .card-chips { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: .72rem; background: var(--panel-2); border: 1px solid var(--border);
+          padding: 2px 8px; border-radius: 999px; color: var(--muted); }
+  .chip-elem { color: var(--accent); border-color: #3a3320; }
+
+  /* 現状(A)の画像上バッジ */
+  .badges-bl { position: absolute; left: 8px; bottom: 8px; display: flex; flex-direction: column-reverse;
+               align-items: flex-start; gap: 6px; }
+  .badges-tr { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column;
+               align-items: flex-end; gap: 6px; }
+  .format-badge { font-size: .7rem; padding: 2px 8px; border-radius: 999px; color: #fff; font-weight: 700; }
+  .format-banned { background: #b91c1c; } .format-draft { background: #0e7490; }
+  .season-badge { font-size: .68rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; color: #fff;
+                  border: 1px solid rgba(255,255,255,.5); box-shadow: 0 1px 4px rgba(0,0,0,.6); white-space: nowrap; }
+  .season-announced { background: #a16207; }
+  .flip-badge, .art-badge, .card-add {
+    border: none; border-radius: 999px; background: rgba(15,17,21,.82); color: #fff;
+    font-size: .7rem; line-height: 1; font-weight: 700; padding: 4px 8px; cursor: pointer;
+  }
+  .art-badge { position: absolute; right: 8px; bottom: 8px; border-radius: 8px; }
+  .card-add { border-radius: 8px; padding: 6px 8px; font-size: .8rem; background: rgba(15,17,21,.78); opacity: 0; }
+  .card:hover .card-add { opacity: 1; }
+
+  /* ---------- 案(B/C)：名前の下の欄に置くバッジ列 ---------- */
+  .card-actions { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  /* 情報（押せない）: 塗りつぶし */
+  .act-info { font-size: .7rem; font-weight: 700; color: #fff; padding: 3px 9px; border-radius: 999px;
+              border: 1px solid transparent; white-space: nowrap; }
+  .act-banned  { background: #b91c1c; border-color: #ef4444; }
+  .act-draft   { background: #0e7490; border-color: #22d3ee; }
+  .act-season  { background: #a16207; border-color: #eab308; }
+  /* 操作（押せる）: 枠線＋パネル色。情報バッジと見た目を明確に分ける */
+  .act-btn { font-size: .72rem; font-weight: 700; color: var(--text); background: var(--panel-2);
+             border: 1px solid var(--border); padding: 4px 9px; border-radius: 8px; cursor: pointer;
+             white-space: nowrap; font-family: inherit; }
+  .act-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .act-btn.print:hover { border-color: var(--accent-2); color: var(--accent-2); }
+
+  /* ---------- スマホ幅の見え方 ---------- */
+  .phones { display: flex; gap: 18px; flex-wrap: wrap; }
+  .phone { width: 375px; max-width: 100%; border: 1px solid var(--border); border-radius: 14px;
+           padding: 10px; background: #0b0d11; }
+  .phone .grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .phone-label { font-size: .74rem; color: var(--muted); margin: 0 0 8px; }
+
+  table { border-collapse: collapse; width: 100%; font-size: .84rem; margin: 10px 0 0; }
+  th, td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--panel-2); }
+  .tag { display: inline-block; font-size: .7rem; padding: 1px 7px; border-radius: 999px;
+         background: var(--panel-2); border: 1px solid var(--border); color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>検索結果カードのバッジを「名前の下の欄」へ移す案 — 画面モック</h1>
+<p class="lead">
+  issue#36 ／ 2026-07-27 作成。カード画像・タイプ・属性は公式API実測。<b>画像の表示にネットワーク接続が要ります。</b><br>
+  ユーザー提案:「タイプと属性が記載されている欄に、禁止・両面・イラスト変更・印刷を配置する。属性やタイプはイラストを見れば分かるのであまり嬉しくない」
+</p>
+
+<div class="note">
+  <b>比較のしかた</b> — 同じ6枚を A（現状）／B（案・チップ廃止）／C（案・チップ併記）で並べています。
+  最後の1枚は<b>バッジが最大数つく合成ケース</b>（禁止＋シーズン禁止＋両面＋イラスト＋印刷＝5個）で、折り返しの確認用です。
+</div>
+
+<h2>A. 現状（比較用）</h2>
+<h3>PC幅</h3>
+<div class="grid" id="gridA"></div>
+<h3>スマホ幅（375px・2列）</h3>
+<div class="phones"><div class="phone"><p class="phone-label">375px</p><div class="grid" id="phoneA"></div></div></div>
+
+<h2>B. 案：バッジを下段へ移し、タイプ・属性チップは廃止</h2>
+<h3>PC幅</h3>
+<div class="grid" id="gridB"></div>
+<h3>スマホ幅（375px・2列）</h3>
+<div class="phones"><div class="phone"><p class="phone-label">375px</p><div class="grid" id="phoneB"></div></div></div>
+
+<h2>C. 案：バッジを下段へ移し、タイプ・属性チップも残す</h2>
+<h3>PC幅</h3>
+<div class="grid" id="gridC"></div>
+<h3>スマホ幅（375px・2列）</h3>
+<div class="phones"><div class="phone"><p class="phone-label">375px</p><div class="grid" id="phoneC"></div></div></div>
+
+<h2>確認したいポイント</h2>
+
+<div class="note">
+  <b>1. カードの高さが揃わなくなる</b> — バッジは画像の上に重ねている限り高さに影響しませんが、下段へ移すと
+  <b>バッジのあるカードだけ背が高くなります</b>。上のグリッドで、バッジ0個の「Abnegation」と5個の合成カードを見比べてください。
+  グリッドの行の高さは一番高いカードに揃うため、行によって余白の出方が変わります。
+</div>
+
+<div class="note">
+  <b>2. 情報と操作が同じ列に並ぶ</b> — 「禁止」「シーズン禁止」は<b>押せない情報</b>、「両面」「イラスト」「印刷」は<b>押せる操作</b>です。
+  モックでは塗りつぶし＝情報 ／ 枠線＝操作 で描き分けています。この区別で足りるかを見てください。
+</div>
+
+<div class="note warn">
+  <b>3. 印刷ボタンが常時表示になる</b> — 現状はPCでホバー時だけ出ます（スマホは常時）。下段へ移すと常に見えます。
+  発見しやすくなる一方、<b>1画面に50枚並ぶと「印刷」が50個並びます</b>。うるさく感じないかの判断が要ります。
+  （なお、これは <a href="https://github.com/dozyouneko/ga-card-tools-jp/issues/26">#26</a>「印刷ボタンが属性シンボルを覆う」の解消にもなります）
+</div>
+
+<div class="note">
+  <b>4. チップを廃止してよいか</b> — B案はタイプ・属性を消しています。提案どおり絵柄で分かる情報ではありますが、
+  <b>日本語のタイプ名・属性名（「アイテム」「風」）は絵柄からは読めません</b>。C案（併記）と見比べてください。
+</div>
+
+<h2>この案が解決すること・しないこと</h2>
+<table>
+  <tr><th>項目</th><th>結果</th></tr>
+  <tr><td>デッキ構築の検索結果で禁止アイコンがコストを覆う（<a href="https://github.com/dozyouneko/ga-card-tools-jp/issues/35">#35</a>）</td>
+      <td>✅ 解決（同じ方式をデッキ構築にも適用する場合）</td></tr>
+  <tr><td>印刷ボタンが属性シンボルを覆う（<a href="https://github.com/dozyouneko/ga-card-tools-jp/issues/26">#26</a>）</td>
+      <td>✅ 解決</td></tr>
+  <tr><td>「日本語訳あり」バッジがコストを覆う（<a href="https://github.com/dozyouneko/ga-card-tools-jp/issues/25">#25</a>・対処済み）</td>
+      <td>✅ 画像の上からバッジが全部なくなるため再発しない</td></tr>
+  <tr><td>カードの高さが不揃いになる</td><td>⚠️ 新たに発生（上記1）</td></tr>
+  <tr><td>1画面あたりの情報密度</td><td>⚠️ カード1枚が縦に伸びるため、1画面に入る枚数が減る</td></tr>
+</table>
+
+<script>
+// 公式API実測（2026-07-27）。badges は現状の判定結果をそのまま写したもの
+const CARDS = [
+  { jp: "懇願の運命石", en: "Beseeched Fatestone", img: "https://api.gatcg.com/cards/images/1ad93vlnnp.jpg",
+    chips: ["ITEM（アイテム）", "WIND（風）"], flip: true, arts: 0, print: true, info: [] },
+  { jp: "呪わしき供物", en: "Baleful Oblation", img: "https://api.gatcg.com/cards/images/vmyiuir380.jpg",
+    chips: ["ACTION（アクション）", "UMBRA（陰）"], flip: false, arts: 0, print: true,
+    info: [{ cls: "act-season", text: "⏳ 8/21〜禁止" }] },
+  { jp: "強欲の剣", en: "Sword of Avarice", img: "https://api.gatcg.com/cards/images/2vgnnmp5af.jpg",
+    chips: ["REGALIA（レガリア）", "WEAPON（武器）", "CRUX（十字）"], flip: false, arts: 2, print: true,
+    info: [{ cls: "act-banned", text: "🚫 スタン禁止" }] },
+  { jp: "スピリットブレード：昇華", en: "Spirit Blade: Ascension", img: "https://api.gatcg.com/cards/images/dohjdue0ym.jpg",
+    chips: ["ACTION（アクション）", "CRUX（十字）"], flip: false, arts: 7, print: true,
+    info: [{ cls: "act-season", text: "⏳ 8/21〜禁止" }] },
+  { jp: "自己否定", en: "Abnegation", img: "https://api.gatcg.com/cards/images/4MLJvZNYeu.jpg",
+    chips: ["ACTION（アクション）", "UMBRA（陰）"], flip: false, arts: 0, print: true, info: [] },
+  { jp: "【合成】バッジ最大ケース", en: "(synthetic worst case)", img: "https://api.gatcg.com/cards/images/ky97x0hfux.jpg",
+    chips: ["REGALIA（レガリア）", "ITEM（アイテム）", "NORM（無）"], flip: true, arts: 4, print: true,
+    info: [{ cls: "act-draft", text: "🎴 ドラフト専用" }, { cls: "act-season", text: "⏳ 8/21〜禁止" }] },
+];
+
+function cardA(c) {
+  const bl = [];
+  c.info.forEach((i) => {
+    const cls = i.cls === "act-banned" ? "format-badge format-banned"
+              : i.cls === "act-draft" ? "format-badge format-draft" : "season-badge season-announced";
+    // 現状は禁止＝左下・シーズン禁止＝右上に分かれている
+    if (i.cls !== "act-season") bl.push(`<span class="${cls}">${i.text}</span>`);
+  });
+  if (c.flip) bl.push(`<button class="flip-badge">🔄 両面</button>`);
+  const season = c.info.find((i) => i.cls === "act-season");
+  return `<div class="card">
+    <div class="card-img">
+      <img loading="lazy" src="${c.img}" alt="">
+      <div class="badges-bl">${bl.join("")}</div>
+      <div class="badges-tr">
+        ${c.print ? `<button class="card-add">＋🖨️</button>` : ""}
+        ${season ? `<span class="season-badge season-announced">${season.text}</span>` : ""}
+      </div>
+      ${c.arts ? `<button class="art-badge">🎨 ${c.arts}</button>` : ""}
+    </div>
+    <div class="card-body">
+      <p class="card-name">${c.jp}</p>
+      <p class="card-name-en">${c.en}</p>
+      <p class="card-chips">${c.chips.map((t, i) =>
+        `<span class="chip${i === c.chips.length - 1 ? " chip-elem" : ""}">${t}</span>`).join("")}</p>
+    </div>
+  </div>`;
+}
+
+function cardBC(c, withChips) {
+  const acts = [
+    ...c.info.map((i) => `<span class="act-info ${i.cls}">${i.text}</span>`),
+    c.flip ? `<button class="act-btn">🔄 両面</button>` : "",
+    c.arts ? `<button class="act-btn">🎨 イラスト${c.arts}種</button>` : "",
+    c.print ? `<button class="act-btn print">🖨️ 印刷</button>` : "",
+  ].filter(Boolean).join("");
+  return `<div class="card">
+    <div class="card-img"><img loading="lazy" src="${c.img}" alt=""></div>
+    <div class="card-body">
+      <p class="card-name">${c.jp}</p>
+      <p class="card-name-en">${c.en}</p>
+      ${withChips ? `<p class="card-chips">${c.chips.map((t, i) =>
+        `<span class="chip${i === c.chips.length - 1 ? " chip-elem" : ""}">${t}</span>`).join("")}</p>` : ""}
+      ${acts ? `<div class="card-actions">${acts}</div>` : ""}
+    </div>
+  </div>`;
+}
+
+const html = (fn) => CARDS.map(fn).join("");
+gridA.innerHTML = phoneA.innerHTML = html(cardA);
+gridB.innerHTML = phoneB.innerHTML = html((c) => cardBC(c, false));
+gridC.innerHTML = phoneC.innerHTML = html((c) => cardBC(c, true));
+</script>
+
+</div>
+</body>
+</html>
