@@ -156,7 +156,11 @@ async function main() {
     const res = await post(part);
 
     if (res.status === 200 || res.status === 202) {
-      console.log(`${label} ✅ ${res.status} 受理されました（${part.length} URL）`);
+      // 応答本文も残す。成功時は空のことが多いが、ステータスだけだと後から追えないため。
+      const ok = await res.text().catch(() => "");
+      console.log(
+        `${label} ✅ ${res.status} 受理されました（${part.length} URL）${ok ? ` — ${ok.slice(0, 500)}` : ""}`,
+      );
       continue;
     }
     // 429 は一時的なスロットリング。翌日また送れば済むので警告だけ出して正常終了する
