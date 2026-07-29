@@ -1,0 +1,66 @@
+/* カード画像に重ねるバッジ群（#35）
+   トップページ（カードDB）とデッキ構築ツールの検索結果で共用する。
+   ⚠️ デッキ構築は root の style.css を読み込まないため、ここに置いて両方から <link> する。
+      片方だけにコピーを作らないこと（#35 の不具合そのものが「デッキ構築だけ別実装」に起因する）。
+
+   カード画像の上端2隅には常に情報がある（左上＝コスト・右上＝属性シンボル）。
+   そのため禁止系のバッジは左下（.badges-bl）に縦積みする。積む順は下から
+   「禁止 → シーズン禁止 → 両面」（#25 → #34 → #35 の経緯）。 */
+
+/* 左下バッジ群（format-badge / season-badge / flip-badge）を縦積みして座標衝突を防ぐ（issue #25） */
+.badges-bl {
+  position: absolute; left: 8px; bottom: 8px;
+  display: flex; flex-direction: column-reverse;  /* DOM先頭(format)を下に、順に上へ積む */
+  align-items: flex-start; gap: 6px;
+}
+
+/* フォーマット別バッジ（検索結果カード）：禁止フォーマット／専用フォーマットのどちらかを表示 */
+.format-badge {
+  position: static;
+  font-size: .7rem; padding: 2px 8px; border-radius: 999px;
+  color: #fff; font-weight: 700;
+}
+.format-banned   { background: #b91c1c; }
+.format-pantheon { background: #7c3aed; }
+.format-draft    { background: #0e7490; }
+.format-standard { background: #b45309; }
+
+/* シーズン禁止バッジ（#34）。恒久禁止（🚫 .format-banned）とは別概念のため色を分ける。
+   ⚠️ ホバー非依存で常時表示する（初心者に気づかせるのが要件） */
+.season-badge {
+  position: static;
+  font-size: .68rem; font-weight: 700; line-height: 1.25;
+  padding: 3px 8px; border-radius: 999px;
+  color: #fff; border: 1px solid rgba(255, 255, 255, .5);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .6);
+  cursor: help; white-space: nowrap;
+}
+.season-announced { background: #a16207; } /* 予告（まだ使える） */
+.season-active    { background: #86198f; } /* 発効後（使用不可） */
+
+/* 両面カード：一覧の表裏切替バッジ（.badges-bl 内で縦積み・最上段） */
+.flip-badge {
+  position: static;
+  border: none; border-radius: 999px;
+  background: rgba(15, 17, 21, .82);
+  color: #fff; font-size: .7rem; line-height: 1;
+  padding: 4px 8px; cursor: pointer; font-weight: 700;
+}
+.flip-badge:hover { background: var(--accent-2); }
+
+/* 右上バッジ群（#34・左下の .badges-bl と同じ方式）。
+   #35 でシーズン禁止を左下へ移したため、現在の中身は印刷ボタン（.card-add）だけ。
+   将来また右上にバッジを足すときの受け皿として残す。
+   ⚠️ .card-add は opacity:0 でもレイアウト上の場所は占める */
+.badges-tr {
+  position: absolute; top: 8px; right: 8px;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+  pointer-events: none; /* 画像上の空白がクリックを奪わないように。子だけが受ける */
+}
+.badges-tr > * { pointer-events: auto; }
+
+/* スマホ（root style.css の一覧スマホ調整と同じブレークポイント） */
+@media (max-width: 640px) {
+  .badges-tr { top: 6px; right: 6px; gap: 4px; }
+  .season-badge { font-size: .62rem; padding: 2px 7px; }
+}

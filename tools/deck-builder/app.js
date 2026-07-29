@@ -15,6 +15,8 @@ const {
   escapeHtml, hasJapanese,
   FORMAT_JP, EXCLUSIVE_FORMAT_INFO, bannedFormats, exclusiveFormat, exclusiveNote,
   seasonalBanState, seasonalIcon, seasonalTitle, seasonalName,
+  // 検索結果の左下バッジ(#35)。トップページと同じ共通関数をそのまま使う(こちらで判定を書かない)
+  formatBadgeHtml, seasonalBadgeHtml,
 } = window.GA_CARD_I18N;
 
 // 訳データ(#22 フェーズ2)。トップページと同じく data/tl/*.js の <script> をやめてJSONを読む。
@@ -168,7 +170,9 @@ function zoneDisallowed(card, zone) {
 // ---------- フォーマット(禁止/専用)表示 ----------
 // 判定ロジック(bannedFormats/exclusiveFormat等)は shared/js/card-i18n.js に共通化済み。
 
-// タイル左上に載せる小さなアイコン({icon, title})。該当なしは null
+// ゾーン／閲覧タイル(124px)の左下に載せる小さなアイコン({icon, title})。該当なしは null。
+// ⚠️ タイルはカード名の欄が無く狭いためアイコンのまま。検索結果は #35 でテキストバッジ
+// (.badges-bl) に移したので、ここを通らない
 function formatIconInfo(card) {
   const excl = exclusiveFormat(card);
   if (excl) {
@@ -1173,9 +1177,12 @@ function appendResults(cards) {
     item.innerHTML = `
       <div class="cardph">
         ${url ? `<img loading="lazy" src="${escapeHtml(url)}" alt="">` : `<div class="noimg">${escapeHtml(jpName(card))}</div>`}
-        ${formatIconHtml(card)}
         ${url && imgs.length > 1 ? `<button class="art-badge" type="button" title="イラスト/版を切り替え（${imgs.length}種）" aria-label="イラストを切り替え">🎨 ${imgs.length}・${escapeHtml(imgs[0].prefix)}</button>` : ""}
-        ${url && back ? `<button class="flip-badge" type="button" title="両面カード：表裏を切り替え" aria-label="裏面を表示">🔄 両面</button>` : ""}
+        <div class="badges-bl">
+          ${formatBadgeHtml(card)}
+          ${seasonalBadgeHtml(card)}
+          ${url && back ? `<button class="flip-badge" type="button" title="両面カード：表裏を切り替え" aria-label="裏面を表示">🔄 両面</button>` : ""}
+        </div>
         <span class="in-deck" ${inDeck ? "" : "hidden"}>${inDeck}枚</span>
       </div>
       <p class="rname">${escapeHtml(jpName(card))}<span>${escapeHtml(card.name)}</span></p>

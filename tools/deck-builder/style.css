@@ -224,9 +224,15 @@ img.champ-thumb-img { display: block; }
   background: rgba(110,168,254,.9); color: #0a1220;
   font-size: .62rem; font-weight: 800; border-radius: 999px; padding: 1px 7px;
 }
-/* 禁止🚫/専用🏛🎴 の小アイコン(左上・イラストを邪魔しない最小サイズ) */
+/* 禁止🚫/専用🏛🎴/シーズン禁止⏳⛔ の小アイコン(イラストを邪魔しない最小サイズ)。
+   ゾーン／閲覧タイル(124px)専用。検索結果は #35 でテキストバッジ(.badges-bl)に移した。
+
+   ⚠️ 位置は左下。左上はカードのコスト表記が入るため覆ってはいけない(#35)。
+   bottom は .ctrl-strip(実測 33.75px)の上に載るよう 40px にしてある
+   (PCはホバー時のみだが、スマホ幅≤860pxでは常時表示なので必ず避ける)。
+   閲覧モードのタイルには .ctrl-strip が無いが、編集↔閲覧でアイコンの位置が動かないよう同じ値を使う */
 .fmt-icon {
-  position: absolute; top: 6px; left: 6px;
+  position: absolute; bottom: 40px; left: 6px;
   background: rgba(8, 9, 12, .92);
   border: 1px solid rgba(255, 255, 255, .5);
   font-size: .95rem; line-height: 1;
@@ -345,15 +351,8 @@ img.champ-thumb-img { display: block; }
   font-variant-numeric: tabular-nums;
 }
 
-/* 検索結果の両面カード切替バッジ(トップページと同じ見た目) */
-.result .flip-badge {
-  position: absolute; left: 8px; bottom: 8px;
-  border: none; border-radius: 999px;
-  background: rgba(15, 17, 21, .82);
-  color: #fff; font-size: .7rem; line-height: 1; font-weight: 700;
-  padding: 4px 8px; cursor: pointer;
-}
-.result .flip-badge:hover { background: var(--accent-2); }
+/* 検索結果の左下バッジ群(.badges-bl / .format-badge / .season-badge / .flip-badge)は
+   shared/css/card-badges.css にある(#35・トップページと共用)。ここに再掲しないこと */
 
 /* 検索結果のイラスト/版切替バッジ(トップページと同じ見た目) */
 .result .art-badge {
