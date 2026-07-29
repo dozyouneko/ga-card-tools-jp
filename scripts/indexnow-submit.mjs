@@ -34,8 +34,10 @@ if ("INDEXNOW_ENDPOINT" in process.env && !process.env.INDEXNOW_ENDPOINT) {
   console.error("❌ INDEXNOW_ENDPOINT が空です（本番APIへ誤送信するため中止します）");
   process.exit(1);
 }
-const ENDPOINT = process.env.INDEXNOW_ENDPOINT || "https://api.indexnow.org/IndexNow";
-const chunkSize = Number(process.env.INDEXNOW_CHUNK_SIZE || MAX_URLS_PER_REQUEST);
+const DEFAULT_ENDPOINT = "https://api.indexnow.org/IndexNow";
+const ENDPOINT = process.env.INDEXNOW_ENDPOINT || DEFAULT_ENDPOINT;
+// 0 や負数を渡すと chunk() が無限ループするので下限を1にする（検証用envからしか到達しない）。
+const chunkSize = Math.max(1, Number(process.env.INDEXNOW_CHUNK_SIZE) || MAX_URLS_PER_REQUEST);
 
 // パスの1セグメントとして許す文字。実データ（カード2,243件・セット56件）は全てこの範囲。
 const SEG = "[A-Za-z0-9._-]+";
@@ -79,9 +81,13 @@ export function chunk(urls, size = chunkSize) {
 }
 
 function changedFiles(base, head) {
+  // ⚠ R（リネーム）を必ず含める。ACM だけだとリネームが丸ごと落ちる（--name-only は
+  //   リネーム先のパスだけを出す）。公式データの修正でカードのslugが変わると内容が
+  //   ほぼ同じなのでgitは R と判定し、新URLが通知されないまま静かに漏れる。
+  //   D（削除）は除外したまま（消えたURLを通知しない）。
   const out = execFileSync(
     "git",
-    ["diff", "--name-only", "--diff-filter=ACM", base, head],
+    ["diff", "--name-only", "--diff-filter=ACMR", base, head],
     { encoding: "utf8" },
   );
   return out.split("\n").map((s) => s.trim()).filter(Boolean);
@@ -118,6 +124,14 @@ async function main() {
     process.exit(1);
   }
   const [base, head] = positional;
+
+  // ⚠ 使用中のエンドポイントを必ず出す。差し替え口が効いていないことに気づけず本番へ
+  //   誤送信した事故（2026-07-29）の再発防止。既定と違う値なら一目で分かるようにする。
+  console.log(
+    ENDPOINT === DEFAULT_ENDPOINT
+      ? `送信先: ${ENDPOINT}（既定）`
+      : `送信先: ${ENDPOINT} ⚠ INDEXNOW_ENDPOINT で差し替え中（既定は ${DEFAULT_ENDPOINT}）`,
+  );
 
   const files = changedFiles(base, head);
   const urls = filesToUrls(files);
