@@ -116,6 +116,13 @@
   カード画像の上端2隅（左上=コスト・右上=属性シンボル）を空ける。
 </p>
 
+<div class="note warn">
+  <b>追記（2026-07-29・実装レビュー）</b> — 実装時の実測で、<b>左下バッジと右下の「🎨 イラスト切替」が横に重なる</b>ことが判明しました。
+  実物の 🎨 は <code>🎨 7・DOA Alter</code> のように<b>版prefixが付いて幅が約2倍</b>あり、初版モックの <code>🎨 7</code> では再現できていませんでした。
+  <b>ユーザー判断で 🎨 も左下の縦積みに合流</b>させることになり、本モックの「変更後」はその形に更新済みです。
+  積む順は<b>下から 禁止 → シーズン禁止 → 両面 → イラスト</b>（情報を下・操作を上）。右下は空きます。
+</div>
+
 <!-- ========================================================= -->
 <h2>1. カードDB（トップページ）</h2>
 <p class="lead">変更は<b>シーズン禁止バッジの位置だけ</b>（右上 → 左下）。禁止・両面は元から左下。</p>
@@ -217,21 +224,25 @@ const icon = (c) => c.banned ? "🚫" : c.draft ? "🎴" : c.season ? "⏳" : ""
 
 // --- カードDB ---
 function dbCard(c, after) {
-  const bl = [fmtBadge(c), after && c.season ? seasonBadge() : "", c.flip ? flipBadge() : ""].filter(Boolean).join("");
+  // 2026-07-29 追記: 🎨 イラスト切替も左下の縦積みに合流させる（実装レビューでの判断・下記「追記」参照）。
+  // 積む順は下から 禁止 → シーズン禁止 → 両面 → イラスト（情報を下・操作を上）
+  const art = c.arts ? `<button class="flip-badge">🎨 ${c.arts}・DOA Alter</button>` : "";
+  const bl = [fmtBadge(c), after && c.season ? seasonBadge() : "", c.flip ? flipBadge() : "", after ? art : ""].filter(Boolean).join("");
   const tr = [`<button class="card-add">＋🖨️</button>`, !after && c.season ? seasonBadge() : ""].filter(Boolean).join("");
   return `<div class="card"><div class="card-img"><img loading="lazy" src="${c.img}" alt="">
       ${bl ? `<div class="badges-bl">${bl}</div>` : ""}
       <div class="badges-tr">${tr}</div>
-      ${c.arts ? `<button class="art-badge">🎨 ${c.arts}</button>` : ""}
+      ${!after && c.arts ? `<button class="art-badge">🎨 ${c.arts}・DOA Alter</button>` : ""}
     </div><div class="card-body"><p class="card-name">${c.jp}</p><p class="card-name-en">${c.en}</p></div></div>`;
 }
 // --- デッキ構築 検索結果 ---
 function dkCard(c, after) {
-  const bl = [fmtBadge(c), c.season ? seasonBadge() : "", c.flip ? flipBadge() : ""].filter(Boolean).join("");
+  const art = c.arts ? `<button class="flip-badge">🎨 ${c.arts}・DOA Alter</button>` : "";
+  const bl = [fmtBadge(c), c.season ? seasonBadge() : "", c.flip ? flipBadge() : "", art].filter(Boolean).join("");
   const ic = icon(c);
   return `<div class="result"><div class="cardph"><img loading="lazy" src="${c.img}" alt="">
       ${after ? (bl ? `<div class="badges-bl">${bl}</div>` : "") : (ic ? `<span class="fmt-icon at-tl">${ic}</span>` : "")}
-      ${c.arts ? `<button class="art-badge">🎨 ${c.arts}</button>` : ""}
+      ${!after && c.arts ? `<button class="art-badge">🎨 ${c.arts}・DOA Alter</button>` : ""}
       ${c === C.spirit ? `<span class="in-deck">2枚</span>` : ""}
     </div><p class="rname">${c.jp}<span>${c.en}</span></p></div>`;
 }
