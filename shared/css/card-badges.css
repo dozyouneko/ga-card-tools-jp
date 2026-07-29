@@ -42,24 +42,28 @@
 .season-announced { background: #a16207; } /* 予告（まだ使える） */
 .season-active    { background: #86198f; } /* 発効後（使用不可） */
 
-/* 両面カード：一覧の表裏切替バッジ（.badges-bl 内で縦積み・最上段） */
+/* 両面カード：一覧の表裏切替バッジ（.badges-bl 内で縦積み・🎨 の下）。
+   ⚠️ font-family: inherit は必須。<button> の既定フォント（Arial 等）のままだと、
+   読み込む側に `button { font: inherit }` があるかどうかで見た目が変わる
+   （デッキ構築にはあり・トップには無い）。共通部品なので部品の側で閉じる（#35） */
 .flip-badge {
   position: static;
   border: none; border-radius: 999px;
   background: rgba(15, 17, 21, .82);
-  color: #fff; font-size: .7rem; line-height: 1;
+  color: #fff; font-family: inherit; font-size: .7rem; line-height: 1;
   padding: 4px 8px; cursor: pointer; font-weight: 700;
 }
 .flip-badge:hover { background: var(--accent-2); }
 
 /* イラスト/版の切替バッジ（.badges-bl 内で縦積み・最上段）。
    ⚠️ 文言に版のprefix（例「🎨 7・DOA Alter」）が入って幅が伸びるため、
-   右下に絶対配置すると左下のバッジと重なる（#35）。必ず縦積みの中に置くこと */
+   右下に絶対配置すると左下のバッジと重なる（#35）。必ず縦積みの中に置くこと。
+   font-family: inherit の理由は上の .flip-badge のコメントと同じ */
 .art-badge {
   position: static;
   border: none; border-radius: 8px;
   background: rgba(15, 17, 21, .82);
-  color: #fff; font-size: .72rem; line-height: 1;
+  color: #fff; font-family: inherit; font-size: .72rem; line-height: 1;
   padding: 4px 8px; cursor: pointer;
 }
 .art-badge:hover { background: var(--accent-2); }
