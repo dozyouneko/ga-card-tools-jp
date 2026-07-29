@@ -207,6 +207,21 @@ a { color: var(--accent-2); }
 
 .muted { color: var(--muted); }
 
+/* ---------- トップの静的セットリンク（#37・生成物はマーカー間） ----------
+   クローラ向けの発見経路（hop1 を 5 → 61 に）。既定で閉じており、閉じていても
+   HTMLには全セットの <a href> が存在する。⚠️ CSPが style-src 'self' のため
+   style属性は使えない。すべてクラスで与える。 */
+.setlinks { border-top: 1px solid var(--border); margin: 24px 24px 0; padding-top: 14px; }
+.setlinks > summary { font-size: .9rem; font-weight: 600; color: var(--muted); cursor: pointer; padding: 4px 0; }
+.setlinks > summary:hover { color: var(--text); }
+.sl-body { padding-top: 8px; }
+.sl-g { margin-bottom: 10px; }
+.sl-g-name { font-size: .78rem; font-weight: 600; color: var(--muted); margin: 0 0 3px; }
+.sl-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.setlinks a { font-size: .82rem; text-decoration: none; }
+.setlinks a:hover { text-decoration: underline; }
+.sl-more { margin: 12px 0 0; font-size: .82rem; }
+
 /* ---------- フッタ ---------- */
 .site-footer { border-top: 1px solid var(--border); padding: 18px 24px 40px; color: var(--muted); font-size: .82rem; }
 .site-footer p { max-width: 820px; margin: 0; }
@@ -297,6 +312,7 @@ a { color: var(--accent-2); }
   .controls { padding: 12px; }
   .status { padding: 10px 12px 0; }
   .site-footer { padding: 16px 12px 32px; }
+  .setlinks { margin: 20px 12px 0; } /* 横余白を他ブロックに合わせる（#37） */
 
   /* iOS のフォーカス時ズーム防止（16px 以上）＋タップしやすさ */
   .controls input, .controls select, .controls button { font-size: 16px; padding: 11px 12px; }

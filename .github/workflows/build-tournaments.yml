@@ -54,7 +54,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/tournaments tournaments sitemap.xml cards sets data/card-meta-index.json data/featured-sets.json
+          # index.html はトップの静的セットリンク(#37)の生成先。新セットが出た日に自動で載るよう
+          # ここに含める(手書きだとPRDスポイラー等の最も需要が高い日に載り漏れる)。
+          # ⚠ ルート直下のトップページがcronの自動publish対象に入る。マーカー欠落は
+          #   build-card-pages.mjs が exit 1 で落とし、npm run validate も検査する(#37 設計書 §4.4/§4.5)。
+          git add data/tournaments tournaments sitemap.xml cards sets data/card-meta-index.json data/featured-sets.json index.html
           if git diff --cached --quiet; then
             echo "更新なし(新しく確定した大会はありませんでした)"
           else

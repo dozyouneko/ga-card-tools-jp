@@ -454,6 +454,54 @@ ${siteFooter()}
 `;
 }
 
+// ---------- トップページの静的セットリンク(#37) ----------
+//
+// トップは唯一インデックス済みのページなのに、静的HTMLの内部リンクが5本しかなく
+// カード2,240ページへの経路が /cards/ 1本にぶら下がっていた(単一障害点)。
+// ここで全セットページへの <a> をトップに差し込み、hop1 を 5 → 61 に広げる。
+//
+// ⚠ indexPage() と **同じ groups 配列**から作る(二重管理を作らない・並びの決定性も自動的に揃う)。
+// ⚠ エスケープは1回だけ。setLabel() は生の値を返すのでここで esc() を1回通す。
+//   既にエスケープ済みの文字列(cards/index.html の生成結果など)を渡すと Proxia&#39;s Vault と表示される。
+function topSetLinks(groups) {
+  const total = groups.reduce((n, g) => n + g.sets.length, 0);
+  const sections = groups.map((g) => {
+    const items = g.sets.map((prefix) =>
+      `<li><a href="/sets/${setSlug(prefix)}/">${esc(setLabel(prefix))}</a></li>`
+    ).join("");
+    return `      <div class="sl-g"><h2 class="sl-g-name">${esc(g.name)}</h2><ul class="sl-list">${items}</ul></div>`;
+  }).join("\n");
+  return `  <details class="setlinks">
+    <summary>エキスパンション別に探す（全${total}セット）</summary>
+    <div class="sl-body">
+${sections}
+      <p class="sl-more"><a href="/cards/">ロゴ・収録枚数つきの一覧を見る</a></p>
+    </div>
+  </details>`;
+}
+
+// index.html のマーカー間だけを書き換える。
+//
+// ⚠ マーカーが無ければ throw して落とす(#29 の索引生成に continue-on-error を付けたのとは逆の判断)。
+//   マーカー欠落は「人が直すまで直らない恒久的な失敗」で、握り潰すと index.html は正常なHTMLのまま
+//   リンクだけ消えた状態で自動publishされ続ける = jobは緑・差分も出ないまま静かに劣化する。
+//   通常は先に npm run validate が捕まえるので、cronが赤くなる状況は起きない。
+const SETLINKS_RE = /(<!-- SETLINKS:START[^>]*-->)[\s\S]*?(<!-- SETLINKS:END -->)/;
+const TOP_HTML = path.join(ROOT, "index.html");
+const MARKER_ERROR = "index.html に SETLINKS:START / SETLINKS:END のマーカーがありません(#37 設計書 §4.1)";
+
+// 生成に入る前に検査する。書き戻しは全ページ生成の後なので、ここで見ておかないと
+// 2,240ページを書いたあとで落ちることになる(cronでは無駄な上に中途半端な出力が残る)。
+function assertSetLinksMarker() {
+  if (!SETLINKS_RE.test(readFileSync(TOP_HTML, "utf8"))) throw new Error(MARKER_ERROR);
+}
+
+function writeTopSetLinks(groups) {
+  const src = readFileSync(TOP_HTML, "utf8");
+  if (!SETLINKS_RE.test(src)) throw new Error(MARKER_ERROR);
+  writeFileSync(TOP_HTML, src.replace(SETLINKS_RE, `$1\n${topSetLinks(groups)}\n  $2`));
+}
+
 // エキスパンショングループ(公式 featured-sets)ごとにセクション分けした索引。
 // groups: [{name, logoUrl, sets:[prefix,...]}] ("その他" はロゴなしで最後)
 function indexPage(groups, setsByPrefix, totalCards) {
@@ -677,6 +725,7 @@ function buildSitemap(cards, setsSorted) {
 // ---------- main ----------
 
 async function main() {
+  assertSetLinksMarker(); // 生成を始める前に落とす(#37)。2,240ページ書いた後に落ちても直せない
   const cards = await loadCards(ROOT, { force: REFRESH });
 
   // セット別グルーピング(カードは版ごとに所属セットへ。同一セット内の重複版は先頭のみ)
@@ -726,13 +775,14 @@ async function main() {
     writeFileSync(path.join(dir, "index.html"), setPage(prefix, entries, logoByPrefix.get(prefix) || null));
   }
   writeFileSync(path.join(ROOT, "cards", "index.html"), indexPage(groups, bySets, cards.length));
+  writeTopSetLinks(groups); // トップのマーカー間を差し替える(#37)
   writeFileSync(path.join(ROOT, "cards", "cards.css"), CARDS_CSS);
   writeFileSync(path.join(ROOT, "cards", "cards.js"), CARDS_JS);
   const sitemap = buildSitemap(cards, setsSorted);
   writeFileSync(path.join(ROOT, "sitemap.xml"), sitemap.xml);
 
   const translated = cards.filter((c) => CI.isTranslated(c)).length;
-  process.stderr.write(`\n生成完了: カード${cards.length}ページ(和訳あり${translated}) / セット${setsSorted.length}ページ / 索引 / sitemap.xml(${sitemap.count}URL)\n`);
+  process.stderr.write(`\n生成完了: カード${cards.length}ページ(和訳あり${translated}) / セット${setsSorted.length}ページ / 索引 / トップの静的セットリンク${setsSorted.length}本 / sitemap.xml(${sitemap.count}URL)\n`);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

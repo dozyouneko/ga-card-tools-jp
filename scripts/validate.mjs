@@ -10,6 +10,7 @@
 //   - BOM（先頭 U+FEFF があれば NG）
 // さらに全ファイルを vm 評価して構文エラーが無いか（＝ブラウザで読めるか）を確認し、
 // data/tl-*.json（ブラウザが読む生成物）が data/tl/*.js と一致しているかを検査する（#22 フェーズ2）。
+// 加えて index.html のマーカー間の /sets/ リンクが cards/index.html と一致するかを検査する（#37）。
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -101,6 +102,45 @@ if (loaded) {
     console.error(`  → node scripts/gen-tl-json.mjs を実行して生成し直し、コミットしてください`);
   } else {
     console.log(`generated JSON up to date — ${NAMES_FILE} / ${EFFECTS_FILE}`);
+  }
+}
+
+// トップの静的セットリンクの陳腐化チェック（#37）
+// ⚠️ マーカー方式は「失敗が差分に出ない形」で壊れうる:
+//   - マーカーが消えている → 何も差し込まれないまま index.html は正常なHTMLとして出続ける
+//   - 生成側の不具合でリンク0本になっても、HTMLとしては妥当なのでビルドは通る
+// index.html と cards/index.html は同じ groups 配列から生成されるため、/sets/ リンクの集合は
+// 完全一致するはずである。一致しなければ「マーカーが空」「index.html の再生成忘れ（＝新セットが
+// 載っていない）」「生成ロジックの不具合」のいずれかが起きている。
+{
+  const setLinks = (html) => new Set([...html.matchAll(/href="(\/sets\/[^"]+\/)"/g)].map((m) => m[1]));
+  const bad = [];
+  try {
+    const top = readFileSync(path.join(root, "index.html"), "utf8");
+    const marked = top.match(/<!-- SETLINKS:START[^>]*-->([\s\S]*?)<!-- SETLINKS:END -->/);
+    if (!marked) {
+      bad.push("index.html に SETLINKS:START / SETLINKS:END のマーカーがありません");
+    } else {
+      const actual = setLinks(marked[1]);
+      const expected = setLinks(readFileSync(path.join(root, "cards", "index.html"), "utf8"));
+      const missing = [...expected].filter((u) => !actual.has(u));
+      const extra = [...actual].filter((u) => !expected.has(u));
+      if (missing.length || extra.length) {
+        bad.push(`マーカー間の /sets/ リンクが cards/index.html と一致しません（トップ${actual.size}本 / 索引${expected.size}本）`);
+        if (missing.length) bad.push(`  トップに無い: ${missing.slice(0, 5).join(" ")}${missing.length > 5 ? ` …他${missing.length - 5}件` : ""}`);
+        if (extra.length) bad.push(`  トップにだけある: ${extra.slice(0, 5).join(" ")}${extra.length > 5 ? ` …他${extra.length - 5}件` : ""}`);
+      } else {
+        console.log(`top set links up to date — index.html に /sets/ リンク ${actual.size}本`);
+      }
+    }
+  } catch (e) {
+    bad.push(`読み込みに失敗: ${e.message}`);
+  }
+  if (bad.length) {
+    problems++;
+    console.error(`\nSTALE TOP SET LINKS:`);
+    bad.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → node scripts/build-card-pages.mjs を実行して生成し直し、コミットしてください`);
   }
 }
 
