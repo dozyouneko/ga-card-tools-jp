@@ -1,10 +1,22 @@
 {
-  "updatedAt": "2026-07-28T21:47:36.666Z",
+  "updatedAt": "2026-07-29T21:16:28.810Z",
   "scan": {
     "minId": 46500,
-    "maxId": 59145
+    "maxId": 59209
   },
   "events": [
+    {
+      "id": 59135,
+      "name": "Grand Arena RDO Store Championship",
+      "category": "store-championships",
+      "format": "standard",
+      "startAt": "2026-07-29T06:00:00.000Z",
+      "season": "RDO",
+      "country": "TH",
+      "host": "Grand Arena TCG Store",
+      "playerCount": 22,
+      "deckCount": 22
+    },
     {
       "id": 58996,
       "name": "Silver Goblin Store Champs",
