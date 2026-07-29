@@ -173,17 +173,8 @@ a { color: var(--accent-2); }
   color: #fff; background: var(--no);   /* 既存の未翻訳色 #7a6320 を流用 */
   padding: 1px 6px; border-radius: 999px;
 }
-/* .badges-bl / .format-badge / .season-badge / .flip-badge / .badges-tr は
+/* .badges-bl / .format-badge / .season-badge / .flip-badge / .art-badge / .badges-tr は
    shared/css/card-badges.css に移した（#35・デッキ構築と共用するため）。ここに再掲しないこと */
-
-.art-badge {
-  position: absolute; right: 8px; bottom: 8px;
-  border: none; border-radius: 8px;
-  background: rgba(15, 17, 21, .82);
-  color: #fff; font-size: .72rem; line-height: 1;
-  padding: 4px 8px; cursor: pointer;
-}
-.art-badge:hover { background: var(--accent-2); }
 
 .card-body { padding: 10px 12px 14px; }
 .card-name { margin: 0; font-weight: 700; font-size: .98rem; }
@@ -329,10 +320,9 @@ a { color: var(--accent-2); }
   #order, #reset { min-width: 0; }
   /* チップ側のスマホ調整（上の一括指定を戻す）は shared/css/filter-chips.css にある・#31 */
 
-  /* タップ領域を広げる（44px 目安）。.badges-tr / .season-badge のスマホ調整は
-     shared/css/card-badges.css に同居させてある（#35） */
+  /* タップ領域を広げる（44px 目安）。.badges-tr / .season-badge / .art-badge の
+     スマホ調整は shared/css/card-badges.css に同居させてある（#35） */
   .card-add { padding: 8px 10px; font-size: .9rem; }
-  .art-badge { padding: 6px 10px; font-size: .74rem; }
   .qty button { width: 36px; height: 36px; font-size: 1.15rem; }
   .qty-input { width: 44px; padding: 8px 4px; font-size: 16px; }
   .tray-remove { font-size: 1.6rem; padding: 4px 8px; }

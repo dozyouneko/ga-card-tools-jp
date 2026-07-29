@@ -1177,11 +1177,11 @@ function appendResults(cards) {
     item.innerHTML = `
       <div class="cardph">
         ${url ? `<img loading="lazy" src="${escapeHtml(url)}" alt="">` : `<div class="noimg">${escapeHtml(jpName(card))}</div>`}
-        ${url && imgs.length > 1 ? `<button class="art-badge" type="button" title="イラスト/版を切り替え（${imgs.length}種）" aria-label="イラストを切り替え">🎨 ${imgs.length}・${escapeHtml(imgs[0].prefix)}</button>` : ""}
         <div class="badges-bl">
           ${formatBadgeHtml(card)}
           ${seasonalBadgeHtml(card)}
           ${url && back ? `<button class="flip-badge" type="button" title="両面カード：表裏を切り替え" aria-label="裏面を表示">🔄 両面</button>` : ""}
+          ${url && imgs.length > 1 ? `<button class="art-badge" type="button" title="イラスト/版を切り替え（${imgs.length}種）" aria-label="イラストを切り替え">🎨 ${imgs.length}・${escapeHtml(imgs[0].prefix)}</button>` : ""}
         </div>
         <span class="in-deck" ${inDeck ? "" : "hidden"}>${inDeck}枚</span>
       </div>

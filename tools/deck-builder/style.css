@@ -351,18 +351,10 @@ img.champ-thumb-img { display: block; }
   font-variant-numeric: tabular-nums;
 }
 
-/* 検索結果の左下バッジ群(.badges-bl / .format-badge / .season-badge / .flip-badge)は
-   shared/css/card-badges.css にある(#35・トップページと共用)。ここに再掲しないこと */
-
-/* 検索結果のイラスト/版切替バッジ(トップページと同じ見た目) */
-.result .art-badge {
-  position: absolute; right: 8px; bottom: 8px;
-  border: none; border-radius: 8px;
-  background: rgba(15, 17, 21, .82);
-  color: #fff; font-size: .72rem; line-height: 1;
-  padding: 4px 8px; cursor: pointer;
-}
-.result .art-badge:hover { background: var(--accent-2); }
+/* 検索結果の左下バッジ群(.badges-bl / .format-badge / .season-badge / .flip-badge /
+   .art-badge)は shared/css/card-badges.css にある(#35・トップページと共用)。
+   ⚠️ ここに `.result .art-badge` のような詳細度の高いルールを書くと、共通CSSの
+   `position: static` に勝って縦積みが壊れる。再掲しないこと */
 
 /* ---------- イラスト選択ダイアログ ---------- */
 .art-body { max-width: 640px; }

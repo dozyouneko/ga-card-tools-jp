@@ -4,8 +4,12 @@
       片方だけにコピーを作らないこと（#35 の不具合そのものが「デッキ構築だけ別実装」に起因する）。
 
    カード画像の上端2隅には常に情報がある（左上＝コスト・右上＝属性シンボル）。
-   そのため禁止系のバッジは左下（.badges-bl）に縦積みする。積む順は下から
-   「禁止 → シーズン禁止 → 両面」（#25 → #34 → #35 の経緯）。 */
+   そのためバッジは左下（.badges-bl）に縦積みする。積む順は下から
+   「禁止 → シーズン禁止 → 両面 → イラスト切替」＝ 情報を下・操作を上（#25 → #34 → #35 の経緯）。
+
+   ⚠️ 右下・左上に「もう1つだけ」置く誘惑に負けないこと。座標を分けると幅次第で必ず重なる
+   （実例: #35 で 🎨 を右下に残したところ、版prefixで幅が倍になり左下バッジと重なった）。
+   縦積みなら重ならないことが構造で保証される。 */
 
 /* 左下バッジ群（format-badge / season-badge / flip-badge）を縦積みして座標衝突を防ぐ（issue #25） */
 .badges-bl {
@@ -48,6 +52,18 @@
 }
 .flip-badge:hover { background: var(--accent-2); }
 
+/* イラスト/版の切替バッジ（.badges-bl 内で縦積み・最上段）。
+   ⚠️ 文言に版のprefix（例「🎨 7・DOA Alter」）が入って幅が伸びるため、
+   右下に絶対配置すると左下のバッジと重なる（#35）。必ず縦積みの中に置くこと */
+.art-badge {
+  position: static;
+  border: none; border-radius: 8px;
+  background: rgba(15, 17, 21, .82);
+  color: #fff; font-size: .72rem; line-height: 1;
+  padding: 4px 8px; cursor: pointer;
+}
+.art-badge:hover { background: var(--accent-2); }
+
 /* 右上バッジ群（#34・左下の .badges-bl と同じ方式）。
    #35 でシーズン禁止を左下へ移したため、現在の中身は印刷ボタン（.card-add）だけ。
    将来また右上にバッジを足すときの受け皿として残す。
@@ -63,4 +79,5 @@
 @media (max-width: 640px) {
   .badges-tr { top: 6px; right: 6px; gap: 4px; }
   .season-badge { font-size: .62rem; padding: 2px 7px; }
+  .art-badge { padding: 6px 10px; font-size: .74rem; }
 }
