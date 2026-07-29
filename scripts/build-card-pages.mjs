@@ -496,10 +496,16 @@ function assertSetLinksMarker() {
   if (!SETLINKS_RE.test(readFileSync(TOP_HTML, "utf8"))) throw new Error(MARKER_ERROR);
 }
 
+// ⚠ 置換は必ず**関数**で渡す。置換文字列にすると $ が特殊文字として解釈されるため
+//   ($& $` $' $1 …)、差し込むHTMLにセット名由来の $ が入った瞬間に壊れる。
+//   とくに $' は「マッチ以降の全文」に展開され、フッターや <script> 群がマーカー内に複製される。
+//   /sets/ リンクの集合は変わらないので §4.5 の検査をすり抜け、静かに劣化する経路になる
+//   (現行データに $ を含むセット名は無いが、関数にするだけで構造的に消える。#37 レビュー指摘)。
 function writeTopSetLinks(groups) {
   const src = readFileSync(TOP_HTML, "utf8");
   if (!SETLINKS_RE.test(src)) throw new Error(MARKER_ERROR);
-  writeFileSync(TOP_HTML, src.replace(SETLINKS_RE, `$1\n${topSetLinks(groups)}\n  $2`));
+  const html = topSetLinks(groups);
+  writeFileSync(TOP_HTML, src.replace(SETLINKS_RE, (_m, start, end) => `${start}\n${html}\n  ${end}`));
 }
 
 // エキスパンショングループ(公式 featured-sets)ごとにセクション分けした索引。
