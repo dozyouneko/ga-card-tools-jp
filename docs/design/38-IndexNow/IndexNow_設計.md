@@ -7,6 +7,7 @@
 
 | 版 | 日付 | 内容 |
 |---|---|---|
+| 第3版 | 2026-07-30 | **V9・V12 が `403 UserForbiddedToAccessSite` で失敗**（キーファイルは200・内容一致・公開から9時間20分後も同じ）。⚠️ **原因の本命は「BWTの所有権確認をGSCインポートで行ったこと」**（§1b・Microsoft Q&Aの解決報告）。**`BingSiteAuth.xml` によるBing独自の確認へ切り替える**。✅ **V12のうちスクリプトの挙動は合格**（7ファイル→2 URL・`decks.html` と `data/**` を除外・jobだけが赤くなりpushは正常完了）。**通知ステップは停止しない**（ユーザー判断） |
 | 第2版（実装レビュー） | 2026-07-29 | 実装（`5f2abc9b`）を設計適合レビューし**条件付き承認**。設計担当側で独立検証: 実cronコミット `676a6b63` で **49ファイル→16 URL**（`decks.html` **15件**と `data/**` を除外）、実データの全slug **2,737件が `SEG` に収まる**ことを確認。**確認事項1〜3に回答**（§2.3・§4に反映）。⚠️ **リネーム時に通知が漏れる経路を指摘**（§2.2）。検証中の**本番API誤送信の報告**を受理し §5 に記録 |
 | 第1版 | 2026-07-29 | 初版。Bing Webmaster Tools の登録完了（サイトマップ即日「成功」・検出2.7K）で前提が揃ったため設計。**全項目が実装待ち** |
 
@@ -21,6 +22,47 @@
 → **ファイルと配信は無実で、失敗はGoogle固有。Bing側の発見経路は生きている。**
 
 ⚠️ **本issueで改善するのはBing系だけ。GoogleはIndexNowに対応していない。**
+
+## 1b. ⚠️ 403 の原因と対処（2026-07-30 追記）
+
+**V9・V12 とも `403 UserForbiddedToAccessSite` で失敗した。** キーファイルは本番で200・内容一致、
+POST/GET/Bing直の3経路すべてが同じ403、キーファイル公開から**9時間20分**経っても変化なし。
+
+### 原因（有力な手がかり）: **BWTの所有権確認を「GSCインポート」で行うとIndexNowが通らない**
+
+Microsoft Q&A に同じエラーの解決報告がある:
+
+> "Turns out that if you set up bing webmasters using google search it doesnt work,
+> I recreated the account with xml verification and everything works now"
+> — <https://learn.microsoft.com/en-us/answers/questions/5825616/indexnow-submission-failed-responded-403-(user-is>
+
+⚠️ **本プロジェクトはまさにGSCインポートで登録していた**（`pages.dev` はDNSを操作できず、手動確認だと
+本番pushが要るため、設計担当がインポートを推奨した）。**その判断が403の原因である可能性が高い。**
+
+エラー文言とも整合する。`UserForbiddedToAccessSite` / "User is unauthorized to access **the site**" は
+**キーファイルではなくBWT側のユーザーとサイトの紐付け**を指しており、キーが完璧でも通らない説明がつく。
+
+⚠️ **確度**: Microsoft公式の見解ではなく他ユーザーの解決報告。
+[同種の別スレッド](https://learn.microsoft.com/en-us/answers/questions/5954003/errorcode-userforbiddedtoaccesssite)では
+モデレータが「バックエンド側で調査権限がない」と回答し**未解決**で終わっている。
+[公式ドキュメント](https://www.indexnow.org/documentation)の403の説明は「key not found / file found but key not in the file」だけで、
+**アカウント側の条件には触れていない**。
+
+### 対処: `BingSiteAuth.xml` によるBing独自の所有権確認へ切り替える
+
+| 方法 | 可否 |
+|---|---|
+| **`BingSiteAuth.xml`（ルート直下）** | ✅ **採用**。⚠️ **ファイル名はBing側が固定パスを見に来るため変更不可** |
+| `msvalidate.01` の meta タグ | 可。ただし `index.html` を触る範囲が広くなるので採らない |
+| DNS（CNAME/TXT） | ❌ **不可**（`pages.dev` のDNSは操作できない） |
+
+⚠️ **順番が重要**: BWTは**ファイルが公開済みでないと確認できない**。
+「値を取得 → ファイル配置 → **push** → 公開確認 → BWTで『確認』→ サイトマップ再送信 → IndexNow再試行」の順。
+
+⚠️ **`BingSiteAuth.xml` はcronの `git add` 対象に入れない**（生成物ではなく、変わらない静的ファイル）。
+
+⚠️ **教訓**: 外部サービスの所有権確認は、**「楽な経路」が下流の機能で通用するとは限らない**。
+GSCインポートはpushを1回節約したが、**IndexNowという下流の機能で使えず、結果的に手戻りを生んだ**。
 
 ## 2. 実装仕様
 
