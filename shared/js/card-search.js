@@ -20,8 +20,10 @@
  *
  * els.set の value は I18N.meta.sets のインデックス。els.order は dataset.dir に "ASC"/"DESC" を持つボタン。
  *
- * cls/element/type/subtype は <select>(単一選択)でも、fillChips() が作るチップ群
- * (複数選択+AND/OR)でも渡せる。デッキ構築ツールは前者、カードDBは後者を使う。
+ * cls/element/type/subtype は fillChips() が作るチップ群(複数選択+AND/OR)を渡す。
+ * カードDB・デッキ構築ツールとも同じ(#31 で統一)。
+ * ⚠ modeOf()/valuesOf() は getMode()/getValues() を持たない素の <select> にも
+ *   フォールバックするが、そのような呼び出し元は現在無い(#32 で fillSelect も削除済み)。
  */
 window.GA_CARD_SEARCH = (() => {
   const API = "https://api.gatcg.com";
@@ -64,17 +66,6 @@ window.GA_CARD_SEARCH = (() => {
     const tail = keys.filter((k) => !BASIC_ELEMENTS.includes(k) && k !== "EXALTED").sort();
     if (keys.includes("EXALTED")) tail.push("EXALTED");
     return head.concat(tail);
-  }
-
-  function fillSelect(select, kind) {
-    const map = (I18N.meta && I18N.meta[kind]) || {};
-    const keys = kind === "elements" ? elementKeys(map) : Object.keys(map).sort();
-    keys.forEach((key) => {
-      const opt = document.createElement("option");
-      opt.value = key;
-      opt.textContent = `${key}（${map[key]}）`;
-      select.appendChild(opt);
-    });
   }
 
   // ---------- 複数選択（チップ群 + AND/OR）----------
@@ -589,7 +580,7 @@ window.GA_CARD_SEARCH = (() => {
   }
 
   return {
-    create, fillSelect, fillChips, fillSetSelect, fillFormatSelect,
+    create, fillChips, fillSetSelect, fillFormatSelect,
     setPrefixes, setKeyOf, setIndexOf,
     SUBTYPE_TOP, ELEMENT_AND_MESSAGE,
   };
