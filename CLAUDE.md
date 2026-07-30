@@ -98,6 +98,21 @@ issueコメントが「実装→設計」の報告経路になる(2セッショ�
 - `npm run dev` — 静的プレビュー(scripts/serve.mjs、ポート3000)
 - `npm run pages:dev` — Cloudflare Pages Functions込みのローカル実行(wrangler、ポート8788)
 - `npm run validate` — データ検証
+- ⚠️ **新セットが公式APIに入ったら `data/translations.js` の `meta.sets` に手で追記する**(#40)。
+  セットページ・`sitemap.xml`・トップの静的リンクは**日次cronがAPIから自動生成する**が、
+  **エキスパンション絞り込み(`#f-set`)の選択肢だけは手書き**で、更新の号令が無い。
+  追記を忘れると**そのセットで絞り込めず、ラベルが素のprefix**になる
+  (実例: SP4 が 2026-07-02 にAPI追加され、**32枚が約1か月間ずっと絞り込めなかった**)
+  - 追記の形: `{ label: "…（PREFIX）", prefixes: ["PREFIX"] },` を**発売日の新しい順**の位置へ。
+    ⚠️ `release_date` が `1970-01-01`(API未設定)のセットは並べ替えに使えないので `created_at` で判断する
+  - 追記後は **`npm run build:cards` を実行して生成物もコミットする**(ラベルが約35ファイルに出る)。
+    忘れると翌朝のcronが同じ差分を無関係な自動コミットとしてpushする
+  - ✅ 検出経路は2つある(#40): **`npm run validate` が exit 1 で落ちる**(人を止める)/
+    **`build:cards` が完走サマリに1行出す**(cronログに痕跡。⚠️ **exit 1 にはしない**——
+    cronの後段に到達しないとその日の大会データの取り込みごと失われるため)
+  - ⚠️ **cronは `validate` を実行しない**ので、**新セット当日の自動publishは止められない**。
+    PRDスポイラー等でセットが増えたら**自分で `meta.sets` を確認する**
+  - ⚠️ 共有URLは壊れない(`setKeyOf` は添字ではなくprefixを書く・#20の設計)。並び順は自由に変えてよい
 - `npm run build:cards` — カード個別ページ・セット別ページ・`sitemap.xml` を生成
   - ⚠️ **出力に「日付依存」が1つだけある**(#34のシーズン禁止)。`data/seasonal-banlist.json` の
     `effectiveFrom` / `effectiveTo` を跨ぐ日に、**対象カードのページだけ**表示が変わる。
