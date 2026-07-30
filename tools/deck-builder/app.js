@@ -1157,6 +1157,16 @@ function renderAddRow(item, card) {
   }).join("");
 }
 
+// エキスパンション(版)で絞り込み検索している場合、その版のイラストを初期表示にする(#41)。
+// 絞り込みが無い、または一致する版が無い場合は先頭(imgs[0])にフォールバック。
+// トップページの app.js:64 と同じ規則。参照する <select> だけが違う(トップは el.fSet)。
+function preferredArtIndex(imgs) {
+  const pre = GA_CARD_SEARCH.setPrefixes(el.sSet.value);
+  if (!pre.length) return 0;
+  const idx = imgs.findIndex((im) => pre.includes(im.prefix));
+  return idx >= 0 ? idx : 0;
+}
+
 function updateResultBadge(item, slug) {
   const badge = item.querySelector(".in-deck");
   const n = totalQtyInDeck(slug);
@@ -1168,11 +1178,16 @@ function appendResults(cards) {
   const frag = document.createDocumentFragment();
   cards.forEach((card) => {
     const imgs = cardImages(card);
-    const url = imgs.length ? imgs[0].url : null;
+    const initialAi = preferredArtIndex(imgs);
+    const url = imgs.length ? imgs[initialAi].url : null;
     const back = backFace(card); // 両面カードなら裏面(無ければ null)
     const item = document.createElement("div");
     item.className = "result";
     item.dataset.slug = card.slug;
+    // 絞り込みで選ばれた版を、🎨 で切り替えたときと同じ扱いで保持する(#41)。
+    // ⚠ 絞り込みが無いときは imgs[initialAi] === imgs[0] === imageUrl(card) なので、
+    //   追加時の判定(下の artUrl !== imageUrl(card))で art=null に落ち、従来と同じ挙動になる。
+    if (imgs.length) item.dataset.artUrl = imgs[initialAi].url;
     const inDeck = totalQtyInDeck(card.slug);
     item.innerHTML = `
       <div class="cardph">
@@ -1181,7 +1196,7 @@ function appendResults(cards) {
           ${formatBadgeHtml(card)}
           ${seasonalBadgeHtml(card)}
           ${url && back ? `<button class="flip-badge" type="button" title="両面カード：表裏を切り替え" aria-label="裏面を表示">🔄 両面</button>` : ""}
-          ${url && imgs.length > 1 ? `<button class="art-badge" type="button" title="イラスト/版を切り替え（${imgs.length}種）" aria-label="イラストを切り替え">🎨 ${imgs.length}・${escapeHtml(imgs[0].prefix)}</button>` : ""}
+          ${url && imgs.length > 1 ? `<button class="art-badge" type="button" title="イラスト/版を切り替え（${imgs.length}種）" aria-label="イラストを切り替え">🎨 ${imgs.length}・${escapeHtml(imgs[initialAi].prefix)}</button>` : ""}
         </div>
         <span class="in-deck" ${inDeck ? "" : "hidden"}>${inDeck}枚</span>
       </div>
@@ -1194,7 +1209,7 @@ function appendResults(cards) {
     const artBadge = item.querySelector(".art-badge");
     const flipBadge = item.querySelector(".flip-badge");
     if (imgEl && (artBadge || flipBadge)) {
-      let ai = 0;              // 選択中の版(イラスト)番号
+      let ai = initialAi;      // 選択中の版(イラスト)番号
       let showingBack = false; // 裏面を表示中か
       const syncImg = () => {
         const cur = imgs[ai] || imgs[0];
