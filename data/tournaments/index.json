@@ -1,10 +1,22 @@
 {
-  "updatedAt": "2026-07-29T21:16:28.810Z",
+  "updatedAt": "2026-07-30T21:50:13.403Z",
   "scan": {
     "minId": 46500,
-    "maxId": 59209
+    "maxId": 59268
   },
   "events": [
+    {
+      "id": 56321,
+      "name": "Grand Archive Radiant Origins Store Championship",
+      "category": "store-championships",
+      "format": "standard",
+      "startAt": "2026-07-29T22:30:00.000Z",
+      "season": "RDO",
+      "country": "CA",
+      "host": "RetroPlay Games",
+      "playerCount": 6,
+      "deckCount": 6
+    },
     {
       "id": 59135,
       "name": "Grand Arena RDO Store Championship",
