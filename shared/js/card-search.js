@@ -24,6 +24,7 @@
  * カードDB・デッキ構築ツールとも同じ(#31 で統一)。
  * ⚠ modeOf()/valuesOf() は getMode()/getValues() を持たない素の <select> にも
  *   フォールバックするが、そのような呼び出し元は現在無い(#32 で fillSelect も削除済み)。
+ * set/format は <select> のまま(fillSetSelect()/fillFormatSelect() が選択肢を構築する)。
  */
 window.GA_CARD_SEARCH = (() => {
   const API = "https://api.gatcg.com";
@@ -74,8 +75,9 @@ window.GA_CARD_SEARCH = (() => {
   // scripts/lib/element-orbs.json のキーと対応する。
   const ORB_ELEMENTS = ["NORM", "FIRE", "WATER", "WIND", "ARCANE", "ASTRA", "CRUX", "EXIA", "LUXEM", "NEOS", "TERA", "UMBRA"];
 
-  // サブタイプは146種あるため既定は出現頻度の上位20種だけ出す(残りは「すべて表示」で開く)。
-  // tmp/api-cache/cards-snapshot.json（2,240枚・2026-07-22）から出現数の降順で算出したもの。
+  // サブタイプは147種あるため既定は出現頻度の上位20種だけ出す(残りは「すべて表示」で開く)。
+  // 下の順位は tmp/api-cache/cards-snapshot.json（2,240枚・2026-07-22）から出現数の降順で算出したもの。
+  // ⚠ snapshot 側の異なり数は146。フリップ面22件を収録しないため SHENJU が現れないだけで、齟齬ではない。
   // この20種で 2,239/2,240 枚(=ほぼ全カード)がいずれかに該当する。
   const SUBTYPE_TOP = [
     "CLERIC", "SPELL", "HUMAN", "MAGE", "TAMER", "WARRIOR", "GUARDIAN", "SKILL", "RANGER", "ASSASSIN",

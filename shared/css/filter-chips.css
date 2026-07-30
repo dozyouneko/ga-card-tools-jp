@@ -83,7 +83,7 @@
 .fgroup .chip:has(input:focus-visible) { outline: 2px solid var(--accent-2); outline-offset: 1px; }
 .fgroup .chip em { font-style: normal; color: var(--muted); font-size: .72rem; }
 
-/* サブタイプは146種あるため既定は上位20種のみ。残りは「すべて表示」で開く */
+/* サブタイプは種類が多いため既定は上位20種のみ。残りは「すべて表示」で開く */
 .fgroup .more { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 12px 12px; }
 .fgroup .morebtn {
   background: transparent;
