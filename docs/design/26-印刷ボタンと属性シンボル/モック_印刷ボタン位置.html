@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>#26 印刷追加ボタンの位置 モック</title>
+<style>
+:root{
+  --bg:#0f1115; --panel:#171a21; --panel-2:#1f232c; --border:#2a2f3a;
+  --text:#e7e9ee; --muted:#9aa2b1; --accent:#d9a441; --accent-2:#6ea8fe;
+  --yes:#2f9e6b; --no:#7a6320; --radius:12px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);line-height:1.6;
+  font-family:system-ui,-apple-system,"Segoe UI","Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif}
+.wrap{max-width:1200px;margin:0 auto;padding:24px}
+h1{font-size:1.3rem;margin:0 0 4px}
+h2{font-size:1.05rem;margin:36px 0 6px;border-top:1px solid var(--border);padding-top:18px}
+h3{font-size:.9rem;margin:18px 0 8px;color:var(--muted);font-weight:600}
+p,li{font-size:.88rem}
+.lead{color:var(--muted);margin:0 0 8px}
+code{background:var(--panel-2);padding:1px 5px;border-radius:4px;font-size:.82rem}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.84rem}
+th,td{border:1px solid var(--border);padding:6px 9px;text-align:left;vertical-align:top}
+th{background:var(--panel-2);color:var(--muted);font-weight:600}
+.warn{border-left:3px solid var(--accent);background:#1d1a12;padding:10px 14px;margin:12px 0;font-size:.86rem}
+.bad{border-left-color:#b91c1c;background:#1d1212}
+.good{border-left-color:var(--yes);background:#121d17}
+
+/* ---- 実物と同じカードCSS（style.css / shared/css/card-badges.css から転記） ---- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
+.card{text-align:left;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+  padding:0;overflow:hidden;cursor:pointer;color:inherit;font:inherit}
+.card-img{position:relative;aspect-ratio:63/88;background:#0b0d11}
+.card-img img{width:100%;height:100%;object-fit:cover;display:block}
+.card-body{padding:10px 12px 14px}
+.card-name{margin:0;font-weight:700;font-size:.98rem}
+.card-name-en{margin:2px 0 0;color:var(--muted);font-size:.78rem}
+.card-chips{margin:8px 0 0;display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:.72rem;background:var(--panel-2);border:1px solid var(--border);padding:2px 8px;border-radius:999px;color:var(--muted)}
+.chip-elem{color:var(--accent);border-color:#3a3320}
+
+.badges-bl{position:absolute;left:8px;bottom:8px;display:flex;flex-direction:column-reverse;align-items:flex-start;gap:6px}
+.format-badge{position:static;font-size:.7rem;padding:2px 8px;border-radius:999px;color:#fff;font-weight:700}
+.format-banned{background:#b91c1c}
+.season-badge{position:static;font-size:.68rem;font-weight:700;line-height:1.25;padding:3px 8px;border-radius:999px;
+  color:#fff;border:1px solid rgba(255,255,255,.5);box-shadow:0 1px 4px rgba(0,0,0,.6);white-space:nowrap}
+.season-announced{background:#a16207}
+.season-active{background:#86198f}
+.flip-badge,.art-badge{position:static;border:none;background:rgba(15,17,21,.82);color:#fff;
+  font-family:inherit;line-height:1;cursor:pointer}
+.flip-badge{border-radius:999px;font-size:.7rem;padding:4px 8px;font-weight:700}
+.art-badge{border-radius:8px;font-size:.72rem;padding:4px 8px}
+.badges-tr{position:absolute;top:8px;right:8px;display:flex;flex-direction:column;align-items:flex-end;gap:6px;pointer-events:none}
+.badges-tr>*{pointer-events:auto}
+.card-add{position:static;border:none;border-radius:8px;background:rgba(15,17,21,.78);color:#fff;
+  font-family:inherit;font-size:.8rem;line-height:1;padding:6px 8px;cursor:pointer;opacity:0;transition:opacity .12s ease}
+.card:hover .card-add{opacity:1}
+
+/* モック専用: 状態を強制表示する */
+.force-hover .card-add{opacity:1}
+.no-hover .card-add{opacity:0}
+
+/* 375px 相当の枠 */
+.phone{width:375px;border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--bg)}
+.phone .grid{grid-template-columns:repeat(2,1fr);gap:10px}
+/* 375px ではボタンが常時表示・タップ領域拡大（style.css:341,352 と同じ） */
+.phone .card-add{opacity:1;padding:8px 10px;font-size:.9rem}
+.phone .badges-tr{top:6px;right:6px;gap:4px}
+.phone .season-badge{font-size:.62rem;padding:2px 7px}
+.phone .art-badge{padding:6px 10px;font-size:.74rem}
+
+.cols{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+.col{flex:0 0 auto}
+.col > h3{margin-top:0}
+.pc{width:380px}
+.pc .grid{grid-template-columns:repeat(2,1fr);gap:16px}
+
+/* 案B: 画像外（card-body の上）にボタンを出す */
+.bodybtn{display:flex;justify-content:flex-end;padding:8px 12px 0}
+.bodybtn button{border:1px solid var(--border);border-radius:8px;background:var(--panel-2);color:var(--text);
+  font-family:inherit;font-size:.78rem;line-height:1;padding:6px 10px;cursor:pointer}
+/* 案D: 右上のままアイコンのみ・小型 */
+.mini .card-add{padding:4px 5px;font-size:.72rem;border-radius:6px;background:rgba(15,17,21,.62)}
+
+.tag{display:inline-block;font-size:.7rem;padding:1px 7px;border-radius:999px;background:var(--panel-2);
+  border:1px solid var(--border);color:var(--muted);margin-left:6px;vertical-align:middle}
+.ok{color:var(--yes)} .ng{color:#f87171}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>#26 検索結果カードの印刷追加ボタン（＋🖨️）が属性シンボルを覆う — 位置の比較</h1>
+<p class="lead">設計担当作成・2026-07-30。カード画像・バッジ文言・最悪ケースは<strong>すべて実データ</strong>（<code>tmp/api-cache/cards-snapshot.json</code> 2,240枚 + <code>data/seasonal-banlist.json</code> から算出）。CSSは <code>style.css</code> と <code>shared/css/card-badges.css</code> から転記しています。</p>
+
+<h2>0. 実測した前提</h2>
+
+<h3>同時に表示されるバッジの数（＋🖨️ を含む・2,240枚を全数評価）</h3>
+<table>
+<tr><th>バッジ数</th><th>枚数</th><th>備考</th></tr>
+<tr><td>1個</td><td>1,029枚</td><td>＋🖨️ のみ</td></tr>
+<tr><td>2個</td><td>1,127枚</td><td></td></tr>
+<tr><td>3個</td><td>83枚</td><td></td></tr>
+<tr><td><strong>4個</strong></td><td><strong>1枚</strong></td><td>⭐ 最悪ケース = <code>fabled-azurite-fatestone</code>（伝説の瑠璃運命石）</td></tr>
+</table>
+<p>最悪ケースの内訳: <code>⏳ 8/21〜禁止</code>（2026-08-21以降は <code>⛔ シーズン禁止</code>）＋ <code>🔄 両面</code> ＋ <code>🎨 3・ReC-HVF</code> ＋ <code>＋🖨️</code>。</p>
+
+<h3>各バッジの最長文言（幅のリスク）</h3>
+<table>
+<tr><th>バッジ</th><th>最長文言</th><th>文字数</th></tr>
+<tr><td>art（🎨）</td><td><code>🎨 16・DOA Alter</code>（<code>life-essence-amulet</code>）</td><td><strong>16</strong></td></tr>
+<tr><td>format</td><td><code>🏛 Pantheon専用</code></td><td>13</td></tr>
+<tr><td>season</td><td><code>⛔ シーズン禁止</code></td><td>8</td></tr>
+<tr><td>flip</td><td><code>🔄 両面</code></td><td>5</td></tr>
+<tr><td>print</td><td><code>＋🖨️</code></td><td>3</td></tr>
+</table>
+
+<div class="warn">
+<strong>⚠️ 既存CSSに明記されたルール（<code>shared/css/card-badges.css</code>）</strong><br>
+「カード画像の上端2隅には常に情報がある（左上＝コスト・右上＝属性シンボル）。そのためバッジは左下（<code>.badges-bl</code>）に縦積みする」<br>
+「⚠️ <strong>右下・左上に「もう1つだけ」置く誘惑に負けないこと。座標を分けると幅次第で必ず重なる</strong>（実例: #35 で 🎨 を右下に残したところ、版prefixで幅が倍になり左下バッジと重なった）。縦積みなら重ならないことが構造で保証される」<br>
+→ <strong>この失敗は #25・#26・#35 と3回繰り返している。</strong>本issueで座標を新設する案は最初から除外した。
+</div>
+
+<h2>1. 現状</h2>
+<p>右上 <code>.badges-tr</code> に <code>.card-add</code>（＋🖨️ 約45×25px）。<strong>PCはホバー時のみ表示・スマホは常時表示</strong>（<code>style.css:238,352</code>）。</p>
+
+<div class="cols">
+  <div class="col pc">
+    <h3>PC・ホバー前 <span class="tag">問題なし</span></h3>
+    <div class="grid no-hover">
+      <div class="card"><div class="card-img"><img src="https://api.gatcg.com/cards/images/o1yp6dnpyk.jpg" alt=""><div class="badges-bl"><span class="season-badge season-announced">⏳ 8/21〜禁止</span><button class="flip-badge">🔄 両面</button><button class="art-badge">🎨 3・ReC-HVF</button></div><div class="badges-tr"><button class="card-add">＋🖨️</button></div></div>
+        <div class="card-body"><p class="card-name">伝説の瑠璃運命石</p><p class="card-name-en">Fabled Azurite Fatestone</p><p class="card-chips"><span class="chip">レガリア / アイテム</span><span class="chip chip-elem">アルケイン</span></p></div></div>
+      <div class="card"><div class="card-img"><img src="https://api.gatcg.com/cards/images/4MLJvZNYeu.jpg" alt=""><div class="badges-tr"><button class="card-add">＋🖨️</button></div></div>
+        <div class="card-body"><p class="card-name">自己放棄</p><p class="card-name-en">Abnegation</p><p class="card-chips"><span class="chip">アクション</span><span class="chip chip-elem">アンブラ</span></p></div></div>
+    </div>
+  </div>
+  <div class="col pc">
+    <h3>PC・ホバー時 <span class="tag ng">属性シンボルを覆う</span></h3>
+    <div class="grid force-hover">
+      <div class="card"><div class="card-img"><img src="https://api.gatcg.com/cards/images/o1yp6dnpyk.jpg" alt=""><div class="badges-bl"><span class="season-badge season-announced">⏳ 8/21〜禁止</span><button class="flip-badge">🔄 両面</button><button class="art-badge">🎨 3・ReC-HVF</button></div><div class="badges-tr"><button class="card-add">＋🖨️</button></div></div>
+        <div class="card-body"><p class="card-name">伝説の瑠璃運命石</p><p class="card-name-en">Fabled Azurite Fatestone</p><p class="card-chips"><span class="chip">レガリア / アイテム</span><span class="chip chip-elem">アルケイン</span></p></div></div>
+      <div class="card"><div class="card-img"><img src="https://api.gatcg.com/cards/images/4MLJvZNYeu.jpg" alt=""><div class="badges-tr"><button class="card-add">＋🖨️</button></div></div>
+        <div class="card-body"><p class="card-name">自己放棄</p><p class="card-name-en">Abnegation</p><p class="card-chips"><span class="chip">アクション</span><span class="chip chip-elem">アンブラ</span></p></div></div>
+    </div>
+  </div>
+  <div class="col">
+    <h3>375px（常時表示） <span class="tag ng">常に覆う</span></h3>
+    <div class="phone"><div class="grid">
+      <div class="card"><div class="card-img"><img src="https://api.gatcg.com/cards/images/o1yp6dnpyk.jpg" alt=""><div class="badges-bl"><span class="season-badge season-announced">⏳ 8/21〜禁止</span><button class="flip-badge">🔄 両面</button><button class="art-badge">🎨 3・ReC-HVF</button></div><div class="badges-tr"><button class="card-add">＋🖨️</button></div></div>
+        <div class="card-body"><p class="card-name">伝説の瑠璃運命石</p><p class="card-name-en">Fabled Azurite Fatestone</p></div></div>
+      <div class="card"><div class="card-img"><img src="https://api.gatcg.com/cards/images/07wtk3sgbj.jpg" alt=""><div class="badges-bl"><span class="format-badge format-banned">🚫 スタン禁止</span></div><div class="badges-tr"><button class="card-add">＋🖨️</button></div></div>
+        <div class="card-body"><p class="card-name">鯉唄のコーダ</p><p class="card-name-en">Carpsong Coda</p></div></div>
+    </div></div>
+  </div>
+</div>
+
+<h2>2. 案A — 左下 <code>.badges-bl</code> の縦積みに合流（既存CSSのルールどおり）</h2>
+<p>＋🖨️ を <code>.badges-tr</code> から <code>.badges-bl</code> の<strong>最上段</strong>へ移す。<code>.badges-tr</code> は空になるので削除できる。</p>
+
+<div class="cols">
+  <div class="col pc">
+    <h3>PC・ホバー時 <span class="tag ok">属性は見える</span></h3>
+    <div class="grid force-hover">
+      <div class="card"><div class="card-img"><img src="https://api.gatcg.com/cards/images/o1yp6dnpyk.jpg" alt=""><div class="badges-bl"><span class="season-badge season-announced">⏳ 8/21〜禁止</span><button class="flip-badge">🔄 両面</button><button class="art-badge">🎨 3・ReC-HVF</button><button class="card-add">＋🖨️</button></div></div>
+        <div class="card-body"><p class="card-name">伝説の瑠璃運命石</p><p class="card-name-en">Fabled Azurite Fatestone</p><p class="card-chips"><span class="chip">レガリア / アイテム</span><span class="chip chip-elem">アルケイン</span></p></div></div>
+      <div class="card"><div class="card-img"><img src="https://api.gatcg.com/cards/images/4MLJvZNYeu.jpg" alt=""><div class="badges-bl"><button class="card-add">＋🖨️</button></div></div>
+        <div class="card-body"><p class="card-name">自己放棄</p><p class="card-name-en">Abnegation</p><p class="card-chips"><span class="chip">アクション</span><span class="chip chip-elem">アンブラ</span></p></div></div>
+    </div>
+  </div>
+  <div class="col">
+    <h3>375px・最悪ケース4段 <span class="tag ng">縦を占有</span></h3>
+    <div class="phone"><div class="grid">
+      <div class="card"><div class="card-img"><img src="https://api.gatcg.com/cards/images/o1yp6dnpyk.jpg" alt=""><div class="badges-bl"><span class="season-badge season-active">⛔ シーズン禁止</span><button class="flip-badge">🔄 両面</button><button class="art-badge">🎨 3・ReC-HVF</button><button class="card-add">＋🖨️</button></div></div>
+        <div class="card-body"><p class="card-name">伝説の瑠璃運命石</p><p class="card-name-en">Fabled Azurite Fatestone</p></div></div>
+      <div class="card"><div class="card-img"><img src="https://api.gatcg.com/cards/images/w9r9hcpdti.jpg" alt=""><div class="badges-bl"><button class="art-badge">🎨 16・DOA Alter</button><button class="card-add">＋🖨️</button></div></div>
+        <div class="card-body"><p class="card-name">生命精気の護符</p><p class="card-name-en">Life Essence Amulet</p></div></div>
+    </div></div>
+    <p style="font-size:.8rem;color:var(--muted)">右のカードは art 文言が最長（16文字）のケース。</p>
+  </div>
+</div>
+
+<div class="warn bad"><strong>⚠️ 案Aの代償</strong>: 最悪ケースで<strong>左下が4段</strong>になる。375px ではボタンのタップ領域を広げている（<code>padding:8px 10px</code>）ため縦が伸び、<strong>絵柄の下半分近くを覆う</strong>。ただし該当は<strong>2,240枚中1枚</strong>で、3段以下が2,239枚。</div>
+
+<h2>3. 案B — 画像外（カード名の上）へ出す</h2>
+<p>画像に重ねるのをやめ、<code>.card-body</code> の直前に右寄せで置く。<strong>#36 で「バッジ全部を画像外へ」は却下済み</strong>（カード高さが不揃いになる）だが、<strong>ボタン1つなら常に1行なので高さは揃う</strong>ため再評価の余地がある。</p>
+
+<div class="cols">
+  <div class="col pc">
+    <h3>PC <span class="tag ok">画像を一切覆わない</span></h3>
+    <div class="grid">
+      <div class="card"><div class="card-img"><img src="https://api.gatcg.com/cards/images/o1yp6dnpyk.jpg" alt=""><div class="badges-bl"><span class="season-badge season-announced">⏳ 8/21〜禁止</span><button class="flip-badge">🔄 両面</button><button class="art-badge">🎨 3・ReC-HVF</button></div></div>
+        <div class="bodybtn"><button>＋🖨️ 印刷</button></div>
+        <div class="card-body"><p class="card-name">伝説の瑠璃運命石</p><p class="card-name-en">Fabled Azurite Fatestone</p><p class="card-chips"><span class="chip">レガリア / アイテム</span><span class="chip chip-elem">アルケイン</span></p></div></div>
+      <div class="card"><div class="card-img"><img src="https://api.gatcg.com/cards/images/4MLJvZNYeu.jpg" alt=""></div>
+        <div class="bodybtn"><button>＋🖨️ 印刷</button></div>
+        <div class="card-body"><p class="card-name">自己放棄</p><p class="card-name-en">Abnegation</p><p class="card-chips"><span class="chip">アクション</span><span class="chip chip-elem">アンブラ</span></p></div></div>
+    </div>
+  </div>
+  <div class="col">
+    <h3>375px</h3>
+    <div class="phone"><div class="grid">
+      <div class="card"><div class="card-img"><img src="https://api.gatcg.com/cards/images/o1yp6dnpyk.jpg" alt=""><div class="badges-bl"><span class="season-badge season-active">⛔ シーズン禁止</span><button class="flip-badge">🔄 両面</button><button class="art-badge">🎨 3・ReC-HVF</button></div></div>
+        <div class="bodybtn"><button>＋🖨️ 印刷</button></div>
+        <div class="card-body"><p class="card-name">伝説の瑠璃運命石</p><p class="card-name-en">Fabled Azurite Fatestone</p></div></div>
+      <div class="card"><div class="card-img"><img src="https://api.gatcg.com/cards/images/07wtk3sgbj.jpg" alt=""><div class="badges-bl"><span class="format-badge format-banned">🚫 スタン禁止</span></div></div>
+        <div class="bodybtn"><button>＋🖨️ 印刷</button></div>
+        <div class="card-body"><p class="card-name">鯉唄のコーダ</p><p class="card-name-en">Carpsong Coda</p></div></div>
+    </div></div>
+  </div>
+</div>
+
+<div class="warn"><strong>案Bの代償</strong>: 全カードが<strong>常に約34px縦に伸びる</strong>（PCのホバー時のみ表示という省スペース性を失う）。1画面に入る枚数が減る。⚠️ <strong>カード全体が <code>role="button"</code> で詳細モーダルを開く</strong>ため、画像外にボタンを置くと<strong>クリック領域の入れ子が増える</strong>（<code>e.stopPropagation()</code> は現状もあるので実装上は同じ）。</div>
+
+<h2>4. 案D — 右上のまま小型化・半透明化</h2>
+<p>座標は変えず、<code>padding</code> を詰めて文言を <code>＋🖨️</code> のまま小さくし、背景の不透明度も下げる（0.78 → 0.62）。<strong>覆う面積を減らすだけで、覆う事実は消えない。</strong></p>
+
+<div class="cols">
+  <div class="col pc">
+    <h3>PC・ホバー時 <span class="tag">面積は減るが覆う</span></h3>
+    <div class="grid force-hover mini">
+      <div class="card"><div class="card-img"><img src="https://api.gatcg.com/cards/images/o1yp6dnpyk.jpg" alt=""><div class="badges-bl"><span class="season-badge season-announced">⏳ 8/21〜禁止</span><button class="flip-badge">🔄 両面</button><button class="art-badge">🎨 3・ReC-HVF</button></div><div class="badges-tr"><button class="card-add">＋🖨️</button></div></div>
+        <div class="card-body"><p class="card-name">伝説の瑠璃運命石</p><p class="card-name-en">Fabled Azurite Fatestone</p><p class="card-chips"><span class="chip">レガリア / アイテム</span><span class="chip chip-elem">アルケイン</span></p></div></div>
+      <div class="card"><div class="card-img"><img src="https://api.gatcg.com/cards/images/4MLJvZNYeu.jpg" alt=""><div class="badges-tr"><button class="card-add">＋🖨️</button></div></div>
+        <div class="card-body"><p class="card-name">自己放棄</p><p class="card-name-en">Abnegation</p><p class="card-chips"><span class="chip">アクション</span><span class="chip chip-elem">アンブラ</span></p></div></div>
+    </div>
+  </div>
+  <div class="col">
+    <h3>375px</h3>
+    <div class="phone"><div class="grid mini">
+      <div class="card"><div class="card-img"><img src="https://api.gatcg.com/cards/images/o1yp6dnpyk.jpg" alt=""><div class="badges-bl"><span class="season-badge season-active">⛔ シーズン禁止</span><button class="flip-badge">🔄 両面</button><button class="art-badge">🎨 3・ReC-HVF</button></div><div class="badges-tr"><button class="card-add">＋🖨️</button></div></div>
+        <div class="card-body"><p class="card-name">伝説の瑠璃運命石</p><p class="card-name-en">Fabled Azurite Fatestone</p></div></div>
+      <div class="card"><div class="card-img"><img src="https://api.gatcg.com/cards/images/07wtk3sgbj.jpg" alt=""><div class="badges-bl"><span class="format-badge format-banned">🚫 スタン禁止</span></div><div class="badges-tr"><button class="card-add">＋🖨️</button></div></div>
+        <div class="card-body"><p class="card-name">鯉唄のコーダ</p><p class="card-name-en">Carpsong Coda</p></div></div>
+    </div></div>
+  </div>
+</div>
+
+<div class="warn bad"><strong>⚠️ 案Dの問題</strong>: 375px で<strong>タップ領域が44px目安を大きく下回る</strong>（<code>style.css:341</code> がスマホで意図的に <code>padding:8px 10px</code> に広げているのを打ち消す）。<strong>アクセシビリティの後退</strong>と引き換えに、覆う問題は解決しない。</div>
+
+<h2>5. 比較</h2>
+<table>
+<tr><th>観点</th><th>現状</th><th>案A 左下縦積み</th><th>案B 画像外</th><th>案D 小型化</th></tr>
+<tr><td>属性シンボルが見える</td><td class="ng">❌</td><td class="ok">✅</td><td class="ok">✅</td><td class="ng">△ 面積減のみ</td></tr>
+<tr><td>絵柄を覆わない</td><td>△ 右上のみ</td><td class="ng">❌ 最悪4段（1枚）</td><td class="ok">✅ 一切覆わない</td><td>△</td></tr>
+<tr><td>カード高さが揃う</td><td class="ok">✅</td><td class="ok">✅</td><td class="ok">✅ ボタン1行のみ</td><td class="ok">✅</td></tr>
+<tr><td>1画面の表示枚数</td><td class="ok">✅ 現状維持</td><td class="ok">✅ 現状維持</td><td class="ng">❌ 約34px/枚 増</td><td class="ok">✅</td></tr>
+<tr><td>タップ領域44px</td><td class="ok">✅</td><td class="ok">✅</td><td class="ok">✅</td><td class="ng">❌ 後退</td></tr>
+<tr><td>既存CSSのルールに沿う</td><td class="ng">❌ 座標分離</td><td class="ok">✅ 縦積みに合流</td><td>△ 別枠を新設</td><td class="ng">❌ 座標分離のまま</td></tr>
+<tr><td>実装量</td><td>—</td><td class="ok">小（DOM1行移動＋CSS削除）</td><td>中（新クラス＋レイアウト）</td><td class="ok">小（CSSのみ）</td></tr>
+</table>
+
+<div class="warn good">
+<strong>⭐ 設計担当の推奨: 案A（左下縦積みに合流）</strong><br>
+理由は3つ。
+<ol>
+<li><strong>既存CSSが明文で指示している方式</strong>で、#25・#26・#35 と3回繰り返した「座標を分けて重なる」失敗の再発を構造的に防げる</li>
+<li><strong>4段になるのは2,240枚中1枚だけ</strong>（3段以下が2,239枚）。最悪ケースの代償は測定上ごく限定的</li>
+<li><strong>実装が最小</strong>（<code>app.js</code> の DOM 1行を移動し、<code>.badges-tr</code> を削除するだけ）。案Bは全カードが縦に伸びる代償が全枚数に及ぶ</li>
+</ol>
+⚠️ ただし本issueはユーザー判断で<strong>優先度「低」</strong>（2026-07-24・「右上の属性はそこまで重要ではない」）。<strong>案Aの4段を見て「かえって悪化」と判断されるなら、現状維持（クローズ）も妥当な結論</strong>です。上の375pxの4段を見て決めてください。
+</div>
+
+<h2>6. 案Aを採る場合の変更点（実装の見積り）</h2>
+<table>
+<tr><th>ファイル</th><th>変更</th></tr>
+<tr><td><code>app.js:198-206</code></td><td><code>.badges-tr</code> ブロックを削除し、<code>.card-add</code> の <code>&lt;button&gt;</code> を <code>.badges-bl</code> の<strong>末尾</strong>（=<code>column-reverse</code> なので表示は最上段）へ移す</td></tr>
+<tr><td><code>shared/css/card-badges.css</code></td><td><code>.badges-tr</code> の定義を削除。⚠️ <strong>コメントの「現在の中身は印刷ボタンだけ」という記述も更新する</strong>（残すと嘘になる）。積む順の説明に <code>＋🖨️</code> を追記</td></tr>
+<tr><td><code>style.css:230-239</code></td><td><code>.card-add</code> の <code>position:static</code> はそのまま（親が <code>.badges-bl</code> に変わるだけ）。<code>opacity:0</code>／ホバー表示も維持</td></tr>
+<tr><td><code>style.css:339-352</code></td><td>スマホの <code>.card-add</code> 常時表示・<code>padding</code> 拡大はそのまま維持</td></tr>
+<tr><td>デッキ構築ツール</td><td>✅ <strong>影響なし（実測）</strong>。<code>.card-add</code> / <code>.badges-tr</code> はデッキ構築に存在せず、印刷リスト（<code>addToPrint</code>・<code>print-bar</code>）は <code>app.js</code> と <code>index.html</code> だけにある。デッキ構築が使うのは <code>.badges-bl</code>（<code>tools/deck-builder/app.js:1180</code>）のみ。⚠️ ただし <code>card-badges.css</code> は<strong>両画面が読む</strong>ので、<code>.badges-bl</code> 側を触るなら両画面の確認が必要</td></tr>
+</table>
+
+<div class="warn"><strong>⚠️ <code>.badges-tr</code> を削除するかは判断が要る</strong><br>
+現在のコメントは「<em>将来また右上にバッジを足すときの受け皿として残す</em>」としています。しかし同じファイルの上部で「<strong>右下・左上に「もう1つだけ」置く誘惑に負けないこと</strong>」と禁じており、<strong>受け皿を残すこと自体がその誘惑を温存している</strong>とも読めます。<br>
+→ 案Aを採るなら<strong>削除を推奨</strong>（縦積み1箇所に統一する意図を構造で表す）。残す場合はコメントを「現在は空。追加するなら <code>.badges-bl</code> に合流させること」へ書き換える。
+</div>
+
+<div class="warn"><strong>⚠️ 検証で必ず見ること</strong>
+<ul>
+<li>最悪ケース <code>fabled-azurite-fatestone</code> を <strong>375px</strong> で表示し、4段が絵柄をどこまで覆うか</li>
+<li><code>life-essence-amulet</code>（art 16文字）で<strong>横にはみ出さない</strong>こと</li>
+<li>PCで<strong>ホバー前に ＋🖨️ が見えない</strong>こと（<code>opacity:0</code> が効いているか）</li>
+<li>⚠️ <strong>ホバー前の透明なボタンがクリックを奪わないか</strong>。<code>.badges-tr</code> は <code>pointer-events:none</code>＋子だけ <code>auto</code> だが、<strong><code>.badges-bl</code> にはその指定が無い</strong>（実測）。<code>opacity:0</code> の要素は<strong>クリックを受ける</strong>ため、移設後は「カードのどこを押しても詳細が開く」挙動が左下で崩れないか確認する</li>
+<li>デッキ構築ツールの検索結果が崩れないこと（<code>card-badges.css</code> は共用）</li>
+</ul></div>
+
+</div>
+</body>
+</html>
