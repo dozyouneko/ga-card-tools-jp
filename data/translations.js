@@ -15,6 +15,7 @@ window.GA_I18N = {
     // エキスパンション（セット／版ごとに分割。発売日の新しい順。label 末尾に略語を付す）
     // prefixes は API の prefix パラメータ。1エントリ＝1prefix。新セットは先頭付近に追記。
     sets: [
+      { label: "Supporter Pack 4（SP4）", prefixes: ["SP4"] },
       { label: "Radiant Origins（RDO）", prefixes: ["RDO"] },
       { label: "Radiant Origins 1st Ed.（RDO 1st）", prefixes: ["RDO 1st"] },
       { label: "Radiant Origins: Armaments（RDOA）", prefixes: ["RDOA"] },

@@ -11,6 +11,7 @@
 // さらに全ファイルを vm 評価して構文エラーが無いか（＝ブラウザで読めるか）を確認し、
 // data/tl-*.json（ブラウザが読む生成物）が data/tl/*.js と一致しているかを検査する（#22 フェーズ2）。
 // 加えて index.html のマーカー間の /sets/ リンクが cards/index.html と一致するかを検査する（#37）。
+// さらに meta.sets（エキスパンション絞り込みの選択肢）が全セットを覆っているかを検査する（#40）。
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -141,6 +142,42 @@ if (loaded) {
     console.error(`\nSTALE TOP SET LINKS:`);
     bad.forEach((m) => console.error(`  - ${m}`));
     console.error(`  → node scripts/build-card-pages.mjs を実行して生成し直し、コミットしてください`);
+  }
+}
+
+// エキスパンション絞り込みの網羅性チェック（#40）
+// セットページ・sitemap・トップの静的リンクは API の editions 由来で日次cronが自動更新するが、
+// エキスパンション絞り込み（#f-set）の選択肢は data/translations.js の meta.sets を手で書く。
+// 更新の号令が無いため「ページはあるのに絞り込めない」状態が静かに続きうる（SP4 で約1か月）。
+// cards/index.html の /sets/<slug>/ リンク（＝APIに実在するセット）を正として、meta.sets の
+// prefixes を slug 化した集合が覆っているかを検査する。
+if (loaded) {
+  // build-card-pages.mjs の setSlug と同一規則。独自に厳しくすると（例 ReC-BRV → rec-brv の
+  // ハイフンまで潰すと）一致しなくなり検査が嘘をつく。
+  const setSlug = (prefix) => prefix.toLowerCase().replace(/\s+/g, "-");
+  const bad = [];
+  try {
+    const index = readFileSync(path.join(root, "cards", "index.html"), "utf8");
+    const actual = new Set([...index.matchAll(/href="\/sets\/([^"/]+)\/"/g)].map((m) => m[1]));
+    const registered = new Set();
+    ((loaded.meta && loaded.meta.sets) || []).forEach((s) =>
+      (s.prefixes || []).forEach((p) => registered.add(setSlug(p)))
+    );
+    const missing = [...actual].filter((s) => !registered.has(s));
+    if (missing.length) {
+      bad.push(`セットページはあるが data/translations.js の meta.sets に無い: ${missing.join(" ")}`);
+    } else {
+      console.log(`meta.sets covers all sets — ${actual.size}件`);
+    }
+  } catch (e) {
+    bad.push(`読み込みに失敗: ${e.message}`);
+  }
+  if (bad.length) {
+    problems++;
+    console.error(`\nUNREGISTERED SETS (meta.sets):`);
+    bad.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → data/translations.js の meta.sets に { label: "…（PREFIX）", prefixes: ["PREFIX"] } を`);
+    console.error(`    発売日の新しい順の位置へ追記し、npm run build:cards を実行してコミットしてください`);
   }
 }
 

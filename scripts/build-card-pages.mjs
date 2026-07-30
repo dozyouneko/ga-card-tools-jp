@@ -789,6 +789,16 @@ async function main() {
 
   const translated = cards.filter((c) => CI.isTranslated(c)).length;
   process.stderr.write(`\n生成完了: カード${cards.length}ページ(和訳あり${translated}) / セット${setsSorted.length}ページ / 索引 / トップの静的セットリンク${setsSorted.length}本 / sitemap.xml(${sitemap.count}URL)\n`);
+
+  // meta.sets(エキスパンション絞り込みの選択肢)未登録のセットを1行だけ報せる(#40)。
+  // ⚠ exit 1 にはしない。cron の後段(コミット・push)に到達しないとその日の大会データの
+  //   取り込みごと失われるため(#29 の continue-on-error と同じ論点)。検査で人を止めるのは
+  //   npm run validate 側の役割で、ここは cron のログに痕跡を残すのが目的。
+  // 0件のときは何も出さない(毎日出るとノイズになり読まれなくなる)。
+  const unregistered = setsSorted.map(([p]) => p).filter((p) => !SET_LABELS.has(p));
+  if (unregistered.length) {
+    process.stderr.write(`⚠ meta.sets 未登録のセット: ${unregistered.length}件 (${unregistered.join(", ")}) — エキスパンション絞り込みに出ません\n`);
+  }
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
