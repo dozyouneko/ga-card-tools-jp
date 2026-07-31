@@ -1,10 +1,22 @@
 {
-  "updatedAt": "2026-07-30T21:50:13.403Z",
+  "updatedAt": "2026-07-31T21:47:41.613Z",
   "scan": {
     "minId": 46500,
-    "maxId": 59268
+    "maxId": 59340
   },
   "events": [
+    {
+      "id": 59232,
+      "name": "Coffer Sparks RDO Store Championship",
+      "category": "store-championships",
+      "format": "standard",
+      "startAt": "2026-07-31T00:00:00.000Z",
+      "season": "RDO",
+      "country": "US",
+      "host": "The Coffer",
+      "playerCount": 9,
+      "deckCount": 9
+    },
     {
       "id": 56321,
       "name": "Grand Archive Radiant Origins Store Championship",
