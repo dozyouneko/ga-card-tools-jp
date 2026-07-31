@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#42 印刷トレイ 現状/変更後 モック</title>
+<style>
+:root {
+  --bg: #0f1115; --panel: #171a21; --panel-2: #1f232c; --border: #2a2f3a;
+  --text: #e7e9ee; --muted: #9aa2b1; --accent: #d9a441; --no: #7a6320; --radius: 12px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans JP", sans-serif; padding: 24px; }
+h1 { font-size: 1.15rem; margin: 0 0 6px; }
+h2 { font-size: 1rem; margin: 28px 0 4px; border-left: 4px solid var(--accent); padding-left: 8px; }
+h3 { font-size: .9rem; margin: 16px 0 8px; color: var(--muted); font-weight: 600; }
+p.note { color: var(--muted); font-size: .85rem; margin: 4px 0 12px; line-height: 1.6; }
+.bad { color: #e0806f; } .good { color: #74c69d; }
+.cols { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+.pane { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.pane.pc { flex: 1 1 520px; min-width: 340px; }
+.pane.sp { width: 375px; flex: 0 0 375px; }
+.pane-label { font-size: .78rem; color: var(--muted); margin: 0 0 10px; letter-spacing: .04em; }
+
+/* ---- 本番 style.css からの写し（.tray-item 一式） ---- */
+ul.tray { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.tray-item {
+  display: grid; grid-template-columns: 40px 1fr auto auto; align-items: center; gap: 12px;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px;
+}
+.tray-item img { width: 40px; height: 56px; object-fit: cover; border-radius: 4px; }
+.tray-name { font-size: .92rem; }
+.qty { display: inline-flex; align-items: center; gap: 6px; }
+.qty button { width: 28px; height: 28px; border-radius: 6px; cursor: pointer;
+  background: var(--panel); color: var(--text); border: 1px solid var(--border); font-size: 1rem; line-height: 1; }
+.qty-input { width: 48px; text-align: center; padding: 5px; border-radius: 6px;
+  background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+.tray-remove { background: transparent; border: none; color: var(--muted); font-size: 1.3rem; cursor: pointer; line-height: 1; }
+.tray-summary { color: var(--muted); font-size: .9rem; margin: 12px 0 0; }
+
+/* スマホ幅の上書き（style.css の @media と同じ値） */
+.pane.sp .tray-item { gap: 8px; }
+.pane.sp .qty button { width: 36px; height: 36px; font-size: 1.15rem; }
+.pane.sp .qty-input { width: 44px; padding: 8px 4px; font-size: 16px; }
+.pane.sp .tray-remove { font-size: 1.6rem; padding: 4px 8px; }
+
+/* ---- 変更後にだけ足すもの（提案） ---- */
+.tray-ver {
+  display: block; font-size: .74rem; color: var(--muted); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tray-text { min-width: 0; }  /* grid 内で省略記号を効かせるために必要 */
+
+table { border-collapse: collapse; font-size: .85rem; margin: 8px 0 0; }
+th, td { border: 1px solid var(--border); padding: 5px 10px; text-align: left; }
+th { background: var(--panel-2); color: var(--muted); font-weight: 600; }
+code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-size: .85em; }
+</style>
+</head>
+<body>
+
+<h1>#42 印刷トレイ — 現状 / 変更後</h1>
+<p class="note">
+実データ（<code>spirit-of-fire</code>＝「火の精霊」・全14版、および最長クラスの日本語名）を使用。
+画像は公式APIの実URL。左＝PC幅 / 右＝375px。
+</p>
+
+<h2>1. 通常ケース — 別の版を2つ追加したとき</h2>
+
+<div class="cols">
+  <div class="pane pc">
+    <p class="pane-label">現状（PC）</p>
+    <ul class="tray">
+      <li class="tray-item">
+        <img crossorigin="anonymous" src="https://api.gatcg.com/cards/images/gx83sfhvfi.jpg" alt="">
+        <span class="tray-name">火の精霊</span>
+        <span class="qty"><button>−</button><input class="qty-input" type="number" value="2"><button>＋</button></span>
+        <button class="tray-remove">×</button>
+      </li>
+    </ul>
+    <p class="tray-summary">合計 2枚 ・ A4 1ページ（1ページ 9枚）</p>
+    <p class="note bad">⚠️ DOA Alter 版を選んで追加しても、行は1つに合算され <b>画像は先に入れた ALC 版のまま</b>。
+      「選んだ版で刷る」導線が成立していない。</p>
+  </div>
+
+  <div class="pane sp">
+    <p class="pane-label">現状（375px）</p>
+    <ul class="tray">
+      <li class="tray-item">
+        <img crossorigin="anonymous" src="https://api.gatcg.com/cards/images/gx83sfhvfi.jpg" alt="">
+        <span class="tray-name">火の精霊</span>
+        <span class="qty"><button>−</button><input class="qty-input" type="number" value="2"><button>＋</button></span>
+        <button class="tray-remove">×</button>
+      </li>
+    </ul>
+    <p class="tray-summary">合計 2枚 ・ A4 1ページ</p>
+  </div>
+</div>
+
+<div class="cols" style="margin-top:18px">
+  <div class="pane pc">
+    <p class="pane-label">変更後（PC）</p>
+    <ul class="tray">
+      <li class="tray-item">
+        <img crossorigin="anonymous" src="https://api.gatcg.com/cards/images/gx83sfhvfi.jpg" alt="">
+        <span class="tray-text"><span class="tray-name">火の精霊</span><span class="tray-ver">ALC #001</span></span>
+        <span class="qty"><button>−</button><input class="qty-input" type="number" value="1"><button>＋</button></span>
+        <button class="tray-remove">×</button>
+      </li>
+      <li class="tray-item">
+        <img crossorigin="anonymous" src="https://api.gatcg.com/cards/images/eslfpwkkbb.jpg" alt="">
+        <span class="tray-text"><span class="tray-name">火の精霊</span><span class="tray-ver">DOA Alter #001</span></span>
+        <span class="qty"><button>−</button><input class="qty-input" type="number" value="1"><button>＋</button></span>
+        <button class="tray-remove">×</button>
+      </li>
+    </ul>
+    <p class="tray-summary">合計 2枚 ・ A4 1ページ（1ページ 9枚）</p>
+    <p class="note good">✅ 版ごとに別の行になり、選んだイラストがそのまま入る。
+      <b>同じ名前が2行並ぶため、版のラベルを名前の下に1行足す</b>（これが今回の唯一のUI追加）。</p>
+  </div>
+
+  <div class="pane sp">
+    <p class="pane-label">変更後（375px）</p>
+    <ul class="tray">
+      <li class="tray-item">
+        <img crossorigin="anonymous" src="https://api.gatcg.com/cards/images/gx83sfhvfi.jpg" alt="">
+        <span class="tray-text"><span class="tray-name">火の精霊</span><span class="tray-ver">ALC #001</span></span>
+        <span class="qty"><button>−</button><input class="qty-input" type="number" value="1"><button>＋</button></span>
+        <button class="tray-remove">×</button>
+      </li>
+      <li class="tray-item">
+        <img crossorigin="anonymous" src="https://api.gatcg.com/cards/images/eslfpwkkbb.jpg" alt="">
+        <span class="tray-text"><span class="tray-name">火の精霊</span><span class="tray-ver">DOA Alter #001</span></span>
+        <span class="qty"><button>−</button><input class="qty-input" type="number" value="1"><button>＋</button></span>
+        <button class="tray-remove">×</button>
+      </li>
+    </ul>
+    <p class="tray-summary">合計 2枚 ・ A4 1ページ</p>
+  </div>
+</div>
+
+<h2>2. 最悪ケース — 最長の日本語名 × 最長の版ラベル</h2>
+<p class="note">
+名前は実データ最長級の「アトモス・アーマー Type-Hermes」（21字）。
+版ラベルは #26 で実測した最長 <code>DOA Alter</code> 系（<code>DOA Alter #001</code>＝14字）。
+<b>375px でも数量スピナーと × を押し出さないこと</b>が確認点。
+</p>
+
+<div class="cols">
+  <div class="pane pc">
+    <p class="pane-label">変更後・最悪ケース（PC）</p>
+    <ul class="tray">
+      <li class="tray-item">
+        <img crossorigin="anonymous" src="https://api.gatcg.com/cards/images/zqHccKpk8L.jpg" alt="">
+        <span class="tray-text"><span class="tray-name">アトモス・アーマー Type-Hermes</span><span class="tray-ver">DOA Alter #001</span></span>
+        <span class="qty"><button>−</button><input class="qty-input" type="number" value="99"><button>＋</button></span>
+        <button class="tray-remove">×</button>
+      </li>
+      <li class="tray-item">
+        <img crossorigin="anonymous" src="https://api.gatcg.com/cards/images/1tisZwrn8k.jpg" alt="">
+        <span class="tray-text"><span class="tray-name">ハンプティ・ダンプティ、運命の落下</span><span class="tray-ver">DOAp #001</span></span>
+        <span class="qty"><button>−</button><input class="qty-input" type="number" value="9"><button>＋</button></span>
+        <button class="tray-remove">×</button>
+      </li>
+    </ul>
+  </div>
+
+  <div class="pane sp">
+    <p class="pane-label">変更後・最悪ケース（375px）</p>
+    <ul class="tray">
+      <li class="tray-item">
+        <img crossorigin="anonymous" src="https://api.gatcg.com/cards/images/zqHccKpk8L.jpg" alt="">
+        <span class="tray-text"><span class="tray-name">アトモス・アーマー Type-Hermes</span><span class="tray-ver">DOA Alter #001</span></span>
+        <span class="qty"><button>−</button><input class="qty-input" type="number" value="99"><button>＋</button></span>
+        <button class="tray-remove">×</button>
+      </li>
+      <li class="tray-item">
+        <img crossorigin="anonymous" src="https://api.gatcg.com/cards/images/1tisZwrn8k.jpg" alt="">
+        <span class="tray-text"><span class="tray-name">ハンプティ・ダンプティ、運命の落下</span><span class="tray-ver">DOAp #001</span></span>
+        <span class="qty"><button>−</button><input class="qty-input" type="number" value="9"><button>＋</button></span>
+        <button class="tray-remove">×</button>
+      </li>
+    </ul>
+    <p class="note">名前は折り返し、版ラベルは <code>text-overflow: ellipsis</code> で1行に抑える。
+      <code>.tray-text</code> に <code>min-width: 0</code> が要る（grid の子は既定で縮まないため）。</p>
+  </div>
+</div>
+
+<h2>3. 参考: 既存データ（版ラベルを持たない行）の見え方</h2>
+<p class="note">
+<code>localStorage</code> に既にある印刷リストは版ラベルを持たない。
+<b>ラベル行を出さずに現状と同じ見た目にする</b>（欠落を「不明」等で埋めない）。
+</p>
+<div class="cols">
+  <div class="pane pc">
+    <p class="pane-label">変更後・旧データ混在（PC）</p>
+    <ul class="tray">
+      <li class="tray-item">
+        <img crossorigin="anonymous" src="https://api.gatcg.com/cards/images/0isnc01fz2.jpg" alt="">
+        <span class="tray-text"><span class="tray-name">火の精霊</span></span>
+        <span class="qty"><button>−</button><input class="qty-input" type="number" value="3"><button>＋</button></span>
+        <button class="tray-remove">×</button>
+      </li>
+      <li class="tray-item">
+        <img crossorigin="anonymous" src="https://api.gatcg.com/cards/images/eslfpwkkbb.jpg" alt="">
+        <span class="tray-text"><span class="tray-name">火の精霊</span><span class="tray-ver">DOA Alter #001</span></span>
+        <span class="qty"><button>−</button><input class="qty-input" type="number" value="1"><button>＋</button></span>
+        <button class="tray-remove">×</button>
+      </li>
+    </ul>
+    <p class="note">行の高さが揃わないが、<b>旧データは次に追加した時点で自然に置き換わる</b>ため一時的。</p>
+  </div>
+</div>
+
+<h2>4. 変更点のまとめ（CSS）</h2>
+<table>
+  <tr><th>セレクタ</th><th>内容</th><th>新規/変更</th></tr>
+  <tr><td><code>.tray-text</code></td><td><code>min-width: 0</code>（省略記号を効かせる）</td><td>新規</td></tr>
+  <tr><td><code>.tray-ver</code></td><td><code>font-size:.74rem / color:var(--muted) / 1行省略</code></td><td>新規</td></tr>
+  <tr><td><code>.tray-item</code></td><td><b>変更なし</b>（grid の列定義は 40px 1fr auto auto のまま）</td><td>—</td></tr>
+</table>
+<p class="note">
+⚠️ <code>style.css</code>（トップページ専用）に追加する。<code>shared/css/card-badges.css</code> は
+カード画像上のバッジ用なので<b>触らない</b>。
+</p>
+
+</body>
+</html>
