@@ -319,8 +319,15 @@ function addToPrint(card, artUrl, verLabel) {
 function addToPrintItem(id, name, image, ver) {
   if (!id || !image) return;
   const existing = printList.find((x) => x.image === image);
-  if (existing) existing.qty = Math.min(existing.qty + 1, 99);
-  else printList.push({ id, name, image, qty: 1, ver: ver || null });
+  if (existing) {
+    existing.qty = Math.min(existing.qty + 1, 99);
+    // ver を持たない旧データに版ラベルを補う（マージ相手は同じ画像なので取り違えは起きない）。
+    // ⚠ 無条件に上書きしない。裏面のフォールバックは意図的に ver=null を渡すため、
+    //   既に入っている正しいラベルを消してしまう
+    if (!existing.ver && ver) existing.ver = ver;
+  } else {
+    printList.push({ id, name, image, qty: 1, ver: ver || null });
+  }
   savePrintList();
   updatePrintBar();
   renderTray();
