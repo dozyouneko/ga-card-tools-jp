@@ -187,6 +187,10 @@ function appendGrid(cards) {
     cardEl.setAttribute("role", "button");
     cardEl.setAttribute("tabindex", "0");
     cardEl.setAttribute("aria-label", jpName(card));
+    // 絞り込みで選ばれた版を、🎨 で切り替えたときと同じ扱いで保持する(#42・#41 と同方式)。
+    // ⚠ この初期値が無いと、エキスパンション絞り込みで初期表示が既定版以外になっていても
+    //   🎨 を押さない限り既定版が印刷リストに入る
+    if (imgs.length) cardEl.dataset.artUrl = imgs[initialAi].url;
 
     const typeChips = (card.types || []).map((t) => label("types", t)).join(" / ");
     const levelChip = card.level != null ? `Lv.${card.level}` : "";
@@ -219,7 +223,15 @@ function appendGrid(cards) {
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); GA_CARD_DETAIL.open(card); }
     });
     const addBtn = cardEl.querySelector(".card-add");
-    if (addBtn) addBtn.addEventListener("click", (e) => { e.stopPropagation(); addToPrint(card); });
+    if (addBtn) {
+      addBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        // 表示中の版（🎨 の切り替え結果・絞り込みによる初期表示）をそのまま印刷リストへ
+        const artUrl = cardEl.dataset.artUrl || null;
+        const cur = artUrl ? imgs.find((im) => im.url === artUrl) : null;
+        addToPrint(card, artUrl, cur && cur.label);
+      });
+    }
     // イラスト切替（🎨）と表裏切替（🔄）は同じ <img> を共有するため、
     // 状態（表面アート番号 ai / 裏面表示 showingBack）を一元管理して衝突を防ぐ。
     const artBadge = cardEl.querySelector(".art-badge");
@@ -240,6 +252,7 @@ function appendGrid(cards) {
           e.stopPropagation();
           ai = (ai + 1) % imgs.length; // 版を切替。表裏の状態(showingBack)は保持
           syncImg();
+          cardEl.dataset.artUrl = imgs[ai].url; // 追加時に「表示中の版」を使うため保持(#42)
           artBadge.textContent = `🎨 ${imgs.length}・${imgs[ai].prefix}`;
           artBadge.title = `イラスト/版を切り替え（${ai + 1}/${imgs.length}：${imgs[ai].label}）`;
         });
@@ -293,37 +306,41 @@ function totalCards() {
   return printList.reduce((n, x) => n + x.qty, 0);
 }
 
-function addToPrint(card) {
-  const image = imageUrl(card);
+// artUrl は「画面で表示中の版」の画像URL。省略・null のときは既定版(editions[0])を使う(#42)
+function addToPrint(card, artUrl, verLabel) {
+  const image = artUrl || imageUrl(card);
   if (!image) return; // 画像なしは追加不可
-  addToPrintItem(card.slug || card.uuid, jpName(card), image);
+  addToPrintItem(card.slug || card.uuid, jpName(card), image, verLabel);
 }
 
-// 印刷リストへの追加の共通部。両面カードの裏面(card形状に正規化済み)からも使う
-function addToPrintItem(id, name, image) {
+// 印刷リストへの追加の共通部。両面カードの裏面(card形状に正規化済み)からも使う。
+// ⚠ 同一性キーは image(画像URL)。slug で判定すると同じカードの別の版が
+//   既存行の数量に合算され、選んだイラストが捨てられる(#42)
+function addToPrintItem(id, name, image, ver) {
   if (!id || !image) return;
-  const existing = printList.find((x) => x.id === id);
+  const existing = printList.find((x) => x.image === image);
   if (existing) existing.qty = Math.min(existing.qty + 1, 99);
-  else printList.push({ id, name, image, qty: 1 });
+  else printList.push({ id, name, image, qty: 1, ver: ver || null });
   savePrintList();
   updatePrintBar();
   renderTray();
 }
 
-function setQty(id, qty) {
-  const it = printList.find((x) => x.id === id);
+// key は画像URL(= printList の同一性キー)
+function setQty(key, qty) {
+  const it = printList.find((x) => x.image === key);
   if (!it) return;
   it.qty = Math.max(1, Math.min(99, qty || 1));
   savePrintList();
   updatePrintBar();
   renderTray();
 }
-function changeQty(id, delta) {
-  const it = printList.find((x) => x.id === id);
-  if (it) setQty(id, it.qty + delta);
+function changeQty(key, delta) {
+  const it = printList.find((x) => x.image === key);
+  if (it) setQty(key, it.qty + delta);
 }
-function removeFromPrint(id) {
-  printList = printList.filter((x) => x.id !== id);
+function removeFromPrint(key) {
+  printList = printList.filter((x) => x.image !== key);
   savePrintList();
   updatePrintBar();
   renderTray();
@@ -354,9 +371,12 @@ function renderTray() {
     return;
   }
   list.innerHTML = printList.map((it) => `
-    <li class="tray-item" data-id="${escapeHtml(it.id)}">
+    <li class="tray-item" data-key="${escapeHtml(it.image)}">
       <img crossorigin="anonymous" src="${escapeHtml(it.image)}" alt="" />
-      <span class="tray-name">${escapeHtml(it.name)}</span>
+      <span class="tray-text">
+        <span class="tray-name">${escapeHtml(it.name)}</span>
+        ${it.ver ? `<span class="tray-ver">${escapeHtml(it.ver)}</span>` : ""}
+      </span>
       <span class="qty">
         <button type="button" class="qty-dec" aria-label="減らす">−</button>
         <input type="number" class="qty-input" min="1" max="99" value="${it.qty}" />
@@ -600,12 +620,18 @@ function init() {
     action: {
       label: (card) => (imageUrl(card) ? "🖨️ 印刷リストに追加" : "画像がないため追加できません"),
       disabled: (card) => !imageUrl(card),
-      onClick: (card) => addToPrint(card),
+      // sel はサムネイルで選択中の版（shared/js/card-detail.js が渡す。無ければ null＝既定版）
+      onClick: (card, sel) => addToPrint(card, sel && sel.url, sel && sel.label),
     },
     backAction: {
       label: (back) => (back.image ? "🖨️ 裏面を印刷リストに追加" : "画像がないため追加できません"),
       disabled: (back) => !back.image,
-      onClick: (back) => addToPrintItem(back.slug, jpName(back), back.image),
+      // 裏面は sel.back（選択中の版に対応する裏面）を使う。その版に裏面画像が無ければ
+      // 既定版の裏面(back.image)に倒す＝そのとき版ラベルは付けない（実物と食い違うため）
+      onClick: (back, sel) => {
+        const useSel = !!(sel && sel.back);
+        addToPrintItem(back.slug, jpName(back), useSel ? sel.back : back.image, useSel ? sel.label : null);
+      },
     },
     onAfterOpen: (card) => {
       if (card.slug) history.replaceState(null, "", "#card/" + encodeURIComponent(card.slug));
@@ -627,15 +653,15 @@ function init() {
   trayList.addEventListener("click", (e) => {
     const li = e.target.closest(".tray-item");
     if (!li) return;
-    const id = li.getAttribute("data-id");
-    if (e.target.classList.contains("tray-remove")) removeFromPrint(id);
-    else if (e.target.classList.contains("qty-inc")) changeQty(id, +1);
-    else if (e.target.classList.contains("qty-dec")) changeQty(id, -1);
+    const key = li.getAttribute("data-key");
+    if (e.target.classList.contains("tray-remove")) removeFromPrint(key);
+    else if (e.target.classList.contains("qty-inc")) changeQty(key, +1);
+    else if (e.target.classList.contains("qty-dec")) changeQty(key, -1);
   });
   trayList.addEventListener("change", (e) => {
     if (!e.target.classList.contains("qty-input")) return;
     const li = e.target.closest(".tray-item");
-    if (li) setQty(li.getAttribute("data-id"), parseInt(e.target.value, 10));
+    if (li) setQty(li.getAttribute("data-key"), parseInt(e.target.value, 10));
   });
 
   document.addEventListener("keydown", (e) => {

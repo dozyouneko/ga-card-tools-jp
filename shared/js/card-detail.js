@@ -33,6 +33,9 @@ window.GA_CARD_DETAIL = (() => {
 
   let opts = {};
   let currentCard = null;
+  // 表示中の版（イラスト）。サムネイルの選択を印刷リストへ渡すために保持する(#42)
+  let currentImgs = [];
+  let currentAi = 0;
   let root = null; // #gacd-modal
 
   // ---------- 効果文中のハイライト ----------
@@ -162,6 +165,8 @@ window.GA_CARD_DETAIL = (() => {
     const imgs = cardImages(card);
     const initialAi = Math.min(Math.max(opts.preferredArtIndex ? opts.preferredArtIndex(imgs) : 0, 0), Math.max(imgs.length - 1, 0));
     const img = imgs.length ? imgs[initialAi].url : null;
+    currentImgs = imgs;
+    currentAi = initialAi;
     const dImg = $("d-img");
     // 空文字の src は現在ページURLに解決され警告を出すため、画像が無いときは src ごと外す
     if (img) {
@@ -353,9 +358,16 @@ window.GA_CARD_DETAIL = (() => {
       const btn = $("d-back-action");
       btn.textContent = act.label ? act.label(back) : "";
       btn.disabled = act.disabled ? !!act.disabled(back) : false;
-      btn.addEventListener("click", () => { if (act.onClick) act.onClick(back); });
+      btn.addEventListener("click", () => { if (act.onClick) act.onClick(back, selection()); });
     }
     wrap.hidden = false;
+  }
+
+  // 表示中の版をアクションのコールバックへ渡すための値。版が無いカードでは null。
+  // back はその版に対応する裏面URL（無ければ null＝呼び出し側で既定版へフォールバックする）
+  function selection() {
+    const cur = currentImgs[currentAi] || null;
+    return cur ? { url: cur.url, back: cur.back, index: currentAi, label: cur.label, prefix: cur.prefix } : null;
   }
 
   // ---------- 初期化（DOM注入と配線） ----------
@@ -431,6 +443,9 @@ window.GA_CARD_DETAIL = (() => {
       const btn = e.target.closest(".art-thumb");
       if (!btn) return;
       $("d-img").src = btn.dataset.url;
+      // 選択中の版を保持する。サムネイルは render() の imgs と同じ順で並ぶ(#42)
+      const idx = Array.prototype.indexOf.call($("d-arts").children, btn);
+      if (idx >= 0) currentAi = idx;
       // 両面カード：裏面画像も選択した版に追従させる
       const backImg = $("d-back-img");
       if (backImg && btn.dataset.back) backImg.src = btn.dataset.back;
@@ -439,7 +454,7 @@ window.GA_CARD_DETAIL = (() => {
     });
 
     $("d-action").addEventListener("click", () => {
-      if (currentCard && opts.action && opts.action.onClick) opts.action.onClick(currentCard);
+      if (currentCard && opts.action && opts.action.onClick) opts.action.onClick(currentCard, selection());
     });
   }
 
