@@ -209,7 +209,10 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-si
         <button class="tray-remove">×</button>
       </li>
     </ul>
-    <p class="note">行の高さが揃わないが、<b>旧データは次に追加した時点で自然に置き換わる</b>ため一時的。</p>
+    <p class="note">行の高さが揃わないが、<b>旧データは同じ版を追加した時点でラベルが埋まる</b>ため一時的。
+      ⚠️ これは自動では起きない — <code>addToPrintItem()</code> のマージ側で
+      <code>if (!existing.ver &amp;&amp; ver) existing.ver = ver;</code> を明示的に書く必要がある
+      （設計書 §3.4・第3版で追加。初回実装では抜けていた）。</p>
   </div>
 </div>
 
