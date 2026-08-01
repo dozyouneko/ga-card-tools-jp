@@ -1,10 +1,22 @@
 {
-  "updatedAt": "2026-07-31T21:47:41.613Z",
+  "updatedAt": "2026-08-01T19:00:50.746Z",
   "scan": {
     "minId": 46500,
-    "maxId": 59340
+    "maxId": 59444
   },
   "events": [
+    {
+      "id": 59168,
+      "name": "Canyon RDO Store Championship",
+      "category": "store-championships",
+      "format": "standard",
+      "startAt": "2026-08-01T06:00:00.000Z",
+      "season": "RDO",
+      "country": "HK",
+      "host": "Grand Canyon",
+      "playerCount": 20,
+      "deckCount": 20
+    },
     {
       "id": 59232,
       "name": "Coffer Sparks RDO Store Championship",
