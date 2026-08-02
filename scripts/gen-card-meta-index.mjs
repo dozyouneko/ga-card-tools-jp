@@ -15,8 +15,12 @@
 //    タイムスタンプを入れず、列挙値はソートしてからトークン化すること。
 //
 // 形式（トークン辞書 + ID配列。生の列挙値をそのまま持つとサイズが倍近くなるため辞書化）:
-//   { d: [token,...], m: { slug: [[c],[e],[t],[s],[p],[b]] } }
-//   各配列は d のインデックス。順序は classes / elements / types / subtypes / setPrefixes / bannedFormats で固定。
+//   { d: [token,...], m: { slug: [[c],[e],[t],[s],[p],[b],[nums],[rarities]] } }
+//   先頭6つは d のインデックス。順序は classes / elements / types / subtypes / setPrefixes / bannedFormats で固定。
+//   entry[6] = [level, power, life, cost_memory]（その項目を持たなければ null）… #43 の並び替え用
+//   entry[7] = entry[4]（setPrefix）と同じ並びの「そのセット内の最小レアリティ」… #43
+//   ⚠ nums / rarities は辞書化しない（数値なのでトークン化してもサイズが減らない）。
+//   ⚠ entry[7] は entry[4] と要素数・順序が一致していること（消費側が添字で対応づける）。
 //
 // 対象は翻訳済みslugのみ（JP検索の対象がそれだけ）。スナップショット（/cards/search）に
 // 無いフリップ面のslugは /cards/:slug で個別取得する。返るのは表面カードで、実行時の
@@ -47,9 +51,14 @@ const log = (s) => process.stderr.write(s + "\n");
 // 読み手（card-search.js:403-415）は includes() の集合判定なので順序は意味を持たない。
 const sorted = (a) => [...a].sort();
 
+// #43: JPモードの並び替えキー。0 と null を混同しないこと
+// （level 0・power 0・life 0・cost_memory 0 はいずれも実在する）。
+const NUM_FIELDS = ["level", "power", "life", "cost_memory"];
+
 function metaOf(card) {
   const eds = card.editions || card.result_editions || [];
-  const prefixes = [...new Set(eds.map((e) => e.set && e.set.prefix).filter(Boolean))];
+  // ⚠ prefixes は先にソートしてから rarities を作る（entry[7] と並びを揃えるため）
+  const prefixes = sorted([...new Set(eds.map((e) => e.set && e.set.prefix).filter(Boolean))]);
   const leg = card.legality || {};
   const banned = ALL_FORMATS.filter((f) => leg[f] && leg[f].limit === 0);
   return {
@@ -57,8 +66,18 @@ function metaOf(card) {
     elements: sorted(card.elements || []),
     types: sorted(card.types || []),
     subtypes: sorted(card.subtypes || []),
-    prefixes: sorted(prefixes),
+    prefixes,
     banned: sorted(banned),
+    // #43: 並び替え用。null は「その項目を持たない」を意味し、消費側が #39 の規則で除外する
+    nums: NUM_FIELDS.map((f) => (card[f] == null ? null : card[f])),
+    // #43: prefixes と同じ並びの「そのセット内の最小レアリティ」。
+    // 公式APIの sort=rarity が「絞り込み後のedition の min」で並ぶことに合わせる
+    // （設計 §4.3 で実測。1カード1値＝全editionのmin にすると、エキスパンション絞り込み中に
+    //  非JPモードと並びが食い違う）
+    rarities: prefixes.map((p) => {
+      const v = eds.filter((e) => e.set && e.set.prefix === p && e.rarity != null).map((e) => e.rarity);
+      return v.length ? Math.min(...v) : null;
+    }),
   };
 }
 
@@ -128,12 +147,20 @@ async function main() {
       x.subtypes.map(tok),
       x.prefixes.map(tok),
       x.banned.map(tok),
+      x.nums,
+      x.rarities,
     ];
   }
 
   const json = JSON.stringify({ d, m });
   writeFileSync(OUT, json + "\n");
   log(`\n生成: ${Object.keys(m).length}slug / 辞書${d.length}トークン / ${(json.length / 1024).toFixed(1)}KB → ${path.relative(ROOT, OUT)}`);
+  // 並び替えキーの件数をcronログに残す（#43）。生成デグレで全滅したときの痕跡になる。
+  // ⚠ ここで exit 1 にしてはいけない（cronの後段に到達しないとその日の大会データの取り込みごと
+  //   失われる）。人を止めるのは npm run validate の役
+  const nonNull = (i) => Object.values(m).filter((e) => e[6][i] != null).length;
+  const withRarity = Object.values(m).filter((e) => e[7].some((v) => v != null)).length;
+  log(`並び替えキー: ${NUM_FIELDS.map((f, i) => `${f} ${nonNull(i)}`).join(" / ")} / rarity ${withRarity}`);
 }
 
 main().catch((e) => { console.error(e.message || e); process.exit(1); });

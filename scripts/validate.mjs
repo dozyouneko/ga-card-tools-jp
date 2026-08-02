@@ -181,6 +181,54 @@ if (loaded) {
   }
 }
 
+// メタ索引の並び替えキーの内部整合チェック（#43）
+// この索引は日次cronが毎日再生成するため、生成スクリプトのデグレで中身だけ壊れても
+// 「jobは緑・差分も出る（＝正常に見える）」経路ができる。JPモードの並び替えが常に0件になったり、
+// レアリティ順だけ静かに間違ったりする形で現れるので、ここで人を止める。
+// ⚠ 生成スクリプトを呼んで結果を突き合わせない（両辺が同源になり常に通る）。
+//    索引ファイルだけを読んで、それ自身の内部整合を見る。
+{
+  const bad = [];
+  try {
+    const idx = JSON.parse(readFileSync(path.join(root, "data", "card-meta-index.json"), "utf8"));
+    const entries = Object.entries(idx.m || {});
+    const NUM_FIELDS = ["level", "power", "life", "cost_memory"];
+    const nonNull = [0, 0, 0, 0];
+    let shortEntry = 0;
+    let rarityMismatch = 0;
+    let numsLen = 0;
+    let badRarity = 0;
+    for (const [slug, e] of entries) {
+      if (!Array.isArray(e) || e.length < 8) { shortEntry++; continue; }
+      if (!Array.isArray(e[6]) || e[6].length !== 4) numsLen++;
+      else e[6].forEach((v, i) => { if (v != null) nonNull[i]++; });
+      // entry[7] は entry[4]（setPrefix）と同じ並びでなければ、レアリティ順が別のセットの値で並ぶ
+      if (!Array.isArray(e[7]) || e[7].length !== (e[4] || []).length) rarityMismatch++;
+      else if (e[7].some((v) => v != null && !(Number.isInteger(v) && v >= 1 && v <= 9))) badRarity++;
+      if (rarityMismatch === 1 && bad.length === 0) bad.push(`entry[7] の要素数が entry[4] と一致しません（例: ${slug}）`);
+    }
+    if (shortEntry) bad.push(`8要素になっていないエントリが ${shortEntry}件（旧形式のまま？）`);
+    if (numsLen) bad.push(`entry[6] が4要素でないエントリが ${numsLen}件`);
+    if (rarityMismatch) bad.push(`entry[7] と entry[4] の要素数が違うエントリが ${rarityMismatch}件`);
+    if (badRarity) bad.push(`entry[7] に 1〜9 以外の値を持つエントリが ${badRarity}件`);
+    // 件数の固定値は新セットで動くので使わない。「全滅」だけを見る（生成デグレの現実的な形）
+    NUM_FIELDS.forEach((f, i) => {
+      if (nonNull[i] === 0) bad.push(`${f} を持つカードが索引に1件もありません（生成デグレの疑い）`);
+    });
+    if (!bad.length) {
+      console.log(`card-meta-index sort keys OK — ${entries.length}slug / ${NUM_FIELDS.map((f, i) => `${f} ${nonNull[i]}`).join(" / ")}`);
+    }
+  } catch (e) {
+    bad.push(`読み込みに失敗: ${e.message}`);
+  }
+  if (bad.length) {
+    problems++;
+    console.error(`\nBROKEN META INDEX (data/card-meta-index.json):`);
+    bad.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → node scripts/gen-card-meta-index.mjs を実行して生成し直し、コミットしてください`);
+  }
+}
+
 if (problems > 0) {
   console.error(`\n${problems} problem(s) found.`);
   process.exit(1);

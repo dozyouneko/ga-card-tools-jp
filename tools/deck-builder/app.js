@@ -1114,6 +1114,12 @@ function searchStatusText(info) {
     // AND条件は取得済みのページに対して適用するため、このページに1件も残らないことがある。
     // 続きのページに該当が残っている場合は「もっと見る」で続けられる
     if (info.hasMore) return "このページには該当がありませんでした。「もっと見る」で続きを検索できます。";
+    // 日本語には一致したのに、数値項目の並び替えでその項目を持つカードが0件になった場合(#43)。
+    // 従来の文言だと「一致しなかった」と嘘になり、原因(並び替え)が画面のどこにも出ない
+    if (info.jpMode && info.numericSort && info.jpMatched > 0) {
+      const lbl = GA_CARD_SEARCH.numericSortLabel?.(info.numericSort) || "";
+      return `日本語テキストには一致しましたが、${lbl}を持つカードはありませんでした（並び替えを「名前順」に戻すと表示できます）。`;
+    }
     return info.jpMode
       ? "日本語テキストに一致する翻訳済みカードが見つかりませんでした（未翻訳のカードは日本語検索できません。英語での検索もお試しください）。"
       : "該当するカードがありません。条件を変えてお試しください。";
@@ -1123,6 +1129,8 @@ function searchStatusText(info) {
   // 数値項目の並び替えは、その項目を持たないカードを除くので総件数が減る(#39)。理由を添える
   // ?. は push直後の伝播ラグ対策（新しい app.js と古い card-search.js が数十秒だけ組み合わさる）
   suffix += GA_CARD_SEARCH.numericSortNote?.(info.numericSort) || "";
+  // JPモードの並び替えキーが取れなかった/一部欠けたときの注記(#43)
+  suffix += GA_CARD_SEARCH.jpSortNote?.(info) || "";
   if (info.approxTotal) {
     // JPモードは索引で取得前に絞るためANDでも件数を出せる。概算になるのは索引が使えないときだけ(#27)
     suffix += info.jpMode

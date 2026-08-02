@@ -293,10 +293,14 @@ window.GA_CARD_SEARCH = (() => {
     level: "レベル", power: "パワー", life: "ライフ", cost_memory: "コスト",
   };
 
-  // cost_memory の -1 は Xコストの表現で、APIはこれを null と同じ位置に並べる（該当1枚）
-  function isNullish(field, card) {
-    const v = card ? card[field] : null;
+  // cost_memory の -1 は Xコストの表現で、APIはこれを null と同じ位置に並べる（該当1枚）。
+  // ⚠ 除外規則はここ1箇所。APIの応答（isNullish）とメタ索引の値（isNullishValue）の
+  //   両方から使うので、片方に書き写さないこと（#43 §6.2。食い違うと片方だけ静かに壊れる）
+  function isNullishValue(field, v) {
     return v == null || (field === "cost_memory" && v === -1);
+  }
+  function isNullish(field, card) {
+    return isNullishValue(field, card ? card[field] : null);
   }
 
   // 「全 124 件（レベルを持つカードのみ）」の括弧部分。数値項目以外は空文字
@@ -304,6 +308,23 @@ window.GA_CARD_SEARCH = (() => {
     const label = NUMERIC_SORT_LABELS[field];
     return label ? `（${label}を持つカードのみ）` : "";
   }
+
+  // 0件メッセージ用の項目名（「パワーを持つカードはありませんでした」）。
+  // ラベル表を各ページに書き写さないよう関数で公開する（#43 §7.3）
+  function numericSortLabel(field) {
+    return NUMERIC_SORT_LABELS[field] || "";
+  }
+
+  // JPモードの並び替えに関する注記（#43 §7.2）。索引が使えない/一部欠けるときだけ出る
+  function jpSortNote(info) {
+    if (!info || !info.jpMode) return "";
+    if (info.jpSortDropped) return "（並び替えの情報を取得できなかったため、名前順で表示しています）";
+    if (info.jpSortUnknown > 0) return `（うち${info.jpSortUnknown}件は並び替えの情報が無いため末尾にあります）`;
+    return "";
+  }
+
+  // メタ索引の entry[6]（数値4項目）の並び。gen-card-meta-index.mjs の NUM_FIELDS と対応する
+  const NUM_POS = { level: 0, power: 1, life: 2, cost_memory: 3 };
 
   // エキスパンション選択肢（value は SETS のインデックス）
   function fillSetSelect(select) {
@@ -344,6 +365,8 @@ window.GA_CARD_SEARCH = (() => {
     let jpSlugs = null; // 日本語検索モード中のローカル一致slug一覧(新規検索ごとに作り直す)
     let jpCand = null;  // 上記を索引で「取得前」に絞った候補(#27)。新規検索ごとに作り直す
     let jpApprox = false; // JPモードの件数が概算か(索引が使えず/未収録slugが混じるとき)
+    let jpSortUnknown = 0;     // JPモードで並び替えキーが不明だった件数(末尾へ回した数・#43)
+    let jpSortDropped = false; // 索引が全く使えず並び替え自体を諦めたか(#43)
     let metaIdxPromise = null; // 索引fetchのメモ化(初回JP検索のときだけ実行し以降は再利用)
 
     const trimmed = (elm) => (elm ? elm.value.trim() : "");
@@ -452,7 +475,7 @@ window.GA_CARD_SEARCH = (() => {
 
     const sortField = () => (els.sort ? (els.sort.value || "name") : "name");
     const orderDir = () => (els.order ? (els.order.dataset.dir || "ASC") : "ASC");
-    // 数値項目での並び替えか（JPモードは並び替え自体が効かないので対象外 → #43）
+    // 数値項目での並び替えか（JPモードでもメタ索引の値で同じ規則が効く・#43）
     const isNumericSort = () => NUMERIC_SORTS.includes(sortField());
 
     // sort/order/page/page_size を除いた絞り込みだけのパラメータ。
@@ -512,6 +535,60 @@ window.GA_CARD_SEARCH = (() => {
         out.push(slug);
       }
       return out.sort();
+    }
+
+    // ---------- JPモードの並び替え（#43）----------
+    // JPモードは公式APIの検索を使わず「候補slugを決めてから1枚ずつ取得する」構造のため、
+    // 取得前に全候補の並び替えキーを知っている必要がある。キーはメタ索引から取る。
+
+    // 並び替えキーを索引から取り出す。
+    //   数値/文字列 … キーが確定した
+    //   null        … 「その項目を持たない」ことが確定した（数値項目のみ。#39 の規則で除外する）
+    //   undefined   … 索引に無い・旧形式 ＝ 不明（除外せず末尾へ）
+    function sortKeyOf(idx, slug, field) {
+      if (field === "name") return slug;                // 索引不要（slug順のまま・#43 §6.1）
+      const entry = idx && idx.m[slug];
+      if (!entry || entry.length < 8) return undefined; // 未収録 or 旧形式（fail-open）
+      if (field === "rarity") {
+        const names = (entry[4] || []).map((i) => idx.d[i]);
+        const rar = entry[7] || [];
+        const pre = setPrefixes(val(els.set));
+        // エキスパンション絞り込み中は、そのセット内の min で並べる
+        // （公式APIの sort=rarity が「絞り込み後のedition の min」で並ぶため）
+        const use = names.map((p, i) => ((!pre.length || pre.includes(p)) ? rar[i] : null))
+          .filter((v) => v != null);
+        return use.length ? Math.min(...use) : undefined;
+      }
+      const pos = NUM_POS[field];
+      if (pos === undefined) return undefined;
+      return (entry[6] || [])[pos];                     // 値 or null or undefined
+    }
+
+    // 候補slug列を並べ替える。reset のときに1回だけ呼ぶ（loadMore では呼ばない）。
+    // ⚠ 比較関数は必ず全順序にする（同点は slug で決める）。怠ると Array#sort の安定性に
+    //   依存した「元の並び次第で変わる」順序になる
+    function sortJpCand(idx, list) {
+      const field = sortField();
+      const dir = orderDir() === "DESC" ? -1 : 1;
+      const numeric = isNumericSort();
+      const keys = new Map();
+      const known = [];
+      const unknown = [];
+      for (const slug of list) {
+        const k = sortKeyOf(idx, slug, field);
+        if (k === undefined) { unknown.push(slug); continue; } // 不明 → 末尾（除外しない）
+        if (numeric && isNullishValue(field, k)) continue;     // その項目を持たない → 除外（#39）
+        keys.set(slug, k);
+        known.push(slug);
+      }
+      known.sort((a, b) => {
+        const ka = keys.get(a);
+        const kb = keys.get(b);
+        if (ka !== kb) return (ka < kb ? -1 : 1) * dir;
+        return (a < b ? -1 : a > b ? 1 : 0) * dir; // 同点は slug（降順＝昇順の完全な逆順）
+      });
+      unknown.sort(); // 索引が無いので方向に依らず slug 昇順で固定
+      return { list: known.concat(unknown), unknown: unknown.length };
     }
 
     // class/element/type/subtype/set の絞り込みにカードが合致するか（JPモードの客側フィルタ用）
@@ -648,6 +725,8 @@ window.GA_CARD_SEARCH = (() => {
         jpSlugs = isJpTextMode() ? localJpSlugs() : null;
         jpCand = null;   // 索引での取得前絞り込みは jpSlugs 確定後に1回だけ作る
         jpApprox = false;
+        jpSortUnknown = 0;
+        jpSortDropped = false;
       }
       try {
         let cards, total, hasMore;
@@ -657,7 +736,8 @@ window.GA_CARD_SEARCH = (() => {
           pager.hasMore = false;
           opts.onResults([], {
             reset, jpMode: false, total: 0, hasMore: false,
-            andMode: true, approxTotal: false, blocked: "element-and", numericSort: null,
+            andMode: true, approxTotal: false, blocked: "element-and",
+            numericSort: null, jpSortUnknown: 0, jpSortDropped: false, jpMatched: 0,
           });
           return;
         }
@@ -667,15 +747,23 @@ window.GA_CARD_SEARCH = (() => {
           if (jpCand === null) {
             const idx = await metaIndex();
             if (mySeq !== seq) return;
+            let base;
             if (idx) {
-              jpCand = jpSlugs.filter((s) => metaMatches(idx, s));
+              base = jpSlugs.filter((s) => metaMatches(idx, s));
               // 索引未収録slug（新規翻訳・フリップ面漏れ等）が絞り込み下で候補に残ると総数が過大に出る
               jpApprox = hasJpFilters() && jpSlugs.some((s) => !idx.m[s]);
             } else {
               // 索引が使えない → 現状の挙動に劣化（全件を候補にして取得後フィルタに委ねる）
-              jpCand = jpSlugs;
+              base = jpSlugs;
               jpApprox = hasJpFilters();
             }
+            // 並び替えは絞り込みの「後」に行う（除外で件数が減ってからのほうが比較回数が少ない）
+            const s = sortJpCand(idx, base);
+            jpCand = s.list;
+            jpSortUnknown = s.unknown;
+            // 全件のキーが不明＝並び替え自体を諦めた（索引が取れない/旧形式）。
+            // ⚠ 候補0件のときは「諦めた」ではないので base.length > 0 を条件に含める
+            jpSortDropped = base.length > 0 && s.unknown === base.length && sortField() !== "name";
           }
           const from = (pager.page - 1) * JP_PAGE_SIZE;
           const batch = jpCand.slice(from, from + JP_PAGE_SIZE);
@@ -712,8 +800,15 @@ window.GA_CARD_SEARCH = (() => {
         opts.onResults(cards, {
           reset, jpMode: !!jpSlugs, total, hasMore,
           andMode: anyAnd(), approxTotal: jpSlugs ? jpApprox : anyAnd(), blocked: null,
-          // 件数表示の注記用（#39）。JPモードは並び替えが効かないので付けない（#43）
-          numericSort: !jpSlugs && isNumericSort() ? sortField() : null,
+          // 件数表示の注記用（#39）。JPモードでも除外が効くようになった（#43）が、
+          // 並び替え自体を諦めたとき（jpSortDropped）は除外も起きていないので付けない
+          // — 付けると「全 577 件（レベルを持つカードのみ）」という嘘の注記になる
+          numericSort: isNumericSort() && !jpSortDropped ? sortField() : null,
+          jpSortUnknown: jpSlugs ? jpSortUnknown : 0,
+          jpSortDropped: jpSlugs ? jpSortDropped : false,
+          // 日本語テキストに一致した件数（絞り込み・除外の前）。0件メッセージの出し分けに使う。
+          // ⚠ jpMode は「JPモードか」でしかなく、日本語一致が0件でも true になる（#43 §7.3）
+          jpMatched: jpSlugs ? jpSlugs.length : 0,
         });
       } catch (err) {
         if (mySeq !== seq) return;
@@ -733,7 +828,7 @@ window.GA_CARD_SEARCH = (() => {
 
   return {
     create, fillChips, fillSetSelect, fillFormatSelect,
-    setPrefixes, setKeyOf, setIndexOf, numericSortNote,
+    setPrefixes, setKeyOf, setIndexOf, numericSortNote, numericSortLabel, jpSortNote,
     SUBTYPE_TOP, ELEMENT_AND_MESSAGE,
   };
 })();
