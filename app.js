@@ -156,7 +156,8 @@ function updateSearchStatus(info) {
   const totalPart = !info.approxTotal && info.total > shown ? ` / 全 ${info.total} 件` : "";
   let suffix = info.jpMode ? "（日本語テキスト一致・翻訳済みのみ）" : "";
   // 数値項目の並び替えは、その項目を持たないカードを除くので総件数が減る(#39)。理由を添える
-  suffix += GA_CARD_SEARCH.numericSortNote(info.numericSort);
+  // ?. は push直後の伝播ラグ対策（新しい app.js と古い card-search.js が数十秒だけ組み合わさる）
+  suffix += GA_CARD_SEARCH.numericSortNote?.(info.numericSort) || "";
   if (info.approxTotal) {
     // JPモードは索引で取得前に絞るためANDも件数を出せる。概算になるのは索引が使えない/未収録slugが混じるときだけ
     suffix += info.jpMode

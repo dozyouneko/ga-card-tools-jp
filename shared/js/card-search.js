@@ -547,10 +547,13 @@ window.GA_CARD_SEARCH = (() => {
     const nCache = new Map();
 
     function countNonNull() {
-      const key = `${filterParams().toString()}|${sortField()}`;
-      if (nCache.has(key)) return nCache.get(key);
+      // ⚠ キーと探索条件は「同じスナップショット」から作る。二分探索は最大15回の逐次リクエスト
+      // （数秒）なので、途中でUIを触られても探索条件が動かないよう、ここで固定して渡す
+      const base = filterParams().toString();
       const field = sortField();
-      const p = probeNonNullCount(field).catch((err) => {
+      const key = `${base}|${field}`;
+      if (nCache.has(key)) return nCache.get(key);
+      const p = probeNonNullCount(base, field).catch((err) => {
         nCache.delete(key); // 失敗を焼き付けない（再検索でやり直せるように）
         throw err;
       });
@@ -560,14 +563,21 @@ window.GA_CARD_SEARCH = (() => {
 
     // 位置 k（1始まり）のカードが nullish かを1枚ずつ引いて二分探索する。
     // 昇順では非nullが位置 0..N-1 に連続し、以降が全部 null になる（境界は1点だけ）。
-    async function probeNonNullCount(field) {
+    // ⚠ base/field は呼び出し元が固定した探索条件。ここで現在のUIを読み直してはいけない
+    //   （読み直すと、探索中の絞り込み変更で誤った N が「変更前のキー」で焼き付く）
+    async function probeNonNullCount(base, field) {
+      const fetchAt = async (page, pageSize) => {
+        const res = await fetch(`${API}/cards/search?${base}&sort=${encodeURIComponent(field)}&order=ASC&page=${page}&page_size=${pageSize}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      };
       // ⚠ page_size=1 は total_cards が常に 1 になるため、総数の取得には使えない
-      const first = await apiSearch(1, { order: "ASC", pageSize: 2 });
+      const first = await fetchAt(1, 2);
       const total = first.total_cards || 0;
       if (!total) return 0;
 
       const probe = async (k) => {
-        const json = await apiSearch(k, { order: "ASC", pageSize: 1 });
+        const json = await fetchAt(k, 1);
         const data = json.data || [];
         // 想定外の応答。並び順の正しさに関わるため黙って倒さず、エラーとして表に出す（#39 §9）
         if (!data.length) throw new Error(`並び替えの範囲を特定できませんでした（位置 ${k}）`);
