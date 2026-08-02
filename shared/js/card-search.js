@@ -323,6 +323,13 @@ window.GA_CARD_SEARCH = (() => {
     return "";
   }
 
+  // 取得後に落ちた件数の注記（#45）。フリップ面を畳んだあとは「出たら異常」の信号になる
+  // （索引の腐りによる過剰包含・取得失敗・畳み漏れのいずれか）
+  function jpDropNote(info) {
+    if (!info || !info.jpMode || !info.jpDropped) return "";
+    return `（うち${info.jpDropped}件は取得後の判定で除いたため表示されていません）`;
+  }
+
   // メタ索引の entry[6]（数値4項目）の並び。gen-card-meta-index.mjs の NUM_FIELDS と対応する
   const NUM_POS = { level: 0, power: 1, life: 2, cost_memory: 3 };
 
@@ -365,6 +372,8 @@ window.GA_CARD_SEARCH = (() => {
     let jpSlugs = null; // 日本語検索モード中のローカル一致slug一覧(新規検索ごとに作り直す)
     let jpCand = null;  // 上記を索引で「取得前」に絞った候補(#27)。新規検索ごとに作り直す
     let jpApprox = false; // JPモードの件数が概算か(索引が使えず/未収録slugが混じるとき)
+    let jpDropped = 0;         // JPモードで取得後に落ちた件数(めくったページまでの累計・#45)
+    let jpSeen = null;         // 取得できた表面slug(重複の検出用・#45)
     let jpSortUnknown = 0;     // JPモードで並び替えキーが不明だった件数(末尾へ回した数・#43)
     let jpSortDropped = false; // 索引が全く使えず並び替え自体を諦めたか(#43)
     let metaIdxPromise = null; // 索引fetchのメモ化(初回JP検索のときだけ実行し以降は再利用)
@@ -535,6 +544,25 @@ window.GA_CARD_SEARCH = (() => {
         out.push(slug);
       }
       return out.sort();
+    }
+
+    // フリップ面（裏面）のslugを表面slugへ畳んで重複を除く（#45）。
+    // 裏面は独自の name/effect を持つので検索の対象には残すが、表示は表面カード1枚に集約される
+    // （fetchCard は常に表面を返し、タイルの 🔄 両面 バッジで裏面を見られる）。
+    // ⚠ 索引に f が無い（旧形式）ときは畳まない＝現状の挙動に劣化する（fail-open）。
+    //   その場合の重複は取得後カウント（jpDropped）が拾う
+    function foldFlip(idx, list) {
+      const f = idx && idx.f;
+      if (!f) return list;
+      const out = [];
+      const seen = new Set();
+      for (const slug of list) {
+        const front = f[slug] || slug;
+        if (seen.has(front)) continue;
+        seen.add(front);
+        out.push(front);
+      }
+      return out;
     }
 
     // ---------- JPモードの並び替え（#43）----------
@@ -727,6 +755,8 @@ window.GA_CARD_SEARCH = (() => {
         jpApprox = false;
         jpSortUnknown = 0;
         jpSortDropped = false;
+        jpDropped = 0;
+        jpSeen = new Set();
       }
       try {
         let cards, total, hasMore;
@@ -737,7 +767,7 @@ window.GA_CARD_SEARCH = (() => {
           opts.onResults([], {
             reset, jpMode: false, total: 0, hasMore: false,
             andMode: true, approxTotal: false, blocked: "element-and",
-            numericSort: null, jpSortUnknown: 0, jpSortDropped: false, jpMatched: 0,
+            numericSort: null, jpSortUnknown: 0, jpSortDropped: false, jpMatched: 0, jpDropped: 0,
           });
           return;
         }
@@ -747,14 +777,17 @@ window.GA_CARD_SEARCH = (() => {
           if (jpCand === null) {
             const idx = await metaIndex();
             if (mySeq !== seq) return;
+            // フリップ面を表面へ畳んでから絞り込む（#45）。索引の裏面エントリは表面と同内容なので
+            // 畳む位置が絞り込みの前後どちらでも結果は同じ。候補が減ってからのほうが後段が軽い
+            const folded = foldFlip(idx, jpSlugs);
             let base;
             if (idx) {
-              base = jpSlugs.filter((s) => metaMatches(idx, s));
+              base = folded.filter((s) => metaMatches(idx, s));
               // 索引未収録slug（新規翻訳・フリップ面漏れ等）が絞り込み下で候補に残ると総数が過大に出る
-              jpApprox = hasJpFilters() && jpSlugs.some((s) => !idx.m[s]);
+              jpApprox = hasJpFilters() && folded.some((s) => !idx.m[s]);
             } else {
               // 索引が使えない → 現状の挙動に劣化（全件を候補にして取得後フィルタに委ねる）
-              base = jpSlugs;
+              base = folded;
               jpApprox = hasJpFilters();
             }
             // 並び替えは絞り込みの「後」に行う（除外で件数が減ってからのほうが比較回数が少ない）
@@ -769,8 +802,19 @@ window.GA_CARD_SEARCH = (() => {
           const batch = jpCand.slice(from, from + JP_PAGE_SIZE);
           const fetched = await Promise.all(batch.map((s) => fetchCard(s)));
           if (mySeq !== seq) return;
-          // 索引はコミット済みの静的データで古くなり得るため、取得後フィルタを最終判断として残す
-          cards = fetched.filter((c) => c && matchesActiveFilters(c));
+          // 索引はコミット済みの静的データで古くなり得るため、取得後フィルタを最終判断として残す。
+          // ⚠ 落ちた件数を数えて画面に出す（#45）。フリップ面を畳んだあとは、ここで落ちる＝
+          //   索引の腐り・取得失敗・畳み漏れのいずれかで、黙って消えると誰も気づけない
+          cards = [];
+          for (const c of fetched) {
+            if (!c) { jpDropped += 1; continue; }                       // 取得失敗
+            if (jpSeen.has(c.slug)) { jpDropped += 1; continue; }       // 畳み漏れ（表面が重複）
+            if (!matchesActiveFilters(c)) { jpDropped += 1; continue; } // 索引が腐って過剰包含
+            jpSeen.add(c.slug);
+            cards.push(c);
+          }
+          // ⚠ total は減らさない。jpDropped は「めくったページまで」の累計なので、引くと
+          //   スクロールのたびに総数が減るという、より分かりにくい表示になる
           total = jpCand.length;
           hasMore = from + JP_PAGE_SIZE < jpCand.length;
         } else if (isNumericSort()) {
@@ -809,6 +853,7 @@ window.GA_CARD_SEARCH = (() => {
           // 日本語テキストに一致した件数（絞り込み・除外の前）。0件メッセージの出し分けに使う。
           // ⚠ jpMode は「JPモードか」でしかなく、日本語一致が0件でも true になる（#43 §7.3）
           jpMatched: jpSlugs ? jpSlugs.length : 0,
+          jpDropped: jpSlugs ? jpDropped : 0,
         });
       } catch (err) {
         if (mySeq !== seq) return;
@@ -828,7 +873,7 @@ window.GA_CARD_SEARCH = (() => {
 
   return {
     create, fillChips, fillSetSelect, fillFormatSelect,
-    setPrefixes, setKeyOf, setIndexOf, numericSortNote, numericSortLabel, jpSortNote,
+    setPrefixes, setKeyOf, setIndexOf, numericSortNote, numericSortLabel, jpSortNote, jpDropNote,
     SUBTYPE_TOP, ELEMENT_AND_MESSAGE,
   };
 })();

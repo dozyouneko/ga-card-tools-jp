@@ -198,6 +198,7 @@ if (loaded) {
     let rarityMismatch = 0;
     let numsLen = 0;
     let badRarity = 0;
+    let flipCount = 0;
     for (const [slug, e] of entries) {
       if (!Array.isArray(e) || e.length < 8) { shortEntry++; continue; }
       if (!Array.isArray(e[6]) || e[6].length !== 4) numsLen++;
@@ -215,8 +216,27 @@ if (loaded) {
     NUM_FIELDS.forEach((f, i) => {
       if (nonNull[i] === 0) bad.push(`${f} を持つカードが索引に1件もありません（生成デグレの疑い）`);
     });
+    // フリップ面の対応表（#45）。これが壊れると「全N件」が行数と合わない状態に戻る
+    const f = idx.f;
+    if (!f || typeof f !== "object" || Array.isArray(f)) {
+      bad.push("f（フリップ面の対応表）がありません（旧形式のまま？）");
+    } else {
+      const keys = Object.keys(f);
+      const self = keys.filter((k) => f[k] === k);
+      // ⚠ foldFlip は1回しか引かないので、連鎖があると畳み残る
+      const chain = keys.filter((k) => f[f[k]] !== undefined);
+      const notInM = keys.filter((k) => !idx.m[k]);
+      const frontNotInM = keys.filter((k) => !idx.m[f[k]]);
+      if (self.length) bad.push(`f が自分自身を指すエントリが ${self.length}件（例: ${self[0]}）`);
+      if (chain.length) bad.push(`f に連鎖があります（1回の置換で収束しません・例: ${chain[0]} → ${f[chain[0]]} → ${f[f[chain[0]]]}）`);
+      if (notInM.length) bad.push(`f のキーが m にありません: ${notInM.length}件（例: ${notInM[0]}）`);
+      if (frontNotInM.length) bad.push(`f の指す表面slugが m にありません: ${frontNotInM.length}件（例: ${frontNotInM[0]}）`);
+      // 件数は固定値で照合しない（フリップ面カードは増減する）。「全滅」だけを見る
+      if (keys.length === 0) bad.push("f が空です（生成デグレの疑い。フリップ面は実測22件）");
+      if (!bad.length) flipCount = keys.length;
+    }
     if (!bad.length) {
-      console.log(`card-meta-index sort keys OK — ${entries.length}slug / ${NUM_FIELDS.map((f, i) => `${f} ${nonNull[i]}`).join(" / ")}`);
+      console.log(`card-meta-index sort keys OK — ${entries.length}slug / ${NUM_FIELDS.map((f2, i) => `${f2} ${nonNull[i]}`).join(" / ")} / flip ${flipCount}`);
     }
   } catch (e) {
     bad.push(`読み込みに失敗: ${e.message}`);

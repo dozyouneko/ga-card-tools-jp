@@ -168,6 +168,8 @@ function updateSearchStatus(info) {
   suffix += GA_CARD_SEARCH.numericSortNote?.(info.numericSort) || "";
   // JPモードの並び替えキーが取れなかった/一部欠けたときの注記(#43)
   suffix += GA_CARD_SEARCH.jpSortNote?.(info) || "";
+  // 取得後に落ちた件数の注記(#45)。フリップ面を畳んだあとは「出たら異常」の信号
+  suffix += GA_CARD_SEARCH.jpDropNote?.(info) || "";
   if (info.approxTotal) {
     // JPモードは索引で取得前に絞るためANDも件数を出せる。概算になるのは索引が使えない/未収録slugが混じるときだけ
     suffix += info.jpMode

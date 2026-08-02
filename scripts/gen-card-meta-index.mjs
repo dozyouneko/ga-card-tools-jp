@@ -15,12 +15,16 @@
 //    タイムスタンプを入れず、列挙値はソートしてからトークン化すること。
 //
 // 形式（トークン辞書 + ID配列。生の列挙値をそのまま持つとサイズが倍近くなるため辞書化）:
-//   { d: [token,...], m: { slug: [[c],[e],[t],[s],[p],[b],[nums],[rarities]] } }
+//   { d: [token,...], m: { slug: [[c],[e],[t],[s],[p],[b],[nums],[rarities]] }, f: { 裏面slug: 表面slug } }
 //   先頭6つは d のインデックス。順序は classes / elements / types / subtypes / setPrefixes / bannedFormats で固定。
 //   entry[6] = [level, power, life, cost_memory]（その項目を持たなければ null）… #43 の並び替え用
 //   entry[7] = entry[4]（setPrefix）と同じ並びの「そのセット内の最小レアリティ」… #43
 //   ⚠ nums / rarities は辞書化しない（数値なのでトークン化してもサイズが減らない）。
 //   ⚠ entry[7] は entry[4] と要素数・順序が一致していること（消費側が添字で対応づける）。
+//   f = フリップ面（裏面）slug → 表面slug の対応表（#45）。消費側が候補列を表面へ畳んで
+//   「総件数と表示行数を一致させる」ために使う。
+//   ⚠ m のエントリに9要素目として足さないこと（card-search.js の sortKeyOf が
+//     entry.length < 8 で旧形式を判定しているため干渉する）。トップレベルの別キーにする。
 //
 // 対象は翻訳済みslugのみ（JP検索の対象がそれだけ）。スナップショット（/cards/search）に
 // 無いフリップ面のslugは /cards/:slug で個別取得する。返るのは表面カードで、実行時の
@@ -94,6 +98,7 @@ async function main() {
   const bySlug = new Map(cards.map((c) => [c.slug, c]));
 
   const meta = {};
+  const flip = {};   // 裏面slug → 表面slug（#45）
   const missing = [];
   for (const slug of translated) {
     const c = bySlug.get(slug);
@@ -117,6 +122,10 @@ async function main() {
       try {
         const c = await fetchJson(`${API}/cards/${encodeURIComponent(slug)}`);
         meta[slug] = metaOf(c);
+        // #45: 返ってきたのが別のslug＝この slug はフリップ面（裏面）。消費側は候補列でこれを
+        // 表面slugへ畳み、総件数と行数を一致させる（裏面は独自の name/effect を持つので
+        // 検索の対象には残す。表示は fetchCard が返す表面カード1枚に集約される）
+        if (c.slug && c.slug !== slug) flip[slug] = c.slug;
         log(`  ${slug} → ${c.slug}`);
       } catch (e) {
         failed.push(slug);
@@ -152,7 +161,11 @@ async function main() {
     ];
   }
 
-  const json = JSON.stringify({ d, m });
+  // ⚠ キー順を固定する（#29 の決定性要件）。missing は translated 由来で実際にはソート済みだが依存しない
+  const f = {};
+  Object.keys(flip).sort().forEach((k) => { f[k] = flip[k]; });
+
+  const json = JSON.stringify({ d, m, f });
   writeFileSync(OUT, json + "\n");
   log(`\n生成: ${Object.keys(m).length}slug / 辞書${d.length}トークン / ${(json.length / 1024).toFixed(1)}KB → ${path.relative(ROOT, OUT)}`);
   // 並び替えキーの件数をcronログに残す（#43）。生成デグレで全滅したときの痕跡になる。
@@ -160,7 +173,8 @@ async function main() {
   //   失われる）。人を止めるのは npm run validate の役
   const nonNull = (i) => Object.values(m).filter((e) => e[6][i] != null).length;
   const withRarity = Object.values(m).filter((e) => e[7].some((v) => v != null)).length;
-  log(`並び替えキー: ${NUM_FIELDS.map((f, i) => `${f} ${nonNull(i)}`).join(" / ")} / rarity ${withRarity}`);
+  log(`並び替えキー: ${NUM_FIELDS.map((x, i) => `${x} ${nonNull(i)}`).join(" / ")} / rarity ${withRarity}`);
+  log(`フリップ面: ${Object.keys(f).length}件を表面slugへ対応づけ`);
 }
 
 main().catch((e) => { console.error(e.message || e); process.exit(1); });
