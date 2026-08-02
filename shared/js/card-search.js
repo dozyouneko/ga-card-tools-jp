@@ -278,6 +278,33 @@ window.GA_CARD_SEARCH = (() => {
     ["subtype", "subtype", "subtypes"],
   ];
 
+  // ---------- 数値項目の並び替え（#39）----------
+
+  // 公式APIは PostgreSQL 既定の null 順序で返すため、降順にすると
+  // 「その項目を持たないカード」が先頭を全部埋めてしまう（level なら 2,116枚）。
+  // そこで数値項目で並べ替えるときは、その項目を持たないカードを結果から除く:
+  //   昇順 … APIの ASC を N件（=非nullの件数）で打ち切る
+  //   降順 … APIには ASC を送り、位置 N-1 → 0 を逆順に読む
+  // API自身が sort=cost_memory で既にこの挙動をしている（473件しか返さない）。
+  const NUMERIC_SORTS = ["level", "power", "life", "cost_memory"];
+
+  // 件数表示の注記に使う項目名（並び替えプルダウンの表記に合わせる）
+  const NUMERIC_SORT_LABELS = {
+    level: "レベル", power: "パワー", life: "ライフ", cost_memory: "コスト",
+  };
+
+  // cost_memory の -1 は Xコストの表現で、APIはこれを null と同じ位置に並べる（該当1枚）
+  function isNullish(field, card) {
+    const v = card ? card[field] : null;
+    return v == null || (field === "cost_memory" && v === -1);
+  }
+
+  // 「全 124 件（レベルを持つカードのみ）」の括弧部分。数値項目以外は空文字
+  function numericSortNote(field) {
+    const label = NUMERIC_SORT_LABELS[field];
+    return label ? `（${label}を持つカードのみ）` : "";
+  }
+
   // エキスパンション選択肢（value は SETS のインデックス）
   function fillSetSelect(select) {
     SETS.forEach((s, i) => {
@@ -423,7 +450,14 @@ window.GA_CARD_SEARCH = (() => {
       return jpNameQuery() !== "" || jpEffectQuery() !== "";
     }
 
-    function buildQuery(page) {
+    const sortField = () => (els.sort ? (els.sort.value || "name") : "name");
+    const orderDir = () => (els.order ? (els.order.dataset.dir || "ASC") : "ASC");
+    // 数値項目での並び替えか（JPモードは並び替え自体が効かないので対象外 → #43）
+    const isNumericSort = () => NUMERIC_SORTS.includes(sortField());
+
+    // sort/order/page/page_size を除いた絞り込みだけのパラメータ。
+    // N のキャッシュキーにも使うため、並び替えの指定はここに含めない
+    function filterParams() {
       const p = new URLSearchParams();
       const q = trimmed(els.name);
       if (q) p.set("name", q);
@@ -444,11 +478,24 @@ window.GA_CARD_SEARCH = (() => {
         p.set("legality_state", state);
       }
       setPrefixes(val(els.set)).forEach((pre) => p.append("prefix", pre)); // エキスパンション（複数prefix）
-      p.set("sort", els.sort ? (els.sort.value || "name") : "name");
-      p.set("order", els.order ? (els.order.dataset.dir || "ASC") : "ASC");
+      return p;
+    }
+
+    // opt.order / opt.pageSize で並び替え方向・件数を上書きできる（N の二分探索が使う）
+    function buildQuery(page, opt) {
+      const o = opt || {};
+      const p = filterParams();
+      p.set("sort", sortField());
+      p.set("order", o.order || orderDir());
       p.set("page", String(page));
-      p.set("page_size", String(PAGE_SIZE));
+      p.set("page_size", String(o.pageSize || PAGE_SIZE));
       return p.toString();
+    }
+
+    async function apiSearch(page, opt) {
+      const res = await fetch(`${API}/cards/search?${buildQuery(page, opt)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
     }
 
     // ローカル訳を検索して slug の配列を返す。
@@ -493,6 +540,87 @@ window.GA_CARD_SEARCH = (() => {
         .catch(() => null);
     }
 
+    // ---------- 数値ソートの N（その項目を持つカードの件数）----------
+
+    // N は絞り込みの組み合わせごとに変わるので、絞り込み＋sort をキーにセッション内でキャッシュする。
+    // これが無いと昇順⇄降順を切り替えるたびに最大15リクエストの二分探索が走る
+    const nCache = new Map();
+
+    function countNonNull() {
+      const key = `${filterParams().toString()}|${sortField()}`;
+      if (nCache.has(key)) return nCache.get(key);
+      const field = sortField();
+      const p = probeNonNullCount(field).catch((err) => {
+        nCache.delete(key); // 失敗を焼き付けない（再検索でやり直せるように）
+        throw err;
+      });
+      nCache.set(key, p);
+      return p;
+    }
+
+    // 位置 k（1始まり）のカードが nullish かを1枚ずつ引いて二分探索する。
+    // 昇順では非nullが位置 0..N-1 に連続し、以降が全部 null になる（境界は1点だけ）。
+    async function probeNonNullCount(field) {
+      // ⚠ page_size=1 は total_cards が常に 1 になるため、総数の取得には使えない
+      const first = await apiSearch(1, { order: "ASC", pageSize: 2 });
+      const total = first.total_cards || 0;
+      if (!total) return 0;
+
+      const probe = async (k) => {
+        const json = await apiSearch(k, { order: "ASC", pageSize: 1 });
+        const data = json.data || [];
+        // 想定外の応答。並び順の正しさに関わるため黙って倒さず、エラーとして表に出す（#39 §9）
+        if (!data.length) throw new Error(`並び替えの範囲を特定できませんでした（位置 ${k}）`);
+        return isNullish(field, data[0]);
+      };
+
+      if (!(await probe(total))) return total; // null が1枚も無い
+      if (await probe(1)) return 0;            // 全部 null
+      let lo = 1;
+      let hi = total;
+      while (hi - lo > 1) {
+        const mid = (lo + hi) >> 1;
+        if (await probe(mid)) hi = mid;
+        else lo = mid;
+      }
+      return lo;
+    }
+
+    // 数値ソートの1ページ分を取得する。降順はAPIに ASC を送り、位置を逆から読む。
+    // 位置は0始まり。⚠ PAGE_SIZE はトップ50・デッキ構築24と異なるので定数を直接使うこと
+    async function fetchNumericPage(page, n) {
+      const P = PAGE_SIZE;
+      if (orderDir() !== "DESC") {
+        const start = (page - 1) * P;
+        if (start >= n) return { cards: [], hasMore: false };
+        const json = await apiSearch(page, { order: "ASC" });
+        // ASC は N件で打ち切る（N以降は全部 nullish）
+        return { cards: (json.data || []).slice(0, n - start), hasMore: start + P < n };
+      }
+      const from = n - 1 - (page - 1) * P; // 降順ページの先頭（大きい位置）
+      if (from < 0) return { cards: [], hasMore: false };
+      const to = Math.max(n - page * P, 0); // 下限（この位置を含む）
+      const pageA = Math.floor(to / P) + 1;
+      const pageB = Math.floor(from / P) + 1; // 範囲は高々P件なので、跨ぐのは高々2ページ
+      const nums = pageA === pageB ? [pageA] : [pageA, pageB];
+      const jsons = await Promise.all(nums.map((k) => apiSearch(k, { order: "ASC" })));
+      // ページごとに自分の基準位置で引く（末尾ページが欠けても位置がずれないように）
+      const parts = nums.map((k, i) => ({ base: (k - 1) * P, data: jsons[i].data || [] }));
+      const at = (pos) => {
+        for (const part of parts) {
+          const i = pos - part.base;
+          if (i >= 0 && i < part.data.length) return part.data[i];
+        }
+        return null;
+      };
+      const cards = [];
+      for (let pos = from; pos >= to; pos -= 1) {
+        const c = at(pos);
+        if (c) cards.push(c);
+      }
+      return { cards, hasMore: to > 0 };
+    }
+
     async function run(reset) {
       const mySeq = ++seq;
       // onStart は「検索中…」表示とグリッドのクリアを行うため、効果JSONの取得(下)より前に呼ぶ。
@@ -519,7 +647,7 @@ window.GA_CARD_SEARCH = (() => {
           pager.hasMore = false;
           opts.onResults([], {
             reset, jpMode: false, total: 0, hasMore: false,
-            andMode: true, approxTotal: false, blocked: "element-and",
+            andMode: true, approxTotal: false, blocked: "element-and", numericSort: null,
           });
           return;
         }
@@ -547,6 +675,16 @@ window.GA_CARD_SEARCH = (() => {
           cards = fetched.filter((c) => c && matchesActiveFilters(c));
           total = jpCand.length;
           hasMore = from + JP_PAGE_SIZE < jpCand.length;
+        } else if (isNumericSort()) {
+          // その項目を持たないカードを結果から除く（昇順・降順とも）。#39
+          const n = await countNonNull();
+          if (mySeq !== seq) return;
+          const res = await fetchNumericPage(pager.page, n);
+          if (mySeq !== seq) return;
+          cards = res.cards;
+          if (anyAnd()) cards = cards.filter(matchesAndFilters);
+          total = n;
+          hasMore = res.hasMore;
         } else {
           const res = await fetch(`${API}/cards/search?${buildQuery(pager.page)}`);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -564,6 +702,8 @@ window.GA_CARD_SEARCH = (() => {
         opts.onResults(cards, {
           reset, jpMode: !!jpSlugs, total, hasMore,
           andMode: anyAnd(), approxTotal: jpSlugs ? jpApprox : anyAnd(), blocked: null,
+          // 件数表示の注記用（#39）。JPモードは並び替えが効かないので付けない（#43）
+          numericSort: !jpSlugs && isNumericSort() ? sortField() : null,
         });
       } catch (err) {
         if (mySeq !== seq) return;
@@ -583,7 +723,7 @@ window.GA_CARD_SEARCH = (() => {
 
   return {
     create, fillChips, fillSetSelect, fillFormatSelect,
-    setPrefixes, setKeyOf, setIndexOf,
+    setPrefixes, setKeyOf, setIndexOf, numericSortNote,
     SUBTYPE_TOP, ELEMENT_AND_MESSAGE,
   };
 })();

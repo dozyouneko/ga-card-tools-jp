@@ -155,6 +155,8 @@ function updateSearchStatus(info) {
   // 客側で後段フィルタが入る場合（AND指定・日本語モードでの絞り込み）は総件数を正確に出せない
   const totalPart = !info.approxTotal && info.total > shown ? ` / 全 ${info.total} 件` : "";
   let suffix = info.jpMode ? "（日本語テキスト一致・翻訳済みのみ）" : "";
+  // 数値項目の並び替えは、その項目を持たないカードを除くので総件数が減る(#39)。理由を添える
+  suffix += GA_CARD_SEARCH.numericSortNote(info.numericSort);
   if (info.approxTotal) {
     // JPモードは索引で取得前に絞るためANDも件数を出せる。概算になるのは索引が使えない/未収録slugが混じるときだけ
     suffix += info.jpMode
