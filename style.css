@@ -58,7 +58,10 @@ a { color: var(--accent-2); }
 }
 .site-header h1 { margin: 0; font-size: 1.05rem; }
 .tagline { margin: 2px 0 0; color: var(--muted); font-size: .78rem; }
-.header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; overflow-x: auto; }
+/* ⚠ ここを nowrap + overflow-x:auto にしてはいけない(#21 §6.5)。メディアクエリの境界は640pxで、
+   641〜1024px はこのPC用ルールが当たる。その帯ではリンク5本が1行に収まらず、
+   641pxで2本しか見えなくなる(変更前は折り返して全部見えていた＝回帰になる) */
+.header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .tools-toggle { display: none; } /* スマホのみ表示(下のメディアクエリ) */
 .tool-link {
   display: inline-block;
