@@ -108,7 +108,9 @@ table.tt th { color: var(--muted); font-weight: 600; }
       .brand だけでなく“中の div”にも min-width:0 が要る（モック実測で発覚） */
 .v-b .brand > div { min-width: 0; }
 .v-b .site-header h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.v-b .tools-toggle { width: auto; flex: 0 0 auto; padding: 8px 10px; font-size: .82rem; }
+/* ⚠ min-height:44px はタップ領域の確保（これが無いと 36px まで縮む）。
+      代償はヘッダ +7px（65→72px）で、それでも現状200pxの約1/3 */
+.v-b .tools-toggle { width: auto; flex: 0 0 auto; padding: 8px 10px; font-size: .82rem; min-height: 44px; }
 /* 大会ページ側。
    ⚠ 最初 flex-wrap:nowrap だけを試したが、ブランド名が2行に折返して 92→102px と“悪化”した。
       375pxでは ブランド名(約200px) + nav(約250px) が同じ行に物理的に入らない。
@@ -259,7 +261,7 @@ table.tt th { color: var(--muted); font-weight: 600; }
         <div class="card"><img class="card-img" src="https://api.gatcg.com/cards/images/wbkh09outj.jpg" alt=""><div class="card-body"><div class="card-name">呂布、不屈の巨人</div><div class="card-sub">ユニーク・アライ</div><div class="card-btns"><span>＋🖨️</span><span>詳細</span></div></div></div>
       </main>
     </div>
-    <p class="fold-note good">ヘッダ <b>65px</b> ／ 上端 <b>302px</b> ／ <b>カード2枚</b>。CSSのみ・HTML無変更</p>
+    <p class="fold-note good">ヘッダ <b>73px</b> ／ 上端 <b>310px</b> ／ <b>カード2枚</b>。CSSのみ・HTML無変更</p>
   </div>
 
 </div>
@@ -390,7 +392,7 @@ table.tt th { color: var(--muted); font-weight: 600; }
     </header>
   </div>
   <p class="note" style="margin-top:8px;">
-    実測: ヘッダ <b>65px</b>／<b class="good">横はみ出しなし</b>／<b class="warn">h1 は省略される</b>（上の枠で実際の切れ方を確認できる）。
+    実測: ヘッダ <b>73px</b>／<b class="good">横はみ出しなし</b>／<b class="warn">h1 は省略される</b>（上の枠で実際の切れ方を確認できる）。
   </p>
   <p class="note">
     ⚠️⚠️ <b>ここで案Bのバグを1つ潰した。</b> 最初の案Bは <code>.brand</code> にだけ <code>min-width:0</code> を付けていたが、
@@ -433,7 +435,7 @@ table.tt th { color: var(--muted); font-weight: 600; }
   <tr><th>案</th><th>ヘッダ</th><th>カード上端</th><th>1画面の割合</th><th>1画面に収まるカード</th><th>変更の性質</th></tr>
   <tr><td>現状</td><td class="n bad">200px</td><td class="n bad">436px</td><td class="n bad">54%</td><td class="n bad">0枚</td><td>—</td></tr>
   <tr><td><b>案A</b></td><td class="n">124px</td><td class="n">361px</td><td class="n">44%</td><td class="n good">2枚</td><td>CSSのみ・HTML無変更・<b>省略なし</b></td></tr>
-  <tr><td><b>案B</b>（推奨）</td><td class="n good">65px</td><td class="n good">302px</td><td class="n good">37%</td><td class="n good">2枚</td><td>CSSのみ・HTML無変更・<b>320pxでh1が省略</b></td></tr>
+  <tr><td><b>案B</b>（推奨）</td><td class="n good">73px</td><td class="n good">310px</td><td class="n good">38%</td><td class="n good">2枚</td><td>CSSのみ・HTML無変更・<b>320pxでh1が省略</b></td></tr>
 </table>
 <p class="note">
   ⭐ <b>「現状」は本番と一致</b>（本番: ヘッダ200px／上端435px）。
@@ -448,6 +450,14 @@ table.tt th { color: var(--muted); font-weight: 600; }
   <tr><td><b>案B</b></td><td class="n good">59px</td><td class="n good">33px</td><td class="n good">211px</td></tr>
 </table>
 
+<p class="note">
+  ⚠️⚠️ <b>4つ目の実測での発見: 案Bはツールボタンを 45px → <span class="bad">36px</span> まで縮めてしまう。</b>
+  タップ領域として小さすぎるので <code>min-height:44px</code> を入れた。
+  <b>代償はヘッダ +8px（65→73px）だけ</b>で、それでも現状200pxの約1/3。
+  <br>⭐ 一方 <b>大会ページの nav リンクが 24px 高しかないのは本番の既存仕様</b>（案Bによる劣化ではない）。
+  本件の範囲外だが、別途手当てする余地がある。
+</p>
+
 <h3>PC・1280px（トップページ）</h3>
 <table class="m">
   <tr><th>案</th><th>ヘッダ</th><th>備考</th></tr>
@@ -456,7 +466,7 @@ table.tt th { color: var(--muted); font-weight: 600; }
 </table>
 <p class="note">
   ⚠️ <b>案C（スクロールで縮むヘッダ）は今回の範囲から外す</b>ことを推奨。JSが増えるうえ、
-  案Bで初期表示がすでに65pxまで下がるため費用対効果が小さい。
+  案Bで初期表示がすでに73pxまで下がるため費用対効果が小さい。
 </p>
 
 <h2>7. 判断してほしい論点</h2>
