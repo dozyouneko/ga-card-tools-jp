@@ -1,10 +1,22 @@
 {
-  "updatedAt": "2026-08-01T19:00:50.746Z",
+  "updatedAt": "2026-08-02T19:01:50.014Z",
   "scan": {
     "minId": 46500,
-    "maxId": 59444
+    "maxId": 59533
   },
   "events": [
+    {
+      "id": 58842,
+      "name": "Radiant Origins Store Championships at Old School Gaming",
+      "category": "store-championships",
+      "format": "standard",
+      "startAt": "2026-08-01T17:00:00.000Z",
+      "season": "RDO",
+      "country": "US",
+      "host": "Old School Gaming",
+      "playerCount": 4,
+      "deckCount": 4
+    },
     {
       "id": 59168,
       "name": "Canyon RDO Store Championship",
@@ -736,6 +748,18 @@
       "host": "JWW Sports Cards & Gaming",
       "playerCount": 48,
       "deckCount": 48
+    },
+    {
+      "id": 55820,
+      "name": "Radiant store champ",
+      "category": "store-championships",
+      "format": "standard",
+      "startAt": "2026-07-11T16:00:00.000Z",
+      "season": "RDO",
+      "country": "US",
+      "host": "Hypercollectibles",
+      "playerCount": 7,
+      "deckCount": 7
     },
     {
       "id": 57964,
