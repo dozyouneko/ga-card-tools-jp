@@ -73,3 +73,14 @@ h2 { font-size:1.02rem; border-left:3px solid var(--accent); padding-left:10px; 
 .cp-foot { border-top:1px solid var(--line); margin-top:30px; padding:16px 20px; color:var(--muted); font-size:.8rem; }
 .cp-foot p { max-width:1000px; margin:0 auto; }
 @media (max-width:640px) { .cp-card { grid-template-columns:1fr; } .cp-media { max-width:320px; } }
+/* #21: ヘッダの縦占有を減らす。ブランドは文字を落としてマークだけ残す(リンクは生きる)。
+   ⚠ font-size:0 は「テキストだけ消す」ための手段。display:none にするとトップへ戻れなくなる。
+   ⚠ 同じ内容が scripts/build-tournament-pages.mjs の CSS にもある(片方だけ直すと高さが食い違う) */
+@media (max-width:640px) {
+  .cp-site { flex-wrap:nowrap; gap:10px; padding:12px; }
+  .cp-brand { font-size:0; flex:0 0 auto; }
+  .cp-mark { font-size:.82rem; }
+  .cp-site nav { overflow-x:auto; white-space:nowrap; min-width:0; scrollbar-width:none; }
+  .cp-site nav::-webkit-scrollbar { display:none; }
+  .cp-crumb { padding:6px 12px; }
+}

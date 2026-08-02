@@ -158,6 +158,16 @@ td.deck-id { display:flex; align-items:center; gap:8px; min-width:0; }
    HTMLは共通。表の各セルに付けたクラスを目印にgridへ再配置し、隠したヘッダの代わりに
    ラベルを ::before で補う(生成CSS内で完結するため style-src 'self' に抵触しない) */
 @media (max-width:640px) {
+  /* #21: ヘッダの縦占有を減らす。ブランドは文字を落としてマークだけ残す(リンクは生きる)。
+     ⚠ font-size:0 は「テキストだけ消す」ための手段。display:none にするとトップへ戻れなくなる。
+     ⚠ flex-wrap:nowrap だけでは 92→102px と悪化する。文字を落とすところまでやって初めて効く。
+     ⚠ 同じ内容が scripts/build-card-pages.mjs の CARDS_CSS にもある(片方だけ直すと高さが食い違う) */
+  .cp-site { flex-wrap:nowrap; gap:10px; padding:12px; }
+  .cp-brand { font-size:0; flex:0 0 auto; }
+  .cp-mark { font-size:.82rem; }
+  .cp-site nav { overflow-x:auto; white-space:nowrap; min-width:0; scrollbar-width:none; }
+  .cp-site nav::-webkit-scrollbar { display:none; }
+  .cp-crumb { padding:6px 12px; }
   /* 絞り込みはトグルにする(既定は閉じる=tournaments.js。適用中の件数はバッジで見せる) */
   .filter-box > summary { display:block; }
   .filter-box[open] > summary { margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid var(--line); }

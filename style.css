@@ -27,40 +27,48 @@ body.no-scroll { overflow: hidden; }
 a { color: var(--accent-2); }
 
 /* ---------- ヘッダ ---------- */
+/* ⚠ ヘッダが縦を食うとカードが1枚も見えない(#21)。PCでもツールリンクが折り返して
+   150px を超えていたため、折返しを止めて各要素を一回り小さくしている。
+   flex-wrap:nowrap にするので、縮む側(.brand とその中身)に min-width:0 が要る */
 .site-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 18px 24px;
+  gap: 12px;
+  padding: 12px 24px;
   background: linear-gradient(180deg, #14171d, #0f1115);
   border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
-.brand { display: flex; align-items: center; gap: 14px; }
+.brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+/* ⚠ flexの子は既定 min-width:auto で縮まない。.brand だけでは足りず、中の <div> にも要る。
+   無いと 320px でヘッダが横にはみ出し、html,body{overflow-x:hidden} のため
+   「ツール ▾」ボタンが画面外に消える(#21 §6.1) */
+.brand > div { min-width: 0; }
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 46px; height: 46px;
-  border-radius: 10px;
+  width: 36px; height: 36px;
+  border-radius: 8px;
   background: var(--accent);
   color: #201a0a;
   font-weight: 800;
   letter-spacing: 1px;
+  font-size: .82rem;
 }
-.site-header h1 { margin: 0; font-size: 1.25rem; }
-.tagline { margin: 2px 0 0; color: var(--muted); font-size: .85rem; }
-.header-actions { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.site-header h1 { margin: 0; font-size: 1.05rem; }
+.tagline { margin: 2px 0 0; color: var(--muted); font-size: .78rem; }
+.header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; overflow-x: auto; }
 .tools-toggle { display: none; } /* スマホのみ表示(下のメディアクエリ) */
 .tool-link {
   display: inline-block;
-  padding: 8px 14px;
+  padding: 6px 10px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--panel);
   color: var(--text);
   text-decoration: none;
-  font-size: .9rem;
+  font-size: .8rem;
   white-space: nowrap;
 }
 .tool-link:hover { border-color: var(--accent); }
@@ -303,16 +311,26 @@ a { color: var(--accent-2); }
   html, body { overflow-x: hidden; }
 
   /* 横余白を圧縮して有効幅を確保 */
-  .site-header { padding: 14px 12px; }
+  .site-header { padding: 14px 12px; flex-wrap: nowrap; gap: 10px; }
+
+  /* ヘッダの縦占有を減らす(#21)。タグラインは省き、サイト名は1行で省略する */
+  .tagline { display: none; }
+  .site-header h1 { font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .brand-mark { width: 34px; height: 34px; border-radius: 8px; font-size: .82rem; }
 
   /* ツールリンクは折りたたみ(絞り込みパネルと同じ開閉パターン)。
-     開いたときは縦積みで各リンクを全幅に(タップしやすさ優先) */
+     開いたときは縦積みで各リンクを全幅に(タップしやすさ優先)。
+     ⚠ ボタン自体はブランドと同じ行に置く(全幅にすると単独で1行=45px 使う)。
+     ⚠ min-height:44px を省くとタップ領域が36pxになる(#21 §6.2)。代償はヘッダ+8pxだけ */
   .tools-toggle {
-    display: block; width: 100%; text-align: left; cursor: pointer;
-    font-size: 16px; padding: 11px 12px; border-radius: 8px;
+    display: block; width: auto; flex: 0 0 auto; text-align: left; cursor: pointer;
+    font-size: .82rem; padding: 8px 10px; min-height: 44px; border-radius: 8px;
     background: var(--panel); color: var(--text); border: 1px solid var(--border);
   }
   .header-actions { display: none; }
+  /* ⚠ ヘッダを nowrap にした(#21)ため、開いたときだけ wrap に戻す。
+     戻さないと .header-actions がブランドと同じ行に押し込まれ、リンクが幅136pxに潰れる */
+  .site-header.tools-open { flex-wrap: wrap; }
   .site-header.tools-open .header-actions { display: flex; flex-direction: column; align-items: stretch; gap: 8px; width: 100%; }
   .site-header.tools-open .tool-link { text-align: center; }
   .controls { padding: 12px; }
