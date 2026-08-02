@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#21 サイトヘッダの縦占有 現状/案A/案B モック</title>
+<style>
+:root {
+  --bg: #0f1115; --panel: #171a21; --panel-2: #1f232c; --border: #2a2f3a;
+  --text: #e7e9ee; --muted: #9aa2b1; --accent: #d9a441; --line: #2a2f3a; --radius: 12px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  /* ⚠ font-family と line-height は本番 style.css と1文字ずつ同じにすること。
+     line-height を写し忘れると h1/タグラインの折返し高さがずれ、モックが現状を小さく見せてしまう */
+  font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+  line-height: 1.6; padding: 24px; }
+h1 { font-size: 1.2rem; margin: 0 0 6px; }
+h2 { font-size: 1rem; margin: 34px 0 6px; border-left: 4px solid var(--accent); padding-left: 8px; }
+h3 { font-size: .88rem; margin: 18px 0 8px; color: var(--muted); font-weight: 600; }
+p.note { color: var(--muted); font-size: .85rem; margin: 4px 0 14px; line-height: 1.7; max-width: 78ch; }
+.bad { color: #e0806f; } .good { color: #74c69d; } .warn { color: var(--accent); }
+table.m { border-collapse: collapse; font-size: .82rem; margin: 10px 0 6px; }
+table.m th, table.m td { border: 1px solid var(--border); padding: 5px 10px; text-align: left; }
+table.m th { background: var(--panel-2); color: var(--muted); font-weight: 600; }
+table.m td.n { text-align: right; font-variant-numeric: tabular-nums; }
+.cols { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
+.pane-label { font-size: .78rem; color: var(--muted); margin: 0 0 8px; letter-spacing: .03em; }
+.pane-label b { color: var(--text); }
+
+/* ---- スマホ枠(375×812 = 実測に使ったビューポート) ---- */
+.phone { width: 375px; flex: 0 0 375px; }
+.screen { width: 375px; height: 812px; overflow: hidden; position: relative;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 14px; }
+/* 「ここまでが1画面目」を示す線は使わない(枠自体が1画面) */
+.fold-note { font-size: .72rem; color: var(--muted); margin: 6px 0 0; }
+
+/* ================================================================
+   以下は本番 style.css からの写し。変更するのは .v-a / .v-b の上書きのみ
+   ================================================================ */
+.site-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 14px 12px;               /* ← 640px以下の値 */
+  background: linear-gradient(180deg, #14171d, #0f1115);
+  border-bottom: 1px solid var(--border); flex-wrap: wrap;
+}
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand-mark { display: grid; place-items: center; width: 46px; height: 46px;
+  border-radius: 10px; background: var(--accent); color: #201a0a; font-weight: 800; letter-spacing: 1px; }
+.site-header h1 { margin: 0; font-size: 1.25rem; }
+.tagline { margin: 2px 0 0; color: var(--muted); font-size: .85rem; }
+.tools-toggle { display: block; width: 100%; text-align: left; cursor: pointer;
+  font-size: 16px; padding: 11px 12px; border-radius: 8px;
+  background: var(--panel); color: var(--text); border: 1px solid var(--border); font-family: inherit; }
+.controls { padding: 12px; display: grid; gap: 10px; }
+.controls-row { display: grid; gap: 10px; }
+.controls input { width: 100%; padding: 11px 12px; font-size: 16px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--panel); color: var(--text); font-family: inherit; }
+.filter-toggle { width: 100%; text-align: left; cursor: pointer; font-size: 16px; padding: 11px 12px;
+  border-radius: 8px; background: var(--panel); color: var(--text); border: 1px solid var(--border); font-family: inherit; }
+/* 本番実測: margin 14.4px 0 / padding 10px 12px 0 */
+.status { padding: 10px 12px 0; color: var(--muted); font-size: .86rem; margin: 14.4px 0; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 12px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.card-img { display: block; width: 100%; aspect-ratio: 63/88; object-fit: cover; background: #0b0d11; }
+/* 本番の実測に合わせる: .card 387px = .card-img 235px + .card-body 149px（名前・バッジ・ボタン）。
+   ここを本番より低く作るとカードが余分に見えて「1画面に何枚入るか」を誤らせる */
+.card-body { height: 149px; padding: 7px 8px; display: flex; flex-direction: column; gap: 6px; }
+.card-name { font-size: .78rem; line-height: 1.35; }
+.card-sub { font-size: .7rem; color: var(--muted); }
+.card-btns { margin-top: auto; display: flex; gap: 6px; }
+.card-btns span { flex: 1; text-align: center; font-size: .72rem; padding: 6px 0;
+  border: 1px solid var(--border); border-radius: 6px; background: var(--panel-2); color: var(--muted); }
+
+/* 大会ページ側(tournaments.css からの写し) */
+.cp-site { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center;
+  justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+.cp-brand { display: flex; align-items: center; gap: 10px; color: var(--text); font-weight: 700; text-decoration: none; }
+.cp-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 8px;
+  background: var(--accent); color: #201a0a; font-weight: 800; letter-spacing: 1px; }
+.cp-site nav { display: flex; gap: 14px; font-size: .9rem; }
+.cp-site nav a { color: var(--muted); text-decoration: none; }
+.cp-crumb { padding: 10px 20px; font-size: .82rem; color: var(--muted); }
+.cp-crumb span { color: var(--text); }
+.cp-main { padding: 8px 20px 40px; }
+.cp-main h1 { font-size: 1.45rem; margin: .2em 0 .4em; line-height: 1.35; }
+.cp-main .sub { color: var(--muted); margin: 0 0 18px; font-size: .92rem; }
+table.tt { width: 100%; border-collapse: collapse; font-size: .82rem; }
+table.tt th, table.tt td { border-bottom: 1px solid var(--border); padding: 8px 6px; text-align: left; }
+table.tt th { color: var(--muted); font-weight: 600; }
+
+/* ================================================================
+   案A — スマホのみ。タグライン非表示・h1縮小・マーク縮小
+   ================================================================ */
+.v-a .tagline { display: none; }
+.v-a .site-header h1 { font-size: 1rem; }
+.v-a .brand-mark { width: 34px; height: 34px; border-radius: 8px; font-size: .82rem; }
+
+/* ================================================================
+   案B — 案A + ツールボタンをブランド行の右端へ(全幅をやめる)
+   ================================================================ */
+.v-b .tagline { display: none; }
+.v-b .site-header h1 { font-size: 1rem; }
+.v-b .brand-mark { width: 34px; height: 34px; border-radius: 8px; font-size: .82rem; }
+.v-b .site-header { flex-wrap: nowrap; gap: 10px; }
+.v-b .brand { min-width: 0; }
+/* ⚠ これが無いと 320px で横にはみ出す。flexの子は既定 min-width:auto で縮まないため、
+      .brand だけでなく“中の div”にも min-width:0 が要る（モック実測で発覚） */
+.v-b .brand > div { min-width: 0; }
+.v-b .site-header h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v-b .tools-toggle { width: auto; flex: 0 0 auto; padding: 8px 10px; font-size: .82rem; }
+/* 大会ページ側。
+   ⚠ 最初 flex-wrap:nowrap だけを試したが、ブランド名が2行に折返して 92→102px と“悪化”した。
+      375pxでは ブランド名(約200px) + nav(約250px) が同じ行に物理的に入らない。
+      → スマホではブランドの文字を落とし、マーク(GA)だけ残す。navは1行の横スクロールにする */
+.v-b .cp-site { flex-wrap: nowrap; gap: 10px; padding: 12px; }
+.v-b .cp-brand { font-size: 0; flex: 0 0 auto; }      /* テキストだけ隠す(リンクとマークは残る) */
+.v-b .cp-mark { font-size: .82rem; }
+.v-b .cp-site nav { overflow-x: auto; white-space: nowrap; min-width: 0; scrollbar-width: none; }
+.v-b .cp-site nav::-webkit-scrollbar { display: none; }
+.v-b .cp-crumb { padding: 6px 12px; }
+
+/* 最悪ケース欄 */
+.pcwrap { overflow-x: auto; padding-bottom: 8px; }
+.pcpane { width: 1280px; margin-bottom: 18px; }   /* ⚠ PC比較は実寸1280pxで描く（縮めると折返しが変わり比較にならない） */
+.worst { background: var(--panel); border: 1px dashed var(--accent); border-radius: 10px; padding: 12px; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<h1>#21 サイトヘッダ・パンくずの縦占有 — 現状 / 案A / 案B</h1>
+<p class="note">
+  すべて<b>本番(<code>ga-card-tools-jp.pages.dev</code>)の実測値と実データ</b>に基づく。
+  ヘッダのCSSは本番 <code>style.css</code> / <code>tournaments/tournaments.css</code> からの写しで、
+  変更点は末尾の <code>.v-a</code> / <code>.v-b</code> の上書きだけ。カード画像は公式APIの実物。
+  スマホ枠は実測に使った <b>375×812</b>（＝枠に見えている範囲が1画面目そのもの）。
+</p>
+<p class="note">
+  ⭐ <b>本ページに出てくる数値は、このモック自体を Playwright で測った実測値。</b>
+  「現状」欄は本番と一致することを確認済み（ヘッダ <b>200px</b>／本体上端 <b>436px</b> ＝ 本番 200／435px）。
+  <span class="warn">作る過程で3つの誤りを実測で潰した</span>ので、その記録も §3・§5 に残してある。
+</p>
+
+<h2>1. いま何が縦を食っているか（375px・実測 2026-08-02）</h2>
+<table class="m">
+  <tr><th>ブロック</th><th>高さ</th><th>上端</th><th>内訳</th></tr>
+  <tr><td><code>header.site-header</code></td><td class="n bad">200px</td><td class="n">0</td>
+      <td>padding 14×2 ＋ brand 110 ＋ gap 16 ＋ ツールボタン 45</td></tr>
+  <tr><td>└ <code>.brand</code></td><td class="n">110px</td><td class="n">14</td>
+      <td>マーク46 / <b>h1 64（2行に折返し）</b> / <b>タグライン 44（2行）</b></td></tr>
+  <tr><td>└ <code>button.tools-toggle</code></td><td class="n">45px</td><td class="n">140</td><td>全幅ボタンが単独で1行</td></tr>
+  <tr><td><code>section.controls</code></td><td class="n">174px</td><td class="n">200</td><td>検索入力2つ ＋ 絞り込みボタン（#21の対象外）</td></tr>
+  <tr><td><code>p.status</code></td><td class="n">33px</td><td class="n">388</td><td>「◯件を表示」（#21の対象外）</td></tr>
+  <tr><td><b><code>main.grid</code>（カード）</b></td><td class="n"></td><td class="n bad">435</td><td><b>画面812pxの54%を使い切ってから</b>やっとカード</td></tr>
+</table>
+<p class="note">
+  ⚠️ <b>issueに書かれていなかった事実: PCでも同じくらい悪い。</b>
+  1280px幅で測ると <code>.site-header</code> が <b>150px</b>、カードの上端が <b>395px</b>（画面の49%）。
+  <b>スマホだけの問題ではない</b>ので、案は両方の幅で見る必要がある。
+</p>
+
+<h2>2. トップページ・375px — 1画面目に何が入るか</h2>
+<p class="note">
+  枠の中が1画面目。<b>カードが何枚見えるか</b>で比べてほしい。
+</p>
+
+<div class="cols">
+
+  <!-- ===== 現状 ===== -->
+  <div class="phone">
+    <p class="pane-label"><b>現状</b> — ヘッダ 200px / カード上端 436px</p>
+    <div class="screen">
+      <header class="site-header">
+        <div class="brand">
+          <span class="brand-mark">GA</span>
+          <div>
+            <h1>Grand Archive 日本語カードDB</h1>
+            <p class="tagline">英語カードに日本語訳を重ねる非公式データベース（プロトタイプ）</p>
+          </div>
+        </div>
+        <button class="tools-toggle" type="button">ツール ▾</button>
+      </header>
+      <section class="controls">
+        <div class="controls-row">
+          <input placeholder="カード名で検索（日本語・英語）">
+          <input placeholder="効果テキストで検索（日本語・英語）">
+        </div>
+        <button class="filter-toggle" type="button">絞り込み・並び替え ▾</button>
+      </section>
+      <p class="status">50 件を表示 / 全 2240 件</p>
+      <main class="grid">
+        <div class="card"><img class="card-img" src="https://api.gatcg.com/cards/images/Wa5g8PP0Q1.jpg" alt=""><div class="card-body"><div class="card-name">ロレイン、昇華せし翼</div><div class="card-sub">レベル4・チャンピオン</div><div class="card-btns"><span>＋🖨️</span><span>詳細</span></div></div></div>
+        <div class="card"><img class="card-img" src="https://api.gatcg.com/cards/images/UJPc5GTRwa.jpg" alt=""><div class="card-body"><div class="card-name">トリスタン、昇華せし影</div><div class="card-sub">レベル4・チャンピオン</div><div class="card-btns"><span>＋🖨️</span><span>詳細</span></div></div></div>
+        <div class="card"><img class="card-img" src="https://api.gatcg.com/cards/images/xxqf9xzeie.jpg" alt=""><div class="card-body"><div class="card-name">貂蝉、田園の花飾り</div><div class="card-sub">レベル3・チャンピオン</div><div class="card-btns"><span>＋🖨️</span><span>詳細</span></div></div></div>
+        <div class="card"><img class="card-img" src="https://api.gatcg.com/cards/images/wbkh09outj.jpg" alt=""><div class="card-body"><div class="card-name">呂布、不屈の巨人</div><div class="card-sub">ユニーク・アライ</div><div class="card-btns"><span>＋🖨️</span><span>詳細</span></div></div></div>
+      </main>
+    </div>
+    <p class="fold-note bad">ヘッダ <b>200px</b> ／ カード上端 <b>436px</b> ／ <b>1画面に収まるカード 0枚</b></p>
+  </div>
+
+  <!-- ===== 案A ===== -->
+  <div class="phone v-a">
+    <p class="pane-label"><b>案A</b>（最小）— タグライン非表示・h1縮小・マーク34px</p>
+    <div class="screen">
+      <header class="site-header">
+        <div class="brand">
+          <span class="brand-mark">GA</span>
+          <div>
+            <h1>Grand Archive 日本語カードDB</h1>
+            <p class="tagline">英語カードに日本語訳を重ねる非公式データベース（プロトタイプ）</p>
+          </div>
+        </div>
+        <button class="tools-toggle" type="button">ツール ▾</button>
+      </header>
+      <section class="controls">
+        <div class="controls-row">
+          <input placeholder="カード名で検索（日本語・英語）">
+          <input placeholder="効果テキストで検索（日本語・英語）">
+        </div>
+        <button class="filter-toggle" type="button">絞り込み・並び替え ▾</button>
+      </section>
+      <p class="status">50 件を表示 / 全 2240 件</p>
+      <main class="grid">
+        <div class="card"><img class="card-img" src="https://api.gatcg.com/cards/images/Wa5g8PP0Q1.jpg" alt=""><div class="card-body"><div class="card-name">ロレイン、昇華せし翼</div><div class="card-sub">レベル4・チャンピオン</div><div class="card-btns"><span>＋🖨️</span><span>詳細</span></div></div></div>
+        <div class="card"><img class="card-img" src="https://api.gatcg.com/cards/images/UJPc5GTRwa.jpg" alt=""><div class="card-body"><div class="card-name">トリスタン、昇華せし影</div><div class="card-sub">レベル4・チャンピオン</div><div class="card-btns"><span>＋🖨️</span><span>詳細</span></div></div></div>
+        <div class="card"><img class="card-img" src="https://api.gatcg.com/cards/images/xxqf9xzeie.jpg" alt=""><div class="card-body"><div class="card-name">貂蝉、田園の花飾り</div><div class="card-sub">レベル3・チャンピオン</div><div class="card-btns"><span>＋🖨️</span><span>詳細</span></div></div></div>
+        <div class="card"><img class="card-img" src="https://api.gatcg.com/cards/images/wbkh09outj.jpg" alt=""><div class="card-body"><div class="card-name">呂布、不屈の巨人</div><div class="card-sub">ユニーク・アライ</div><div class="card-btns"><span>＋🖨️</span><span>詳細</span></div></div></div>
+      </main>
+    </div>
+    <p class="fold-note good">ヘッダ <b>124px</b> ／ 上端 <b>361px</b> ／ <b>カード2枚</b>。CSSのみ・HTML無変更・省略なし</p>
+  </div>
+
+  <!-- ===== 案B ===== -->
+  <div class="phone v-b">
+    <p class="pane-label"><b>案B</b>（推奨）— 案A ＋ ツールボタンを同じ行の右端へ</p>
+    <div class="screen">
+      <header class="site-header">
+        <div class="brand">
+          <span class="brand-mark">GA</span>
+          <div>
+            <h1>Grand Archive 日本語カードDB</h1>
+            <p class="tagline">英語カードに日本語訳を重ねる非公式データベース（プロトタイプ）</p>
+          </div>
+        </div>
+        <button class="tools-toggle" type="button">ツール ▾</button>
+      </header>
+      <section class="controls">
+        <div class="controls-row">
+          <input placeholder="カード名で検索（日本語・英語）">
+          <input placeholder="効果テキストで検索（日本語・英語）">
+        </div>
+        <button class="filter-toggle" type="button">絞り込み・並び替え ▾</button>
+      </section>
+      <p class="status">50 件を表示 / 全 2240 件</p>
+      <main class="grid">
+        <div class="card"><img class="card-img" src="https://api.gatcg.com/cards/images/Wa5g8PP0Q1.jpg" alt=""><div class="card-body"><div class="card-name">ロレイン、昇華せし翼</div><div class="card-sub">レベル4・チャンピオン</div><div class="card-btns"><span>＋🖨️</span><span>詳細</span></div></div></div>
+        <div class="card"><img class="card-img" src="https://api.gatcg.com/cards/images/UJPc5GTRwa.jpg" alt=""><div class="card-body"><div class="card-name">トリスタン、昇華せし影</div><div class="card-sub">レベル4・チャンピオン</div><div class="card-btns"><span>＋🖨️</span><span>詳細</span></div></div></div>
+        <div class="card"><img class="card-img" src="https://api.gatcg.com/cards/images/xxqf9xzeie.jpg" alt=""><div class="card-body"><div class="card-name">貂蝉、田園の花飾り</div><div class="card-sub">レベル3・チャンピオン</div><div class="card-btns"><span>＋🖨️</span><span>詳細</span></div></div></div>
+        <div class="card"><img class="card-img" src="https://api.gatcg.com/cards/images/wbkh09outj.jpg" alt=""><div class="card-body"><div class="card-name">呂布、不屈の巨人</div><div class="card-sub">ユニーク・アライ</div><div class="card-btns"><span>＋🖨️</span><span>詳細</span></div></div></div>
+      </main>
+    </div>
+    <p class="fold-note good">ヘッダ <b>65px</b> ／ 上端 <b>302px</b> ／ <b>カード2枚</b>。CSSのみ・HTML無変更</p>
+  </div>
+
+</div>
+
+<h2>3. 大会デッキ検索（<code>.cp-site</code> ＋ <code>.cp-crumb</code>）・375px</h2>
+<p class="note">
+  こちらは <b>nav が2行に折返している</b>のが主因（93px）。
+</p>
+<p class="note">
+  ⚠️⚠️ <b>最初に書いた案（<code>flex-wrap:nowrap</code> にするだけ）は実測したら 92→<span class="bad">102px</span> と“悪化”した。</b>
+  375px では「ブランド名（約200px）＋ nav（約250px）」が物理的に同じ行に入らず、ブランド名が2行に折返すため。
+  → <b>スマホではブランドの文字を落として マーク（GA）だけ残し</b>、nav を1行の横スクロールにする方式に変更した。
+  <b>思いつきの案をそのまま設計書に書かず、モックで測ってから採用すること。</b>
+</p>
+<div class="cols">
+  <div class="phone">
+    <p class="pane-label"><b>現状</b> — ヘッダ93 ＋ パンくず42 ＝ 135px</p>
+    <div class="screen">
+      <header class="cp-site">
+        <a class="cp-brand" href="#"><span class="cp-mark">GA</span>Grand Archive 日本語カードDB</a>
+        <nav><a href="#">エキスパンション一覧</a><a href="#">デッキ構築</a><a href="#">大会デッキ</a></nav>
+      </header>
+      <div class="cp-crumb"><a href="#">トップ</a> › <span>大会デッキ検索</span></div>
+      <main class="cp-main">
+        <h1>大会デッキ検索</h1>
+        <p class="sub">公式APIに登録された大会の入賞デッキを日本語で検索できます。</p>
+        <table class="tt">
+          <tr><th>大会</th><th>日付</th><th>デッキ</th></tr>
+          <tr><td>Skirmish Season 5</td><td>2026-07-28</td><td>32</td></tr>
+          <tr><td>Store Championship</td><td>2026-07-27</td><td>16</td></tr>
+          <tr><td>Regional Qualifier</td><td>2026-07-26</td><td>64</td></tr>
+        </table>
+      </main>
+    </div>
+    <p class="fold-note bad">ヘッダ <b>92px</b> ＋ パンくず <b>41px</b> ／ 表の上端 <b>252px</b></p>
+  </div>
+
+  <div class="phone v-b">
+    <p class="pane-label"><b>案B</b> — nav 1行 ＋ パンくず圧縮</p>
+    <div class="screen">
+      <header class="cp-site">
+        <a class="cp-brand" href="#"><span class="cp-mark">GA</span>Grand Archive 日本語カードDB</a>
+        <nav><a href="#">エキスパンション一覧</a><a href="#">デッキ構築</a><a href="#">大会デッキ</a></nav>
+      </header>
+      <div class="cp-crumb"><a href="#">トップ</a> › <span>大会デッキ検索</span></div>
+      <main class="cp-main">
+        <h1>大会デッキ検索</h1>
+        <p class="sub">公式APIに登録された大会の入賞デッキを日本語で検索できます。</p>
+        <table class="tt">
+          <tr><th>大会</th><th>日付</th><th>デッキ</th></tr>
+          <tr><td>Skirmish Season 5</td><td>2026-07-28</td><td>32</td></tr>
+          <tr><td>Store Championship</td><td>2026-07-27</td><td>16</td></tr>
+          <tr><td>Regional Qualifier</td><td>2026-07-26</td><td>64</td></tr>
+        </table>
+      </main>
+    </div>
+    <p class="fold-note good">ヘッダ <b>59px</b> ＋ パンくず <b>33px</b> ／ 表の上端 <b>211px</b></p>
+  </div>
+</div>
+
+<h2>4. PC（1280px）でも効く</h2>
+<p class="note">
+  現状の <code>.site-header</code> は本番実測で <b>150px</b>（ブランド56 ＋ ツールリンク行41 ＋ padding36 ＋ gap）。
+  ツールリンクが <code>flex-wrap</code> で2行目に落ちているのが原因。
+  <b>案Bの方針はPCにもそのまま効き、モック実測で <span class="good">152px → 74px</span> になった。</b>
+  ⚠️ 以下は<b>実寸1280pxで描いている</b>（縮小して描くと折返しが変わり比較にならないため、横スクロールする）。
+</p>
+<div class="pcwrap">
+  <div class="pcpane">
+    <p class="pane-label"><b>現状</b>（PC・ヘッダ150px）</p>
+    <div style="border:1px solid var(--border); border-radius:12px; overflow:hidden;">
+      <header class="site-header" style="flex-wrap:wrap; padding:18px 24px;">
+        <div class="brand">
+          <span class="brand-mark">GA</span>
+          <div>
+            <h1>Grand Archive 日本語カードDB</h1>
+            <p class="tagline">英語カードに日本語訳を重ねる非公式データベース（プロトタイプ）</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <span class="tools-toggle" style="width:auto; padding:8px 14px;">🗂️ デッキ構築ツール</span>
+          <span class="tools-toggle" style="width:auto; padding:8px 14px;">🃏 エキスパンション一覧</span>
+          <span class="tools-toggle" style="width:auto; padding:8px 14px;">🏆 大会デッキ検索</span>
+          <span class="tools-toggle" style="width:auto; padding:8px 14px;">🖨️ 印刷用PDF作成</span>
+          <span class="tools-toggle" style="width:auto; padding:8px 14px;">📖 ひとくちキーワード解説</span>
+        </div>
+      </header>
+    </div>
+    <p class="fold-note bad">リンクが2行目に落ちて <b>152px</b>（本番実測 150px と一致）</p>
+  </div>
+  <div class="pcpane">
+    <p class="pane-label"><b>案B</b>（PC）— タグラインはPCでは残す</p>
+    <div style="border:1px solid var(--border); border-radius:12px; overflow:hidden;">
+      <header class="site-header" style="flex-wrap:nowrap; padding:12px 24px; gap:12px;">
+        <div class="brand">
+          <span class="brand-mark" style="width:36px;height:36px;border-radius:8px;font-size:.82rem;">GA</span>
+          <div>
+            <h1 style="font-size:1.05rem;">Grand Archive 日本語カードDB</h1>
+            <p class="tagline" style="font-size:.78rem;">英語カードに日本語訳を重ねる非公式データベース（プロトタイプ）</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:nowrap; overflow-x:auto;">
+          <span class="tools-toggle" style="width:auto; padding:6px 10px; font-size:.8rem; white-space:nowrap;">🗂️ デッキ構築</span>
+          <span class="tools-toggle" style="width:auto; padding:6px 10px; font-size:.8rem; white-space:nowrap;">🃏 エキスパンション</span>
+          <span class="tools-toggle" style="width:auto; padding:6px 10px; font-size:.8rem; white-space:nowrap;">🏆 大会デッキ</span>
+          <span class="tools-toggle" style="width:auto; padding:6px 10px; font-size:.8rem; white-space:nowrap;">🖨️ 印刷PDF</span>
+          <span class="tools-toggle" style="width:auto; padding:6px 10px; font-size:.8rem; white-space:nowrap;">📖 キーワード解説</span>
+        </div>
+      </header>
+    </div>
+    <p class="fold-note good"><b>74px</b>（−78px）。1行に収まる。⚠️ ラベルの短縮が要る（論点2）</p>
+  </div>
+</div>
+
+<h2>5. 最悪ケース</h2>
+<div class="worst">
+  <h3>5-1. 案Bを320px（iPhone SE 第1世代相当）で見る</h3>
+  <div class="v-b" style="width:320px;">
+    <header class="site-header">
+      <div class="brand">
+        <span class="brand-mark">GA</span>
+        <div>
+          <h1>Grand Archive 日本語カードDB</h1>
+          <p class="tagline">英語カードに日本語訳を重ねる非公式データベース（プロトタイプ）</p>
+        </div>
+      </div>
+      <button class="tools-toggle" type="button">ツール ▾</button>
+    </header>
+  </div>
+  <p class="note" style="margin-top:8px;">
+    実測: ヘッダ <b>65px</b>／<b class="good">横はみ出しなし</b>／<b class="warn">h1 は省略される</b>（上の枠で実際の切れ方を確認できる）。
+  </p>
+  <p class="note">
+    ⚠️⚠️ <b>ここで案Bのバグを1つ潰した。</b> 最初の案Bは <code>.brand</code> にだけ <code>min-width:0</code> を付けていたが、
+    <b>flexの子は既定が <code>min-width:auto</code> で縮まない</b>ため、<b>中の <code>&lt;div&gt;</code> にも
+    <code>min-width:0</code> が要る</b>。無いと 320px でヘッダが横にはみ出し、
+    本番は <code>html,body{overflow-x:hidden}</code> なので<b class="bad">「ツール ▾」ボタンが画面外に消える</b>。
+    <b>実装時は必ず320pxで横スクロール／ボタンの可視を確認すること</b>（設計書の検証項目に入れる）。
+  </p>
+  <p class="note">
+    <b class="warn">サイト名の省略が案Bの唯一の実質的な代償。</b>375pxでは省略されず、320pxで初めて起きる。
+    許容できない場合は案A（2行のまま縮小・省略なし）に落とす。
+  </p>
+
+  <h3>5-2. 長いパンくず（カード個別ページ）</h3>
+  <div class="v-b" style="width:375px;">
+    <div class="cp-crumb"><a href="#">トップ</a> › <a href="#">エキスパンション一覧</a> › <a href="#">Dawn of Ashes Alter</a> › <span>ロレイン、昇華せし翼</span></div>
+  </div>
+  <p class="note" style="margin-top:8px;">
+    パンくずは長いと折返して2〜3行になり、padding圧縮（10→6px）の効果が薄まる。
+    ⚠️ <b>ここを1行固定にすると「いまどこにいるか」が読めなくなる</b>ので、折返しは残す前提。
+  </p>
+
+  <h3>5-3. スマホでブランド名を隠す（大会ページの案B）</h3>
+  <div class="v-b" style="width:375px;">
+    <header class="cp-site">
+      <a class="cp-brand" href="#"><span class="cp-mark">GA</span>Grand Archive 日本語カードDB</a>
+      <nav><a href="#">エキスパンション一覧</a><a href="#">デッキ構築</a><a href="#">大会デッキ</a></nav>
+    </header>
+  </div>
+  <p class="note" style="margin-top:8px;">
+    ⚠️ <b>スマホでは「GA」マークだけになる</b>（リンクとしては生きているのでトップへは戻れる）。
+    サイト名がヘッダから消えることを許容できるかは<b>論点5</b>。
+  </p>
+</div>
+
+<h2>6. 効果まとめ（すべてモック実測）</h2>
+
+<h3>トップページ・375×812</h3>
+<table class="m">
+  <tr><th>案</th><th>ヘッダ</th><th>カード上端</th><th>1画面の割合</th><th>1画面に収まるカード</th><th>変更の性質</th></tr>
+  <tr><td>現状</td><td class="n bad">200px</td><td class="n bad">436px</td><td class="n bad">54%</td><td class="n bad">0枚</td><td>—</td></tr>
+  <tr><td><b>案A</b></td><td class="n">124px</td><td class="n">361px</td><td class="n">44%</td><td class="n good">2枚</td><td>CSSのみ・HTML無変更・<b>省略なし</b></td></tr>
+  <tr><td><b>案B</b>（推奨）</td><td class="n good">65px</td><td class="n good">302px</td><td class="n good">37%</td><td class="n good">2枚</td><td>CSSのみ・HTML無変更・<b>320pxでh1が省略</b></td></tr>
+</table>
+<p class="note">
+  ⭐ <b>「現状」は本番と一致</b>（本番: ヘッダ200px／上端435px）。
+  ⚠️ <b>案A と案B は「1画面に入るカード枚数」では差がつかない</b>（どちらも2枚）。
+  差が出るのは<b>2段目以降のスクロール量</b>と、絞り込みパネルを開いたときの余裕。
+</p>
+
+<h3>大会デッキ検索・375×812</h3>
+<table class="m">
+  <tr><th>案</th><th>ヘッダ</th><th>パンくず</th><th>表の上端</th></tr>
+  <tr><td>現状</td><td class="n bad">92px</td><td class="n">41px</td><td class="n bad">252px</td></tr>
+  <tr><td><b>案B</b></td><td class="n good">59px</td><td class="n good">33px</td><td class="n good">211px</td></tr>
+</table>
+
+<h3>PC・1280px（トップページ）</h3>
+<table class="m">
+  <tr><th>案</th><th>ヘッダ</th><th>備考</th></tr>
+  <tr><td>現状</td><td class="n bad">152px</td><td>ツールリンクが2行目に折返す（本番実測150pxと一致）</td></tr>
+  <tr><td><b>案B</b></td><td class="n good">74px</td><td><b>−78px。</b>タグラインはPCでは残す。ラベル短縮が前提（論点2）</td></tr>
+</table>
+<p class="note">
+  ⚠️ <b>案C（スクロールで縮むヘッダ）は今回の範囲から外す</b>ことを推奨。JSが増えるうえ、
+  案Bで初期表示がすでに65pxまで下がるため費用対効果が小さい。
+</p>
+
+<h2>7. 判断してほしい論点</h2>
+<table class="m">
+  <tr><th>#</th><th>論点</th><th>推奨</th></tr>
+  <tr><td>1</td><td><b>スマホでタグラインを隠してよいか</b>（案A・案B共通の前提）。「英語カードに日本語訳を重ねる非公式データベース（プロトタイプ）」が2行44pxを占めている。<b>PCでは残す</b></td><td>隠す（h1でサイトの性格は伝わる）</td></tr>
+  <tr><td>2</td><td><b>PCのツールリンクのラベルを短くしてよいか</b>（「🗂️ デッキ構築ツール」→「🗂️ デッキ構築」等）。短縮しないと1行に収まらない</td><td>短くする</td></tr>
+  <tr><td>3</td><td><b>案A と 案B のどちらにするか。</b>差は「320pxでサイト名が省略されるのを許すか」と、PCに効くかどうか（案AはPCに効かない）</td><td><b>案B</b></td></tr>
+  <tr><td>4</td><td>案C（スクロールで縮むヘッダ）を含めるか</td><td>含めない（JSが増える）</td></tr>
+  <tr><td>5</td><td><b>大会ページのスマホでサイト名を隠し「GA」マークだけにしてよいか</b>（§5-3）。隠さないとnavが2行のままで効果が出ない</td><td>隠す（マークがトップへのリンクとして残る）</td></tr>
+</table>
+<p class="note">
+  ⚠️ このモックは<b>ヘッダとパンくずだけ</b>を対象にしている。トップの1画面目はほかに
+  <b>検索欄174px ＋ ステータス33px</b>を使っており、これは #21 の範囲外（別途検討する余地がある）。
+</p>
+
+</body>
+</html>
