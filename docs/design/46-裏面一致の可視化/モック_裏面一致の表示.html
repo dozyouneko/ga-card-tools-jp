@@ -38,7 +38,8 @@ border-radius:999px;color:var(--muted)}
 .badge-untranslated{display:inline-block;vertical-align:middle;margin-right:6px;font-size:.68rem;
 font-weight:700;color:#fff;background:var(--no);padding:1px 6px;border-radius:999px}
 /* shared/css/card-badges.css 相当 */
-.badges-bl{position:absolute;left:6px;bottom:6px;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+/* ⚠ 本番は column-reverse（DOM先頭=format を下に、順に上へ積む）。ここも合わせてある */
+.badges-bl{position:absolute;left:6px;bottom:6px;display:flex;flex-direction:column-reverse;align-items:flex-start;gap:4px}
 .badges-bl>*{font-family:inherit;font-size:.68rem;font-weight:700;border-radius:999px;padding:2px 7px;
 border:1px solid rgba(0,0,0,.35);color:#fff;background:rgba(20,23,29,.86);white-space:nowrap}
 .flip-badge,.art-badge{cursor:pointer}
@@ -132,7 +133,10 @@ th{background:var(--panel-2)}
 <h3>4.1 裏面名・表面名がともに最長＋未翻訳バッジ＋既存バッジが全部載る</h3>
 <p>実データの最長は裏面 <code>束縛の憤怒のチーター</code>（10字）／表面 <code>不屈の運命石</code>。
 効果欄「<strong>ヒット時</strong>」（82件中この1件だけが裏面一致）で実際に起きます。
-既存の左下バッジ（禁止・シーズン・🔄両面・🎨版）が全部出ている状態に重ねています。</p>
+既存の左下バッジ（禁止・シーズン・🔄両面・🎨版）が全部出ている状態に重ねています。<br>
+⚠️ <strong>禁止・シーズン・未翻訳は本物のデータではなく、載せられるものを全部載せた仮の状態</strong>です。
+とくに「未翻訳（＝表面に訳が無い）のに裏面一致」は<strong>現データでは0件</strong>
+（22組とも表裏の両方が翻訳済み）ですが、将来の新カードで起こり得るので幅の確認に含めています。</p>
 <div class="cmp">
   <div class="pane"><h4>案B（バッジが5段になる）</h4><div class="grid" id="w-B"></div></div>
   <div class="pane"><h4>案C-1（名前欄が3行に折り返す）</h4><div class="grid" id="w-C1"></div></div>
@@ -154,7 +158,24 @@ th{background:var(--panel-2)}
   <div class="pane"><h4>✅ 表面一致なら出さない</h4><div class="grid" id="good"></div></div>
 </div>
 
-<h2>5. 案の比較表</h2>
+<h2 id="adopted">5. ✅ 採用形 — 案C-2 ＋ 裏面画像で開く（2026-08-03 ユーザー決定）</h2>
+<p><strong>本文に <code>🔄 裏: ◯◯</code> の行を足し、あわせて画像も最初から裏面で開きます。</strong>
+🔄バッジは「🔄 裏面」表示で始まり、押すと表面に戻ります。
+⚠️ <strong>印刷リスト／デッキに入るのは表面カード</strong>（<code>dataset.artUrl</code> は表面のまま）で、
+そこは変えません。</p>
+<div class="cmp">
+  <div class="pane"><h4>PC幅（3件・名前欄「朱雀」）</h4><div class="grid" id="adopt"></div></div>
+  <div class="pane"><h4>375px（2カラム）</h4><div class="phone" style="border:0;padding:0"><div class="grid" id="p-adopt"></div></div></div>
+</div>
+<div class="cmp">
+  <div class="pane"><h4>最悪ケース（4.1 と同条件）</h4><div class="grid" id="w-adopt"></div></div>
+  <div class="pane"><h4>⚠️ その版に裏面画像が無いとき（fail-open）</h4><div class="grid" id="noback"></div>
+  <p style="margin-top:8px">画像は<strong>表面のまま</strong>・バッジも「🔄 両面」で、
+  <strong>注記だけ出します</strong>。実データ22組は全版に裏面画像がありましたが（2026-07-27 スナップショットで確認）、
+  新規版で欠けても壊れないようにします。</p></div>
+</div>
+
+<h2>6. 案の比較表</h2>
 <table>
 <tr><th>観点</th><th>案A 裏面向き描画</th><th>案B バッジ</th><th>案C-1 インライン</th><th>案C-2 別行 <span class="tag rec">推奨</span></th></tr>
 <tr><td><strong>検索語がタイルに見えるか</strong></td><td>✅ 見える</td><td>❌ <strong>見えない</strong>（押して初めて分かる）</td><td>✅ 見える</td><td>✅ 見える</td></tr>
@@ -204,16 +225,20 @@ const MANY = [
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-// mode: "asis" | "A" | "B" | "C1" | "C2"
+// mode: "asis" | "A" | "B" | "C1" | "C2" | "ADOPT"（採用形＝C-2 ＋ 裏面画像で開く）
 // hit: 裏面が一致したか（true のときだけ注記を出す）
+// c.noBackImg: その版に裏面画像が無い（ADOPT の fail-open 確認用）
 function tile(c, mode, hit) {
+  const adopt = mode === "ADOPT" && hit && c.back;
+  // 案A は「名前もチップも裏面」。採用形は「画像とバッジだけ裏面・名前は表面」
   const useBack = mode === "A" && hit && c.back;
+  const backImg = adopt && !c.noBackImg;
   const face = useBack ? c.back : c;
   const chips = (useBack && c.back.chips ? c.back.chips : c.chips) || [];
   const badges = [
     c.banned ? `<span class="format-badge">🚫 禁止</span>` : "",
     c.season ? `<span class="format-badge" style="background:rgba(224,123,208,.85);color:#1a0d18">⛔ シーズン</span>` : "",
-    c.flip ? `<span class="flip-badge">🔄 ${useBack ? "裏面" : "両面"}</span>` : "",
+    c.flip ? `<span class="flip-badge">🔄 ${(useBack || backImg) ? "裏面" : "両面"}</span>` : "",
     c.art ? `<span class="art-badge">🎨 ${c.art}・DOA</span>` : "",
     (mode === "B" && hit) ? `<span class="match-badge">🔄 裏面が一致</span>` : "",
   ].filter(Boolean).join("");
@@ -225,7 +250,7 @@ function tile(c, mode, hit) {
   return `
   <div class="card">
     <div class="card-img">
-      <img loading="lazy" src="${IMG}${face.img}" alt="">
+      <img loading="lazy" src="${IMG}${backImg ? c.back.img : face.img}" alt="">
       <div class="badges-bl">${badges}</div>
       <div class="badges-tr"><span style="font-size:.68rem;background:rgba(20,23,29,.86);border:1px solid rgba(0,0,0,.35);border-radius:999px;padding:2px 7px">＋🖨️</span></div>
     </div>
@@ -233,7 +258,7 @@ function tile(c, mode, hit) {
       ${useBack ? `<p class="face-note">🔄 裏面が一致</p>` : ""}
       <p class="card-name">${c.untl ? `<span class="badge-untranslated">未翻訳</span>` : ""}${nameLine}</p>
       <p class="card-name-en">${esc(face.en)}</p>
-      ${(mode === "C2" && hit) ? `<p class="card-back-hit"><span class="lbl">🔄 裏:</span><span class="nm">${esc(c.back.jp)}</span></p>` : ""}
+      ${((mode === "C2" || mode === "ADOPT") && hit) ? `<p class="card-back-hit"><span class="lbl">🔄 裏:</span><span class="nm">${esc(c.back.jp)}</span></p>` : ""}
       <p class="card-chips">${chips.map((t, i) => `<span class="chip${i === chips.length - 1 ? " chip-elem" : ""}">${esc(t)}</span>`).join("")}</p>
     </div>
   </div>`;
@@ -262,8 +287,14 @@ put("many", MANY.map(([jp, en, back]) => tile({
   back: { jp: back, en: "", img: C.submerged.back.img },
 }, "C2", true)).join(""));
 
-put("bad", tile(C.lubu, "C2", true));
-put("good", tile(C.lubu, "C2", false));
+put("bad", tile(C.lubu, "ADOPT", true));
+put("good", tile(C.lubu, "ADOPT", false));
+
+// §5 採用形
+put("adopt", row(SUZAKU, "ADOPT"));
+put("p-adopt", row(SUZAKU, "ADOPT"));
+put("w-adopt", tile(C.unrel, "ADOPT", true));
+put("noback", tile(Object.assign({}, C.ruby, { noBackImg: true }), "ADOPT", true));
 </script>
 </main>
 </body>
