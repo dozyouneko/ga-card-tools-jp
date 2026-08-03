@@ -1074,7 +1074,7 @@ const searchCtl = GA_CARD_SEARCH.create({
   },
   onResults: (cards, info) => {
     cards.forEach((card) => { cardCache.set(card.slug, Promise.resolve(card)); });
-    appendResults(cards);
+    appendResults(cards, info);
     updateElementWarn(info);
     el.resultCount.textContent = searchStatusText(info);
     el.resultMore.hidden = !info.hasMore;
@@ -1187,13 +1187,22 @@ function updateResultBadge(item, slug) {
   badge.hidden = n === 0;
 }
 
-function appendResults(cards) {
+// info は検索コントローラが渡すメタ情報。裏面だけが一致したカードの注記(#46)に使う
+function appendResults(cards, info) {
   const frag = document.createDocumentFragment();
   cards.forEach((card) => {
     const imgs = cardImages(card);
     const initialAi = preferredArtIndex(imgs);
-    const url = imgs.length ? imgs[initialAi].url : null;
     const back = backFace(card); // 両面カードなら裏面(無ければ null)
+    // 日本語検索で「裏面だけが一致した」カード(#46)。検索語がタイルのどこにも出ないため、
+    // 名前の下に裏面名の行を足し、画像も最初から裏面で開く。
+    // ⚠ カードオブジェクトではなく info 側のマップで受け取る(getCard の結果はキャッシュされる)
+    const hitSlug = info && info.jpBackHit ? info.jpBackHit[card.slug] : null;
+    const backHit = !!(hitSlug && back);
+    // その版に裏面画像が無ければ表面のまま開く(注記だけ出す・fail-open)
+    const startBack = !!(backHit && imgs[initialAi] && imgs[initialAi].back);
+    const url = imgs.length ? (startBack ? imgs[initialAi].back : imgs[initialAi].url) : null;
+    const backName = backHit ? jpName(back) : "";
     const item = document.createElement("div");
     item.className = "result";
     item.dataset.slug = card.slug;
@@ -1208,12 +1217,13 @@ function appendResults(cards) {
         <div class="badges-bl">
           ${formatBadgeHtml(card)}
           ${seasonalBadgeHtml(card)}
-          ${url && back ? `<button class="flip-badge" type="button" title="両面カード：表裏を切り替え" aria-label="裏面を表示">🔄 両面</button>` : ""}
+          ${url && back ? `<button class="flip-badge" type="button" title="両面カード：表裏を切り替え" aria-label="${startBack ? "表面を表示" : "裏面を表示"}">${startBack ? "🔄 裏面" : "🔄 両面"}</button>` : ""}
           ${url && imgs.length > 1 ? `<button class="art-badge" type="button" title="イラスト/版を切り替え（${imgs.length}種）" aria-label="イラストを切り替え">🎨 ${imgs.length}・${escapeHtml(imgs[initialAi].prefix)}</button>` : ""}
         </div>
         <span class="in-deck" ${inDeck ? "" : "hidden"}>${inDeck}枚</span>
       </div>
       <p class="rname">${escapeHtml(jpName(card))}<span>${escapeHtml(card.name)}</span></p>
+      ${backName ? `<p class="flip-hit"><span class="flip-hit-lbl">🔄 裏:</span><span class="flip-hit-name">${escapeHtml(backName)}</span></p>` : ""}
       <div class="addrow"></div>`;
     renderAddRow(item, card);
 
@@ -1222,13 +1232,17 @@ function appendResults(cards) {
     const artBadge = item.querySelector(".art-badge");
     const flipBadge = item.querySelector(".flip-badge");
     if (imgEl && (artBadge || flipBadge)) {
-      let ai = initialAi;      // 選択中の版(イラスト)番号
-      let showingBack = false; // 裏面を表示中か
+      let ai = initialAi;          // 選択中の版(イラスト)番号
+      let showingBack = startBack; // 裏面を表示中か(#46 で裏面一致なら最初から裏面)
       const syncImg = () => {
         const cur = imgs[ai] || imgs[0];
         if (!cur) return;
         imgEl.src = showingBack && cur.back ? cur.back : cur.url;
-        if (flipBadge) flipBadge.textContent = showingBack ? "🔄 裏面" : "🔄 両面";
+        if (flipBadge) {
+          flipBadge.textContent = showingBack ? "🔄 裏面" : "🔄 両面";
+          // ⚠ ラベルも同期する。裏面で開く(#46)と初期表示と状態がずれるため
+          flipBadge.setAttribute("aria-label", showingBack ? "表面を表示" : "裏面を表示");
+        }
       };
       if (artBadge) {
         artBadge.addEventListener("click", (e) => {

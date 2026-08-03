@@ -103,7 +103,7 @@ const searchCtl = GA_CARD_SEARCH.create({
     }
   },
   onResults: (cards, info) => {
-    appendGrid(cards);
+    appendGrid(cards, info);
     updateElementWarn(info);
     updateSearchStatus(info);
     el.loadMore.disabled = false;
@@ -182,7 +182,8 @@ function updateSearchStatus(info) {
 
 // ---------- グリッド描画 ----------
 
-function appendGrid(cards) {
+// info は検索コントローラが渡すメタ情報。裏面だけが一致したカードの注記(#46)に使う
+function appendGrid(cards, info) {
   if (!cards.length) return;
   const frag = document.createDocumentFragment();
   cards.forEach((card) => {
@@ -194,8 +195,16 @@ function appendGrid(cards) {
     const showUntranslated = !isTranslated(card) && translationsReady();
     const imgs = cardImages(card);
     const initialAi = preferredArtIndex(imgs);
-    const img = imgs.length ? imgs[initialAi].url : null;
     const back = backFace(card); // 両面カードなら裏面（無ければ null）
+    // 日本語検索で「裏面だけが一致した」カード（#46）。検索語がタイルのどこにも出ないため、
+    // 本文に裏面名の行を足し、画像も最初から裏面で開く。
+    // ⚠ カードオブジェクトではなく info 側のマップで受け取る（fetchCard の結果はキャッシュされる）
+    const hitSlug = info && info.jpBackHit ? info.jpBackHit[card.slug] : null;
+    const backHit = !!(hitSlug && back);
+    // その版に裏面画像が無ければ表面のまま開く（注記だけ出す・fail-open）
+    const startBack = !!(backHit && imgs[initialAi] && imgs[initialAi].back);
+    const img = imgs.length ? (startBack ? imgs[initialAi].back : imgs[initialAi].url) : null;
+    const backName = backHit ? jpName(back) : "";
 
     const cardEl = document.createElement("div");
     cardEl.className = "card";
@@ -217,7 +226,7 @@ function appendGrid(cards) {
         <div class="badges-bl">
           ${formatBadgeHtml(card)}
           ${seasonalBadgeHtml(card)}
-          ${back ? `<button class="flip-badge" type="button" title="両面カード：表裏を切り替え" aria-label="裏面を表示">🔄 両面</button>` : ""}
+          ${back ? `<button class="flip-badge" type="button" title="両面カード：表裏を切り替え" aria-label="${startBack ? "表面を表示" : "裏面を表示"}">${startBack ? "🔄 裏面" : "🔄 両面"}</button>` : ""}
           ${imgs.length > 1 ? `<button class="art-badge" type="button" title="イラスト/版を切り替え（${imgs.length}種）" aria-label="イラストを切り替え">🎨 ${imgs.length}・${escapeHtml(imgs[initialAi].prefix)}</button>` : ""}
         </div>
         <div class="badges-tr">
@@ -227,6 +236,7 @@ function appendGrid(cards) {
       <div class="card-body">
         <p class="card-name">${showUntranslated ? `<span class="badge-untranslated">未翻訳</span>` : ""}${escapeHtml(jpName(card))}</p>
         <p class="card-name-en">${escapeHtml(card.name)}</p>
+        ${backName ? `<p class="flip-hit"><span class="flip-hit-lbl">🔄 裏:</span><span class="flip-hit-name">${escapeHtml(backName)}</span></p>` : ""}
         <p class="card-chips">
           ${typeChips ? `<span class="chip">${escapeHtml(typeChips)}</span>` : ""}
           ${levelChip ? `<span class="chip">${escapeHtml(levelChip)}</span>` : ""}
@@ -237,6 +247,12 @@ function appendGrid(cards) {
     cardEl.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); GA_CARD_DETAIL.open(card); }
     });
+    // 表示中の「版」と「面」。⚠ ＋🖨️ も参照するため、切替バッジの if ブロックの外で宣言する（#47）。
+    // ブロック内で let を再宣言すると内側が外側を隠し、画像は裏返るのに ＋🖨️ は表面のまま＝
+    // 元の症状と見分けがつかない状態になる（例外も出ない）
+    let ai = initialAi;          // 選択中の版（イラスト）番号
+    let showingBack = startBack; // 裏面を表示中か（#46 で裏面一致なら最初から裏面）
+
     const addBtn = cardEl.querySelector(".card-add");
     if (addBtn) {
       addBtn.addEventListener("click", (e) => {
@@ -244,6 +260,13 @@ function appendGrid(cards) {
         // 表示中の版（🎨 の切り替え結果・絞り込みによる初期表示）をそのまま印刷リストへ
         const artUrl = cardEl.dataset.artUrl || null;
         const cur = artUrl ? imgs.find((im) => im.url === artUrl) : null;
+        // 表示中の「面」も反映する（#47）。規則は詳細モーダルの backAction と同一 ——
+        // その版に裏面画像が無ければ既定版の裏面に倒し、そのときは版ラベルを付けない（実物と食い違うため）
+        if (showingBack && back) {
+          const useSel = !!(cur && cur.back);
+          addToPrintItem(back.slug, jpName(back), useSel ? cur.back : back.image, useSel ? cur.label : null);
+          return;
+        }
         addToPrint(card, artUrl, cur && cur.label);
       });
     }
@@ -253,14 +276,16 @@ function appendGrid(cards) {
     const flipBadge = cardEl.querySelector(".flip-badge");
     const imgEl = cardEl.querySelector(".card-img img");
     if (imgEl && (artBadge || flipBadge)) {
-      let ai = initialAi;      // 選択中の版（イラスト）番号
-      let showingBack = false; // 裏面を表示中か
       const syncImg = () => {
         const cur = imgs[ai] || imgs[0];
         if (!cur) return;
         // 裏面画像は選択中の版に紐づく（例：CSR表面→CSR裏面）。無ければ表面にフォールバック。
         imgEl.src = showingBack && cur.back ? cur.back : cur.url;
-        if (flipBadge) flipBadge.textContent = showingBack ? "🔄 裏面" : "🔄 両面";
+        if (flipBadge) {
+          flipBadge.textContent = showingBack ? "🔄 裏面" : "🔄 両面";
+          // ⚠ ラベルも同期する。裏面で開く（#46）と初期表示と状態がずれるため
+          flipBadge.setAttribute("aria-label", showingBack ? "表面を表示" : "裏面を表示");
+        }
       };
       if (artBadge) {
         artBadge.addEventListener("click", (e) => {

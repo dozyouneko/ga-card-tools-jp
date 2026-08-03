@@ -1,5 +1,7 @@
-/* カード画像に重ねるバッジ群（#35）
+/* カード画像に重ねるバッジ群（#35）＋ カード本文側の裏面注記（.flip-hit・#46）
    トップページ（カードDB）とデッキ構築ツールの検索結果で共用する。
+   ⚠️ このファイルの中身は「全部が画像の上」ではない。末尾の .flip-hit は本文（画像の外）に出る行で、
+      共用する理由が同じ（両画面に出る）ためここに同居している。
    ⚠️ デッキ構築は root の style.css を読み込まないため、ここに置いて両方から <link> する。
       片方だけにコピーを作らないこと（#35 の不具合そのものが「デッキ構築だけ別実装」に起因する）。
 
@@ -78,6 +80,18 @@
   pointer-events: none; /* 画像上の空白がクリックを奪わないように。子だけが受ける */
 }
 .badges-tr > * { pointer-events: auto; }
+
+/* 裏面が一致したことを本文で示す行（#46）。
+   ⚠️ これは画像の上ではない。画像上のバッジは .badges-bl の縦積みに合流させること（#35）。
+   overflow-wrap: anywhere は必須（`束縛の憤怒のチーター` が 375px の2カラムで折り返す） */
+.flip-hit {
+  margin: 4px 0 0;
+  font-size: .74rem;
+  color: var(--accent-2);
+  display: flex; gap: 4px; align-items: baseline;
+}
+.flip-hit-lbl  { flex: 0 0 auto; opacity: .85; }
+.flip-hit-name { font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
 
 /* スマホ（root style.css の一覧スマホ調整と同じブレークポイント） */
 @media (max-width: 640px) {

@@ -376,6 +376,7 @@ window.GA_CARD_SEARCH = (() => {
     let jpSeen = null;         // 取得できた表面slug(重複の検出用・#45)
     let jpSortUnknown = 0;     // JPモードで並び替えキーが不明だった件数(末尾へ回した数・#43)
     let jpSortDropped = false; // 索引が全く使えず並び替え自体を諦めたか(#43)
+    let jpBackHit = null;      // 裏面だけが一致した {表面slug: 裏面slug}(#46)。描画側へ info で渡す
     let metaIdxPromise = null; // 索引fetchのメモ化(初回JP検索のときだけ実行し以降は再利用)
 
     const trimmed = (elm) => (elm ? elm.value.trim() : "");
@@ -561,6 +562,25 @@ window.GA_CARD_SEARCH = (() => {
         if (seen.has(front)) continue;
         seen.add(front);
         out.push(front);
+      }
+      return out;
+    }
+
+    // 「裏面だけが一致した」カードを {表面slug: 裏面slug} で返す（#46）。
+    // 表面も一致しているとき（リュ・ブ／方天画戟）は入れない —— 検索語はすでにタイルに見えており、
+    // 注記を出すとノイズにしかならない。
+    // ⚠ 索引に f が無い（旧形式・取得失敗）ときは空を返す＝注記が出ないだけ（fail-open）
+    // ⚠ 渡すのは foldFlip する前の list（folded は裏面slugを失っている）
+    function backOnlyHits(idx, list) {
+      const f = idx && idx.f;
+      const out = {};
+      if (!f) return out;
+      const matched = new Set(list);
+      for (const slug of list) {
+        const front = f[slug];
+        if (!front) continue;             // 裏面slugではない
+        if (matched.has(front)) continue; // 表面も一致した → 注記なし
+        if (!out[front]) out[front] = slug; // 先勝ち（list は sort 済みなので決定的）
       }
       return out;
     }
@@ -755,6 +775,7 @@ window.GA_CARD_SEARCH = (() => {
         jpApprox = false;
         jpSortUnknown = 0;
         jpSortDropped = false;
+        jpBackHit = null;
         jpDropped = 0;
         jpSeen = new Set();
       }
@@ -780,6 +801,8 @@ window.GA_CARD_SEARCH = (() => {
             // フリップ面を表面へ畳んでから絞り込む（#45）。索引の裏面エントリは表面と同内容なので
             // 畳む位置が絞り込みの前後どちらでも結果は同じ。候補が減ってからのほうが後段が軽い
             const folded = foldFlip(idx, jpSlugs);
+            // 「なぜ出たか」の注記用（#46）。⚠ folded ではなく畳む前の jpSlugs から作る
+            jpBackHit = backOnlyHits(idx, jpSlugs);
             let base;
             if (idx) {
               base = folded.filter((s) => metaMatches(idx, s));
@@ -854,6 +877,10 @@ window.GA_CARD_SEARCH = (() => {
           // ⚠ jpMode は「JPモードか」でしかなく、日本語一致が0件でも true になる（#43 §7.3）
           jpMatched: jpSlugs ? jpSlugs.length : 0,
           jpDropped: jpSlugs ? jpDropped : 0,
+          // 裏面だけが一致したカードの {表面slug: 裏面slug}（#46）。
+          // ⚠ カードオブジェクトに印を付けてはいけない（fetchCard の結果はキャッシュされるため、
+          //   前回の検索の印が次の検索に残る）。必ずこの info 経由で渡す
+          jpBackHit: jpSlugs ? jpBackHit : null,
         });
       } catch (err) {
         if (mySeq !== seq) return;
