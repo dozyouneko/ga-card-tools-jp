@@ -308,6 +308,10 @@ img.champ-thumb-img { display: block; }
 .result .cardph { border: none; border-radius: 0; }
 .result .rname { margin: 0; padding: 6px 8px 0; font-size: .78rem; font-weight: 700; line-height: 1.3; }
 .result .rname span { display: block; color: var(--muted); font-size: .66rem; font-weight: 400; }
+/* 共用の .flip-hit(#46) は「親に横paddingがある」前提（トップの .card-body）。
+   .result は横paddingを持たず .rname が自前で持つため、ここで左端を揃える。
+   ⚠ .result 自体に横paddingを付けて解決しないこと（.addrow は枠まで広がるのが正しい形） */
+.result .flip-hit { padding: 0 8px; }
 .result .addrow { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); margin-top: 6px; }
 .result .addrow button {
   border: none; padding: 7px 2px; font-size: .72rem; font-weight: 700;
