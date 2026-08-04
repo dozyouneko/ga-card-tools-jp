@@ -48,8 +48,7 @@ Grand Archive TCG を日本で遊ぶ人向けの、非公式ファンサイト�
 ├─ docs/                   設計書（docs/design/）・開発環境の再構築手順書（dev-setup.md）
 ├─ CLAUDE.md               開発運用ルール（セッション役割分担・タスク管理・設計書運用）
 ├─ _headers                Cloudflare Pages 用（パス別CSP）
-├─ sitemap.xml / robots.txt / ogp.png
-└─ vercel.json             Vercel 用（パス別CSP・予備）
+└─ sitemap.xml / robots.txt / ogp.png
 ```
 
 ## 機能
@@ -120,7 +119,7 @@ npm run build:tournaments # 大会データをスキャンして大会ページ�
 
 ## セキュリティ（CSP）
 
-パスごとに Content-Security-Policy を出し分けています（[_headers](_headers) / [vercel.json](vercel.json)）。
+パスごとに Content-Security-Policy を出し分けています（[_headers](_headers)）。
 
 - `/tools/print/*` … 外部通信なしの厳格な `self` のみ
 - それ以外 … 公式API `https://api.gatcg.com` への `connect` / `img`、Discordアバター用の
