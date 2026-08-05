@@ -13,7 +13,8 @@
   // 依存が増えたら自動で入るように（現状は devDependencies 空なので実質no-op）
   // + Claude Code CLI をコンテナ作成時にグローバルインストール
   // + Norton の HTTPS スキャン用ルート証明書をシステム信頼ストアに登録（curl/git/openssl 対策）
-  "postCreateCommand": "npm install --no-audit --no-fund || true; npm install -g @anthropic-ai/claude-code || true; if [ -f .devcontainer/certs/norton-root.crt ]; then sudo cp .devcontainer/certs/norton-root.crt /usr/local/share/ca-certificates/norton-root.crt && sudo update-ca-certificates; fi || true",
+  // + セッション役割つき起動ショートカット（cc-design / cc-dev）を ~/.bash_aliases に登録（実体は .claude/aliases.sh）
+  "postCreateCommand": "npm install --no-audit --no-fund || true; npm install -g @anthropic-ai/claude-code || true; if [ -f .devcontainer/certs/norton-root.crt ]; then sudo cp .devcontainer/certs/norton-root.crt /usr/local/share/ca-certificates/norton-root.crt && sudo update-ca-certificates; fi || true; touch ~/.bash_aliases; grep -qF '.claude/aliases.sh' ~/.bash_aliases || echo 'source '$PWD'/.claude/aliases.sh' >> ~/.bash_aliases",
 
   // Node は OS の証明書ストアを見ないため、Norton ルートCAを個別に教える（Claude CLI / npm の SSL エラー対策）
   "remoteEnv": {
