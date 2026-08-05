@@ -107,6 +107,10 @@ issueコメントが「実装→設計」の報告経路になる(2セッショ�
 - ⚠️ **`CLAUDE.md` はこの例外に含まれない。** ルート直下のファイルは静的アセットとして
   **そのまま配信される**(実測: `/CLAUDE.md` `/README.md` `/package.json` `/wrangler.toml` はいずれも **200**)。
   `docs/` のように404で遮断されているわけではないので、**変更時はユーザーの指示を待つ**
+  - ⚠️ **ドットフォルダも同じく配信される**(2026-08-05実測: `/.claude/agents/design.md`
+    `/.claude/aliases.sh` `/.devcontainer/devcontainer.json` はいずれも **200**)。
+    「`.` 始まりだからPagesが除外する」は**誤り**。gitignoreされているファイル
+    (`.claude/settings.local.json` 等)がリポジトリに無いので404になるだけ
 - 例外: GitHub Actions `build-tournaments.yml` による日次の自動commit・pushは
   ユーザー合意済みの運用のため対象外
 
