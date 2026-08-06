@@ -2,9 +2,13 @@
 # セッション役割つき Claude Code 起動ショートカット
 #
 #   cc-design  … 設計担当セッション（.claude/agents/design.md）
-#   cc-dev     … 開発(実装)担当セッション（.claude/agents/dev.md）
-#   cc-review  … レビュー担当セッション（.claude/agents/review.md）
+#   cc-sprint  … スプリント進行役（.claude/agents/sprint.md）
+#                dev/review をサブエージェントとして交互に呼び、1ターミナルで回す
+#   cc-dev     … 開発(実装)担当を単独で起動（.claude/agents/dev.md）
+#   cc-review  … レビュー担当を単独で起動（.claude/agents/review.md）
 #
+# 通常は cc-design（設計）と cc-sprint（実装〜レビュー）の2つだけ使う。
+# cc-dev / cc-review は工程を1つだけ手動で回したいときの直接起動用。
 # サイクルは 設計 → 開発 → レビュー。ラベルは 実装待ち → レビュー待ち → 設計確認待ち と回る。
 #
 # 追加の引数はそのまま claude に渡る:  cc-design -c  /  cc-dev --effort high
@@ -22,3 +26,4 @@ _GA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cc-design() { (cd "$_GA_ROOT" && claude --agent design -n 設計 "$@"); }
 cc-dev() { (cd "$_GA_ROOT" && claude --agent dev -n 開発 "$@"); }
 cc-review() { (cd "$_GA_ROOT" && claude --agent review -n レビュー "$@"); }
+cc-sprint() { (cd "$_GA_ROOT" && claude --agent sprint -n スプリント "$@"); }
