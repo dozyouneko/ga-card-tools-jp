@@ -73,6 +73,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/tournaments/50218/</loc>
+    <lastmod>2026-07-26</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/tournaments/50229/</loc>
     <lastmod>2026-04-26</lastmod>
     <changefreq>yearly</changefreq>
@@ -2714,7 +2720,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/sp4/</loc>
-    <lastmod>2026-04-02</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -2762,7 +2768,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/p26/</loc>
-    <lastmod>2026-07-16</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -2810,7 +2816,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/dtr/</loc>
-    <lastmod>2026-07-16</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -2864,7 +2870,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/p25/</loc>
-    <lastmod>2026-07-16</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -2900,7 +2906,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/sp2/</loc>
-    <lastmod>2025-03-07</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -2936,7 +2942,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/alc/</loc>
-    <lastmod>2026-04-09</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -3045,6 +3051,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/demo22/</loc>
     <lastmod>2025-03-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/sets/prdevp/</loc>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -7112,7 +7124,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/fiery-interference/</loc>
-    <lastmod>2025-07-24</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -12746,7 +12758,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/rococo-explosive-maven/</loc>
-    <lastmod>2025-01-19</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -15284,7 +15296,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/transcendental-rite/</loc>
-    <lastmod>2026-07-16</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

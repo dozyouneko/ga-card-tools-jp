@@ -1,8 +1,8 @@
 {
-  "updatedAt": "2026-08-05T19:22:08.240Z",
+  "updatedAt": "2026-08-06T23:54:06.753Z",
   "scan": {
     "minId": 46500,
-    "maxId": 59736
+    "maxId": 59853
   },
   "events": [
     {
@@ -88,6 +88,18 @@
       "host": "LMCafeNeverending",
       "playerCount": 8,
       "deckCount": 8
+    },
+    {
+      "id": 50218,
+      "name": "Radiant Origins Store Championship @ Evergreen Games Shoppe",
+      "category": "store-championships",
+      "format": "standard",
+      "startAt": "2026-07-26T16:00:00.000Z",
+      "season": "RDO",
+      "country": "US",
+      "host": "Evergreen Games Shoppe",
+      "playerCount": 17,
+      "deckCount": 17
     },
     {
       "id": 57554,
