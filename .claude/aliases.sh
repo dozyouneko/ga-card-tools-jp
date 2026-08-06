@@ -3,6 +3,9 @@
 #
 #   cc-design  … 設計担当セッション（.claude/agents/design.md）
 #   cc-dev     … 開発(実装)担当セッション（.claude/agents/dev.md）
+#   cc-review  … レビュー担当セッション（.claude/agents/review.md）
+#
+# サイクルは 設計 → 開発 → レビュー。ラベルは 実装待ち → レビュー待ち → 設計確認待ち と回る。
 #
 # 追加の引数はそのまま claude に渡る:  cc-design -c  /  cc-dev --effort high
 #
@@ -18,3 +21,4 @@ _GA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # どちらもリポジトリルートで起動する（CLAUDE.md と .claude/agents/ の探索を確実にするため）
 cc-design() { (cd "$_GA_ROOT" && claude --agent design -n 設計 "$@"); }
 cc-dev() { (cd "$_GA_ROOT" && claude --agent dev -n 開発 "$@"); }
+cc-review() { (cd "$_GA_ROOT" && claude --agent review -n レビュー "$@"); }
