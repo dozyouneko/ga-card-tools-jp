@@ -1072,6 +1072,11 @@ const searchCtl = GA_CARD_SEARCH.create({
     el.resultCount.textContent = "検索中…";
     el.resultMore.disabled = true;
   },
+  // 数値ソートは絞り込み結果を全件取ってからローカルで並べる(#44)。絞り込みなしだと
+  // 45リクエスト＝約18秒かかるため、無言で待たせず取得済みページ数を出す
+  onProgress: ({ done, total }) => {
+    el.resultCount.textContent = `読み込み中 ${done}/${total} ページ…`;
+  },
   onResults: (cards, info) => {
     cards.forEach((card) => { cardCache.set(card.slug, Promise.resolve(card)); });
     appendResults(cards, info);
@@ -1133,6 +1138,8 @@ function searchStatusText(info) {
   suffix += GA_CARD_SEARCH.jpSortNote?.(info) || "";
   // 取得後に落ちた件数の注記(#45)。フリップ面を畳んだあとは「出たら異常」の信号
   suffix += GA_CARD_SEARCH.jpDropNote?.(info) || "";
+  // 数値ソートの全件取得がAPIの申告件数と食い違ったときの注記(#44)。これも「出たら異常」の信号
+  suffix += GA_CARD_SEARCH.fetchGapNote?.(info) || "";
   if (info.approxTotal) {
     // JPモードは索引で取得前に絞るためANDでも件数を出せる。概算になるのは索引が使えないときだけ(#27)
     suffix += info.jpMode
