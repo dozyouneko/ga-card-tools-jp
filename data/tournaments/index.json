@@ -1,10 +1,22 @@
 {
-  "updatedAt": "2026-08-07T18:46:35.205Z",
+  "updatedAt": "2026-08-08T18:28:44.903Z",
   "scan": {
     "minId": 46500,
-    "maxId": 59924
+    "maxId": 60047
   },
   "events": [
+    {
+      "id": 58918,
+      "name": "Store Championship - Taberna Octopus",
+      "category": "store-championships",
+      "format": "standard",
+      "startAt": "2026-08-08T14:00:00.000Z",
+      "season": "RDO",
+      "country": "PT",
+      "host": "TABERNA OCTOPUS BOARD GAMES",
+      "playerCount": 7,
+      "deckCount": 7
+    },
     {
       "id": 58842,
       "name": "Radiant Origins Store Championships at Old School Gaming",

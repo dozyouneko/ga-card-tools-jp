@@ -6,19 +6,19 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https://api.gatcg.com; script-src 'self' https://static.cloudflareinsights.com; connect-src 'self' https://api.gatcg.com https://cloudflareinsights.com; style-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>大会デッキ検索 - Grand Archive 日本語カードDB</title>
-<meta name="description" content="Grand Archive の主要大会(Store Championship・Regionals・Nationals・Ascent)448件の提出デッキを日本語訳付きで検索・閲覧できます。">
+<meta name="description" content="Grand Archive の主要大会(Store Championship・Regionals・Nationals・Ascent)449件の提出デッキを日本語訳付きで検索・閲覧できます。">
 <link rel="canonical" href="https://ga-card-tools-jp.pages.dev/tournaments/">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Grand Archive 日本語カードDB">
 <meta property="og:title" content="大会デッキ検索 - Grand Archive 日本語カードDB">
-<meta property="og:description" content="Grand Archive の主要大会(Store Championship・Regionals・Nationals・Ascent)448件の提出デッキを日本語訳付きで検索・閲覧できます。">
+<meta property="og:description" content="Grand Archive の主要大会(Store Championship・Regionals・Nationals・Ascent)449件の提出デッキを日本語訳付きで検索・閲覧できます。">
 <meta property="og:url" content="https://ga-card-tools-jp.pages.dev/tournaments/">
 <meta property="og:image" content="https://ga-card-tools-jp.pages.dev/ogp.png">
 <meta property="og:locale" content="ja_JP">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="大会デッキ検索 - Grand Archive 日本語カードDB">
-<meta name="twitter:description" content="Grand Archive の主要大会(Store Championship・Regionals・Nationals・Ascent)448件の提出デッキを日本語訳付きで検索・閲覧できます。">
+<meta name="twitter:description" content="Grand Archive の主要大会(Store Championship・Regionals・Nationals・Ascent)449件の提出デッキを日本語訳付きで検索・閲覧できます。">
 <meta name="twitter:image" content="https://ga-card-tools-jp.pages.dev/ogp.png">
 <link rel="stylesheet" href="/tournaments/tournaments.css">
 <!-- Cloudflare Web Analytics -->
@@ -41,7 +41,7 @@
     <summary>絞り込み<span class="filter-count" id="f-count" hidden></span></summary>
     <div class="filter-row">
       <select id="f-cat" aria-label="カテゴリで絞り込み"><option value="">カテゴリ（全て）</option><option value="store-championships">Store Championship</option><option value="regionals">Regionals</option><option value="nationals">Nationals</option><option value="ascent">Ascent</option></select>
-      <select id="f-country" aria-label="開催国で絞り込み"><option value="">開催国（全て）</option><option value="AE">UAE</option><option value="AU">オーストラリア</option><option value="BE">ベルギー</option><option value="BN">ブルネイ</option><option value="CA">カナダ</option><option value="CL">チリ</option><option value="CZ">チェコ</option><option value="DE">ドイツ</option><option value="DK">デンマーク</option><option value="ES">スペイン</option><option value="GB">イギリス</option><option value="GR">GR</option><option value="HK">香港</option><option value="HR">クロアチア</option><option value="HU">ハンガリー</option><option value="ID">インドネシア</option><option value="IT">イタリア</option><option value="JP">日本</option><option value="KR">韓国</option><option value="KW">クウェート</option><option value="LB">レバノン</option><option value="LV">LV</option><option value="MY">マレーシア</option><option value="NL">オランダ</option><option value="NO">ノルウェー</option><option value="NZ">ニュージーランド</option><option value="PH">フィリピン</option><option value="PL">ポーランド</option><option value="PR">プエルトリコ</option><option value="SG">シンガポール</option><option value="SI">スロベニア</option><option value="TH">TH</option><option value="TW">台湾</option><option value="US">アメリカ</option></select>
+      <select id="f-country" aria-label="開催国で絞り込み"><option value="">開催国（全て）</option><option value="AE">UAE</option><option value="AU">オーストラリア</option><option value="BE">ベルギー</option><option value="BN">ブルネイ</option><option value="CA">カナダ</option><option value="CL">チリ</option><option value="CZ">チェコ</option><option value="DE">ドイツ</option><option value="DK">デンマーク</option><option value="ES">スペイン</option><option value="GB">イギリス</option><option value="GR">GR</option><option value="HK">香港</option><option value="HR">クロアチア</option><option value="HU">ハンガリー</option><option value="ID">インドネシア</option><option value="IT">イタリア</option><option value="JP">日本</option><option value="KR">韓国</option><option value="KW">クウェート</option><option value="LB">レバノン</option><option value="LV">LV</option><option value="MY">マレーシア</option><option value="NL">オランダ</option><option value="NO">ノルウェー</option><option value="NZ">ニュージーランド</option><option value="PH">フィリピン</option><option value="PL">ポーランド</option><option value="PR">プエルトリコ</option><option value="PT">PT</option><option value="SG">シンガポール</option><option value="SI">スロベニア</option><option value="TH">TH</option><option value="TW">台湾</option><option value="US">アメリカ</option></select>
       <select id="f-format" aria-label="フォーマットで絞り込み"><option value="">フォーマット（全て）</option><option value="standard">スタンダード</option></select>
       <select id="f-season" aria-label="シーズンで絞り込み"><option value="">シーズン（全て）</option><option value="RDO">Radiant Origins（RDO）</option></select>
       <input type="search" id="f-text" placeholder="大会名・主催・プレイヤー名・大会IDで検索…" aria-label="大会名・主催・プレイヤー名・大会IDで検索">
@@ -58,7 +58,7 @@
   <!-- 件数は絞り込み枠の外・表の直上に置く(枠を畳むスマホでも見えるように)。
        初期値を書き出しておく: JS無効でも件数が読め、読み込み直後のちらつきも避けられる
        (JS有効時は apply() が同じ文字列で上書きするため挙動は変わらない) -->
-  <p class="filter-hits" id="f-hits" role="status">全 448 件</p>
+  <p class="filter-hits" id="f-hits" role="status">全 449 件</p>
 
   <!-- スマホは thead を隠すため見出しクリックが使えない。件数の近く(絞り込み枠の外)に並べ替えselectを置く(#16) -->
   <div class="sort-mobile">
@@ -83,6 +83,17 @@
       <th data-sort="players"><button type="button" class="th-sort">参加</button></th>
     </tr></thead>
     <tbody>
+<tr class="tr-link" data-href="/tournaments/58918/" data-cat="store-championships" data-country="PT" data-format="standard" data-season="RDO" data-date="2026-08-08" data-search="58918 Store Championship - Taberna Octopus TABERNA OCTOPUS BOARD GAMES PT PT スタンダード Store Championship Kimor Verix Allkerus Laglace Ikari DracoStriker Silpher Guo Jia（グオ・ジア） Lorraine（ロレイン） Tonoris（トノリス） Diao Chan（ダオ・チャン） Tristan（トリスタン）" data-name="Store Championship - Taberna Octopus" data-country-sort="PT" data-format-sort="スタンダード" data-cat-sort="0" data-players="7">
+        <td class="date">2026-08-08</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/58918/">Store Championship - Taberna Octopus</a></div>
+          <div class="ev-host">TABERNA OCTOPUS BOARD GAMES</div>
+        </td>
+        <td class="country">PT</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">7名</td>
+      </tr>
 <tr class="tr-link" data-href="/tournaments/58842/" data-cat="store-championships" data-country="US" data-format="standard" data-season="RDO" data-date="2026-08-01" data-search="58842 Radiant Origins Store Championships at Old School Gaming Old School Gaming US アメリカ スタンダード Store Championship Denemory Waterman09 BigHungry Judgement Diana（ダイアナ） Rai（ライ） Diao Chan（ダオ・チャン）" data-name="Radiant Origins Store Championships at Old School Gaming" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="4">
         <td class="date">2026-08-01</td>
         <td>
