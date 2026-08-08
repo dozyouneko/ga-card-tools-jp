@@ -306,8 +306,13 @@ gh issue list --label 設計確認待ち   # ユーザー(設計)の番。ここ
   (実例: SP4 が 2026-07-02 にAPI追加され、**32枚が約1か月間ずっと絞り込めなかった**)
   - 追記の形: `{ label: "…（PREFIX）", prefixes: ["PREFIX"] },` を**発売日の新しい順**の位置へ。
     ⚠️ `release_date` が `1970-01-01`(API未設定)のセットは並べ替えに使えないので `created_at` で判断する
-  - 追記後は **`npm run build:cards` を実行して生成物もコミットする**(ラベルが約35ファイルに出る)。
+  - 追記後は **`npm run build:cards -- --refresh` を実行して生成物もコミットする**(ラベルが約35ファイルに出る)。
     忘れると翌朝のcronが同じ差分を無関係な自動コミットとしてpushする
+    - ⚠️ **`--refresh` を省くと古いスナップショットで生成され、cronの成果を巻き戻す**(#52)。
+      実例(#51): 7/27取得のキャッシュのまま引数なしで回したところ、**33件のはずが61件**＋無関係な8セットページに
+      差分が出て、`sets/prdevp/index.html` は**再生成すらされなかった**(stderrは `セット56ページ`)。
+      **エラーは一切出ない**ので、差分の件数を数える以外に気づく手段がない
+      → だから**設計書に「期待されるファイル数」を書く**(#51はそれで検出できた)
   - ✅ 検出経路は2つある(#40): **`npm run validate` が exit 1 で落ちる**(人を止める)/
     **`build:cards` が完走サマリに1行出す**(cronログに痕跡。⚠️ **exit 1 にはしない**——
     cronの後段に到達しないとその日の大会データの取り込みごと失われるため)
@@ -478,6 +483,15 @@ gh issue list --label 設計確認待ち   # ユーザー(設計)の番。ここ
   `launch({ args: ["--ignore-certificate-errors"] })` + context `ignoreHTTPSErrors: true` で回避
 - Playwrightの導入: Chromium本体は `~/.cache/ms-playwright` にキャッシュ済み(再構築でも残る)。
   JSパッケージは作業ディレクトリで `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm i playwright@1.61.1`
+- **デッキ構築ツールはDiscord OAuthログインが前提**のため、ヘッドレスでは検索パネルまで到達できない
+  (`#boot-status` が「読み込み中…」のまま)。⭐ **検証手順(#51で確立・以後これを標準とする)**:
+  `#view-editor` の `hidden` を外し、**空のデッキ状態を用意してから**ページ本来の `searchCtl` と
+  イベントハンドラをそのまま動かす(検索経路はトップと同一モジュール)
+  - ⚠️ **空のデッキ状態の用意を飛ばすと `deckData.cards` が null で落ちる**
+    (`検索に失敗しました(Cannot read properties of null (reading 'cards'))`)
+  - ⚠️ **この手順で担保できるのは「デッキの中身に依存しない描画」まで。**
+    適合判定バッジ・所持枚数などデッキ内容を読む表示は**未検証として報告する**
+    (合成した状態で「通った」と書くと、実ログイン時の不具合を見落とす)
 - 宣伝画像などの生成に使う `python3-pil`・`fonts-noto-cjk` はaptパッケージのため**コンテナ再構築で消える**
   (`sudo apt-get install -y python3-pil fonts-noto-cjk` で再導入)
 - **Cloudflare Pagesは `/foo.html` を `/foo` へ308リダイレクトする**(拡張子トリム)。
