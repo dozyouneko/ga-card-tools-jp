@@ -12,7 +12,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadCards, fetchJson } from "./lib/cards-snapshot.mjs";
+import { loadCards, fetchJson, lastFetchedIso, relativeAge } from "./lib/cards-snapshot.mjs";
 import { loadPageI18n } from "./lib/page-i18n.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -800,6 +800,9 @@ async function main() {
 
   const translated = cards.filter((c) => CI.isTranslated(c)).length;
   process.stderr.write(`\n生成完了: カード${cards.length}ページ(和訳あり${translated}) / セット${setsSorted.length}ページ / 索引 / トップの静的セットリンク${setsSorted.length}本 / sitemap.xml(${sitemap.count}URL)\n`);
+  // どの時点のデータで生成したかを1行残す(#52)。cronログにも手元にも痕跡が残る
+  const fetchedIso = lastFetchedIso();
+  if (fetchedIso) process.stderr.write(`データ取得時刻: ${fetchedIso}（${relativeAge(Date.now() - Date.parse(fetchedIso))}）\n`);
 
   // meta.sets(エキスパンション絞り込みの選択肢)未登録のセットを1行だけ報せる(#40)。
   // ⚠ exit 1 にはしない。cron の後段(コミット・push)に到達しないとその日の大会データの
