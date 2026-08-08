@@ -12,7 +12,8 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadCards, fetchJson, lastFetchedIso, relativeAge } from "./lib/cards-snapshot.mjs";
+import { loadCards, fetchJson, lastFetchedIso, relativeAge, maxAgeMinutes } from "./lib/cards-snapshot.mjs";
+import { writeJsonAtomic, readJsonSafe } from "./lib/api-cache.mjs";
 import { loadPageI18n } from "./lib/page-i18n.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -55,17 +56,53 @@ try {
 //   空になり、ロゴを持つセットページ35枚からロゴと og:image が消え、cards/index.html の
 //   グループ見出しが10個から「その他」1個に潰れる(実測36ファイル)。日次cronは tmp/ が
 //   無いため毎回この取得を行うので、一度の失敗がそのまま劣化ページの自動publishになる。
-async function loadFeaturedSets() {
-  if (!REFRESH && existsSync(FEATURED)) {
-    return JSON.parse(readFileSync(FEATURED, "utf8"));
+//
+// ⚠ tmpキャッシュ(FEATURED)は「存在するかどうか」しか見ていなかったため、ローカルでは
+//   実行内キャッシュが**寿命無限の長期キャッシュに化けていた**(#53。#52 と同じ形)。
+//   → 取得時刻を持たせ、GA_SNAPSHOT_MAX_AGE_MIN(既定60分・0=無期限)で期限切れなら取り直す。
+//   tmpキャッシュだけ { fetched_at, data } に包む。⚠ コミットする data/featured-sets.json は
+//   **素の配列のまま**(包むと cron が全量差分の自動コミットを作る・#53 D4)。
+//   旧形式(素の配列)のtmpキャッシュは「取り直す」ことで自動的に新形式へ移行する。
+//
+/**
+ * 期限内の tmp キャッシュがあればその中身(groups)を返す。取り直すべきときは null。
+ * ⚠ 例外を投げない(壊れていても取得に進むだけ・#54)。
+ * @returns {any[]|null}
+ */
+function cachedFeaturedSets() {
+  if (REFRESH) return null;
+  const cached = readJsonSafe(FEATURED); // 無い・壊れている → null(何も出さずに取得へ)
+  if (cached === null) return null;
+  const t = Date.parse(cached?.fetched_at); // 旧形式(素の配列)なら undefined → NaN
+  if (!Array.isArray(cached?.data) || !cached.data.length || !Number.isFinite(t)) {
+    // 旧形式(素の配列)・中身が空・取得時刻が無い/壊れている → 取り直して新形式で保存し直す
+    process.stderr.write("featured-sets キャッシュが旧形式のため取り直します\n");
+    return null;
   }
+  const maxMin = maxAgeMinutes();
+  const age = relativeAge(Date.now() - t);
+  if (maxMin === 0) {
+    process.stderr.write(`featured-sets キャッシュ使用: ${cached.data.length}件 (取得: ${cached.fetched_at} / ${age} / 有効期限なし)\n`);
+    return cached.data;
+  }
+  if (Date.now() - t > maxMin * 60000) {
+    process.stderr.write(`featured-sets キャッシュが古いため取り直します (${age} / 有効期限${maxMin}分)\n`);
+    return null;
+  }
+  process.stderr.write(`featured-sets キャッシュ使用: ${cached.data.length}件 (取得: ${cached.fetched_at} / ${age})\n`);
+  return cached.data;
+}
+
+async function loadFeaturedSets() {
+  const cached = cachedFeaturedSets();
+  if (cached) return cached;
   try {
     const groups = await fetchJson(`${API}/featured-sets`);
     // HTTP 200 の空応答も失敗として扱う。これを通すと [] のまま生成が進んで劣化publishになり、
     // さらにフォールバック自体が [] で上書きされて壊れる(catchを通らない同じ穴)。
     if (!Array.isArray(groups) || !groups.length) throw new Error(`空応答(${JSON.stringify(groups).slice(0, 40)})`);
-    mkdirSync(path.dirname(FEATURED), { recursive: true });
-    writeFileSync(FEATURED, JSON.stringify(groups));
+    writeJsonAtomic(FEATURED, { fetched_at: new Date().toISOString(), data: groups });
+    // ⚠ コミット対象。素の配列・インデント付き・末尾改行のまま(形を変えると cron が全量差分を作る)
     writeFileSync(FEATURED_FALLBACK, JSON.stringify(groups, null, 2) + "\n");
     process.stderr.write(`エキスパンショングループ取得: ${groups.length}件(公式ロゴ付き)\n`);
     return groups;

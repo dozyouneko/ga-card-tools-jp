@@ -6,8 +6,11 @@
 //   ローカルでは tmp/ が日をまたいで残るため寿命が無限に化ける(#51 の静かな劣化)。
 //   → 有効期限(既定60分)を持たせ、期限切れなら自動で取り直す(#52)。
 //   CIの3ステップは実測75秒で完走するので、60分でも相乗りは維持される。
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+// ⚠ 読み書きは scripts/lib/api-cache.mjs 経由(#54)。書き込みは原子的・読み込みは
+//   壊れていても例外を投げない(壊れたJSONが残ると4スクリプトすべてが起動不能になるため)。
+import { existsSync } from "node:fs";
 import path from "node:path";
+import { writeJsonAtomic, readJsonSafe } from "./api-cache.mjs";
 
 const API = "https://api.gatcg.com";
 const CONCURRENCY = 4;
@@ -84,9 +87,9 @@ async function refresh(root) {
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
   cards.sort((a, b) => a.slug.localeCompare(b.slug));
   const file = snapshotPath(root);
-  mkdirSync(path.dirname(file), { recursive: true });
   const fetchedAt = new Date().toISOString();
-  writeFileSync(file, JSON.stringify({ fetched_at: fetchedAt, total: cards.length, cards }));
+  // ⚠ オンディスクの形は変えない({fetched_at, total, cards})。書き方だけ原子的にする(#54 D2)
+  writeJsonAtomic(file, { fetched_at: fetchedAt, total: cards.length, cards });
   lastFetchedAt = fetchedAt;
   process.stderr.write(`スナップショット保存: ${cards.length}枚 → ${path.relative(root, file)}\n`);
   return cards;
@@ -104,7 +107,14 @@ async function refresh(root) {
 export async function loadCards(root, opts = {}) {
   const file = snapshotPath(root);
   if (opts.force || !existsSync(file)) return refresh(root);
-  const snap = JSON.parse(readFileSync(file, "utf8"));
+  // ⚠ 壊れたJSON(書き込み中断の残骸など)で例外を投げない(#54)。ここで落ちると
+  //   loadCards() を使う4スクリプトすべてが SyntaxError で起動不能になる。
+  //   cards が配列でない場合も同じ扱い(そのまま進むと snap.cards.length で落ちるため)。
+  const snap = readJsonSafe(file);
+  if (!snap || !Array.isArray(snap.cards)) {
+    process.stderr.write("スナップショットを読めないため取り直します\n");
+    return refresh(root);
+  }
 
   const maxMin = maxAgeMinutes();
   const t = Date.parse(snap.fetched_at);
