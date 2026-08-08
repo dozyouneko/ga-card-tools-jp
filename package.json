@@ -6,6 +6,7 @@
   "description": "Grand Archive TCG 日本語カードDB（非公式）— 静的サイト＋翻訳ツールチェーン",
   "scripts": {
     "dev": "node scripts/serve.mjs",
+    "setup:env": "bash .devcontainer/setup.sh",
     "scaffold": "node scripts/scaffold.mjs",
     "validate": "node scripts/validate.mjs",
     "build:cards": "node scripts/build-card-pages.mjs",
