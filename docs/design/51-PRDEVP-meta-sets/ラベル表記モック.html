@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#51 PRDEVP ラベル表記モック</title>
+<style>
+/* ============================================================
+   #51 PRDEVP ラベル表記モック
+   ------------------------------------------------------------
+   配色は本番サイト(index.html style.css / cards/cards.css)の
+   トークンをそのまま使う。本サイトはダークのみで light テーマを
+   持たないため、このモックも意図してダーク単一に固定している。
+   ⚠ 明るい地に暗い見本を置くと同時対比で見本のコントラスト知覚が
+     ずれ、「読めるか」の判断そのものが歪むため。
+   書体の使い分け(この文書の構造):
+     明朝  … 筆者(設計担当)の声。見出しと解説
+     sans  … 製品の声。サイトが実際に描画する部分
+     等幅  … 検討対象の文字列そのもの
+   ============================================================ */
+:root {
+  /* 文書の地。本番の #0f1115 よりわずかに沈めて、見本を「はめ込み」に見せる */
+  --ground:#090b0f;
+  --ground-2:#11141a;
+  --rule:#232833;
+
+  /* 本番サイトのトークン(そのまま) */
+  --site-bg:#0f1115;
+  --site-panel:#171a21;
+  --site-panel-2:#1f232c;
+  --site-border:#2a2f3a;
+  --site-line:#262b36;
+  --site-text:#e7e9ee;
+  --site-muted:#9aa2b1;
+  --site-accent:#d9a441;
+  --site-link:#6ea8fe;
+
+  --ink:#e7e9ee;
+  --ink-2:#aeb6c4;
+  --ink-3:#7d8695;
+
+  /* 決定に関わる色は accent(金)。状態色は別系統に分ける */
+  --gold:#d9a441;
+  --now:#e08c8c;      /* 現状 = 直したい状態 */
+  --after:#7fcf9f;    /* 変更後 = 提案 */
+
+  --serif: "Hiragino Mincho ProN","Yu Mincho",YuMincho,"Noto Serif JP",Georgia,"Times New Roman",serif;
+  --sans: system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+* { box-sizing:border-box; }
+html { -webkit-text-size-adjust:100%; }
+body {
+  margin:0; background:var(--ground); color:var(--ink);
+  font:16px/1.85 var(--serif);
+}
+:focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
+@media (prefers-reduced-motion:reduce) { * { animation:none !important; transition:none !important; } }
+
+/* ---------- 読み物としての骨格 ---------- */
+.doc { max-width:1180px; margin:0 auto; padding:0 20px 96px; }
+.col { max-width:64ch; }              /* 解説文は 64ch で止める */
+.col p { margin:.7em 0; color:var(--ink-2); }
+.col p strong, .col p b { color:var(--ink); font-weight:600; }
+
+header.head { padding:52px 0 8px; }
+.kicker {
+  font:600 .72rem/1 var(--sans); letter-spacing:.16em; text-transform:uppercase;
+  color:var(--gold); margin:0 0 14px;
+}
+h1 { font:400 2.1rem/1.35 var(--serif); margin:0 0 10px; text-wrap:balance; letter-spacing:.01em; }
+.sub { color:var(--ink-3); font:.86rem/1.7 var(--sans); margin:0; }
+
+h2 {
+  font:400 1.35rem/1.4 var(--serif); margin:0 0 4px; text-wrap:balance;
+}
+.sec { margin:64px 0 0; padding-top:22px; border-top:1px solid var(--rule); }
+.sec > .col > .h2note { color:var(--ink-3); font:.82rem/1.7 var(--sans); margin:2px 0 0; }
+h3 {
+  font:600 .74rem/1 var(--sans); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-3); margin:34px 0 10px;
+}
+code { font:.85em/1 var(--mono); background:var(--ground-2); border:1px solid var(--rule);
+       border-radius:4px; padding:2px 5px; color:var(--ink); }
+
+/* ---------- 注記 ---------- */
+.callout {
+  border-left:2px solid var(--rule); padding:2px 0 2px 18px; margin:22px 0;
+  font:.92rem/1.8 var(--sans); color:var(--ink-2);
+}
+.callout b { color:var(--ink); }
+.callout.key { border-left-color:var(--gold); }
+.callout.ok  { border-left-color:var(--after); }
+.callout.hm  { border-left-color:var(--now); }
+
+/* ---------- 幅の物差し(この文書の主張の核) ---------- */
+.ruler { margin:26px 0 8px; font-family:var(--sans); }
+.ruler-row { display:grid; grid-template-columns:112px 1fr 4.5ch; gap:14px; align-items:center;
+             padding:9px 0; border-bottom:1px solid var(--rule); }
+.ruler-row:last-child { border-bottom:0; }
+.ruler-name { font-size:.76rem; color:var(--ink-3); letter-spacing:.06em; }
+.ruler-bar { height:26px; border-radius:3px; display:flex; align-items:center; padding:0 8px;
+             font:.78rem/1 var(--mono); color:#0b0d12; white-space:nowrap; overflow:hidden; }
+.ruler-num { font:600 .8rem/1 var(--sans); font-variant-numeric:tabular-nums; text-align:right;
+             color:var(--ink-3); }
+.bar-max { background:var(--ink-3); }
+.bar-new { background:var(--gold); }
+.bar-alt { background:#5a6272; }
+
+/* ---------- 2枚並べ ---------- */
+.cmp { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:14px 0 0; align-items:start; }
+@media (max-width:860px) { .cmp { grid-template-columns:1fr; } }
+.pane { background:var(--site-bg); border:1px solid var(--rule); border-radius:6px; overflow:hidden; }
+.pane > .tag {
+  display:flex; align-items:center; gap:8px;
+  font:600 .72rem/1 var(--sans); letter-spacing:.1em; text-transform:uppercase;
+  padding:9px 14px; border-bottom:1px solid var(--rule);
+}
+.tag::before { content:""; width:7px; height:7px; border-radius:50%; flex:none; }
+.tag-now { color:var(--now); } .tag-now::before { background:var(--now); }
+.tag-new { color:var(--after); } .tag-new::before { background:var(--after); }
+.pane .body { padding:16px 14px; font-family:var(--sans); }
+.pane .why { font:.8rem/1.7 var(--sans); color:var(--ink-3); margin:12px 0 0; }
+.pane .why b { color:var(--ink-2); }
+
+/* 375px 実寸枠 */
+.phone { width:375px; max-width:100%; background:var(--site-bg);
+         border:1px solid var(--site-border); border-radius:10px; padding:12px; overflow:hidden; }
+.phone .cap { font:.68rem/1 var(--sans); letter-spacing:.1em; text-transform:uppercase;
+              color:var(--ink-3); padding:0 0 10px; }
+
+/* ============ ここから下は本番CSSの転記(見本の中身) ============ */
+.controls select {
+  background:var(--site-panel); color:var(--site-text); border:1px solid var(--site-border);
+  border-radius:8px; padding:10px 12px; font-size:.95rem; cursor:pointer;
+  font-family:var(--sans); max-width:100%;
+}
+.phone .controls select { font-size:16px; padding:11px 12px; width:100%; }
+
+/* 選択肢を静止画として見せるための疑似ドロップダウン */
+.optlist { list-style:none; margin:10px 0 0; padding:6px; background:var(--site-panel-2);
+           border:1px solid var(--site-border); border-radius:8px; font-size:.92rem;
+           color:var(--site-text); }
+.optlist li { padding:5px 8px; border-radius:4px; white-space:nowrap;
+              overflow:hidden; text-overflow:ellipsis; }
+.optlist li.hit { background:color-mix(in srgb, var(--site-accent) 22%, transparent); font-weight:600; }
+.optlist li.longest { box-shadow:inset 0 0 0 1px var(--ink-3); }
+.optlist li.absent { color:var(--now); }
+
+.cp-setlist { list-style:none; padding:0; margin:0; display:grid;
+              grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; }
+.cp-setlist li { display:flex; justify-content:space-between; gap:10px; background:var(--site-panel);
+                 border:1px solid var(--site-line); border-radius:10px; padding:10px 14px; }
+.phone .cp-setlist { grid-template-columns:1fr; }
+.cp-setlist a { color:var(--site-link); text-decoration:none; }
+.cp-count { color:var(--site-muted); font-size:.85rem; white-space:nowrap; }
+.cp-group-name-plain { color:var(--site-text); font:1.02rem/1.7 var(--sans);
+                       border-left:3px solid var(--site-accent); padding-left:10px; margin:0 0 10px; }
+
+.cp-scroll { overflow-x:auto; }
+.cp-table { width:100%; border-collapse:collapse; font-size:.9rem; color:var(--site-text); }
+.cp-table th, .cp-table td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--site-line);
+                             vertical-align:top; white-space:nowrap; }
+.cp-table thead th { color:var(--site-muted); font-size:.78rem; font-weight:600; }
+.cp-table a { color:var(--site-link); text-decoration:none; }
+.cp-table td:nth-child(n+2) { font-variant-numeric:tabular-nums; }
+.cp-h2 { color:var(--site-text); font:1.02rem/1.7 var(--sans);
+         border-left:3px solid var(--site-accent); padding-left:10px; margin:0 0 8px; }
+
+.setlinks { margin:0; padding:0; list-style:none; display:flex; flex-wrap:wrap; gap:6px 14px;
+            font-size:.88rem; color:var(--site-text); }
+.setlinks a { color:var(--site-link); text-decoration:none; }
+.setlinks .hit { color:var(--site-accent); font-weight:700; }
+.setlinks .ell { color:var(--site-muted); }
+/* ============ 転記ここまで ============ */
+
+/* ---------- 表 ---------- */
+.tbl-wrap { overflow-x:auto; margin:18px 0; }
+table.t { width:100%; border-collapse:collapse; font:.88rem/1.7 var(--sans); min-width:520px; }
+table.t th, table.t td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--rule);
+                         vertical-align:top; }
+table.t thead th { font:600 .7rem/1 var(--sans); letter-spacing:.1em; text-transform:uppercase;
+                   color:var(--ink-3); }
+table.t td { color:var(--ink-2); }
+table.t td b, table.t td strong { color:var(--ink); }
+table.t .num { font-variant-numeric:tabular-nums; text-align:right; }
+.m { font-family:var(--mono); font-size:.92em; color:var(--ink); }
+
+.verdict { display:inline-flex; align-items:center; gap:6px; font:600 .74rem/1 var(--sans);
+           border-radius:999px; padding:5px 11px; }
+.v-yes { background:color-mix(in srgb, var(--after) 18%, transparent); color:var(--after); }
+.v-no  { background:color-mix(in srgb, var(--now) 18%, transparent); color:var(--now); }
+
+ul.pts { margin:12px 0 0; padding:0; list-style:none; font:.86rem/1.75 var(--sans); }
+ul.pts li { padding:3px 0 3px 22px; position:relative; color:var(--ink-2); }
+ul.pts li::before { position:absolute; left:0; top:3px; font-weight:700; }
+ul.pts li.y::before { content:"✓"; color:var(--after); }
+ul.pts li.n::before { content:"✕"; color:var(--now); }
+ul.pts li.c::before { content:"△"; color:var(--gold); }
+</style>
+</head>
+<body>
+<div class="doc">
+
+<header class="head">
+  <div class="col">
+    <p class="kicker">issue #51 ・ 設計モック</p>
+    <h1>PRDEVP のラベル表記を決める</h1>
+    <p class="sub">
+      <code>data/translations.js</code> の <code>meta.sets</code> に追記する1行の文字列を確定するためのモック。<br>
+      既存56ラベル・実際の生成HTML・本番CSSの実測値で作成 ／ 2026-08-08
+    </p>
+  </div>
+</header>
+
+<section class="sec" style="border-top:0">
+  <div class="col">
+    <h2>結論から — 幅は争点になりません</h2>
+    <p>
+      追記するラベルが長すぎてレイアウトを壊すのでは、という懸念が最初にありました。
+      既存56ラベルを機械的に測ったところ、<b>そうはならない</b>ことが確定しています。
+    </p>
+  </div>
+
+  <div class="ruler">
+    <div class="ruler-row">
+      <div class="ruler-name">既存の最長</div>
+      <div class="ruler-bar bar-max" style="width:100%">Phantom Monarchs: Looking Glass Sights（PTMLGS）</div>
+      <div class="ruler-num">46</div>
+    </div>
+    <div class="ruler-row">
+      <div class="ruler-name">候補A（推奨）</div>
+      <div class="ruler-bar bar-new" style="width:80.4%">.asphodel/paradise Event Pack（PRDEVP）</div>
+      <div class="ruler-num">37</div>
+    </div>
+    <div class="ruler-row">
+      <div class="ruler-name">候補C</div>
+      <div class="ruler-bar bar-alt" style="width:78.2%">Asphodel/Paradise Event Pack（PRDEVP）</div>
+      <div class="ruler-num">36</div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="callout key">
+      <code>&lt;select&gt;</code> の幅も一覧カードの折り返しも<b>最長ラベルで決まっています</b>。
+      候補Aは既存最長より<b>9文字短い</b>ため、<b>どの画面もレイアウトは1pxも変わりません</b>。
+      <br>→ 判断すべきは幅ではなく、<b>先頭ドット＋全小文字という意匠が日本語サイト上で読めるか</b>だけです。
+    </div>
+    <p>
+      以下、実際に文字列が出る<b>3つの面</b>を、現状と変更後で並べます。
+      枠の中は本番CSSをそのまま転記しており、色・字送り・余白は実物と同じです。
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="sec">
+  <div class="col">
+    <h2>候補</h2>
+    <p class="h2note">日本語ラベル案は検討から外しました（理由は下表の脚注）。</p>
+  </div>
+  <div class="tbl-wrap">
+    <table class="t">
+      <thead><tr><th>案</th><th>ラベル</th><th class="num">文字数</th><th>既存56件との整合</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>A</b> <span class="verdict v-yes">推奨</span></td>
+          <td class="m">.asphodel/paradise Event Pack（PRDEVP）</td>
+          <td class="num">37</td>
+          <td><b>完全に一致。</b>公式セット名をそのまま採用</td>
+        </tr>
+        <tr>
+          <td><b>C</b></td>
+          <td class="m">Asphodel/Paradise Event Pack（PRDEVP）</td>
+          <td class="num">36</td>
+          <td>読みやすいが<b>公式表記と異なる</b>（先頭ドットを削り大文字化）</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="col">
+    <div class="callout">
+      <b>日本語ラベルを候補にしなかった理由。</b>
+      既存56ラベルを検査したところ<b>日本語を含むものは0件</b>で、
+      「英語セット名＋（PREFIX）」が例外なしの規則になっています。
+      ここだけ日本語にすると <code>&lt;select&gt;</code> の並びで浮きます。
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="sec">
+  <div class="col">
+    <h2>面1 — エキスパンション絞り込み</h2>
+    <p class="h2note">トップ <code>#f-set</code> ／ デッキ構築ツール <code>#s-set</code>（同じ <code>fillSetSelect()</code> が両方を組み立てる）</p>
+    <p>
+      いちばん影響が大きい面です。<b>現状は選択肢そのものが存在せず、33枚を絞り込む手段がありません。</b>
+    </p>
+  </div>
+
+  <h3>PC幅</h3>
+  <div class="cmp">
+    <div class="pane">
+      <span class="tag tag-now">現状 — 選択肢が無い</span>
+      <div class="body">
+        <div class="controls">
+          <select aria-label="エキスパンション(現状)">
+            <option>エキスパンション（全て）</option>
+            <option>Supporter Pack 4（SP4）</option>
+            <option>Radiant Origins（RDO）</option>
+            <option>Phantom Monarchs: Looking Glass Sights（PTMLGS）</option>
+          </select>
+        </div>
+        <ul class="optlist">
+          <li>エキスパンション（全て）</li>
+          <li class="absent">✕ PRDEVP — 選択肢に無い（33枚が絞り込めない）</li>
+          <li>Supporter Pack 4（SP4）</li>
+          <li>Radiant Origins（RDO）</li>
+          <li>Radiant Origins 1st Ed.（RDO 1st）</li>
+          <li class="longest">Phantom Monarchs: Looking Glass Sights（PTMLGS）</li>
+        </ul>
+        <p class="why">枠線付きの行が<b>既存最長（46字）</b>。セレクトの幅はこの行で決まっている。</p>
+      </div>
+    </div>
+    <div class="pane">
+      <span class="tag tag-new">変更後（候補A）— 先頭に追加</span>
+      <div class="body">
+        <div class="controls">
+          <select aria-label="エキスパンション(変更後)">
+            <option>エキスパンション（全て）</option>
+            <option>.asphodel/paradise Event Pack（PRDEVP）</option>
+            <option>Supporter Pack 4（SP4）</option>
+            <option>Radiant Origins（RDO）</option>
+            <option>Phantom Monarchs: Looking Glass Sights（PTMLGS）</option>
+          </select>
+        </div>
+        <ul class="optlist">
+          <li>エキスパンション（全て）</li>
+          <li class="hit">.asphodel/paradise Event Pack（PRDEVP）</li>
+          <li>Supporter Pack 4（SP4）</li>
+          <li>Radiant Origins（RDO）</li>
+          <li>Radiant Origins 1st Ed.（RDO 1st）</li>
+          <li class="longest">Phantom Monarchs: Looking Glass Sights（PTMLGS）</li>
+        </ul>
+        <p class="why">
+          <b>2つのセレクトは同じ幅</b>です（どちらもPTMLGSで決まるため）。
+          実際にクリックしてネイティブ描画も確認できます。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <h3>375px幅</h3>
+  <div class="col">
+    <p style="font:.86rem/1.75 var(--sans);color:var(--ink-3);margin:0 0 12px">
+      実機では <code>.controls.filters-open .filter-rest select { grid-column:1/-1 }</code> により
+      セレクトは<b>全幅</b>になります（style.css に「長い日本語ラベルの見切れ防止」と明記あり）。
+    </p>
+  </div>
+  <div class="cmp">
+    <div class="pane">
+      <span class="tag tag-now">現状</span>
+      <div class="body">
+        <div class="phone">
+          <div class="cap">375px</div>
+          <div class="controls"><select aria-label="エキスパンション(現状・375px)">
+            <option>エキスパンション（全て）</option>
+            <option>Supporter Pack 4（SP4）</option>
+          </select></div>
+          <ul class="optlist">
+            <li>エキスパンション（全て）</li>
+            <li class="absent">✕ PRDEVP — 無い</li>
+            <li>Supporter Pack 4（SP4）</li>
+            <li class="longest">Phantom Monarchs: Looking Glass Sights（PTMLGS）</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="pane">
+      <span class="tag tag-new">変更後（候補A）</span>
+      <div class="body">
+        <div class="phone">
+          <div class="cap">375px</div>
+          <div class="controls"><select aria-label="エキスパンション(変更後・375px)">
+            <option>エキスパンション（全て）</option>
+            <option>.asphodel/paradise Event Pack（PRDEVP）</option>
+            <option>Supporter Pack 4（SP4）</option>
+          </select></div>
+          <ul class="optlist">
+            <li>エキスパンション（全て）</li>
+            <li class="hit">.asphodel/paradise Event Pack（PRDEVP）</li>
+            <li>Supporter Pack 4（SP4）</li>
+            <li class="longest">Phantom Monarchs: Looking Glass Sights（PTMLGS）</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="callout hm">
+      <b>375pxで末尾が省略される件。</b>
+      疑似ドロップダウンでは候補AもPTMLGSも末尾が切れますが、これは
+      <b>既存のPTMLGSで既に起きている状態</b>で、今回の追加で悪化する箇所ではありません
+      （候補Aのほうが9文字短い）。
+      なお<b>ネイティブの <code>&lt;select&gt;</code> を開いたときはOS側が全文を表示します</b>。
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="sec">
+  <div class="col">
+    <h2>面2 — セット一覧とトップの静的リンク</h2>
+    <p class="h2note"><code>/cards/</code> のセット一覧 ／ トップページの57本のリンク</p>
+    <p>
+      表記だけでなく<b>並び順も変わります</b>。未登録だと <code>setOrder()</code> が 9999 を返すため
+      <b>最後尾</b>に落ちますが、登録すると <code>meta.sets</code> の先頭＝<b>1番目</b>に来ます。
+    </p>
+  </div>
+
+  <h3>PC幅 ／ <code>/cards/</code> のセット一覧</h3>
+  <div class="cmp">
+    <div class="pane">
+      <span class="tag tag-now">現状 — 「その他」の末尾</span>
+      <div class="body">
+        <div class="cp-group-name-plain">その他</div>
+        <ul class="cp-setlist">
+          <li><a href="#">Promotional 2022（P22）</a><span class="cp-count">31枚</span></li>
+          <li><a href="#">LGS Demo 2022（DEMO22）</a><span class="cp-count">7枚</span></li>
+          <li><a href="#">PRDEVP</a><span class="cp-count">33枚</span></li>
+        </ul>
+        <p class="why">何のセットか読み取れず、末尾に埋もれている。</p>
+      </div>
+    </div>
+    <div class="pane">
+      <span class="tag tag-new">変更後（候補A）</span>
+      <div class="body">
+        <div class="cp-group-name-plain">その他</div>
+        <ul class="cp-setlist">
+          <li><a href="#">Promotional 2022（P22）</a><span class="cp-count">31枚</span></li>
+          <li><a href="#">LGS Demo 2022（DEMO22）</a><span class="cp-count">7枚</span></li>
+          <li><a href="#">.asphodel/paradise Event Pack（PRDEVP）</a><span class="cp-count">33枚</span></li>
+        </ul>
+        <p class="why">
+          <code>minmax(280px,1fr)</code> のグリッド。カード内で折り返すが<b>はみ出しは無い</b>。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <h3>375px幅</h3>
+  <div class="cmp">
+    <div class="pane">
+      <span class="tag tag-now">現状</span>
+      <div class="body"><div class="phone"><div class="cap">375px</div>
+        <ul class="cp-setlist">
+          <li><a href="#">LGS Demo 2022（DEMO22）</a><span class="cp-count">7枚</span></li>
+          <li><a href="#">PRDEVP</a><span class="cp-count">33枚</span></li>
+        </ul>
+      </div></div>
+    </div>
+    <div class="pane">
+      <span class="tag tag-new">変更後（候補A）</span>
+      <div class="body"><div class="phone"><div class="cap">375px</div>
+        <ul class="cp-setlist">
+          <li><a href="#">LGS Demo 2022（DEMO22）</a><span class="cp-count">7枚</span></li>
+          <li><a href="#">.asphodel/paradise Event Pack（PRDEVP）</a><span class="cp-count">33枚</span></li>
+        </ul>
+        <p class="why">
+          2行に折り返し、<code>white-space:nowrap</code> の「33枚」は右端に保持される。
+        </p>
+      </div></div>
+    </div>
+  </div>
+
+  <h3>トップの静的セットリンク（57本）</h3>
+  <div class="cmp">
+    <div class="pane">
+      <span class="tag tag-now">現状 — 57本目（最後尾）</span>
+      <div class="body">
+        <ul class="setlinks">
+          <li><a href="#">Radiant Origins（RDO）</a></li>
+          <li class="ell">…</li>
+          <li><a href="#">Promotional 2022（P22）</a></li>
+          <li><a href="#">LGS Demo 2022（DEMO22）</a></li>
+          <li><a href="#" class="hit">PRDEVP</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="pane">
+      <span class="tag tag-new">変更後（候補A）— 1本目</span>
+      <div class="body">
+        <ul class="setlinks">
+          <li><a href="#" class="hit">.asphodel/paradise Event Pack（PRDEVP）</a></li>
+          <li><a href="#">Supporter Pack 4（SP4）</a></li>
+          <li><a href="#">Radiant Origins（RDO）</a></li>
+          <li class="ell">…</li>
+          <li><a href="#">LGS Demo 2022（DEMO22）</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="sec">
+  <div class="col">
+    <h2>面3 — カード個別ページ「収録セットと版」</h2>
+    <p class="h2note">33ページに出る。実物は <code>cards/atmos-armor-type-hermes/index.html</code></p>
+    <p>
+      以下は<b>生成済みHTMLからの転記</b>です。発売日が <code>—</code> なのは
+      <code>release_date</code> が <code>1970-01-01</code>（API未設定）のためで、これは仕様どおり・変更対象外です。
+    </p>
+  </div>
+
+  <h3>PC幅</h3>
+  <div class="cmp">
+    <div class="pane">
+      <span class="tag tag-now">現状</span>
+      <div class="body">
+        <div class="cp-h2">収録セットと版</div>
+        <div class="cp-scroll"><table class="cp-table">
+          <thead><tr><th>セット</th><th>発売日</th><th>番号</th><th>レア</th><th>イラスト</th></tr></thead>
+          <tbody>
+            <tr><td><a href="#">Mercurial Heart（MRC）</a></td><td>2024-05-17</td><td>#036</td><td>SR</td><td>Kumai</td></tr>
+            <tr><td><a href="#">Mercurial Heart 1st Ed.（MRC 1st）</a></td><td>2024-05-17</td><td>#036</td><td>CSR</td><td>Kumai</td></tr>
+            <tr><td><a href="#">PRDEVP</a></td><td>—</td><td>#002</td><td>SR</td><td>Kumai</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+    <div class="pane">
+      <span class="tag tag-new">変更後（候補A）</span>
+      <div class="body">
+        <div class="cp-h2">収録セットと版</div>
+        <div class="cp-scroll"><table class="cp-table">
+          <thead><tr><th>セット</th><th>発売日</th><th>番号</th><th>レア</th><th>イラスト</th></tr></thead>
+          <tbody>
+            <tr><td><a href="#">Mercurial Heart（MRC）</a></td><td>2024-05-17</td><td>#036</td><td>SR</td><td>Kumai</td></tr>
+            <tr><td><a href="#">Mercurial Heart 1st Ed.（MRC 1st）</a></td><td>2024-05-17</td><td>#036</td><td>CSR</td><td>Kumai</td></tr>
+            <tr><td><a href="#">.asphodel/paradise Event Pack（PRDEVP）</a></td><td>—</td><td>#002</td><td>SR</td><td>Kumai</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>
+
+  <h3>375px幅 ／ 最悪ケース（8版収録の Arcane Blast）</h3>
+  <div class="col">
+    <p style="font:.86rem/1.75 var(--sans);color:var(--ink-3);margin:0 0 12px">
+      33枚のうち最も版が多いカード。<code>.cp-scroll{overflow-x:auto}</code> により
+      <b>表だけが横スクロール</b>し、ページ本体は横スクロールしません。
+    </p>
+  </div>
+  <div class="cmp">
+    <div class="pane">
+      <span class="tag tag-now">現状</span>
+      <div class="body"><div class="phone"><div class="cap">375px ／ 表は横スクロール</div>
+        <div class="cp-scroll"><table class="cp-table">
+          <thead><tr><th>セット</th><th>発売日</th><th>番号</th><th>レア</th></tr></thead>
+          <tbody>
+            <tr><td><a href="#">Re:Collection Heaven's Favored（ReC-HVF）</a></td><td>2025-03-07</td><td>#027</td><td>R</td></tr>
+            <tr><td><a href="#">Abyssal Heaven（HVN）</a></td><td>2025-03-07</td><td>#184</td><td>C</td></tr>
+            <tr><td><a href="#">PRDEVP</a></td><td>—</td><td>#001</td><td>SR</td></tr>
+          </tbody>
+        </table></div>
+      </div></div>
+    </div>
+    <div class="pane">
+      <span class="tag tag-new">変更後（候補A）</span>
+      <div class="body"><div class="phone"><div class="cap">375px ／ 表は横スクロール</div>
+        <div class="cp-scroll"><table class="cp-table">
+          <thead><tr><th>セット</th><th>発売日</th><th>番号</th><th>レア</th></tr></thead>
+          <tbody>
+            <tr><td><a href="#">Re:Collection Heaven's Favored（ReC-HVF）</a></td><td>2025-03-07</td><td>#027</td><td>R</td></tr>
+            <tr><td><a href="#">Abyssal Heaven（HVN）</a></td><td>2025-03-07</td><td>#184</td><td>C</td></tr>
+            <tr><td><a href="#">.asphodel/paradise Event Pack（PRDEVP）</a></td><td>—</td><td>#001</td><td>SR</td></tr>
+          </tbody>
+        </table></div>
+        <p class="why">
+          候補Aは同じ表にある <b>Re:Collection Heaven's Favored（ReC-HVF）</b>（39字）より
+          2文字短いため、スクロール量は増えない。
+        </p>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="sec">
+  <div class="col">
+    <h2>候補A と 候補C の直接比較</h2>
+    <p class="h2note">幅が問題にならない以上、論点は可読性と忠実さのみ</p>
+  </div>
+  <div class="cmp">
+    <div class="pane">
+      <span class="tag tag-new">候補A — 公式表記どおり</span>
+      <div class="body">
+        <ul class="optlist"><li class="hit">.asphodel/paradise Event Pack（PRDEVP）</li></ul>
+        <ul class="cp-setlist" style="margin-top:10px">
+          <li><a href="#">.asphodel/paradise Event Pack（PRDEVP）</a><span class="cp-count">33枚</span></li>
+        </ul>
+        <table class="cp-table" style="margin-top:10px"><tbody>
+          <tr><td><a href="#">.asphodel/paradise Event Pack（PRDEVP）</a></td><td>—</td><td>#002</td></tr>
+        </tbody></table>
+        <ul class="pts">
+          <li class="y">公式セット名と完全一致（利用者が公式サイトと突き合わせられる）</li>
+          <li class="y">既存56件と同じ規則</li>
+          <li class="c">行頭のドットが句読点に見える可能性</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pane">
+      <span class="tag tag-new">候補C — 大文字化・ドット削除</span>
+      <div class="body">
+        <ul class="optlist"><li class="hit">Asphodel/Paradise Event Pack（PRDEVP）</li></ul>
+        <ul class="cp-setlist" style="margin-top:10px">
+          <li><a href="#">Asphodel/Paradise Event Pack（PRDEVP）</a><span class="cp-count">33枚</span></li>
+        </ul>
+        <table class="cp-table" style="margin-top:10px"><tbody>
+          <tr><td><a href="#">Asphodel/Paradise Event Pack（PRDEVP）</a></td><td>—</td><td>#002</td></tr>
+        </tbody></table>
+        <ul class="pts">
+          <li class="y">頭が揃って読みやすい</li>
+          <li class="n">公式表記と違う（突き合わせができない）</li>
+          <li class="n">本体セット <span class="m">.asphodel/paradise</span> 登場時に同じ改変を繰り返す必要</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="callout ok">
+      <b>推奨は候補A。</b>
+      幅の問題が無いと実測で確定した以上、<b>公式表記への忠実さと既存56件との一貫性</b>を
+      優先しない理由が残りません。行頭のドットは意匠として意図されたもので、
+      公式サイト・他言語DBでも同じ綴りです。
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="sec">
+  <div class="col">
+    <h2>この1行が及ぶ範囲</h2>
+  </div>
+  <div class="tbl-wrap">
+    <table class="t">
+      <thead><tr><th>面</th><th class="num">箇所</th><th>変化</th></tr></thead>
+      <tbody>
+        <tr><td>絞り込み <code>&lt;select&gt;</code>（トップ・デッキ構築）</td><td class="num">2画面</td>
+            <td><b>選択肢が増え、33枚が絞り込めるようになる</b></td></tr>
+        <tr><td><code>/sets/prdevp/</code> の title・H1・description</td><td class="num">1</td>
+            <td>素のprefix → 正式名</td></tr>
+        <tr><td>カード個別ページ「収録セットと版」</td><td class="num"><b>33</b></td>
+            <td>素のprefix → 正式名</td></tr>
+        <tr><td><code>/cards/</code> のセット一覧</td><td class="num">1</td>
+            <td>素のprefix → 正式名（「その他」内の位置は据え置き）</td></tr>
+        <tr><td>トップの静的セットリンク</td><td class="num">1</td>
+            <td>素のprefix → 正式名、<b>最後尾 → 先頭</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="col">
+    <div class="callout">
+      <b>変わらないもの（コードと生成物で確認済み）。</b>
+      パンくずと代表画像は <code>newestFirst()</code> が <code>meta.sets</code> の順ではなく
+      <code>release_date</code> で並べるため<b>0ページ</b>影響なし。
+      共有URLは <code>setKeyOf()</code> がprefixを書くため<b>先頭挿入でも壊れません</b>。
+      絞り込み状態の <code>localStorage</code> 保存は<b>ありません</b>。
+    </div>
+  </div>
+</section>
+
+</div>
+</body>
+</html>
