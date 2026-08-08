@@ -414,8 +414,16 @@ ul.pts li.c::before { content:"△"; color:var(--gold); }
     <p class="h2note"><code>/cards/</code> のセット一覧 ／ トップページの57本のリンク</p>
     <p>
       表記だけでなく<b>並び順も変わります</b>。未登録だと <code>setOrder()</code> が 9999 を返すため
-      <b>最後尾</b>に落ちますが、登録すると <code>meta.sets</code> の先頭＝<b>1番目</b>に来ます。
+      <b>最後</b>に落ちますが、登録すると <code>meta.sets</code> の先頭＝order 0 になります。
     </p>
+    <div class="callout key">
+      <b>ただし「ページ全体の先頭」ではありません。</b>
+      PRDEVP は <code>featured-sets.json</code> のどのグループにも属さないため
+      <b>「その他（プロモ・デモ・イベントパック等）」グループ</b>に入ります。
+      このグループは <code>groups.push()</code> で<b>最後に足される</b>ので、
+      位置は<b>「その他」の中で最後 → 「その他」の中で先頭</b>という移動です。
+      グループ自体の位置は変わりません。
+    </div>
   </div>
 
   <h3>PC幅 ／ <code>/cards/</code> のセット一覧</h3>
@@ -473,30 +481,37 @@ ul.pts li.c::before { content:"△"; color:var(--gold); }
     </div>
   </div>
 
-  <h3>トップの静的セットリンク（57本）</h3>
+  <h3>トップの静的セットリンク（57本）／ 「その他」グループ内</h3>
   <div class="cmp">
     <div class="pane">
-      <span class="tag tag-now">現状 — 57本目（最後尾）</span>
+      <span class="tag tag-now">現状 — 「その他」の最後</span>
       <div class="body">
+        <div class="cp-group-name-plain">その他（プロモ・デモ・イベントパック等）</div>
         <ul class="setlinks">
-          <li><a href="#">Radiant Origins（RDO）</a></li>
+          <li><a href="#">Supporter Pack 1（SP1）</a></li>
           <li class="ell">…</li>
           <li><a href="#">Promotional 2022（P22）</a></li>
           <li><a href="#">LGS Demo 2022（DEMO22）</a></li>
           <li><a href="#" class="hit">PRDEVP</a></li>
         </ul>
+        <p class="why"><code>setOrder()</code> が 9999 を返すため末尾。</p>
       </div>
     </div>
     <div class="pane">
-      <span class="tag tag-new">変更後（候補A）— 1本目</span>
+      <span class="tag tag-new">変更後（候補A）— 「その他」の先頭</span>
       <div class="body">
+        <div class="cp-group-name-plain">その他（プロモ・デモ・イベントパック等）</div>
         <ul class="setlinks">
           <li><a href="#" class="hit">.asphodel/paradise Event Pack（PRDEVP）</a></li>
-          <li><a href="#">Supporter Pack 4（SP4）</a></li>
-          <li><a href="#">Radiant Origins（RDO）</a></li>
+          <li><a href="#">Supporter Pack 1（SP1）</a></li>
           <li class="ell">…</li>
+          <li><a href="#">Promotional 2022（P22）</a></li>
           <li><a href="#">LGS Demo 2022（DEMO22）</a></li>
         </ul>
+        <p class="why">
+          order 0 になり<b>グループ内で先頭</b>へ。
+          <b>グループ自体は最後のまま</b>なのでページ全体の先頭には来ない。
+        </p>
       </div>
     </div>
   </div>
@@ -654,9 +669,12 @@ ul.pts li.c::before { content:"△"; color:var(--gold); }
         <tr><td>カード個別ページ「収録セットと版」</td><td class="num"><b>33</b></td>
             <td>素のprefix → 正式名</td></tr>
         <tr><td><code>/cards/</code> のセット一覧</td><td class="num">1</td>
-            <td>素のprefix → 正式名（「その他」内の位置は据え置き）</td></tr>
+            <td>素のprefix → 正式名、<b>「その他」内で最後 → 先頭</b></td></tr>
         <tr><td>トップの静的セットリンク</td><td class="num">1</td>
-            <td>素のprefix → 正式名、<b>最後尾 → 先頭</b></td></tr>
+            <td>素のprefix → 正式名、<b>「その他」内で最後 → 先頭</b></td></tr>
+        <tr><td><code>sitemap.xml</code></td><td class="num">1</td>
+            <td>URL・lastmod は不変。<code>/sets/prdevp/</code> の<b>行位置だけ</b>が
+                <code>/sets/</code> 群の最後 → 先頭へ移動</td></tr>
       </tbody>
     </table>
   </div>
