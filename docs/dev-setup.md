@@ -75,7 +75,9 @@
 
 1. **gh CLI** — aptのkeyring/ソース定義を作り直して `gh` を導入
 2. **python3-pil / fonts-noto-cjk** — apt で導入
-3. **Playwright** — `playwright@1.61.1` を `npm install --no-save --no-package-lock` で導入し、`npx playwright install chromium`
+3. **Playwright** — 2段階で復旧する
+   - **S3-a**: Chromium の起動に必要な**共有ライブラリ14個**を apt で導入(素のイメージには入っていない)
+   - **S3-b**: `playwright@1.61.1` を `npm install --no-save --no-package-lock` で導入し、`npx playwright install chromium`
 4. **診断表示** — 復旧状況の表を出し、**残っている手作業の件数**を最終行に出す
 
 ### 非責務(やらないこと)とその理由
@@ -90,6 +92,10 @@
 ### 性質
 
 - **冪等**。導入済みのステップはスキップする(2回目は1秒程度で終わる)
+- ⭐ **自己修復する**。Playwright のスキップ判定には「**不足共有ライブラリが0個**」も含まれるので、
+  ライブラリを1つ失った(あるいは Playwright を上げて必要ライブラリが増えた)だけでも
+  **S3 はスキップされずに再実行され、apt が不足を埋める**。
+  → 「診断は ✅ なのに `chromium.launch()` が落ちる」状態にならない
 - **絶対に失敗しない**(常に `exit 0`・`postCreate` 側も `|| true`)。
   1つのステップが失敗しても後続は実行され、診断表まで必ず到達する
 - **シークレットの値は出力しない**(有無だけを出す)
@@ -116,10 +122,12 @@ GA_SETUP_SKIP=playwright npm run setup:env           # 指定ステップを飛�
 [自動] gh CLI             : ✅ 2.97.0
 [自動] python3-pil        : ✅ 導入済み
 [自動] fonts-noto-cjk     : ✅ 導入済み
-[自動] Playwright         : ✅ playwright@1.61.1 / chromium-1228
+[自動] Playwright         : ✅ playwright@1.61.1 / chromium-1228 / 不足ライブラリ 0
 [手動] gh 認証            : ❌ 未ログイン    → gh auth login
 [手動] Cloudflareトークン : ❌ 無し          → docs/dev-setup.md 手順5
 [手動] Claude メモリー    : ❌ 空            → バックアップから復元(任意)
+[手動] .dev.vars          : ✅ 有り
+[情報] Norton証明書       : ✅ 有り
 [情報] git identity       : dozyouneko <1020dozyouneko@gmail.com>
 
 ━━━━━━ 手作業が 3 件 残っています ━━━━━━
@@ -127,7 +135,17 @@ GA_SETUP_SKIP=playwright npm run setup:env           # 指定ステップを飛�
 ```
 
 - `[自動]` = スクリプトが面倒を見る / `[手動]` = **人間の作業が要る** / `[情報]` = 確認のみ(判定しない)
-- **最終行の件数が 0 になれば復旧完了**
+- **最終行の件数が 0 になれば復旧完了**。⚠️ **`[情報]` 行は件数に数えない**。
+  Norton証明書は**使っていない環境では「無いのが正常」**で、数えると常に1件残る表示になり、
+  ⭐ **件数そのものが信用されなくなる**ため
+- `.dev.vars` はコンテナ再構築では**残る**ので通常は ✅。`[手動]` にしてあるのは
+  **PC故障シナリオ(シナリオB)では欠落が致命的**だから(→ [手順5](#5-シークレットの復元-or-再発行手作業))
+- Playwright 行の **`不足ライブラリ N`** が 0 以外なら、Chromium は**取得できていても起動しない**。
+  そのときは表に脱出口が出る(→ [A-5](#a-5-playwright)):
+
+  ```text
+  [自動] Playwright         : ❌ 共有ライブラリが 3 個不足 → npx playwright install-deps chromium
+  ```
 
 ## A-3. 再構築後にやること(手作業3件)
 
@@ -228,6 +246,11 @@ npm run setup:env      # Playwright が無ければ入れ直す(あればスキ�
 手動で入れる場合(`setup.sh` の S3 と同じ内容):
 
 ```bash
+# S3-a: Chromium の起動に必要な共有ライブラリ(素の devcontainer イメージには入っていない)
+sudo apt-get install -y libasound2 libatk1.0-0 libatk-bridge2.0-0 libatspi2.0-0 libcups2 \
+  libdbus-1-3 libgbm1 libnspr4 libnss3 libxcomposite1 libxdamage1 libxfixes3 libxkbcommon0 libxrandr2
+
+# S3-b: npmパッケージ + Chromium 本体
 PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --no-save --no-package-lock --no-audit --no-fund playwright@1.61.1
 npx playwright install chromium
 ```
@@ -243,23 +266,40 @@ const browser = await chromium.launch({ args: ["--ignore-certificate-errors"] })
 const ctx = await browser.newContext({ ignoreHTTPSErrors: true });
 ```
 
-### ⚠️ 未解決: Chromium の起動には別途システムライブラリが必要(2026-08-08 時点)
+### ⚠️ Chromium の起動には共有ライブラリが要る(S3-a が自動で入れる)
 
-`setup.sh` は Chromium 本体の**取得まで**は自動化しているが、**素の devcontainer イメージには
-Chromium が依存する共有ライブラリ(`libnspr4` / `libnss3` / `libgbm1` / `libatk1.0-0` ほか)が入っていない**。
-そのため `chromium.launch()` が次のエラーで失敗する:
+**素の devcontainer イメージには、Chromium が依存する共有ライブラリ
+(`libnspr4` / `libnss3` / `libgbm1` / `libatk1.0-0` ほか)が入っていない。**
+無いと Chromium 本体の取得までは成功するのに、`chromium.launch()` が次で落ちる:
 
 ```text
 error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory
 ```
 
-⚠️ **どのパッケージを入れるか(`npx playwright install-deps` を丸ごと使うか、不足分だけにするか)は
-issue #9 で設計担当の判断待ち。** 判断が下りるまでは、Playwright を使う前に手で導入する:
+`setup.sh` の **S3-a が上記14個を apt で導入する**ので、通常は意識しなくてよい
+(依存込み54パッケージ / 約11MB)。⚠️ **`npx playwright install-deps` は既定では使わない** —
+106パッケージ・91MB になり、`xvfb`・mesa一式・多言語フォントまで入るため。
+
+#### 不足の検知は「診断が ✅ なのに起動しない」を防ぐためにある
+
+`setup.sh` は `ldd` で `chrome` と `chrome-headless-shell` の **`not found` を数える**。
+この数が **スキップ判定にも診断表示にも入っている**:
+
+| 状態 | S3 の挙動 | 診断表示 |
+| --- | --- | --- |
+| 不足 0 | ⏭ スキップ | `✅ … / 不足ライブラリ 0` |
+| 不足あり | **スキップせず再実行し、apt が埋める** | 埋まれば `✅` |
+| 埋めても不足が残る | ステップを失敗として記録 | `❌ 共有ライブラリが N 個不足 → npx playwright install-deps chromium` |
+
+⭐ つまり**将来 Playwright を上げて必要ライブラリが増えても、`npm run setup:env` を打つだけで追随する**。
+それでも足りない(＝14個の指定では不足するようになった)場合だけ、表示された
+`npx playwright install-deps chromium` を手で打つ。
+
+自分で不足を数えたいとき:
 
 ```bash
-# 不足している共有ライブラリだけを入れる(依存込み54パッケージ / 約11MB)
-sudo apt-get install -y libasound2 libatk1.0-0 libatk-bridge2.0-0 libatspi2.0-0 libcups2 \
-  libdbus-1-3 libgbm1 libnspr4 libnss3 libxcomposite1 libxdamage1 libxfixes3 libxkbcommon0 libxrandr2
+ldd ~/.cache/ms-playwright/chromium-*/chrome-linux64/chrome | grep -c 'not found'
+ldd ~/.cache/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell | grep -c 'not found'
 ```
 
 ## A-6. ⚠️ git identity はホスト環境に依存する

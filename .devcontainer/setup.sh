@@ -5,7 +5,7 @@
 # コンテナ再構築で消えるもの(overlayfs 上)のうち、自動化できるものを復旧する。
 #   S1 gh          : GitHub CLI 本体(+ aptソース定義)
 #   S2 apt         : python3-pil / fonts-noto-cjk
-#   S3 playwright  : playwright npmパッケージ + Chromium 本体
+#   S3 playwright  : Chromium の共有ライブラリ(S3-a) + playwright npm + Chromium 本体(S3-b)
 #   S4 diag        : 復旧状況の診断表示(手作業が残っているものを明示)
 #
 # 設計: docs/design/9-環境再構築の自動化/環境再構築の自動化_設計.md
@@ -33,6 +33,15 @@ cd "$(dirname "$0")/.." 2>/dev/null || {
 PLAYWRIGHT_VERSION="1.61.1"
 MEMORY_DIR="$HOME/.claude/projects/-workspaces-claude-test-vsc/memory"
 CF_TOKEN_FILE="$HOME/.cloudflare-token"
+DEV_VARS_FILE=".dev.vars"
+NORTON_CERT_FILE=".devcontainer/certs/norton-root.crt"
+
+# Chromium の起動に必要な共有ライブラリ(案A: 不足分だけを指定する。
+# ⚠️ `npx playwright install-deps` は使わない — 106パッケージ/91.2MB になり
+#    xvfb・mesa一式・多言語フォントまで入る。案Aは54パッケージ/11.3MBで起動実測済み)
+PW_SYS_LIBS="libasound2 libatk1.0-0 libatk-bridge2.0-0 libatspi2.0-0 libcups2 \
+libdbus-1-3 libgbm1 libnspr4 libnss3 libxcomposite1 libxdamage1 libxfixes3 \
+libxkbcommon0 libxrandr2"
 
 STEP_TOTAL=3
 STEP_NO=0
@@ -56,6 +65,14 @@ is_listed() {
 # sudo がパスワード無しで使えるか
 sudo_ok() {
   sudo -n true 2>/dev/null
+}
+
+# パッケージが**実際に導入済み**か
+# ⚠️ `dpkg -s <pkg>` の終了コードで判定してはいけない。`apt-get remove`(purge しない)後は
+#    `Status: deinstall ok config-files` で **exit 0 のまま**になり、
+#    「ファイルは無いのに導入済みと誤判定」する(実測 2026-08-09: fonts-noto-cjk で再現)。
+pkg_installed() {
+  dpkg -s "$1" 2>/dev/null | grep -q '^Status: install ok installed'
 }
 
 # apt-get update を1回だけ実行する
@@ -128,7 +145,7 @@ step_gh() {
 # S2: aptパッケージ(宣伝画像生成用)
 # -----------------------------------------------------------------------------
 step_apt_check() {
-  dpkg -s python3-pil >/dev/null 2>&1 && dpkg -s fonts-noto-cjk >/dev/null 2>&1
+  pkg_installed python3-pil && pkg_installed fonts-noto-cjk
 }
 
 step_apt() {
@@ -149,16 +166,72 @@ chromium_dir() {
   return 1
 }
 
+# Chromium の実行ファイル(通常版 chrome と headless shell)のパスを列挙する。
+# ディレクトリ名はビルドごとに変わる(chrome-linux64 / chrome-linux 等)ので find で拾う。
+chromium_bins() {
+  [ -d "$HOME/.cache/ms-playwright" ] || return 1
+  find "$HOME/.cache/ms-playwright" -maxdepth 3 -type f \
+    \( -name chrome -o -name chrome-headless-shell \) 2>/dev/null | sort
+}
+
+# 不足している共有ライブラリ名を重複なしで出力する。
+# ⚠️ Chromium を起動せず `ldd` の `not found` を数えるだけなので高速・決定的。
+#    対象は chrome-headless-shell と chrome の**両方**(必要ライブラリの数が違う)。
+missing_pw_libs() {
+  local bin
+  while IFS= read -r bin; do
+    [ -n "$bin" ] || continue
+    ldd "$bin" 2>/dev/null | awk '/not found/ {print $1}'
+  done < <(chromium_bins 2>/dev/null) | sort -u
+}
+
+# 不足数(Chromium 未取得なら判定できないので -1)
+missing_pw_lib_count() {
+  if ! chromium_bins 2>/dev/null | grep -q .; then
+    echo "-1"
+    return 0
+  fi
+  missing_pw_libs | grep -c . || true
+}
+
+# ⭐ スキップ条件に「不足共有ライブラリが 0 個」を含める(自己修復)。
+#    将来 Playwright を上げて必要ライブラリが増えても、S3 がスキップされずに再実行され
+#    apt が不足を埋める。これが案A(不足分だけ指定)採用の前提条件であり省略不可。
 step_playwright_check() {
-  [ -d node_modules/playwright ] && chromium_dir >/dev/null
+  [ -d node_modules/playwright ] || return 1
+  chromium_dir >/dev/null || return 1
+  [ "$(missing_pw_lib_count)" = "0" ]
 }
 
 step_playwright() {
+  # --- S3-a: Chromium の共有ライブラリ(案A) ---
+  if sudo_ok; then
+    apt_update_once || echo "  ⚠️  apt-get update に失敗しました(続行します)"
+    # shellcheck disable=SC2086
+    sudo apt-get install -y $PW_SYS_LIBS || {
+      echo "  ⚠️  共有ライブラリの導入に失敗しました → npx playwright install-deps chromium"
+      return 1
+    }
+  else
+    echo "  ⚠️  sudo が使えないため共有ライブラリを導入できません"
+  fi
+
+  # --- S3-b: npmパッケージ + Chromium 本体 ---
   # ⚠️ playwright は package.json に入れない(本番Pagesビルドで Chromium DL が走るリスク)。
   #    --no-save --no-package-lock で package-lock.json を汚さない。
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --no-save --no-package-lock --no-audit --no-fund \
     "playwright@${PLAYWRIGHT_VERSION}" || return 1
   npx playwright install chromium || return 1
+
+  # 導入後もなお不足が残る場合(案Aの14個では足りなくなった場合)は失敗として記録する。
+  # ⚠️ 自動で install-deps は打たない。脱出口は診断表示で案内する。
+  local miss
+  miss="$(missing_pw_lib_count)"
+  if [ "$miss" != "0" ] && [ "$miss" != "-1" ]; then
+    echo "  ⚠️  共有ライブラリが ${miss} 個不足しています → npx playwright install-deps chromium"
+    return 1
+  fi
+  return 0
 }
 
 # -----------------------------------------------------------------------------
@@ -173,6 +246,8 @@ L_PW="Playwright         "
 L_AUTH="gh 認証            "
 L_CF="Cloudflareトークン "
 L_MEM="Claude メモリー    "
+L_DEV=".dev.vars          "
+L_CERT="Norton証明書       "
 L_GIT="git identity       "
 
 MANUAL_PENDING=0
@@ -202,12 +277,12 @@ step_diag() {
   fi
 
   # --- [自動] aptパッケージ
-  if dpkg -s python3-pil >/dev/null 2>&1; then
+  if pkg_installed python3-pil; then
     row "[自動]" "$L_PIL" "✅ 導入済み"
   else
     row "[自動]" "$L_PIL" "❌ 未導入        → npm run setup:env"
   fi
-  if dpkg -s fonts-noto-cjk >/dev/null 2>&1; then
+  if pkg_installed fonts-noto-cjk; then
     row "[自動]" "$L_CJK" "✅ 導入済み"
   else
     row "[自動]" "$L_CJK" "❌ 未導入        → npm run setup:env"
@@ -220,8 +295,17 @@ step_diag() {
     [ -n "$pw_ver" ] || pw_ver="?"
   fi
   chrome="$(chromium_dir 2>/dev/null)"
+  local miss
+  miss="$(missing_pw_lib_count)"
   if [ -n "$pw_ver" ] && [ -n "$chrome" ]; then
-    row "[自動]" "$L_PW" "✅ playwright@${pw_ver} / ${chrome}"
+    if [ "$miss" = "0" ]; then
+      row "[自動]" "$L_PW" "✅ playwright@${pw_ver} / ${chrome} / 不足ライブラリ 0"
+    elif [ "$miss" = "-1" ]; then
+      row "[自動]" "$L_PW" "⚠️  playwright@${pw_ver} / ${chrome} / 実行ファイル未検出 → npm run setup:env"
+    else
+      # ⚠️ ここが「Playwright は入っているのに起動しない」状態。自動では install-deps を打たず案内だけ出す
+      row "[自動]" "$L_PW" "❌ 共有ライブラリが ${miss} 個不足 → npx playwright install-deps chromium"
+    fi
   elif [ -n "$pw_ver" ]; then
     row "[自動]" "$L_PW" "⚠️  playwright@${pw_ver} / Chromium未取得 → npm run setup:env"
   else
@@ -256,6 +340,23 @@ step_diag() {
     row_manual "$L_MEM" "✅ ${mem_count}件" ""
   else
     row_manual "$L_MEM" "" "❌ 空            → バックアップから復元(任意)"
+  fi
+
+  # --- [手動] .dev.vars(⚠️ 有無だけ。中身は出さない)
+  #     シナリオA(コンテナ再構築)では常に残るが、シナリオB(PC故障)では欠落が致命的なので [手動] 扱い
+  if [ -s "$DEV_VARS_FILE" ]; then
+    row_manual "$L_DEV" "✅ 有り" ""
+  else
+    row_manual "$L_DEV" "" "❌ 無し          → docs/dev-setup.md 手順5"
+  fi
+
+  # --- [情報] Norton証明書
+  #     ⚠️ [手動] にしない。Norton を使っていない環境では「無いのが正常」で、
+  #        残件数に数えると常に1件残る表示になり、残件数そのものが信用されなくなる
+  if [ -s "$NORTON_CERT_FILE" ]; then
+    row "[情報]" "$L_CERT" "✅ 有り"
+  else
+    row "[情報]" "$L_CERT" "— 無し (Norton を使わない環境では正常)"
   fi
 
   # --- [情報] git identity(⚠️ 判定はしない。表示のみ)
