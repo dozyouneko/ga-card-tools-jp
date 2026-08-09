@@ -497,8 +497,18 @@ gh issue list --label push待ち      # 承認済み・push待ち。⚠️セッ
 - **NortonのHTTPS検査があるためヘッドレスブラウザは証明書エラーになる**
   (api.gatcg.com へのfetchが「Failed to fetch」で空画面になる)。Playwrightは
   `launch({ args: ["--ignore-certificate-errors"] })` + context `ignoreHTTPSErrors: true` で回避
-- Playwrightの導入: Chromium本体は `~/.cache/ms-playwright` にキャッシュ済み(再構築でも残る)。
-  JSパッケージは作業ディレクトリで `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm i playwright@1.61.1`
+- ⭐ **Playwrightを使う前に `npm run setup:env` を1回打つ**(#9・2026-08-09〜)。
+  npmパッケージ・Chromium本体・**Chromiumが要求する共有ライブラリ14個**をまとめて用意する。
+  導入済みなら**1秒未満でスキップ**するので、毎回打ってよい
+  - ⚠️ **旧記述「Chromium本体は再構築でも残る」は誤りだった**(2026-08-08の再構築で実測)。
+    `~/.cache/ms-playwright` は **overlayfs上なのでコンテナ再構築で消える**
+  - ⚠️ **`npm install` を打つと Playwright は毎回消える。** `package.json` に入れていない
+    (本番Pagesビルドで Chromium一式294MBのDLが走るリスクを避けるため)ので、
+    **extraneous として prune される**。消えたら `npm run setup:env` で戻す
+  - ⚠️ 共有ライブラリが欠けると **`libnspr4.so: cannot open shared object file` で `launch` が落ちる**。
+    `setup.sh` は `ldd` で不足を数えており、**不足があるとスキップせず自動で埋める**。
+    それでも残る場合だけ診断表示が `npx playwright install-deps chromium` を案内する
+  - 環境全体の復旧手順・何が消えて何が残るかは **`docs/dev-setup.md`** に集約(#9)
 - **デッキ構築ツールはDiscord OAuthログインが前提**のため、ヘッドレスでは検索パネルまで到達できない
   (`#boot-status` が「読み込み中…」のまま)。⭐ **検証手順(#51で確立・以後これを標準とする)**:
   `#view-editor` の `hidden` を外し、**空のデッキ状態を用意してから**ページ本来の `searchCtl` と

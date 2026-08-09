@@ -87,7 +87,7 @@
 | `gh auth login` | **対話が必要**。トークンをリポジトリや環境変数に置くのは論外 |
 | `~/.cloudflare-token` の復元 | シークレット。自動展開は影響が大きい |
 | Claude Code メモリーの復元 | 内容がセッション固有で、**古い状態の復元がむしろ有害**になりうる |
-| `package.json` への Playwright 追加 | 本番 Cloudflare Pages のビルドで Chromium(約180MB)のDLが走るリスク |
+| `package.json` への Playwright 追加 | 本番 Cloudflare Pages のビルドで Chromium一式(**実測294MB**)のDLが走るリスク |
 
 ### 性質
 
@@ -298,9 +298,13 @@ error while loading shared libraries: libnspr4.so: cannot open shared object fil
 自分で不足を数えたいとき:
 
 ```bash
-ldd ~/.cache/ms-playwright/chromium-*/chrome-linux64/chrome | grep -c 'not found'
-ldd ~/.cache/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell | grep -c 'not found'
+ldd ~/.cache/ms-playwright/chromium-*/chrome-linux64/chrome | grep -c 'not found' || true
+ldd ~/.cache/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell | grep -c 'not found' || true
 ```
+
+> ⚠️ **不足が0のとき `grep -c` は `0` を表示したうえで exit 1 を返す**(grepの仕様。1件も一致しないため)。
+> 「失敗した」と読み違えないよう `|| true` を付けてある。**表示された数字のほうが答え**。
+> (`setup.sh` 本体はこの終了コードに依存していないので影響を受けない)
 
 ## A-6. ⚠️ git identity はホスト環境に依存する
 
