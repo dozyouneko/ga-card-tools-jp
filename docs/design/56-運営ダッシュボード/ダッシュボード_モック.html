@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>運営ダッシュボード モック — issue #56</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+         background:#eef1f5; color:#1a1d21; }
+  @media (prefers-color-scheme: dark) { body { background:#14171a; color:#e6e8ea; } }
+  .page { max-width: 1500px; margin: 0 auto; padding: 20px 16px 60px; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  .lede { font-size: 13px; line-height:1.8; opacity:.85; margin: 0 0 18px; }
+  .lede code { background: rgba(128,128,128,.18); padding: 1px 5px; border-radius: 4px; }
+  .panes { display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap; }
+  .pane { background: rgba(128,128,128,.10); border:1px solid rgba(128,128,128,.28); border-radius:12px; padding:12px; }
+  .pane.wide { flex:1 1 620px; min-width:0; }
+  .pane.narrow { flex:0 0 auto; }
+  .pane h2 { font-size:13px; margin:0 0 8px; letter-spacing:.04em; }
+  .pane h2 span { font-weight:400; opacity:.7; }
+  iframe { border:1px solid rgba(128,128,128,.35); border-radius:8px; background:#fff; display:block; }
+  @media (prefers-color-scheme: dark) { iframe { background:#0f1214; } }
+  .note { font-size:12.5px; line-height:1.8; background: rgba(255,196,0,.14);
+          border-left:4px solid #e0a800; padding:10px 14px; border-radius:6px; margin: 0 0 18px; }
+  .note b { color:#a06a00; }
+  @media (prefers-color-scheme: dark) { .note b { color:#ffc94d; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>運営ダッシュボード 画面モック <span style="font-weight:400;opacity:.6;font-size:15px;">— issue #56 / 設計書 1.0</span></h1>
+  <p class="lede">
+    左が<b>PC幅</b>、右が<b>375px幅</b>。両方とも同じマークアップを <code>iframe</code> に流し込んでいるので、
+    メディアクエリが<b>実幅どおりに効いた状態</b>を並べて確認できます。
+  </p>
+  <p class="note">
+    <b>数値は仮値です。</b>ただし<b>カード名・チャンピオン名・パス構成・カテゴリ分類は実データ</b>です
+    （チャンピオンの並びは大会デッキ11,050件の実集計、最長名「アトモス・アーマー Type-Hermes」は
+    全2,240枚中の実際の最長訳名）。<br>
+    <b>最悪ケースを2つ仕込んであります</b>: ①人気カード表に最長名を混ぜ、数値列の右端が揃うか
+    ②「その他」が総PVの5.1%＝<b>閾値5%超</b>で ⚠️ バッジと内訳展開が出た状態。
+  </p>
+
+  <div class="panes">
+    <div class="pane wide">
+      <h2>PC幅 <span>（ブラウザ幅に追従）</span></h2>
+      <iframe id="f-wide" style="width:100%; height:1560px;" title="PC幅プレビュー"></iframe>
+    </div>
+    <div class="pane narrow">
+      <h2>375px幅 <span>（iPhone SE / mini 相当）</span></h2>
+      <iframe id="f-narrow" style="width:375px; height:1560px;" title="375px幅プレビュー"></iframe>
+    </div>
+  </div>
+</div>
+
+<script type="text/plain" id="dash-src">
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>運営ダッシュボード</title>
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg:#f6f7f9; --card:#ffffff; --ink:#1a1d21; --muted:#6b7280; --line:#e3e6ea;
+    --accent:#2f6feb; --ok:#1a7f37; --warn:#b26a00; --warnbg:#fff6e0; --bar:#2f6feb; --bar2:#8fb4f5;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0f1214; --card:#181c20; --ink:#e6e8ea; --muted:#9aa3ad; --line:#2a3037;
+           --accent:#6ea8ff; --ok:#4ac26b; --warn:#e3b341; --warnbg:#2b2413; --bar:#4c8dff; --bar2:#2c4c80; }
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-size:14px; line-height:1.6;
+        font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; }
+  .wrap{ max-width:1180px; margin:0 auto; padding:16px 16px 40px; }
+
+  header.top{ display:flex; flex-wrap:wrap; gap:8px 16px; align-items:baseline; margin-bottom:14px; }
+  header.top h1{ font-size:18px; margin:0; }
+  .stamp{ font-size:12.5px; color:var(--muted); }
+  .srcbadges{ display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; }
+  .badge{ font-size:11.5px; padding:2px 8px; border-radius:999px; border:1px solid var(--line); background:var(--card); }
+  .badge.ok{ color:var(--ok); border-color:currentColor; }
+  .badge.ng{ color:var(--warn); border-color:currentColor; }
+
+  .kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:18px; }
+  .kpi{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+  .kpi .lab{ font-size:12px; color:var(--muted); }
+  .kpi .val{ font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+  .kpi .dlt{ font-size:12px; font-variant-numeric:tabular-nums; }
+  .up{ color:var(--ok); } .down{ color:#c0392b; } .flat{ color:var(--muted); }
+  @media (prefers-color-scheme: dark){ .down{ color:#ff7b6b; } }
+
+  section.card{ background:var(--card); border:1px solid var(--line); border-radius:10px;
+                padding:14px 16px 16px; margin-bottom:14px; }
+  section.card > h2{ font-size:14px; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid var(--line); }
+  h3{ font-size:12.5px; color:var(--muted); margin:14px 0 6px; font-weight:600; }
+  h3:first-of-type{ margin-top:0; }
+  .cols{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+
+  table{ width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+  th,td{ padding:5px 8px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+  th{ font-size:11.5px; color:var(--muted); font-weight:600; white-space:nowrap; }
+  td.n, th.n{ text-align:right; white-space:nowrap; }
+  td.rank{ color:var(--muted); width:2.2em; text-align:right; }
+  tbody tr:last-child td{ border-bottom:none; }
+  .scroll-x{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .scroll-x table{ min-width:340px; }
+
+  .spark{ display:flex; align-items:flex-end; gap:2px; height:70px; margin:4px 0 2px; }
+  .spark i{ flex:1 1 0; background:var(--bar); border-radius:2px 2px 0 0; min-width:2px; display:block; }
+  .spark i.dim{ background:var(--bar2); }
+  .axis{ display:flex; justify-content:space-between; font-size:11px; color:var(--muted); }
+
+  .meter{ display:flex; align-items:center; gap:8px; margin:3px 0; }
+  .meter .mlab{ flex:0 0 8.5em; font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .meter .mtrack{ display:block; flex:1 1 auto; height:9px; background:rgba(128,128,128,.18); border-radius:5px; overflow:hidden; }
+  .meter .mfill{ display:block; height:100%; background:var(--bar); border-radius:5px; }
+  .meter .mval{ flex:0 0 auto; font-size:12px; font-variant-numeric:tabular-nums; color:var(--muted); min-width:5.2em; text-align:right; }
+
+  .warnrow{ background:var(--warnbg); }
+  .wbadge{ color:var(--warn); font-weight:700; }
+  details.sub{ margin:6px 0 0; }
+  details.sub summary{ cursor:pointer; font-size:12px; color:var(--accent); }
+  details.sub table{ margin-top:6px; }
+  .info{ border:none; background:none; color:var(--accent); cursor:pointer; font:inherit; font-size:12px; padding:0 2px; }
+  .fail{ background:var(--warnbg); border:1px solid var(--warn); border-radius:8px; padding:12px 14px; font-size:13px; }
+  .fail b{ color:var(--warn); }
+  .fail ol{ margin:8px 0 0 1.1em; padding:0; }
+  .hl{ list-style:none; margin:0; padding:0; }
+  .hl li{ display:flex; gap:8px; align-items:baseline; padding:6px 0; border-bottom:1px solid var(--line); font-size:13px; }
+  .hl li:last-child{ border-bottom:none; }
+  .hl .mark{ flex:0 0 1.4em; }
+  .hl .sub{ color:var(--muted); font-size:12px; }
+  footer{ font-size:11.5px; color:var(--muted); line-height:1.9; margin-top:16px; }
+  footer ul{ margin:4px 0 0; padding-left:1.2em; }
+
+  @media (max-width:760px){ .cols{ grid-template-columns:1fr; gap:14px; } }
+  @media (max-width:560px){
+    .kpis{ grid-template-columns:1fr 1fr; }
+    .wrap{ padding:12px 10px 32px; }
+    .kpi .val{ font-size:22px; }
+    .srcbadges{ margin-left:0; }
+    .meter .mlab{ flex-basis:6.5em; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1>運営ダッシュボード</h1>
+    <span class="stamp">取得 2026-08-09 13:24 JST</span>
+    <span class="srcbadges">
+      <span class="badge ok">D1 ✓</span>
+      <span class="badge ok">閲覧 ✓</span>
+      <span class="badge ng">ヘルス ⚠1</span>
+    </span>
+  </header>
+
+  <div class="kpis">
+    <div class="kpi"><div class="lab">登録者数</div><div class="val">47</div><div class="dlt up">+6（+14.6%）前週比</div></div>
+    <div class="kpi"><div class="lab">保存デッキ数</div><div class="val">128</div><div class="dlt up">+14（+12.3%）前週比</div></div>
+    <div class="kpi"><div class="lab">閲覧数（7日）</div><div class="val">5,842</div><div class="dlt up">+412（+7.6%）前週比</div></div>
+    <div class="kpi"><div class="lab">アクティブ（7日）</div><div class="val">19</div><div class="dlt down">-2（-9.5%）前週比</div></div>
+  </div>
+
+  <section class="card">
+    <h2>利用者</h2>
+    <div class="cols">
+      <div>
+        <h3>新規登録の推移（直近60日・UTC基準）</h3>
+        <div class="spark"><i style="height:8%"></i><i style="height:8%"></i><i style="height:22%"></i><i style="height:8%"></i><i style="height:35%"></i><i style="height:15%"></i><i style="height:8%"></i><i style="height:8%"></i><i style="height:48%"></i><i style="height:22%"></i><i style="height:8%"></i><i style="height:35%"></i><i style="height:15%"></i><i style="height:8%"></i><i style="height:62%"></i><i style="height:22%"></i><i style="height:8%"></i><i style="height:15%"></i><i style="height:35%"></i><i style="height:8%"></i><i style="height:75%"></i><i style="height:22%"></i><i style="height:15%"></i><i style="height:8%"></i><i style="height:48%"></i><i style="height:35%"></i><i style="height:22%"></i><i style="height:100%"></i><i style="height:62%"></i><i style="height:35%"></i></div>
+        <div class="axis"><span>6/10</span><span>7/10</span><span>8/9</span></div>
+        <h3>アクティブ利用者</h3>
+        <div class="meter"><span class="mlab">直近7日</span><span class="mtrack"><span class="mfill" style="width:40.4%"></span></span><span class="mval">19人</span></div>
+        <div class="meter"><span class="mlab">直近30日 <button class="info" title="sessions は30日で失効し、ログイン時に期限切れ行が削除されるため、31日以上前の活動は復元できません">ⓘ</button></span><span class="mtrack"><span class="mfill" style="width:72.3%"></span></span><span class="mval">34人</span></div>
+        <div class="meter"><span class="mlab">登録者に対する比</span><span class="mtrack"><span class="mfill" style="width:72.3%"></span></span><span class="mval">72.3%</span></div>
+      </div>
+      <div>
+        <h3>1人あたりの保存デッキ数</h3>
+        <table>
+          <thead><tr><th>デッキ数</th><th class="n">人数</th><th class="n">構成比</th></tr></thead>
+          <tbody>
+            <tr><td>0件（未作成）</td><td class="n">16</td><td class="n">34.0%</td></tr>
+            <tr><td>1件</td><td class="n">12</td><td class="n">25.5%</td></tr>
+            <tr><td>2件</td><td class="n">8</td><td class="n">17.0%</td></tr>
+            <tr><td>3件</td><td class="n">5</td><td class="n">10.6%</td></tr>
+            <tr><td>4件</td><td class="n">3</td><td class="n">6.4%</td></tr>
+            <tr><td>5件以上</td><td class="n">3</td><td class="n">6.4%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>デッキ構築ツール</h2>
+    <div class="cols">
+      <div>
+        <h3>全体</h3>
+        <table>
+          <tbody>
+            <tr><td>保存デッキ</td><td class="n">128件</td></tr>
+            <tr><td>うち公開</td><td class="n">112件（87.5%）</td></tr>
+            <tr><td>デッキを持つ利用者</td><td class="n">31人（66.0%）</td></tr>
+            <tr><td>直近7日に更新</td><td class="n">23件</td></tr>
+            <tr><td>直近30日に更新</td><td class="n">67件</td></tr>
+          </tbody>
+        </table>
+        <h3>ゾーン別の総枚数</h3>
+        <div class="meter"><span class="mlab">main</span><span class="mtrack"><span class="mfill" style="width:100%"></span></span><span class="mval">6,842枚</span></div>
+        <div class="meter"><span class="mlab">material</span><span class="mtrack"><span class="mfill" style="width:21.8%"></span></span><span class="mval">1,489枚</span></div>
+        <div class="meter"><span class="mlab">sideboard</span><span class="mtrack"><span class="mfill" style="width:11.9%"></span></span><span class="mval">812枚</span></div>
+        <h3>機能の使われ方（D1から分かる分）</h3>
+        <div class="meter"><span class="mlab">版（絵柄）指定</span><span class="mtrack"><span class="mfill" style="width:12.9%"></span></span><span class="mval">12.9%</span></div>
+        <div class="meter"><span class="mlab">┗ 使用デッキ</span><span class="mtrack"><span class="mfill" style="width:29.7%"></span></span><span class="mval">38件</span></div>
+        <div class="meter"><span class="mlab">サムネ指定</span><span class="mtrack"><span class="mfill" style="width:34.4%"></span></span><span class="mval">44件</span></div>
+      </div>
+      <div>
+        <h3>人気チャンピオン</h3>
+        <div class="scroll-x">
+        <table>
+          <thead><tr><th class="n">#</th><th>チャンピオン</th><th class="n">デッキ数</th></tr></thead>
+          <tbody>
+            <tr><td class="rank">1</td><td>グオ・ジア、天に愛されし者</td><td class="n">22</td></tr>
+            <tr><td class="rank">2</td><td>ダイアナ、エーテルの門外漢</td><td class="n">18</td></tr>
+            <tr><td class="rank">3</td><td>シエル、蜃気楼の墓標</td><td class="n">15</td></tr>
+            <tr><td class="rank">4</td><td>ロレイン、精霊の支配者</td><td class="n">12</td></tr>
+            <tr><td class="rank">5</td><td>アリサナ、薬草の申し子</td><td class="n">11</td></tr>
+            <tr><td class="rank">6</td><td>シルヴィ、スライムの君主</td><td class="n">9</td></tr>
+            <tr><td class="rank">7</td><td>ダオ・チャン、魅惑の女</td><td class="n">8</td></tr>
+            <tr><td class="rank">8</td><td>ジン、不滅の決意</td><td class="n">7</td></tr>
+            <tr><td class="rank">9</td><td>ザンダー、眩き鋼</td><td class="n">6</td></tr>
+            <tr><td class="rank">10</td><td>アトモス・アーマー Type-Hermes</td><td class="n">5</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <h3>デッキでよく使われるカード（top20・仮値。モックでは12行のみ掲載）</h3>
+    <div class="scroll-x">
+    <table>
+      <thead><tr><th class="n">#</th><th>カード</th><th class="n">採用デッキ</th><th class="n">総枚数</th></tr></thead>
+      <tbody>
+        <tr><td class="rank">1</td><td>ダンジョンの案内人</td><td class="n">96</td><td class="n">372</td></tr>
+        <tr><td class="rank">2</td><td>フラクチャライズ</td><td class="n">78</td><td class="n">289</td></tr>
+        <tr><td class="rank">3</td><td>創造の衝撃</td><td class="n">71</td><td class="n">254</td></tr>
+        <tr><td class="rank">4</td><td>逝きし者の退去</td><td class="n">64</td><td class="n">231</td></tr>
+        <tr><td class="rank">5</td><td>風車の技師</td><td class="n">59</td><td class="n">208</td></tr>
+        <tr><td class="rank">6</td><td>アトモス・アーマー Type-Hermes</td><td class="n">52</td><td class="n">187</td></tr>
+        <tr><td class="rank">7</td><td>妖精のささやき</td><td class="n">48</td><td class="n">166</td></tr>
+        <tr><td class="rank">8</td><td>霜誓いのパラディン</td><td class="n">44</td><td class="n">152</td></tr>
+        <tr><td class="rank">9</td><td>あべこべの布告</td><td class="n">41</td><td class="n">141</td></tr>
+        <tr><td class="rank">10</td><td>ハンプティ・ダンプティ、運命の落下</td><td class="n">37</td><td class="n">128</td></tr>
+        <tr><td class="rank">11</td><td>エーデルシュタイン、ダイヤの女王</td><td class="n">33</td><td class="n">114</td></tr>
+        <tr><td class="rank">12</td><td>tempered-resolve-prd <span style="color:var(--muted)">(未訳)</span></td><td class="n">29</td><td class="n">98</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>閲覧</h2>
+    <h3>日次の閲覧数（直近30日・UTC基準）</h3>
+    <div class="spark"><i style="height:52%"></i><i style="height:61%"></i><i style="height:48%"></i><i style="height:44%"></i><i style="height:57%"></i><i style="height:73%"></i><i style="height:81%"></i><i style="height:66%"></i><i style="height:54%"></i><i style="height:49%"></i><i style="height:58%"></i><i style="height:70%"></i><i style="height:88%"></i><i style="height:79%"></i><i style="height:62%"></i><i style="height:55%"></i><i style="height:51%"></i><i style="height:64%"></i><i style="height:76%"></i><i style="height:92%"></i><i style="height:84%"></i><i style="height:68%"></i><i style="height:59%"></i><i style="height:63%"></i><i style="height:71%"></i><i style="height:86%"></i><i style="height:100%"></i><i style="height:90%"></i><i style="height:74%"></i><i style="height:67%"></i></div>
+    <div class="axis"><span>7/10</span><span>7/25</span><span>8/8（UTC）</span></div>
+
+    <div class="cols" style="margin-top:14px;">
+      <div>
+        <h3>機能カテゴリ別（30日・畳み込み後）</h3>
+        <div class="scroll-x">
+        <table>
+          <thead><tr><th>カテゴリ</th><th class="n">閲覧数</th><th class="n">構成比</th></tr></thead>
+          <tbody>
+            <tr><td>カード個別ページ</td><td class="n">12,480</td><td class="n">38.7%</td></tr>
+            <tr><td>トップ（カードDB）</td><td class="n">8,932</td><td class="n">27.7%</td></tr>
+            <tr><td>大会詳細</td><td class="n">3,214</td><td class="n">10.0%</td></tr>
+            <tr><td>デッキ構築ツール</td><td class="n">2,105</td><td class="n">6.5%</td></tr>
+            <tr><td>セット別ページ</td><td class="n">1,760</td><td class="n">5.5%</td></tr>
+            <tr><td>大会一覧</td><td class="n">980</td><td class="n">3.0%</td></tr>
+            <tr><td>カード一覧</td><td class="n">742</td><td class="n">2.3%</td></tr>
+            <tr><td>用語解説</td><td class="n">388</td><td class="n">1.2%</td></tr>
+            <tr><td>印刷PDF生成 <span style="color:var(--muted);font-size:11.5px;">※ 2026-08-10 計測開始</span></td><td class="n">0</td><td class="n">0.0%</td></tr>
+            <tr class="warnrow">
+              <td><span class="wbadge">⚠</span> その他
+                <details class="sub"><summary>畳み漏れの内訳を見る（5%超）</summary>
+                  <table>
+                    <tbody>
+                      <tr><td>/decks</td><td class="n">712</td></tr>
+                      <tr><td>/tools/</td><td class="n">431</td></tr>
+                      <tr><td>/404</td><td class="n">288</td></tr>
+                      <tr><td>/sitemap.xml</td><td class="n">211</td></tr>
+                    </tbody>
+                  </table>
+                </details>
+              </td>
+              <td class="n">1,642</td><td class="n">5.1%</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+      <div>
+        <h3>よく読まれるカードページ（top20・モックでは6行）</h3>
+        <div class="scroll-x">
+        <table>
+          <thead><tr><th class="n">#</th><th>カード</th><th class="n">閲覧数</th></tr></thead>
+          <tbody>
+            <tr><td class="rank">1</td><td>ダンジョンの案内人</td><td class="n">412</td></tr>
+            <tr><td class="rank">2</td><td>創造の衝撃</td><td class="n">356</td></tr>
+            <tr><td class="rank">3</td><td>アトモス・アーマー Type-Hermes</td><td class="n">301</td></tr>
+            <tr><td class="rank">4</td><td>フラクチャライズ</td><td class="n">288</td></tr>
+            <tr><td class="rank">5</td><td>妖精のささやき</td><td class="n">244</td></tr>
+            <tr><td class="rank">6</td><td>霜誓いのパラディン</td><td class="n">219</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <h3>参照元（30日）</h3>
+        <div class="meter"><span class="mlab">google.com</span><span class="mtrack"><span class="mfill" style="width:100%"></span></span><span class="mval">4,982</span></div>
+        <div class="meter"><span class="mlab">（直接）</span><span class="mtrack"><span class="mfill" style="width:62.4%"></span></span><span class="mval">3,110</span></div>
+        <div class="meter"><span class="mlab">t.co</span><span class="mtrack"><span class="mfill" style="width:16.3%"></span></span><span class="mval">812</span></div>
+        <div class="meter"><span class="mlab">bing.com</span><span class="mtrack"><span class="mfill" style="width:8.1%"></span></span><span class="mval">402</span></div>
+        <div class="meter"><span class="mlab">discord.com</span><span class="mtrack"><span class="mfill" style="width:5.8%"></span></span><span class="mval">291</span></div>
+        <div class="meter"><span class="mlab">x.com</span><span class="mtrack"><span class="mfill" style="width:3.8%"></span></span><span class="mval">188</span></div>
+
+        <h3>端末 / 国（30日）</h3>
+        <div class="meter"><span class="mlab">モバイル</span><span class="mtrack"><span class="mfill" style="width:61.3%"></span></span><span class="mval">61.3%</span></div>
+        <div class="meter"><span class="mlab">デスクトップ</span><span class="mtrack"><span class="mfill" style="width:34.8%"></span></span><span class="mval">34.8%</span></div>
+        <div class="meter"><span class="mlab">タブレット</span><span class="mtrack"><span class="mfill" style="width:3.9%"></span></span><span class="mval">3.9%</span></div>
+        <div class="meter"><span class="mlab">日本</span><span class="mtrack"><span class="mfill" style="width:88.2%"></span></span><span class="mval">88.2%</span></div>
+        <div class="meter"><span class="mlab">アメリカ</span><span class="mtrack"><span class="mfill" style="width:4.1%"></span></span><span class="mval">4.1%</span></div>
+        <div class="meter"><span class="mlab">台湾</span><span class="mtrack"><span class="mfill" style="width:2.3%"></span></span><span class="mval">2.3%</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>運用ヘルス</h2>
+    <ul class="hl">
+      <li><span class="mark">✅</span><span>日次cronの最終更新 <span class="sub">2026-08-09 03:02 JST（8時間前）</span></span></li>
+      <li><span class="mark">✅</span><span>シーズン禁止の終了日が未設定 <span class="sub">1件（現行シーズン＝正常）</span></span></li>
+      <li><span class="mark">⚠️</span><span>未pushコミット 3件 <span class="sub" style="color:var(--warn)">うち本番配信物 1件（docs/ 以外を含む）</span></span></li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>閲覧の取得に失敗したときの表示（参考・実際はこの1セクションだけが差し替わる）</h2>
+    <div class="fail">
+      <b>⚠️ 閲覧数を取得できませんでした</b> — Cloudflare APIトークンに <b>Account Analytics: Read</b> がありません。
+      <ol>
+        <li>Cloudflare ダッシュボード &gt; My Profile &gt; API Tokens を開く</li>
+        <li>使用中のトークンの Edit で、Permissions に <b>Account / Account Analytics / Read</b> を1行追加して保存</li>
+        <li><code>~/.cloudflare-token</code> の値は変更不要（既存トークンへの権限追加のため）</li>
+        <li><code>npm run dashboard</code> を再実行</li>
+      </ol>
+      利用者・デッキ・運用ヘルスの数値は、このエラーとは無関係に上のとおり表示されています。
+    </div>
+  </section>
+
+  <footer>
+    データ源と制約:
+    <ul>
+      <li>登録者・デッキ: 本番D1（読み取りのみ）。<b>アクティブ利用者は31日以上前の履歴を復元できない</b>（sessionsは30日で失効し、ログイン時に削除される）</li>
+      <li>閲覧: Cloudflare Web Analytics。<b>アダプティブサンプリング</b>のため概算値。生データの保持は7日・遡れるのは約6か月 → 長期推移はローカルのスナップショットが正</li>
+      <li>日付は<b>閲覧グラフのみUTC基準</b>、取得日時はJST</li>
+      <li>bot判定されたアクセスは除外済み</li>
+      <li>印刷PDF生成は 2026-08-10 にビーコンを設置。それ以前は計測対象外（0件はデータ無しの意味）</li>
+    </ul>
+  </footer>
+</div>
+</body>
+</html>
+</script>
+
+<script>
+  var src = document.getElementById('dash-src').textContent;
+  document.getElementById('f-wide').srcdoc = src;
+  document.getElementById('f-narrow').srcdoc = src;
+</script>
+</body>
+</html>
