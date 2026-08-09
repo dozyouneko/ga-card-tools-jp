@@ -2347,6 +2347,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/tournaments/56416/</loc>
+    <lastmod>2026-08-08</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/tournaments/56432/</loc>
     <lastmod>2026-06-20</lastmod>
     <changefreq>yearly</changefreq>
@@ -2559,6 +2565,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/tournaments/57717/</loc>
     <lastmod>2026-07-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/tournaments/57745/</loc>
+    <lastmod>2026-08-08</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.7</priority>
   </url>
