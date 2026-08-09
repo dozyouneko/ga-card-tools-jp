@@ -83,7 +83,9 @@ function serve(port) {
       const urlPath = decodeURIComponent((req.url || "/").split("?")[0]);
       const rel = urlPath === "/" ? "index.html" : urlPath.replace(/^\/+/, "");
       const file = path.join(OUT_DIR, rel);
-      if (!file.startsWith(OUT_DIR)) {
+      // ⚠️ 単なる前方一致だと `tmp/dashboard-backup/…` のような**兄弟ディレクトリ**が
+      //    すり抜ける（レビュー S1-2）。区切り文字まで含めて比較する。
+      if (file !== OUT_DIR && !file.startsWith(OUT_DIR + path.sep)) {
         res.writeHead(403).end("Forbidden");
         return;
       }

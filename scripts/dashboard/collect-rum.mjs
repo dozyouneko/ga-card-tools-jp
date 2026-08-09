@@ -71,14 +71,21 @@ async function fetchGroup(token, { dimensions, limit, orderBy, filter }) {
   return r;
 }
 
-/** PV = count × avg(sampleInterval)（設計書 §5.2。妥当性は V4b で突合する） */
+/**
+ * PV = `count` **そのまま**（設計書 §5.2・1.1 で訂正）。
+ * ⚠️ `avg(sampleInterval)` を掛けてはいけない。`count` は「サンプル行数 × sampleInterval」で
+ *    既に重み付け済みの推定値で、掛け直すと約10倍に過大評価する（2026-08-09 実測）。
+ */
 function pvOf(g) {
-  const c = Number(g.count || 0);
-  const s = Number(g?.avg?.sampleInterval ?? 1) || 1;
-  return Math.round(c * s);
+  return Number(g.count || 0);
 }
 function visitsOf(g) {
   return Number(g?.sum?.visits || 0);
+}
+/** サンプリング倍率。1 を超えていたら画面に「概算値」バッジを出す（表示はしない・§5.2） */
+function siOf(g) {
+  const s = Number(g?.avg?.sampleInterval ?? 1);
+  return Number.isFinite(s) && s > 0 ? s : 1;
 }
 
 /**
@@ -129,9 +136,17 @@ export async function collectRum({ log = () => {}, days = 30 } = {}) {
     }
     const key = spec.dimensions[0];
     data[spec.id] = r.groups
-      .map((g) => ({ key: g?.dimensions?.[key] ?? "", pv: pvOf(g), visits: visitsOf(g), count: Number(g.count || 0) }))
+      .map((g) => ({ key: g?.dimensions?.[key] ?? "", pv: pvOf(g), visits: visitsOf(g), count: Number(g.count || 0), si: siOf(g) }))
       .sort((a, b) => (spec.id === "r1" ? a.key.localeCompare(b.key) : b.pv - a.pv));
   }
+
+  // サンプリング倍率（日次 r1 を count で重み付けした平均と最大）。1 を超えたら画面に概算値バッジを出す。
+  const siRows = data.r1 || [];
+  const siWeight = siRows.reduce((a, r) => a + (Number(r.count) || 0), 0);
+  data.sampleInterval = {
+    avg: siWeight ? siRows.reduce((a, r) => a + (Number(r.count) || 0) * r.si, 0) / siWeight : 1,
+    max: siRows.length ? Math.max(...siRows.map((r) => r.si)) : 1,
+  };
 
   if (errors.length === specs.length) {
     const message = errors[0].message;

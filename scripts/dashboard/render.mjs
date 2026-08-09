@@ -56,6 +56,20 @@ function empty(msg = "データがありません") {
   return `<p class="empty">${esc(msg)}</p>`;
 }
 
+/**
+ * サンプリング中バッジ（§5.2）。`sampleInterval` が 1 を超える期間は実測値ではなく推定値。
+ * ⚠️ 値そのものは `count` のまま（換算しない）。バッジは「概算である」ことだけを伝える。
+ */
+function samplingBadge(si) {
+  const max = Number(si?.max ?? 1);
+  const avg = Number(si?.avg ?? 1);
+  if (!Number.isFinite(max) || max <= 1.0001) return "";
+  const t = `Cloudflare Web Analytics のアダプティブサンプリングが効いている期間です（サンプリング倍率 平均 ${avg.toFixed(
+    1
+  )} / 最大 ${max.toFixed(1)}）。表示値は count そのままの推定値で、こちらで換算はしていません。`;
+  return ` <span class="sbadge" title="${esc(t)}">サンプリング中（概算値）</span>`;
+}
+
 function mdLabel(ymd) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd || ""));
   return m ? `${Number(m[2])}/${Number(m[3])}` : String(ymd || "");
@@ -125,6 +139,10 @@ export function categorizePath(rawPath) {
   if (p.startsWith("/tools/glossary/")) return "用語解説";
   if (p === "/tournaments/") return "大会一覧";
   if (/^\/tournaments\/[^/]+\/?$/.test(p)) return "大会詳細";
+  // 規則11（1.1で追加）: 順位表が fetch で読む HTML 断片。ビーコンは無いのに RUM に記録されていた。
+  // 「断片が閲覧されている」と読み違えないよう大会詳細に合流させる。本番では .html が拡張子トリム
+  // （308）されるため、両方の形を書く。
+  if (/^\/tournaments\/[^/]+\/decks(\.html)?\/?$/.test(p)) return "大会詳細";
   if (p === "/decks" || p === "/decks.html") return "デッキ一覧";
   return "その他";
 }
@@ -196,7 +214,7 @@ function firstRow(rows) {
   return Array.isArray(rows) && rows.length ? rows[0] : null;
 }
 
-function renderUsers(d1, history) {
+function renderUsers(d1, history, todayUtc) {
   if (!d1) return `<section class="card"><h2>利用者</h2>${empty("D1を取得できていません")}</section>`;
   const users = Number(firstRow(d1.q1)?.c ?? 0);
   const q3 = firstRow(d1.q3) || {};
@@ -204,7 +222,9 @@ function renderUsers(d1, history) {
   const a30 = Number(q3.a30 ?? 0);
   const owners = Number(firstRow(d1.q4)?.owners ?? 0);
 
-  const today = new Date().toISOString().slice(0, 10);
+  // ⚠️ 基準日は「実行時の今日」ではなく取得時刻（snapshot.fetchedAt）に統一する。
+  //    --no-fetch で古いスナップショットを再生成したとき、KPI（fetchedAt 基準）とグラフが1日以上ずれるため。
+  const today = todayUtc;
   const reg = utcDaySeries((d1.q2 || []).map((r) => ({ key: r.d, v: r.c })), 60, today);
 
   // 1人あたりの保存デッキ数（0件＝デッキを持たない登録者）
@@ -468,7 +488,7 @@ function renderRum(rum, names) {
   return `<section class="card">
     <h2>閲覧</h2>
     ${partial}
-    <h3>日次の閲覧数（直近${d.days || 30}日・UTC基準）</h3>
+    <h3>日次の閲覧数（直近${d.days || 30}日・UTC基準）${samplingBadge(d.sampleInterval)}</h3>
     ${spark(daily, { suffix: "PV" })}
     <div class="cols" style="margin-top:14px;">
       <div>
@@ -502,9 +522,13 @@ function renderHealth(health) {
     else if (it.id === "banlist")
       sub = it.count === 0 ? "0件" : `${num(it.count)}件（${esc(it.names.join("・"))}）${it.count === 1 ? "＝現行シーズン・正常" : ""}`;
     else if (it.id === "unpushed")
-      sub = it.prodFileCount
-        ? `うち本番配信物 ${num(it.prodFileCount)}件（docs/ 以外のファイル）: ${esc(it.prodFiles.join(", "))}`
-        : "本番配信物なし（docs/ 以外の差分は0件）";
+      // ⚠️ S3-1（設計書1.1で「直さない」と決定）: 判定は `git fetch` せずローカルの origin/main と比べる。
+      //    多めに出る＝pushを促す安全側。副作用で fetch を走らせないぶん、注記で断っておく。
+      sub = `${
+        it.prodFileCount
+          ? `うち本番配信物 ${num(it.prodFileCount)}件（docs/ 以外のファイル）: ${esc(it.prodFiles.join(", "))}`
+          : "本番配信物なし（docs/ 以外の差分は0件）"
+      }<span class="note">（<code>git fetch</code> はしないので、<code>origin/main</code> が古いと多めに出ます）</span>`;
     const label = it.id === "unpushed" ? `未pushコミット ${num(it.commits)}件` : esc(it.label);
     return `<li><span class="mark">${mark}</span><span>${label} <span class="sub${
       it.warn ? " warn" : ""
@@ -587,7 +611,7 @@ export function renderDashboard({ snapshot, history = [], names = {}, fromSnapsh
         )}</p>閲覧・運用ヘルスは、このエラーとは無関係に表示されています。</div>`
   }
 
-  ${renderUsers(d1, history)}
+  ${renderUsers(d1, history, today)}
   ${renderDecks(d1, names)}
   ${renderRum(rum, names)}
   ${renderHealth(health)}
@@ -596,7 +620,7 @@ export function renderDashboard({ snapshot, history = [], names = {}, fromSnapsh
     データ源と制約:
     <ul>
       <li>登録者・デッキ: 本番D1（<b>読み取りのみ</b>）。<b>アクティブ利用者は31日以上前の履歴を復元できない</b>（sessionsは30日で失効し、ログイン時に期限切れ行が削除される）</li>
-      <li>閲覧: Cloudflare Web Analytics。<b>アダプティブサンプリング</b>のため概算値（閲覧数 = count × avg(sampleInterval)）。生データの保持は7日・遡れるのは約6か月 → 長期推移はローカルのスナップショットが正</li>
+      <li>閲覧: Cloudflare Web Analytics。<b>アダプティブサンプリング</b>のため概算値（閲覧数は <code>count</code> をそのまま表示。<b><code>avg(sampleInterval)</code> は掛けない</b>— <code>count</code> は既に重み付け済みで、掛けると約10倍に過大評価する）。生データの保持は7日・遡れるのは約6か月 → 長期推移はローカルのスナップショットが正</li>
       <li>日付は<b>閲覧グラフと新規登録グラフがUTC基準</b>、取得日時はJST</li>
       <li>bot判定されたアクセスは除外済み（bot: 0）</li>
       <li>印刷PDF生成は ${esc(PRINT_BEACON_SINCE)} にビーコンを設置。それ以前は計測対象外（0件はデータ無しの意味）</li>
@@ -660,6 +684,10 @@ const STYLE = `  :root{
   h3{ font-size:12.5px; color:var(--muted); margin:14px 0 6px; font-weight:600; }
   h3:first-of-type{ margin-top:0; }
   .cols{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  /* ⚠️ V11b: グリッドアイテムの既定 min-width は auto（＝min-content）。これが無いと
+     「畳み漏れの内訳」<details> を開いたとき、入れ子テーブルの min-content に列が引っ張られ、
+     .scroll-x の内側で収まらず 375px でページ本体が横スクロールする（実測 500px）。 */
+  .cols > *{ min-width:0; }
 
   table{ width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
   th,td{ padding:5px 8px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
@@ -686,6 +714,10 @@ const STYLE = `  :root{
   details.sub{ margin:6px 0 0; }
   details.sub summary{ cursor:pointer; font-size:12px; color:var(--accent); }
   details.sub table{ margin-top:6px; }
+  details.sub td{ word-break:break-all; }
+  .sbadge{ display:inline-block; font-size:11px; font-weight:600; color:var(--warn); background:var(--warnbg);
+           border:1px solid currentColor; border-radius:999px; padding:0 7px; margin-left:6px; white-space:nowrap; }
+  .note{ color:var(--muted); }
   .info{ border:none; background:none; color:var(--accent); cursor:pointer; font:inherit; font-size:12px; padding:0 2px; }
   .fail{ background:var(--warnbg); border:1px solid var(--warn); border-radius:8px; padding:12px 14px; font-size:13px; margin-bottom:14px; }
   .fail b{ color:var(--warn); }
