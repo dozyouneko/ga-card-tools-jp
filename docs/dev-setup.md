@@ -389,7 +389,7 @@ git config user.email "1020dozyouneko@gmail.com"
 
 | ファイル | 内容 | 再発行方法 | コンテナ再構築で消える? |
 | --- | --- | --- | --- |
-| `/home/node/.cloudflare-token` | Cloudflare APIトークン(1行、`chmod 600`) | Cloudflareダッシュボード > My Profile > API Tokens > Create Token。権限: **Account/D1:Edit、Account/Cloudflare Pages:Edit、Account/Account Settings:Read、User/User Details:Read** | ⚠️ **消える**(`/home/node` 配下) |
+| `/home/node/.cloudflare-token` | Cloudflare APIトークン(1行、`chmod 600`) | Cloudflareダッシュボード > My Profile > API Tokens > Create Token。権限: **Account/D1:Edit、Account/Cloudflare Pages:Edit、Account/Account Settings:Read、Account/Account Analytics:Read、User/User Details:Read** | ⚠️ **消える**(`/home/node` 配下) |
 | `.dev.vars`(リポジトリ直下) | `DISCORD_CLIENT_ID=...` と `DISCORD_CLIENT_SECRET=...` の2行 | Discord Developer Portal > 対象アプリ > OAuth2。Client IDは表示されている値、Secretは「Reset Secret」で再発行。**Secretを再発行したら本番Pagesのsecret(下記の注意参照)も更新すること** | ✅ 残る |
 | `~/.claude/projects/-workspaces-claude-test-vsc/memory/` | Claude Codeのmemory | バックアップからのみ復元可(なければClaudeが徐々に再学習)。**恒久ルールは `CLAUDE.md`(git管理)にあるので復元は任意** | ⚠️ **消える**(`/home/node` 配下) |
 | `tmp/`(リポジトリ直下) | 計画メモ・手順書類 | バックアップからのみ復元可 | ✅ 残る |
@@ -399,6 +399,11 @@ git config user.email "1020dozyouneko@gmail.com"
 > `CLOUDFLARE_API_TOKEN=$(cat /home/node/.cloudflare-token) CLOUDFLARE_ACCOUNT_ID=53dcf4e7f02ea5e504977816a68865f5 npx wrangler <cmd>`
 >
 > 本番Pagesの環境変数は必ず **secret_text(暗号化変数)** で設定する。plain_textはwrangler.tomlに毎デプロイ上書きされて消える。
+>
+> ⚠️ **`Account Analytics: Read` は運営ダッシュボード(`npm run dashboard`・#56)が使う。**
+> これが無いと Web Analytics の GraphQL が `not authorized for that account` を返し、
+> ダッシュボードの**閲覧セクションだけ**がエラー表示になる(他のセクションは通常どおり出る)。
+> 既存トークンに権限を1行追加するだけなら `~/.cloudflare-token` の値は変わらない。
 
 ## 6. ここからClaude Codeに任せる
 

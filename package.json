@@ -9,6 +9,7 @@
     "setup:env": "bash .devcontainer/setup.sh",
     "scaffold": "node scripts/scaffold.mjs",
     "validate": "node scripts/validate.mjs",
+    "dashboard": "node scripts/dashboard/index.mjs",
     "build:cards": "node scripts/build-card-pages.mjs",
     "build:tournaments": "node scripts/build-tournament-pages.mjs",
     "pages:dev": "wrangler pages dev . --local",
