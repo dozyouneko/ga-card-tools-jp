@@ -349,7 +349,11 @@ function renderRumFail(rum) {
   const steps = permission
     ? `<ol>
         <li>Cloudflare ダッシュボード &gt; My Profile &gt; API Tokens を開く</li>
-        <li>使用中のトークンの Edit で、Permissions に <b>Account / Account Analytics / Read</b> を1行追加して保存</li>
+        <li>使用中のトークンの <b>Edit</b> で、Permissions に <b>Account / Account Analytics / Read</b> を1行追加して保存<br>
+          ⚠️ <b>同じメニューの <code>Roll</code> と取り違えないこと。</b>Roll は権限を変えずにトークンの値だけを再発行するため、
+          既存の値が無効化され wrangler も RUM もまとめて落ちる（誤って Roll したら、新しい値で <code>~/.cloudflare-token</code> を
+          上書きし <code>chmod 600</code> を保つ）</li>
+        <li>権限行の Account リソースは<b>既存行と同じアカウント</b>を選ぶ（別アカウントだと権限を足しても <code>not authorized</code> のまま）</li>
         <li><code>~/.cloudflare-token</code> の値は変更不要（既存トークンへの権限追加のため）</li>
         <li><code>npm run dashboard</code> を再実行</li>
       </ol>`
