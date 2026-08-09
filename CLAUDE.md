@@ -139,6 +139,9 @@ issueコメントが「実装→設計」の報告経路になる(各セッシ�
 | 開発担当 | 3000 (`npm run dev`) | 8788 (`npm run pages:dev`) |
 | レビュー担当 | 3100 (`PORT=3100 npm run dev`) | 8888 (`npx wrangler pages dev . --local --port 8888`) |
 
+⚠️ **`npm run dashboard` は 3200 を使う**(#56)。上の2役とは別枠なので、ダッシュボードを開いたまま
+開発・レビューを回してよい。`PORT` で変更可(既に使用中だと `EADDRINUSE` で落ちる=#57)。
+
 `scripts/serve.mjs` は `PORT` 環境変数を見る。⚠️ **終わったら止める**(締め作業の項目5)。
 
 #### 6. `tmp/` は役割ごとにサブフォルダを使う
@@ -322,6 +325,19 @@ gh issue list --label push待ち      # 承認済み・push待ち。⚠️セッ
 - `npm run dev` — 静的プレビュー(scripts/serve.mjs、ポート3000)
 - `npm run pages:dev` — Cloudflare Pages Functions込みのローカル実行(wrangler、ポート8788)
 - `npm run validate` — データ検証
+- `npm run dashboard` — **運営ダッシュボード**(#56・2026-08-09〜)。登録者数・デッキ・閲覧数・運用ヘルスを
+  1枚のHTMLにして**ローカルの3200番**で表示する。`--no-fetch` で取得せず再生成(オフライン可)・`--no-serve` で生成のみ
+  - ⚠️ **出力は `tmp/dashboard/` 配下のみ。絶対にコミットしない**(このリポジトリは公開されており、
+    登録者数・閲覧数・人気カードは運営情報。`docs/` に置くと本番配信されなくても**GitHubで誰でも読める**)
+  - ⚠️ **本番D1を `--remote` で読む。SELECT 以外を書かないこと**
+  - **Cloudflare APIトークンに `Account Analytics: Read` が要る**(閲覧数のみ。無くても他3セクションは出る=fail-open)。
+    ⚠️ ダッシュボードでトークンを編集するときは **`Edit`(値が変わらない)と `Roll`(再発行される)を取り違えない**
+  - ⚠️ **Web Analytics の `count` に `avg(sampleInterval)` を掛けてはいけない**(#56 で実測)。
+    `count` は**すでにサンプリング補正済み**で、掛けると**約10倍に過大評価**する。
+    根拠: 日別グループとパス別グループの総 `count` が完全一致し、全行が `sampleInterval` の倍数に丸まる
+  - ⚠️ **site tag(`27d8…`)と site token(`79f3…`)は別物**。GraphQL の `siteTag` に後者を渡すと
+    **エラーにならず0件**になる。HTMLのビーコンに書くのは後者
+  - 詳細は `docs/design/56-運営ダッシュボード/`
 - ⚠️ **新セットが公式APIに入ったら `data/translations.js` の `meta.sets` に手で追記する**(#40)。
   セットページ・`sitemap.xml`・トップの静的リンクは**日次cronがAPIから自動生成する**が、
   **エキスパンション絞り込み(`#f-set`)の選択肢だけは手書き**で、更新の号令が無い。
@@ -366,6 +382,9 @@ gh issue list --label push待ち      # 承認済み・push待ち。⚠️セッ
     - この失敗は**安全側**である(使えるカードを「使えない」と表示する)。逆方向(禁止の見落とし)は
       大会での失格につながるため、**`null` をfail-openにしてはいけない**
   - ロールバックは **`seasons` を `[]` にしてpushするだけ**(表示・判定が全部消える。コード修正より速い)
+  - ⚠️ **消費側が2026-08-09に1つ増えた**(#56)。ブラウザ5面+ビルドに加えて **`npm run dashboard` の
+    運用ヘルス**が `effectiveTo: null` の件数を見る(**2件以上で警告**=前シーズンの終了日の埋め忘れ検知)。
+    ⭐ これで「`effectiveTo` を埋め忘れると禁止が永久に残る」問題に**初めて検出経路ができた**
   - 詳細は `docs/design/34-シーズン禁止/`
 - `node scripts/gen-tl-json.mjs` — 翻訳データを**ブラウザ用のJSONに変換**する(#22フェーズ2)。
   `data/tl/*.js`(人間が訳を書く原本)から `data/tl-names.json`(名前)と
@@ -374,6 +393,9 @@ gh issue list --label push待ち      # 承認済み・push待ち。⚠️セッ
     `data/tl/*.js` を**実行時に読まなくなった**ため、再生成しないと**新しい訳が本番に出ない**
   - ✅ 忘れても **`npm run validate` が exit 1 で落ちる**(生成物と `data/tl/*.js` の一致を検査する)。
     「気づけない」問題にはならない(#27 の索引も #29 でcron自動再生成になり、同じ懸念は解消済み)
+  - ⚠️ **`data/tl-names.json` の消費側が2026-08-09に1つ増えた**(#56)。ブラウザ/ビルドに加えて
+    **`npm run dashboard`** が slug→日本語名の解決に読む。壊れると**ダッシュボードの人気カード・
+    人気チャンピオンが slug のまま**になる(`(未訳)` 付きで表示され落ちはしない=fail-open)
   - ⚠️ **新しい `data/tl/*.js` を足すとき、`index.html` の編集は不要になった**(#22フェーズ2)。
     以前は `index.html` の `<script src="data/…">` の並びが読み込み順の出所だったが、
     同フェーズで `<script>` を撤去したため、**`scripts/lib/page-i18n.mjs` は
@@ -436,6 +458,9 @@ gh issue list --label push待ち      # 承認済み・push待ち。⚠️セッ
   - GitHub Actions `build-tournaments.yml` の日次cronが **毎日 03:00 JST に稼働中**(2026-07-22〜)。
     新規大会がなくても `data/tournaments/index.json` の `scan.maxId`(次回スキャン位置)が
     毎日進むため、**1日1件の自動コミットが発生するのは正常**(差分2行)
+    - ⚠️ **`data/tournaments/index.json` の消費側が2026-08-09に1つ増えた**(#56)。
+      **`npm run dashboard` の運用ヘルス**が `updatedAt` を読み、**48時間より古いと警告**を出す。
+      ⭐ これで**cronが止まったことに気づく経路ができた**(従来はコミットが来ないことに人が気づくしかなかった)
   - **cronがコミットする範囲**(#30・2026-07-27〜):
     `data/tournaments` `tournaments` `sitemap.xml` `cards` `sets` `data/card-meta-index.json` `data/featured-sets.json`
     - 以前は **`sitemap.xml` だけ**をコミットし、カードページ2,240枚・セットページ56枚は生成して捨てていた。
