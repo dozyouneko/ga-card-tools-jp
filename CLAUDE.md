@@ -297,10 +297,23 @@ gh issue list --label push待ち      # 承認済み・push待ち。⚠️セッ
   - ⚠️ **`scripts/` も配信される**(2026-08-08実測: `/scripts/lib/cards-snapshot.mjs`
     `/scripts/build-card-pages.mjs` とも **200**)。ビルドツールの変更でも**pushは本番公開**になるので、
     「サイトの見た目が変わらないから安全」と判断しない(#24の対象)
-  - ⚠️ **ドットフォルダも同じく配信される**(2026-08-05実測: `/.claude/agents/design.md`
-    `/.claude/aliases.sh` `/.devcontainer/devcontainer.json` はいずれも **200**)。
-    「`.` 始まりだからPagesが除外する」は**誤り**。gitignoreされているファイル
-    (`.claude/settings.local.json` 等)がリポジトリに無いので404になるだけ
+  - ⭐ **ドットフォルダ配下は配信されない。ルート直下のドットファイルは配信される**
+    (2026-08-09実測・#9のpush時に確認。**キャッシュ回避クエリ付き**で測定):
+
+    | パス | 応答 |
+    |---|---|
+    | `/.devcontainer/setup.sh` `/.devcontainer/devcontainer.json` | **404** |
+    | `/.claude/aliases.sh` `/.claude/agents/dev.md` | **404** |
+    | `/.gitignore` | **200** |
+    | `/CLAUDE.md` `/package.json` `/wrangler.toml` `/robots.txt` | **200** |
+
+    - ⚠️ **2026-08-05の「ドットフォルダも200」という記述は誤りだった**(同じURLが2026-08-09に404)。
+      Pagesは**ディレクトリ名が `.` 始まりのものを配信対象から除外する**と考えるのが実測に合う
+    - ⭐ **`.devcontainer/` `.claude/` の変更は本番の公開面を増やさない。**
+      ただし**push自体は本番デプロイを起こす**(同じコミットの他ファイルが公開される)ので、
+      **pushの承認が要る点は変わらない**
+    - ⚠️ **新規ファイルを「デプロイ到達マーカー」に使うときは、ドットフォルダ配下を選ばない**
+      (永久に404のままなので到達判定にならない。#9 で実際に5分間空振りした)
 - 例外: GitHub Actions `build-tournaments.yml` による日次の自動commit・pushは
   ユーザー合意済みの運用のため対象外
 
