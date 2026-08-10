@@ -31,10 +31,27 @@ const namesReady = window.GA_CARD_I18N.loadNames(TL_NAMES_URL);
 const SEASONAL_URL = "../../data/seasonal-banlist.json";
 const seasonalReady = window.GA_CARD_I18N.loadSeasonalBanlist(SEASONAL_URL);
 
-const ZONES = ["material", "main", "side", "maybe"];
-const ZONE_LABEL = { material: "マテリアルデッキ", main: "メインデッキ", side: "サイドボード", maybe: "検討中" };
-const ZONE_SHORT = { material: "マテリアル", main: "メイン", side: "サイド", maybe: "検討中" };
+const ZONES = ["material", "main", "side", "pantheon", "maybe"];
+const ZONE_LABEL = { material: "マテリアルデッキ", main: "メインデッキ", side: "サイドボード", pantheon: "パンテオン", maybe: "検討中" };
+const ZONE_SHORT = { material: "マテリアル", main: "メイン", side: "サイド", pantheon: "パンテオン", maybe: "検討中" };
 const MAIN_MAX = 60, MATERIAL_MAX = 12, SIDE_MAX_PT = 15, SIDE_MAX_CARDS = 15;
+
+// ---------- 構築フォーマット(#4) ----------
+// decks.format は 'STANDARD' | 'PANTHEON' の2値。未知の値・未指定は STANDARD に倒す
+// (マイグレーション前に作られたデッキ・古いAPI応答でも壊れない=fail-open)。
+const FORMAT_INFO = {
+  STANDARD: { badge: "⭐ スタンダード", jp: "スタンダード", cls: "badge-fmt" },
+  PANTHEON: { badge: "🏛 パンテオン", jp: "パンテオン", cls: "badge-fmt is-pantheon" },
+};
+function normalizeFormat(v) { return v === "PANTHEON" ? "PANTHEON" : "STANDARD"; }
+// 表示・集計に使うゾーン。「検討中」は常にアクティブ(メモ用なのでフォーマットに依らない)
+function activeZones(format) {
+  return normalizeFormat(format) === "PANTHEON"
+    ? ["material", "main", "pantheon", "maybe"]
+    : ["material", "main", "side", "maybe"];
+}
+// 現在開いているデッキのフォーマット
+function deckFormat() { return normalizeFormat(deckData && deckData.deck && deckData.deck.format); }
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -45,10 +62,20 @@ const el = {
   viewEditor: $("view-editor"),
   viewDeck: $("view-deck"),
   deckSort: $("deck-sort"),
+  deckFilter: $("deck-filter"),
   deckList: $("deck-list"),
   edTitle: $("ed-title"),
   edRename: $("ed-rename"),
   edPub: $("ed-pub"),
+  edFormat: $("ed-format"),
+  deckWarn: $("deck-warn"),
+  vDeckWarn: $("v-deck-warn"),
+  vFormat: $("v-format"),
+  newDeckModal: $("new-deck-modal"),
+  newDeckName: $("new-deck-name"),
+  newDeckError: $("new-deck-error"),
+  newDeckCreate: $("new-deck-create"),
+  omniPantheonNote: $("omni-pantheon-note"),
   edSave: $("ed-save"),
   edCopyText: $("ed-copy-text"),
   edCopyLink: $("ed-copy-link"),
@@ -153,17 +180,29 @@ function isMaterialCard(card) {
 }
 function sidePoints(card) { return isMaterialCard(card) ? 3 : 1; }
 
+// Boon(パンテオン専用の恩恵カード。types が GREATER BOON / LESSER BOON)か。
+// パンテオンゾーン専用で、メイン/マテリアルには入れられない(#4)
+function boonKind(card) {
+  const t = (card && card.types) || [];
+  if (t.includes("LESSER BOON")) return "lesser";
+  if (t.includes("GREATER BOON")) return "greater";
+  return null;
+}
+function isBoonCard(card) { return boonKind(card) !== null; }
+
 // デッキ行のイラスト。art_image(版指定)があればそれを、なければカードのデフォルト(先頭の版)を使う
 function rowImageUrl(row, card) {
   if (row.art_image) return API + row.art_image;
   return card ? imageUrl(card) : null;
 }
 
-// カードを入れられないゾーンか(マテリアル系はメイン不可、メイン系はマテリアル不可。サイド/検討中は両方可)
+// カードを入れられないゾーンか(マテリアル系はメイン不可、メイン系はマテリアル不可。サイド/検討中は両方可)。
+// Boonはパンテオンゾーン専用で、逆にパンテオンゾーンにはBoon以外を入れられない(#4)
 function zoneDisallowed(card, zone) {
   if (!card) return false;
-  if (zone === "material") return !isMaterialCard(card);
-  if (zone === "main") return isMaterialCard(card);
+  if (zone === "pantheon") return !isBoonCard(card);
+  if (zone === "material") return isBoonCard(card) || !isMaterialCard(card);
+  if (zone === "main") return isBoonCard(card) || isMaterialCard(card);
   return false;
 }
 
@@ -259,10 +298,10 @@ function openModal(modal) {
 function closeModal(modal) {
   modal.hidden = true;
   // 他のモーダル(共通のカード詳細含む)が開いたままならスクロールは固定のまま
-  const anyOpen = [el.resultModal, el.omniModal, el.importModal, el.artModal, el.imageModal].some((m) => !m.hidden) || GA_CARD_DETAIL.isOpen();
+  const anyOpen = [el.resultModal, el.omniModal, el.importModal, el.artModal, el.imageModal, el.newDeckModal].some((m) => !m.hidden) || GA_CARD_DETAIL.isOpen();
   if (!anyOpen) document.body.style.overflow = "";
 }
-[["result-modal"], ["omni-modal"], ["import-modal"], ["art-modal"], ["image-modal"]].forEach(([id]) => {
+[["result-modal"], ["omni-modal"], ["import-modal"], ["art-modal"], ["image-modal"], ["new-deck-modal"]].forEach(([id]) => {
   const modal = $(id);
   modal.addEventListener("click", (e) => {
     if (e.target.closest("[data-close]")) closeModal(modal);
@@ -273,6 +312,7 @@ document.addEventListener("keydown", (e) => {
   // 手前のものから順に閉じる
   if (!el.tileMenu.hidden) { el.tileMenu.hidden = true; return; }
   if (GA_CARD_DETAIL.isOpen()) { GA_CARD_DETAIL.close(); return; }
+  if (!el.newDeckModal.hidden) { closeModal(el.newDeckModal); return; }
   if (!el.artModal.hidden) { closeModal(el.artModal); return; }
   if (!el.imageModal.hidden) { closeModal(el.imageModal); return; }
   if (!el.importModal.hidden) { closeModal(el.importModal); return; }
@@ -332,6 +372,7 @@ async function openDeckList() {
     if (seq !== deckSeq) return;
     myDecks = data.decks || [];
     el.bootStatus.hidden = true;
+    renderDeckFilter();
     renderDeckList();
   } catch (err) {
     if (seq !== deckSeq) return;
@@ -340,9 +381,24 @@ async function openDeckList() {
   }
 }
 
+// フォーマット絞り込みの選択肢(件数つき)を組み立て直す。読み込みのたびに呼ぶ。
+// 選択は保持しない(既定「すべて」)が、読み込み中に選ばれていた値は極力維持する
+function renderDeckFilter() {
+  const n = (key) => myDecks.filter((d) => normalizeFormat(d.format) === key).length;
+  const prev = el.deckFilter.value;
+  el.deckFilter.innerHTML = [
+    { v: "", label: `すべて（${myDecks.length}）` },
+    { v: "STANDARD", label: `${FORMAT_INFO.STANDARD.badge}（${n("STANDARD")}）` },
+    { v: "PANTHEON", label: `${FORMAT_INFO.PANTHEON.badge}（${n("PANTHEON")}）` },
+  ].map((o) => `<option value="${o.v}">${escapeHtml(o.label)}</option>`).join("");
+  el.deckFilter.value = prev;
+  if (el.deckFilter.selectedIndex < 0) el.deckFilter.selectedIndex = 0; // 不明な値なら「すべて」に戻す
+}
+
 function sortedDecks() {
   const mode = el.deckSort.value;
-  const decks = [...myDecks];
+  const filter = el.deckFilter.value;
+  const decks = myDecks.filter((d) => !filter || normalizeFormat(d.format) === filter);
   if (mode === "name") decks.sort((a, b) => a.name.localeCompare(b.name, "ja"));
   else if (mode === "created") decks.sort((a, b) => b.created_at.localeCompare(a.created_at));
   else decks.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
@@ -351,8 +407,16 @@ function sortedDecks() {
 
 function renderDeckList() {
   const frag = document.createDocumentFragment();
+  const decks = sortedDecks();
+  if (!decks.length) {
+    el.deckList.innerHTML = myDecks.length
+      ? `<p class="deck-empty">該当するデッキがありません。</p>`
+      : "";
+    return;
+  }
 
-  sortedDecks().forEach((d) => {
+  decks.forEach((d) => {
+    const fmt = normalizeFormat(d.format);
     const item = document.createElement("article");
     item.className = "deck-item";
     item.innerHTML = `
@@ -361,6 +425,7 @@ function renderDeckList() {
         <h3>${escapeHtml(d.name)}</h3>
         <p class="deck-sub">
           <span class="${d.is_public ? "badge-pub" : "badge-priv"}">${d.is_public ? "公開" : "非公開"}</span>
+          <span class="${FORMAT_INFO[fmt].cls}">${FORMAT_INFO[fmt].badge}</span>
           <span class="upd">更新: ${escapeHtml(relativeTime(d.updated_at))}</span>
         </p>
         <div class="deck-actions">
@@ -414,6 +479,7 @@ function renderDeckList() {
       try {
         await api(`/api/decks/${d.id}`, { method: "DELETE" });
         myDecks = myDecks.filter((x) => x.id !== d.id);
+        renderDeckFilter(); // 絞り込みの件数も減らす
         renderDeckList();
         showToast(`「${d.name}」を削除しました`);
       } catch (err) { showToast(`削除に失敗しました(${err.message})`, true); }
@@ -432,14 +498,64 @@ function deckCreateErrorMessage(err) {
   return err.message;
 }
 
-async function createDeck() {
-  const name = prompt("デッキ名を入力してください", "新しいデッキ");
-  if (!name || !name.trim()) return;
-  try {
-    const res = await api("/api/decks", { method: "POST", body: { name: name.trim(), is_public: false } });
-    location.hash = `#edit/${res.deck.id}`;
-  } catch (err) { showToast(`作成に失敗しました(${deckCreateErrorMessage(err)})`, true); }
+// ---------- 新しいデッキ(デッキ名＋フォーマットのモーダル・#4) ----------
+
+// .fmt-choice のラジオカード。選択中のカードに .sel を付け直す(見た目のドット・枠)。
+// ラジオ自体はネイティブのまま残してあるので、キーボード操作(←→)もそのまま効く
+function syncFormatChoices(scope) {
+  scope.querySelectorAll(".fmt-choice").forEach((label) => {
+    const radio = label.querySelector('input[type="radio"]');
+    label.classList.toggle("sel", !!radio && radio.checked);
+  });
 }
+function selectedFormat(name) {
+  const checked = document.querySelector(`input[name="${name}"]:checked`);
+  return normalizeFormat(checked && checked.value);
+}
+document.addEventListener("change", (e) => {
+  const radio = e.target.closest('.fmt-choice input[type="radio"]');
+  if (radio) syncFormatChoices(radio.closest(".fmt-choices"));
+});
+
+function openNewDeckModal() {
+  el.newDeckName.value = "新しいデッキ";
+  el.newDeckError.hidden = true;
+  el.newDeckError.textContent = "";
+  const std = document.querySelector('input[name="new-deck-format"][value="STANDARD"]');
+  if (std) std.checked = true;
+  syncFormatChoices(el.newDeckModal);
+  openModal(el.newDeckModal);
+  el.newDeckName.focus();
+  el.newDeckName.select();
+}
+
+async function submitNewDeck() {
+  const name = el.newDeckName.value.trim();
+  if (!name) {
+    // モーダルは閉じない。API呼び出しも発生させない
+    el.newDeckError.textContent = "デッキ名を入力してください";
+    el.newDeckError.hidden = false;
+    el.newDeckName.focus();
+    return;
+  }
+  el.newDeckCreate.disabled = true;
+  try {
+    const res = await api("/api/decks", {
+      method: "POST",
+      body: { name, is_public: false, format: selectedFormat("new-deck-format") },
+    });
+    closeModal(el.newDeckModal);
+    location.hash = `#edit/${res.deck.id}`;
+  } catch (err) {
+    el.newDeckError.textContent = `作成に失敗しました（${deckCreateErrorMessage(err)}）`;
+    el.newDeckError.hidden = false;
+  } finally {
+    el.newDeckCreate.disabled = false;
+  }
+}
+
+el.newDeckCreate.addEventListener("click", submitNewDeck);
+el.newDeckName.addEventListener("keydown", (e) => { if (e.key === "Enter") submitNewDeck(); });
 
 // ---------- デッキ編集 ----------
 
@@ -487,6 +603,8 @@ function clearEditor() {
   resetSearchForm(); // 前のデッキで入力した検索条件を持ち越さない
   el.edTitle.textContent = "";
   el.edPub.hidden = true;
+  el.edFormat.hidden = true;
+  el.deckWarn.hidden = true;
   el.edMemo.value = "";
   el.memoStatus.textContent = "";
   document.querySelectorAll("#view-editor .zone").forEach((zoneEl) => {
@@ -528,6 +646,10 @@ function renderEditorBar() {
   el.edPub.hidden = false;
   el.edPub.textContent = d.is_public ? "公開" : "非公開";
   el.edPub.className = d.is_public ? "badge-pub" : "badge-priv";
+  const fmt = deckFormat();
+  el.edFormat.hidden = false;
+  el.edFormat.textContent = FORMAT_INFO[fmt].badge;
+  el.edFormat.className = FORMAT_INFO[fmt].cls;
 }
 
 // ゾーン内の並び順: 属性順 → 英名アルファベット順。
@@ -583,20 +705,54 @@ function zoneComparator(zone, bySlug) {
   };
 }
 
+// 表示するゾーンを上から順に返す(#4)。アクティブなゾーン → 非アクティブでカードが残っている
+// ゾーン(掃除用)。フォーマットを切り替えてもカードは絶対に削除せず、ここに残す
+function zoneDisplayOrder(format, cards) {
+  const active = activeZones(format);
+  const leftovers = ZONES.filter((z) => !active.includes(z) && cards.some((c) => c.board === z));
+  return { active, order: [...active, ...leftovers] };
+}
+
 async function renderZones() {
   const seq = deckSeq;
   const cards = deckData.cards;
   const bySlug = await ensureCards(cards.map((c) => c.card_slug));
   if (seq !== deckSeq) return;
 
+  const format = deckFormat();
+  const { active, order } = zoneDisplayOrder(format, cards);
+  const pane = $("ed-pane-deck");
+  const memoBlock = pane.querySelector(".memo-block");
+
   let materialFirst = null; // マテリアル表示順の先頭(サムネ自動設定用)
   ZONES.forEach((zone) => {
-    const zoneEl = document.querySelector(`.zone[data-zone="${zone}"]`);
+    const zoneEl = pane.querySelector(`.zone[data-zone="${zone}"]`);
+    zoneEl.hidden = !order.includes(zone);
+  });
+  order.forEach((zone) => {
+    const zoneEl = pane.querySelector(`.zone[data-zone="${zone}"]`);
+    pane.insertBefore(zoneEl, memoBlock); // 上から order の順に並べ直す(メモは常に最後)
+    const isActive = active.includes(zone);
     const grid = zoneEl.querySelector(".zone-grid");
     const rows = cards
       .filter((c) => c.board === zone)
       .sort(zoneComparator(zone, bySlug));
     if (zone === "material") materialFirst = rows[0] || null;
+
+    // 見出し・注記・メーターを「このフォーマットで使うゾーンか」で切り替える
+    const zname = zoneEl.querySelector(".zname");
+    if (zname) zname.textContent = isActive ? ZONE_LABEL[zone] : `${ZONE_LABEL[zone]}（このフォーマットでは使いません）`;
+    const meter = zoneEl.querySelector(".meter");
+    if (meter) meter.hidden = !isActive;
+    const activeNote = zoneEl.querySelector("[data-active-note]");
+    if (activeNote) activeNote.hidden = !isActive;
+    const inactiveNote = zoneEl.querySelector("[data-inactive-note]");
+    if (inactiveNote) {
+      inactiveNote.hidden = isActive;
+      if (!isActive) {
+        inactiveNote.textContent = `⚠️ ${FORMAT_INFO[format].jp}に${ZONE_LABEL[zone]}はありません。統計・適合判定の対象外です（${FORMAT_INFO[format === "PANTHEON" ? "STANDARD" : "PANTHEON"].jp}に戻すと元通りに数えます）。`;
+      }
+    }
 
     grid.innerHTML = "";
     if (!rows.length) {
@@ -620,19 +776,20 @@ async function renderZones() {
         <div class="ctrl-strip">
           <button data-step="-1" aria-label="減らす">−</button>
           <input class="qv-input" type="number" inputmode="numeric" min="0" max="99" value="${row.qty}" aria-label="枚数を直接入力">
-          <button data-step="1" aria-label="増やす">＋</button>
+          ${isActive ? `<button data-step="1" aria-label="増やす">＋</button>` : ""}
           <button data-menu aria-label="その他">⋯</button>
         </div>`;
       grid.appendChild(tile);
     });
 
-    updateZoneHeader(zone, rows, bySlug);
+    updateZoneHeader(zone, rows, bySlug, isActive);
   });
 
   autoAssignThumb(materialFirst, bySlug);
+  updateDeckWarn(el.deckWarn, cards, bySlug, format);
 
   // 統計タブ表示中ならカード追加/削除/枚数変更で即時更新する
-  if (editorTabs && editorTabs.isStats()) renderStatsInto(el.edPaneStats, cards, bySlug);
+  if (editorTabs && editorTabs.isStats()) renderStatsInto(el.edPaneStats, cards, bySlug, format);
 }
 
 // サムネイル未指定のデッキは、マテリアル表示順の先頭カードを自動でサムネイルに設定する。
@@ -654,8 +811,19 @@ async function autoAssignThumb(firstRow, bySlug) {
   finally { thumbAssigning = false; }
 }
 
-function updateZoneHeader(zone, rows, bySlug) {
-  const zoneEl = document.querySelector(`.zone[data-zone="${zone}"]`);
+// パンテオンゾーンの Lesser / Greater の枚数(#4)
+function boonCounts(rows, bySlug) {
+  let lesser = 0, greater = 0;
+  rows.forEach((r) => {
+    const kind = boonKind(bySlug.get(r.card_slug));
+    if (kind === "lesser") lesser += r.qty;
+    else if (kind === "greater") greater += r.qty;
+  });
+  return { lesser, greater };
+}
+
+function updateZoneHeader(zone, rows, bySlug, isActive = true) {
+  const zoneEl = document.querySelector(`#view-editor .zone[data-zone="${zone}"]`);
   const cnt = zoneEl.querySelector(".cnt");
   const bar = zoneEl.querySelector(".meter > i");
   const total = rows.reduce((s, r) => s + r.qty, 0);
@@ -667,7 +835,23 @@ function updateZoneHeader(zone, rows, bySlug) {
     bar.classList.toggle("over", !!over);
   };
 
-  if (zone === "main" || zone === "material") {
+  // 非アクティブゾーン(カードが残っているだけ)は枚数のみ。色もメーターも出さない
+  if (!isActive) {
+    cnt.textContent = `${total}枚`;
+    cnt.classList.remove("ok", "over");
+    return;
+  }
+
+  if (zone === "pantheon") {
+    const { lesser, greater } = boonCounts(rows, bySlug);
+    // ASCII表記(375px幅で .zone h3 を折り返さないため。設計 §5-2(d))
+    cnt.textContent = `Lesser ${lesser}/1・Greater ${greater}/1`;
+    const ok = lesser === 1 && greater === 1;
+    const over = lesser > 1 || greater > 1;
+    cnt.classList.toggle("ok", ok);
+    cnt.classList.toggle("over", over);
+    setBar((Math.min(lesser, 1) + Math.min(greater, 1)) / 2, ok, over);
+  } else if (zone === "main" || zone === "material") {
     const max = zone === "main" ? MAIN_MAX : MATERIAL_MAX;
     cnt.textContent = `${total} / ${max}`;
     cnt.classList.toggle("ok", total === max);
@@ -828,8 +1012,12 @@ let menuContext = null; // { slug, board }
 
 function openTileMenu(anchor, slug, board) {
   menuContext = { slug, board };
-  // 現在いるゾーンへの移動は出さない。カード種別的に入れられないゾーンも出さない
-  el.tileMenu.querySelectorAll("[data-move]").forEach((b) => { b.hidden = b.dataset.move === board; });
+  // 現在いるゾーンへの移動は出さない。カード種別的に入れられないゾーン・
+  // このフォーマットで使わないゾーンも出さない(#4)
+  const active = activeZones(deckFormat());
+  el.tileMenu.querySelectorAll("[data-move]").forEach((b) => {
+    b.hidden = b.dataset.move === board || !active.includes(b.dataset.move);
+  });
   // 「イラストを変更」は版が2つ以上あるカードだけに出す
   const artBtn = el.tileMenu.querySelector('[data-act="art"]');
   artBtn.hidden = true;
@@ -986,6 +1174,33 @@ el.edPub.addEventListener("click", async () => {
   finally { endSave(); }
 });
 
+// フォーマットの変更(#4)。⚠️ カードは絶対に削除しない。使わなくなったゾーンのカードは
+// 非アクティブゾーンとして残し、掃除できるようにする
+el.edFormat.addEventListener("click", async () => {
+  if (!deckData) return;
+  const cur = deckFormat();
+  const next = cur === "PANTHEON" ? "STANDARD" : "PANTHEON";
+  const losing = next === "PANTHEON" ? "side" : "pantheon";
+  const n = deckData.cards.filter((c) => c.board === losing).reduce((s, c) => s + c.qty, 0);
+  const lines = [`このデッキを${FORMAT_INFO[next].jp}に変更します。`];
+  if (n) {
+    lines.push(next === "PANTHEON"
+      ? `パンテオンにサイドボードはないため、サイドボードの${n}枚は集計対象外になります（カードは残ります）。`
+      : `スタンダードにパンテオン（Boon）はないため、パンテオンの${n}枚は集計対象外になります（カードは残ります）。`);
+  }
+  lines.push("よろしいですか？");
+  if (!confirm(lines.join("\n"))) return;
+  beginSave();
+  try {
+    const res = await api(`/api/decks/${deckData.deck.id}`, { method: "PATCH", body: { format: next } });
+    deckData.deck = res.deck;
+    renderEditorBar();
+    await renderZones();
+    showToast(`フォーマットを${FORMAT_INFO[next].jp}に変更しました`);
+  } catch (err) { showToast(`変更に失敗しました(${err.message})`, true); }
+  finally { endSave(); }
+});
+
 el.edCopyLink.addEventListener("click", () => {
   copyText(deckShareUrl(deckData.deck.id), "共有リンクをコピーしました");
 });
@@ -1001,11 +1216,13 @@ async function buildOmnidexText() {
     if (!rows.length) return null;
     return `# ${title}\n${rows.map((r) => `${r.qty} ${r.name}`).join("\n")}`;
   };
-  const parts = [
-    section("material", "Material Deck"),
-    section("main", "Main Deck"),
-    section("side", "Sideboard"),
-  ].filter(Boolean);
+  // 出力するのはこのフォーマットで使うゾーンだけ。⚠️ パンテオン(Boon)は omnidex の
+  // テキスト形式が未確認のため出力しない(#4 未決事項C。推測で見出しを足さないこと)
+  const titles = { material: "Material Deck", main: "Main Deck", side: "Sideboard" };
+  const parts = activeZones(deckFormat())
+    .filter((z) => titles[z])
+    .map((z) => section(z, titles[z]))
+    .filter(Boolean);
   return parts.length ? parts.join("\n\n") + "\n" : null;
 }
 
@@ -1014,6 +1231,8 @@ el.edCopyText.addEventListener("click", async () => {
   const text = await buildOmnidexText();
   if (!text) { showToast("デッキが空です", true); return; }
   el.omniText.textContent = text;
+  // パンテオンのデッキのときだけ「Boonを含めていない」ことを断る
+  el.omniPantheonNote.hidden = deckFormat() !== "PANTHEON";
   openModal(el.omniModal);
 });
 $("omni-copy").addEventListener("click", () => {
@@ -1157,7 +1376,8 @@ function totalQtyInDeck(slug) {
 // 検索結果1件の追加ボタン行。入っているゾーンは「− n ＋」のミニステッパーになる
 function renderAddRow(item, card) {
   const row = item.querySelector(".addrow");
-  row.innerHTML = ZONES.map((zone) => {
+  // このデッキのフォーマットで使うゾーンだけを出す(#4)
+  row.innerHTML = activeZones(deckFormat()).map((zone) => {
     const disallowed = zoneDisallowed(card, zone);
     const entry = findEntry(card.slug, zone);
     if (entry) {
@@ -1311,9 +1531,11 @@ el.resultGrid.addEventListener("click", async (e) => {
       const zoneRows = deckData.cards.filter((c) => c.board === zone);
       const bySlug = await ensureCards(zoneRows.map((c) => c.card_slug));
       const total = zoneRows.reduce((s, r) => s + r.qty, 0);
+      const boons = zone === "pantheon" ? boonCounts(zoneRows, bySlug) : null;
       const summary = zone === "main" ? `${total} / ${MAIN_MAX}`
         : zone === "material" ? `${total} / ${MATERIAL_MAX}`
         : zone === "side" ? `${zoneRows.reduce((s, r) => s + sidePoints(bySlug.get(r.card_slug)) * r.qty, 0)} / ${SIDE_MAX_PT} pt`
+        : boons ? `Lesser ${boons.lesser}/1・Greater ${boons.greater}/1`
         : `${total}枚`;
       showToast(`✅ 「${card ? jpName(card) : slug}」を${ZONE_LABEL[zone]}に追加 — ${summary}`);
     } catch (err) {
@@ -1372,7 +1594,8 @@ el.sReset.addEventListener("click", resetSearchForm);
 // クライアント側集計のみ(API/DB変更なし)。編集画面・共有画面で共用する。
 // 表記は GA_CARD_I18N.label() の「英語（日本語訳）」形式をそのまま使う。
 
-const STAT_ZONES = ["material", "main", "side"]; // 集計対象。maybe(検討中)は常に除外
+// 集計対象ゾーンはデッキのフォーマットで決まる(FORMAT_RULES[format].zones)。
+// maybe(検討中)は常に除外。非アクティブゾーン(スタンダードのパンテオン等)も除外する
 // エレメント別の棒色。設計でダーク面#171a21に対し検証済みの3色 + 同明度帯で追加。
 // ラベルを棒に直付けするため色単独には依存しない(未知エレメントはタイプ棒色にフォールバック)。
 const BAR_TYPE = "#56779e";
@@ -1406,20 +1629,24 @@ function cardNameEJ(card) {
 
 // フォーマットごとの構築ルール(2026-07-16 公式TRG・総合ルールで確認)。
 // - STANDARD: メイン同名4枚まで(メインのみで数える。サイドは別途ポイント制)。判定対象=メイン+マテリアル+サイド
-// - PANTHEON: メイン同名1枚(シングルトン)。サイドボードが存在しないため判定対象=メイン+マテリアルのみ。
-//   別途Boon 2枚(Lesser/Greater各1)が必要だが本ツールの管理対象外(注記で案内)
+// - PANTHEON: メイン同名1枚(シングルトン)。サイドボードが存在せず、代わりに Boon(Lesser/Greater 各1枚)を
+//   置くパンテオンゾーンがある。判定対象=メイン+マテリアル+パンテオン
 // - マテリアルは両フォーマットとも同名1枚
 const FORMAT_RULES = {
-  STANDARD: { zones: ["material", "main", "side"], mainCopyLimit: 4 },
-  PANTHEON: { zones: ["material", "main"], mainCopyLimit: 1 },
+  STANDARD: { zones: ["material", "main", "side"], mainCopyLimit: 4, boons: false },
+  PANTHEON: { zones: ["material", "main", "pantheon"], mainCopyLimit: 1, boons: true },
 };
 
 // deckData.cards(board=ゾーン, qty持ち)と bySlug(slug→card)から、ゾーン別+合計の集計を返す。
-function computeDeckStats(cards, bySlug) {
+// 集計対象・適合判定は formatKey(デッキのフォーマット)1つ分だけを見る(#4)。
+function computeDeckStats(cards, bySlug, formatKey) {
+  const key = normalizeFormat(formatKey);
+  const rule = FORMAT_RULES[key];
   const mkAgg = () => ({ count: 0, elements: new Map(), types: new Map(), subtypes: new Map(), fm: 0, fmConditional: 0 });
-  const byZone = { material: mkAgg(), main: mkAgg(), side: mkAgg() };
+  const byZone = {};
+  rule.zones.forEach((z) => { byZone[z] = mkAgg(); });
   const total = mkAgg();
-  const perSlug = new Map(); // slug → { card, qty: {material, main, side} } フォーマット判定用
+  const perSlug = new Map(); // slug → { card, qty: {ゾーン→枚数} } フォーマット判定用
 
   const addTo = (agg, card, qty) => {
     agg.count += qty;
@@ -1432,41 +1659,85 @@ function computeDeckStats(cards, bySlug) {
   };
 
   cards.forEach((row) => {
-    if (!STAT_ZONES.includes(row.board)) return;
+    if (!rule.zones.includes(row.board)) return;
     const card = bySlug.get(row.card_slug);
     if (!card) return;
     const qty = row.qty;
     addTo(byZone[row.board], card, qty);
     addTo(total, card, qty);
-    const p = perSlug.get(row.card_slug) || { card, qty: { material: 0, main: 0, side: 0 } };
-    p.qty[row.board] += qty;
+    const p = perSlug.get(row.card_slug) || { card, qty: {} };
+    p.qty[row.board] = (p.qty[row.board] || 0) + qty;
     perSlug.set(row.card_slug, p);
   });
 
   // フォーマット適合: 禁止カード+枚数制限をFORMAT_RULESに沿って判定する
-  const format = {};
-  Object.entries(FORMAT_RULES).forEach(([key, rule]) => {
-    const banned = [];   // 恒久禁止カード(判定対象ゾーン内)
-    const overMain = []; // メインの同名枚数制限超過
-    const overMaterial = []; // マテリアルの同名1枚制限超過
-    // シーズン禁止(#34)。恒久禁止とは別のリストなので別カウントにする(合算しない)
-    const seasonalActive = []; // 発効済み＝不適合として扱う
-    const seasonalSoon = [];   // 予告(発効前)＝まだ使えるので不適合にはしない
-    perSlug.forEach(({ card, qty }) => {
-      const inScope = rule.zones.reduce((s, z) => s + qty[z], 0);
-      if (inScope && bannedFormats(card).includes(key)) banned.push({ name: cardNameEJ(card), qty: inScope });
-      if (qty.main > rule.mainCopyLimit) overMain.push({ name: cardNameEJ(card), qty: qty.main });
-      if (qty.material > 1) overMaterial.push({ name: cardNameEJ(card), qty: qty.material });
-      const season = inScope ? seasonalBanState(card) : null;
-      if (season && season.season.format === key) {
-        const row = { name: cardNameEJ(card), qty: inScope, season: season.season };
-        (season.state === "active" ? seasonalActive : seasonalSoon).push(row);
-      }
-    });
-    format[key] = { banned, overMain, overMaterial, seasonalActive, seasonalSoon };
+  const banned = [];   // 恒久禁止カード(判定対象ゾーン内)
+  const overMain = []; // メインの同名枚数制限超過
+  const overMaterial = []; // マテリアルの同名1枚制限超過
+  // シーズン禁止(#34)。恒久禁止とは別のリストなので別カウントにする(合算しない)
+  const seasonalActive = []; // 発効済み＝不適合として扱う
+  const seasonalSoon = [];   // 予告(発効前)＝まだ使えるので不適合にはしない
+  const overBoon = [];   // パンテオン: Lesser/Greater が各1枚を超えている(#4)
+  const boonInDeck = []; // パンテオン: Boonがマテリアル/メインに入っている(過去データの救済)
+  perSlug.forEach(({ card, qty }) => {
+    const q = (z) => qty[z] || 0;
+    const inScope = rule.zones.reduce((s, z) => s + q(z), 0);
+    if (inScope && bannedFormats(card).includes(key)) banned.push({ name: cardNameEJ(card), qty: inScope });
+    if (q("main") > rule.mainCopyLimit) overMain.push({ name: cardNameEJ(card), qty: q("main") });
+    if (q("material") > 1) overMaterial.push({ name: cardNameEJ(card), qty: q("material") });
+    const season = inScope ? seasonalBanState(card) : null;
+    if (season && season.season.format === key) {
+      const row = { name: cardNameEJ(card), qty: inScope, season: season.season };
+      (season.state === "active" ? seasonalActive : seasonalSoon).push(row);
+    }
+    if (rule.boons && isBoonCard(card)) {
+      const wrong = q("material") + q("main");
+      if (wrong) boonInDeck.push({ name: cardNameEJ(card), qty: wrong });
+    }
   });
 
-  return { byZone, total, format };
+  // Boonの重複は「種類(Lesser/Greater)ごとの合計」で見る。
+  // ⚠️ 別々のカードを1枚ずつ入れても各1枚を超えるので、slug単位ではなく種類単位で数える
+  if (rule.boons) {
+    const kinds = { lesser: [], greater: [] };
+    cards.forEach((row) => {
+      if (row.board !== "pantheon") return;
+      const card = bySlug.get(row.card_slug);
+      const kind = boonKind(card);
+      if (!kind) return;
+      kinds[kind].push({ name: cardNameEJ(card), qty: row.qty });
+    });
+    ["lesser", "greater"].forEach((k) => {
+      if (kinds[k].reduce((s, r) => s + r.qty, 0) > 1) overBoon.push(...kinds[k]);
+    });
+  }
+
+  const format = { key, banned, overMain, overMaterial, seasonalActive, seasonalSoon, overBoon, boonInDeck };
+  return { key, zones: rule.zones, byZone, total, format };
+}
+
+// 警告バナー(#4)の理由。⚠️ 「不足」(メイン60枚未満・マテリアル12枚未満・Boon 0枚)は
+// 構築途中に常時点灯してノイズになるため出さない(ゾーンのカウンタに委ねる)
+function warnReasons(fmt) {
+  const reasons = [];
+  const bannedN = fmt.banned.reduce((s, b) => s + b.qty, 0);
+  const seasonN = fmt.seasonalActive.reduce((s, b) => s + b.qty, 0);
+  const overN = fmt.overMain.length + fmt.overMaterial.length;
+  if (bannedN) reasons.push(`禁止カード ${bannedN}枚`);
+  if (seasonN) reasons.push(`シーズン禁止カード ${seasonN}枚`);
+  if (overN) reasons.push(`枚数制限の超過 ${overN}種`);
+  if (fmt.overBoon.length) reasons.push(`Boonの重複 ${fmt.overBoon.length}種`);
+  return reasons;
+}
+
+// タブ帯の直上の警告バナーを更新する。編集画面(#deck-warn)と共有画面(#v-deck-warn)で共用。
+function updateDeckWarn(container, cards, bySlug, formatKey) {
+  const key = normalizeFormat(formatKey);
+  const reasons = warnReasons(computeDeckStats(cards, bySlug, key).format);
+  container.hidden = !reasons.length;
+  if (!reasons.length) { container.innerHTML = ""; return; }
+  container.innerHTML = `⚠️ ${FORMAT_INFO[key].jp}で使用できない構成です（${escapeHtml(reasons.join("・"))}）`
+    + `<span class="hint">（詳細は「📊 統計」タブのフォーマット適合へ）</span>`;
 }
 
 // Map を枚数降順の [key, count] 配列にする(同数は英名順で安定化)
@@ -1538,12 +1809,25 @@ function listCardNames(arr, max = 3) {
   return arr.length > max ? `${head} …他${arr.length - max}種` : head;
 }
 
-// フォーマット適合カード。スタンダード/パンテオンのみ(ドラフトは構築デッキに無意味)。
-// 禁止カードに加え、枚数制限(スタンダード=メイン4枚/パンテオン=メイン1枚/マテリアル1枚)も判定する。
-// デッキ最低枚数(60枚)は構築途中に常時⚠️となりノイズのため判定せず、ゾーンヘッダのメーターに委ねる。
+// 判定対象ゾーンの説明(見出しの注記)。「メイン＋マテリアル＋◯◯で判定」
+const JUDGE_NOTE = {
+  STANDARD: "メイン＋マテリアル＋サイドで判定",
+  PANTHEON: "メイン＋マテリアル＋パンテオンで判定",
+};
+// 末尾の注記。パンテオンだけ出す(スタンダードのデッキには関係が無いため)
+const FORMAT_FOOT_NOTE = {
+  STANDARD: "",
+  PANTHEON: "※パンテオンにサイドボードはありません。Boonは対戦開始時に Lesser・Greater 各1枚を裏向きで提示します。",
+};
+
+// フォーマット適合カード。⚠️ デッキのフォーマット1行だけを出す(#4)。
+// 禁止カードに加え、枚数制限(スタンダード=メイン4枚/パンテオン=メイン1枚/マテリアル1枚)、
+// パンテオンではBoonの枚数も判定する。
+// デッキ最低枚数(60枚)とBoonの不足は構築途中に常時⚠️となりノイズのため判定せず、
+// ゾーンヘッダのメーター/カウンタに委ねる。
 function formatCardHtml(fmt) {
   const rowFor = (key) => {
-    const f = fmt[key];
+    const f = fmt;
     const name = FORMAT_JP[key];
     const issues = [];
     if (f.banned.length) {
@@ -1562,6 +1846,13 @@ function formatCardHtml(fmt) {
     if (f.overMaterial.length) {
       issues.push(`⚠️ マテリアル同名1枚制限の超過 — ${listCardNames(f.overMaterial)}`);
     }
+    // パンテオン専用(#4)。Boonの不足は出さない(§5-3(b))
+    if (f.overBoon.length) {
+      issues.push(`⚠️ Boonは Lesser・Greater 各1枚までです — ${listCardNames(f.overBoon)}`);
+    }
+    if (f.boonInDeck.length) {
+      issues.push(`⚠️ Boonはパンテオンゾーンに置いてください — ${listCardNames(f.boonInDeck)}`);
+    }
     // 予告(発効前)は違反ではないので ✅ 使用可能 を消さず、情報行として必ず見える位置に添える(#34)
     const notes = [];
     if (f.seasonalSoon.length) {
@@ -1576,46 +1867,43 @@ function formatCardHtml(fmt) {
       : "";
     return `<div class="fmt-row"><span class="fmt-name">${name}</span>${body}${noteHtml}</div>`;
   };
-  return `<div class="stat-card"><h3>フォーマット適合 <span class="cnt">スタンダード=メイン+マテリアル+サイド／パンテオン=メイン+マテリアルで判定</span></h3>`
-    + rowFor("STANDARD") + rowFor("PANTHEON")
-    + `<p class="sr-note">※パンテオンは別途Boon 2枚（Lesser／Greater 各1）が必要です（本ツールでは管理対象外）。パンテオンにサイドボードはありません。</p>`
+  const key = fmt.key;
+  const foot = FORMAT_FOOT_NOTE[key];
+  return `<div class="stat-card"><h3>フォーマット適合 <span class="cnt">${JUDGE_NOTE[key]}</span></h3>`
+    + rowFor(key)
+    + (foot ? `<p class="sr-note">${escapeHtml(foot)}</p>` : "")
     + `</div>`;
 }
 
 // 統計パネル全体をHTML文字列で組み立てる(編集・共有で共用)。
-function statsHtml(cards, bySlug) {
-  const stats = computeDeckStats(cards, bySlug);
+// ⚠️ 旧「0. 警告バナー(.warn-banner)」はタブ帯の直上(#deck-warn)へ移設したのでここには出さない(#4)。
+function statsHtml(cards, bySlug, formatKey) {
+  const key = normalizeFormat(formatKey);
+  const stats = computeDeckStats(cards, bySlug, key);
   if (!stats.total.count) {
     return `<p class="stat-empty">カードがありません。デッキにカードを追加すると統計が表示されます。</p>`;
   }
   const parts = [];
 
-  // 0. ⚠️警告バナー(スタンダード不適合=禁止カードまたは枚数超過がある時のみ最上部)
-  const std = stats.format.STANDARD;
-  const stdBannedN = std.banned.reduce((s, b) => s + b.qty, 0);
-  const stdOverN = std.overMain.length + std.overMaterial.length;
-  // シーズン禁止は発効後(active)だけ不適合の理由に加える。予告(announced)は違反ではないためバナーを出さない(#34)
-  const stdSeasonN = std.seasonalActive.reduce((s, b) => s + b.qty, 0);
-  if (stdBannedN || stdOverN || stdSeasonN) {
-    const reasons = [];
-    if (stdBannedN) reasons.push(`禁止カード ${stdBannedN}枚`);
-    if (stdSeasonN) reasons.push(`シーズン禁止カード ${stdSeasonN}枚`);
-    if (stdOverN) reasons.push(`枚数制限の超過 ${stdOverN}種`);
-    parts.push(`<div class="warn-banner"><span class="fmt-ng">⚠️ スタンダードで使用できない構成です（${reasons.join("・")}）</span>`
-      + ` <span class="warn-hint">（詳細は最下部の「フォーマット適合」へ）</span></div>`);
-  }
+  // 1-3. ゾーン別(フォーマットで決まる。パンテオンでは サイドボード ではなく パンテオン)
+  stats.zones.forEach((zone) => {
+    parts.push(statCardHtml(`${ZONE_LABEL[zone]} <span class="cnt">${stats.byZone[zone].count}枚</span>`,
+      stats.byZone[zone], { multiNote: true, zone }));
+  });
 
-  // 1-3. マテリアル → メイン → サイド
-  parts.push(statCardHtml(`マテリアルデッキ <span class="cnt">${stats.byZone.material.count}枚</span>`, stats.byZone.material, { multiNote: true, zone: "material" }));
-  parts.push(statCardHtml(`メインデッキ <span class="cnt">${stats.byZone.main.count}枚</span>`, stats.byZone.main, { multiNote: true, zone: "main" }));
-  parts.push(statCardHtml(`サイドボード <span class="cnt">${stats.byZone.side.count}枚</span>`, stats.byZone.side, { multiNote: true, zone: "side" }));
-
-  // 4. 合計(マテリアル+メイン+サイド。「検討中」は含まない)
-  const t = stats.byZone;
-  const breakdown = `${stats.total.count}枚 ＝ マテリアル${t.material.count}＋メイン${t.main.count}＋サイド${t.side.count}（「検討中」は含みません）`;
+  // 4. 合計(「検討中」と、このフォーマットで使わないゾーンは含まない)
+  const breakdown = `${stats.total.count}枚 ＝ `
+    + stats.zones.map((z) => `${ZONE_SHORT[z]}${stats.byZone[z].count}`).join("＋")
+    + `（「検討中」は含みません）`
+    // 非アクティブゾーンにカードが残っているときは、どこが対象外なのかを明示する
+    + ZONES.filter((z) => !stats.zones.includes(z) && z !== "maybe")
+      .map((z) => {
+        const n = cards.filter((c) => c.board === z).reduce((s, c) => s + c.qty, 0);
+        return n ? `（${ZONE_LABEL[z]}${n}枚は${FORMAT_INFO[key].jp}では集計対象外）` : "";
+      }).join("");
   parts.push(statCardHtml(`合計 <span class="cnt">${breakdown}</span>`, stats.total, { multiNote: true, zone: "total" }));
 
-  // 5. フォーマット適合
+  // 5. フォーマット適合(デッキのフォーマット1行だけ)
   parts.push(formatCardHtml(stats.format));
 
   return parts.filter(Boolean).join("");
@@ -1623,12 +1911,12 @@ function statsHtml(cards, bySlug) {
 
 // 統計パネルを指定コンテナへ描画する。
 // 棒の幅・色はCSP(style-src 'self'=style属性禁止)を避けてCSSOMで適用する(.meterと同じ方式)。
-function renderStatsInto(container, cards, bySlug) {
+function renderStatsInto(container, cards, bySlug, formatKey) {
   // 第7版⑰: 差し替え前にサブタイプ別の開閉状態をdata-zoneキーで退避し、差し替え後に再適用する。
   // (ライブ更新のたびに初期状態へ閉じ直る事故を防ぐ)
   const foldState = new Map();
   container.querySelectorAll("details.stat-fold[data-zone]").forEach((d) => foldState.set(d.dataset.zone, d.open));
-  container.innerHTML = statsHtml(cards, bySlug);
+  container.innerHTML = statsHtml(cards, bySlug, formatKey);
   container.querySelectorAll("details.stat-fold[data-zone]").forEach((d) => {
     if (foldState.has(d.dataset.zone)) d.open = foldState.get(d.dataset.zone);
   });
@@ -1663,7 +1951,7 @@ async function renderEditorStats() {
   const cards = deckData.cards;
   const bySlug = await ensureCards(cards.map((c) => c.card_slug));
   if (seq !== deckSeq) return;
-  renderStatsInto(el.edPaneStats, cards, bySlug);
+  renderStatsInto(el.edPaneStats, cards, bySlug, deckFormat());
 }
 
 // 共有画面: 現在のデッキ内容で統計パネルを描画する。
@@ -1673,7 +1961,7 @@ async function renderViewStats() {
   const cards = deckData.cards;
   const bySlug = await ensureCards(cards.map((c) => c.card_slug));
   if (seq !== deckSeq) return;
-  renderStatsInto(el.vPaneStats, cards, bySlug);
+  renderStatsInto(el.vPaneStats, cards, bySlug, deckFormat());
 }
 
 editorTabs = setupTabs("ed-tab-deck", "ed-tab-stats", $("ed-pane-deck"), el.edPaneStats, renderEditorStats);
@@ -1681,13 +1969,19 @@ viewTabs = setupTabs("v-tab-deck", "v-tab-stats", el.vZones, el.vPaneStats, rend
 
 // ---------- 共有リンク閲覧 ----------
 
-const VIEW_ZONES = ["material", "main", "side"]; // 「検討中」は共有画面には出さない
+// 共有画面に出すゾーン。「検討中」は出さない。非アクティブゾーン(スタンダードのデッキに
+// 残っているパンテオン等)も出さない(他人のデッキの作業用データは見せない・#4)
+function viewZones(format) {
+  return activeZones(format).filter((z) => z !== "maybe");
+}
 
 async function openDeckView(id) {
   const seq = ++deckSeq;
   showView(el.viewDeck);
   el.vZones.innerHTML = "";
   el.vPaneStats.innerHTML = "";
+  el.vDeckWarn.hidden = true; // 前のデッキの警告を持ち越さない
+  el.vFormat.hidden = true;
   if (viewTabs) viewTabs.reset(); // 共有デッキを開くたびデッキタブから(読み込み完了後だとユーザーのタブ操作を巻き戻すため先頭で)
   setStatus("デッキを読み込み中…");
   try {
@@ -1713,6 +2007,10 @@ async function renderDeckView() {
   el.vTitle.textContent = deck.name;
   el.vPub.textContent = deck.is_public ? "公開デッキ" : "非公開デッキ";
   el.vPub.className = deck.is_public ? "badge-pub" : "badge-priv";
+  const format = deckFormat();
+  el.vFormat.hidden = false;
+  el.vFormat.textContent = FORMAT_INFO[format].badge;
+  el.vFormat.className = FORMAT_INFO[format].cls;
   el.vEdit.hidden = !is_owner;
   el.vEdit.href = `#edit/${deck.id}`;
   el.vOwner.innerHTML = `
@@ -1723,8 +2021,10 @@ async function renderDeckView() {
   const bySlug = await ensureCards(cards.map((c) => c.card_slug));
   if (seq !== deckSeq) return;
 
+  updateDeckWarn(el.vDeckWarn, cards, bySlug, format);
+
   el.vZones.innerHTML = "";
-  VIEW_ZONES.forEach((zone) => {
+  viewZones(format).forEach((zone) => {
     const rows = cards.filter((c) => c.board === zone).sort(zoneComparator(zone, bySlug));
     if (!rows.length) return;
     const total = rows.reduce((s, r) => s + r.qty, 0);
@@ -1760,7 +2060,7 @@ async function renderDeckView() {
 
   // 読み込み中に統計タブへ切り替えられていた場合、データが揃ったここで描画する
   // (renderViewStatsはdeckData未着時に早期returnするため、このフックがないと空のまま残る)
-  if (viewTabs && viewTabs.isStats()) renderStatsInto(el.vPaneStats, cards, bySlug);
+  if (viewTabs && viewTabs.isStats()) renderStatsInto(el.vPaneStats, cards, bySlug, format);
 }
 
 // 共有画面のカードクリック → 詳細
@@ -1804,6 +2104,7 @@ async function copyDeckToMine(id, opts = {}) {
         champion_slug: src.deck.champion_slug || undefined,
         thumb_image: src.deck.thumb_image || undefined,
         is_public: false,
+        format: normalizeFormat(src.deck.format), // 複製元のフォーマットを引き継ぐ(#4)
         cards: src.cards.map((c) => ({
           card_slug: c.card_slug, board: c.board, qty: c.qty,
           ...(c.art_image ? { art_image: c.art_image } : {}),
@@ -1835,6 +2136,9 @@ function parseOmnidexText(text) {
     "material deck": "material", "materials": "material", "material": "material",
     "main deck": "main", "maindeck": "main", "main": "main",
     "sideboard": "side", "side deck": "side", "side": "side",
+    // パンテオン(#4)。omnidexがこの見出しを使うかは未確認だが、未知の見出しは無視されるだけなので
+    // 受け側を寛容にしておく(出力側には推測で見出しを足さない)
+    "pantheon": "pantheon", "pantheon zone": "pantheon", "boons": "pantheon",
   };
   let board = "main";
   const entries = [];
@@ -1904,12 +2208,25 @@ async function importFromOmnidex() {
     const name = prompt("デッキ名を入力してください", "インポートしたデッキ");
     if (!name || !name.trim()) return;
     el.importResult.textContent = "デッキを作成中…";
+    const format = selectedFormat("import-format");
+    // パンテオンを選んだときだけ、Boonをパンテオンゾーンへ振り替える(#4)。
+    // 見出しの無いリストでもBoonが正しい場所に入る。スタンダード選択時は振り替えない
+    const boonSlugs = new Set();
+    if (format === "PANTHEON") {
+      const slugs = [...new Set(ok.map((e) => slugByName.get(e.name)))];
+      const cards = await Promise.all(slugs.map((s) => getCard(s)));
+      slugs.forEach((s, i) => { if (isBoonCard(cards[i])) boonSlugs.add(s); });
+    }
     const created = await api("/api/decks", {
       method: "POST",
       body: {
         name: name.trim(),
         is_public: false,
-        cards: ok.map((e) => ({ card_slug: slugByName.get(e.name), board: e.board, qty: e.qty })),
+        format,
+        cards: ok.map((e) => {
+          const slug = slugByName.get(e.name);
+          return { card_slug: slug, board: boonSlugs.has(slug) ? "pantheon" : e.board, qty: e.qty };
+        }),
       },
     });
     closeModal(el.importModal);
@@ -1929,6 +2246,9 @@ el.importBtn.addEventListener("click", () => {
   el.importText.value = "";
   el.importResult.hidden = true;
   el.importResult.textContent = "";
+  const std = document.querySelector('input[name="import-format"][value="STANDARD"]');
+  if (std) std.checked = true;
+  syncFormatChoices(el.importModal);
   openModal(el.importModal);
 });
 el.importRun.addEventListener("click", importFromOmnidex);
@@ -1939,11 +2259,11 @@ el.importRun.addEventListener("click", importFromOmnidex);
 // 意匠・切り出し座標などの決定事項は tmp/X投稿用/デッキ画像機能/仕様.md(git管理外)。
 
 const IMG_SITE = "ga-card-tools-jp.pages.dev";
-const IMG_ZONES = [
-  { zone: "material", title: "Materials" },
-  { zone: "main", title: "Main Deck" },
-  { zone: "side", title: "Sideboard" },
-];
+// セクションはデッキのフォーマットで決まる(#4)。非アクティブゾーンは画像に含めない
+const IMG_ZONE_TITLE = { material: "Materials", main: "Main Deck", side: "Sideboard", pantheon: "Pantheon" };
+function imgZones(format) {
+  return activeZones(format).filter((z) => z !== "maybe").map((zone) => ({ zone, title: IMG_ZONE_TITLE[zone] }));
+}
 // 配色はX宣伝画像と共通のダーク+ゴールドのトーン
 const IMG_C = {
   bg: "#0f1115", panel: "#1a1d23", gold: "#d9a441", goldDark: "#201a0a",
@@ -2116,7 +2436,7 @@ async function buildDeckImage(data, onProgress) {
   const cards = data.cards.filter((c) => c.board !== "maybe"); // 検討中は含めない(omnidexコピーと同じ)
   const bySlug = await ensureCards(cards.map((c) => c.card_slug));
 
-  const sections = IMG_ZONES.map(({ zone, title }) => ({
+  const sections = imgZones(normalizeFormat(data.deck.format)).map(({ zone, title }) => ({
     zone, title,
     rows: cards.filter((c) => c.board === zone).sort(zoneComparator(zone, bySlug)),
   })).filter((s) => s.rows.length);
@@ -2312,7 +2632,8 @@ el.vImage.addEventListener("click", openDeckImageModal);
 // ---------- 初期化 ----------
 
 el.deckSort.addEventListener("change", renderDeckList);
-$("deck-new-btn").addEventListener("click", createDeck);
+$("deck-new-btn").addEventListener("click", openNewDeckModal);
+el.deckFilter.addEventListener("change", renderDeckList);
 $("login-btn").addEventListener("click", (e) => { e.currentTarget.href = loginUrl(); });
 $("v-cta-login").addEventListener("click", (e) => { e.currentTarget.href = loginUrl(); });
 window.addEventListener("hashchange", route);

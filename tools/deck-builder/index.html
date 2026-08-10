@@ -76,6 +76,9 @@
       <option value="created">作成が新しい順</option>
       <option value="name">名前順</option>
     </select>
+    <label for="deck-filter">フォーマット</label>
+    <!-- 選択肢(件数つき)は app.js の renderDeckFilter() が読み込みのたびに組み立て直す（#4） -->
+    <select id="deck-filter"><option value="">すべて</option></select>
     <div class="list-actions">
       <button class="btn btn-sm btn-primary" id="deck-new-btn">＋ 新しいデッキ</button>
       <button class="btn btn-sm" id="deck-import-btn">📥 インポート</button>
@@ -90,6 +93,7 @@
     <a class="ed-back" href="#">← 一覧</a>
     <span class="deck-title"><span id="ed-title"></span> <button class="edit-pen" id="ed-rename" title="デッキ名修正" aria-label="デッキ名を変更">✏️</button></span>
     <button id="ed-pub" class="badge-pub" title="クリックで公開/非公開を切り替え">公開</button>
+    <button id="ed-format" class="badge-fmt" title="クリックでフォーマットを変更" hidden></button>
     <span class="save-state" id="ed-save">保存済み</span>
     <span class="spacer"></span>
     <button class="btn btn-sm" id="ed-copy-text" title="omnidexに貼り付けられる形式で内容を確認してコピー">📤 omnidex提出用コピー</button>
@@ -118,25 +122,37 @@
     </div>
   </div>
 
+  <!-- フォーマット逸脱の警告(#4)。タブ帯の直上に置き、デッキ/統計どちらのタブでも見えるようにする -->
+  <div class="deck-warn" id="deck-warn" role="status" aria-live="polite" hidden></div>
+
   <div class="deck-tabs" role="tablist" aria-label="デッキ表示切替">
     <button role="tab" id="ed-tab-deck" aria-selected="true" aria-controls="ed-pane-deck">🃏 デッキ</button>
     <button role="tab" id="ed-tab-stats" aria-selected="false" aria-controls="ed-pane-stats">📊 統計</button>
   </div>
 
+  <!-- ゾーンの並び順はデッキのフォーマットに応じて app.js が組み替える(#4) -->
   <div class="deck-pane" id="ed-pane-deck" role="tabpanel" aria-labelledby="ed-tab-deck">
     <div class="zone" data-zone="material">
-      <h3>マテリアルデッキ <span class="cnt"></span></h3>
+      <h3><span class="zname">マテリアルデッキ</span> <span class="cnt"></span></h3>
       <div class="meter"><i></i></div>
       <div class="zone-grid"></div>
     </div>
     <div class="zone" data-zone="main">
-      <h3>メインデッキ <span class="cnt"></span></h3>
+      <h3><span class="zname">メインデッキ</span> <span class="cnt"></span></h3>
       <div class="meter"><i></i></div>
       <div class="zone-grid"></div>
     </div>
     <div class="zone" data-zone="side">
-      <h3>サイドボード <span class="cnt"></span></h3>
+      <h3><span class="zname">サイドボード</span> <span class="cnt"></span></h3>
       <div class="meter"><i></i></div>
+      <p class="zone-note warn" data-inactive-note hidden></p>
+      <div class="zone-grid"></div>
+    </div>
+    <div class="zone" data-zone="pantheon">
+      <h3><span class="zname">パンテオン</span> <span class="cnt"></span></h3>
+      <div class="meter"><i></i></div>
+      <p class="zone-note" data-active-note>対戦開始時に裏向きで提示する Lesser Boon 1枚・Greater Boon 1枚。メインデッキには含めません。</p>
+      <p class="zone-note warn" data-inactive-note hidden></p>
       <div class="zone-grid"></div>
     </div>
     <div class="zone" data-zone="maybe">
@@ -161,6 +177,7 @@
     <div class="view-title-row">
       <h2 id="v-title"></h2>
       <span class="badge-pub" id="v-pub">公開デッキ</span>
+      <span class="badge-fmt" id="v-format" hidden></span>
       <span class="actions">
         <a class="btn btn-sm" id="v-edit" hidden>✏️ 編集する</a>
         <button class="btn btn-sm" id="v-copy-deck">📥 自分のデッキ一覧にコピー</button>
@@ -169,6 +186,7 @@
     </div>
     <p class="owner-line" id="v-owner"></p>
   </div>
+  <div class="deck-warn" id="v-deck-warn" role="status" aria-live="polite" hidden></div>
   <div class="deck-tabs" role="tablist" aria-label="デッキ表示切替">
     <button role="tab" id="v-tab-deck" aria-selected="true" aria-controls="v-zones">🃏 デッキ</button>
     <button role="tab" id="v-tab-stats" aria-selected="false" aria-controls="v-pane-stats">📊 統計</button>
@@ -215,7 +233,42 @@
     <h2>📤 omnidex提出用コピー</h2>
     <p class="result-count">以下の内容をコピーして omnidex に貼り付けてください。「検討中」のカードは含まれません。</p>
     <pre id="omni-text" class="omni-text"></pre>
+    <!-- パンテオンのデッキのときだけ出す注記(#4 未決事項C: omnidexのテキスト形式が未確認のため出力しない) -->
+    <p class="sr-note" id="omni-pantheon-note" hidden>※ パンテオン（Boon 2枚）は、omnidexのテキスト形式が未確認のため含めていません。</p>
     <div class="omni-actions"><button class="btn btn-primary" id="omni-copy">📋 コピーする</button></div>
+  </div>
+</div>
+
+<!-- 新しいデッキ作成ダイアログ(デッキ名＋フォーマット。旧 prompt() の置き換え・#4) -->
+<div class="modal" id="new-deck-modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-body form-body" role="dialog" aria-modal="true" aria-label="新しいデッキ">
+    <button class="modal-close" type="button" data-close aria-label="閉じる">×</button>
+    <h2>＋ 新しいデッキ</h2>
+    <div class="field">
+      <label for="new-deck-name">デッキ名</label>
+      <input id="new-deck-name" type="text" maxlength="100" autocomplete="off" value="新しいデッキ">
+      <p class="form-error" id="new-deck-error" role="alert" hidden></p>
+    </div>
+    <div class="field">
+      <span class="field-label" id="new-deck-format-label">フォーマット</span>
+      <div class="fmt-choices" role="radiogroup" aria-labelledby="new-deck-format-label">
+        <label class="fmt-choice sel">
+          <input type="radio" name="new-deck-format" value="STANDARD" checked>
+          <span class="ttl"><span class="dot"></span>⭐ スタンダード</span>
+          <span class="desc">メイン60枚以上・同名4枚まで／マテリアル12枚／サイドボードあり（15pt）</span>
+        </label>
+        <label class="fmt-choice">
+          <input type="radio" name="new-deck-format" value="PANTHEON">
+          <span class="ttl"><span class="dot"></span>🏛 パンテオン</span>
+          <span class="desc">メイン60枚以上・同名1枚（シングルトン）／マテリアル12枚／サイドボードなし・Boon 各1枚</span>
+        </label>
+      </div>
+    </div>
+    <div class="omni-actions">
+      <button class="btn btn-sm" type="button" data-close>キャンセル</button>
+      <button class="btn btn-sm btn-primary" id="new-deck-create" type="button">作成する</button>
+    </div>
   </div>
 </div>
 
@@ -226,6 +279,19 @@
     <button class="modal-close" type="button" data-close aria-label="閉じる">×</button>
     <h2>📥 Omnidexテキストからインポート</h2>
     <p class="result-count">omnidex提出用テキスト（<code># Material Deck</code> / <code># Main Deck</code> / <code># Sideboard</code> と「枚数 英語カード名」の行）を貼り付けて読み込むと、新しいデッキとして保存します。カード名は英語で照合します。</p>
+    <div class="field">
+      <span class="field-label" id="import-format-label">フォーマット</span>
+      <div class="fmt-choices" role="radiogroup" aria-labelledby="import-format-label">
+        <label class="fmt-choice sel">
+          <input type="radio" name="import-format" value="STANDARD" checked>
+          <span class="ttl"><span class="dot"></span>⭐ スタンダード</span>
+        </label>
+        <label class="fmt-choice">
+          <input type="radio" name="import-format" value="PANTHEON">
+          <span class="ttl"><span class="dot"></span>🏛 パンテオン</span>
+        </label>
+      </div>
+    </div>
     <textarea id="import-text" class="import-text" rows="12" aria-label="Omnidexテキスト" placeholder="# Main Deck&#10;4 Angel Attendant&#10;2 Resolute Stand&#10;..."></textarea>
     <div id="import-result" class="import-result" role="status" aria-live="polite" hidden></div>
     <div class="omni-actions"><button class="btn btn-primary" id="import-run">読み込む</button></div>
@@ -263,6 +329,7 @@
   <button data-move="material">→ マテリアルへ移動</button>
   <button data-move="main">→ メインへ移動</button>
   <button data-move="side">→ サイドへ移動</button>
+  <button data-move="pantheon">→ パンテオンへ移動</button>
   <button data-move="maybe">→ 検討中へ移動</button>
   <div class="sep"></div>
   <button data-act="art">🎨 イラストを変更</button>

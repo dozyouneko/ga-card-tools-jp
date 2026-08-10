@@ -13,6 +13,14 @@ export function getDeck(env, deckId) {
   return one(env.DB, `SELECT * FROM decks WHERE id = ?`, deckId);
 }
 
+// デッキの構築フォーマット(#4)。DB側はCHECK制約を持たない(ALTER TABLE ADD COLUMN で
+// 制約を足すとテーブル再作成が要るため)ので、受理する値はここで閉じる。
+// 大文字の2値のみ受理し、小文字などの表記ゆれは 400 invalid_format で弾く。
+export const DECK_FORMATS = ["STANDARD", "PANTHEON"];
+export function isValidDeckFormat(v) {
+  return DECK_FORMATS.includes(v);
+}
+
 // deck_cards.art_image の妥当性チェック。公式APIの画像パス(先頭 "/"、"//" やスキームは不可)のみ許す
 export function isValidArtImage(s) {
   return typeof s === "string" && s.length > 0 && s.length <= 300 && s.startsWith("/") && !s.startsWith("//");

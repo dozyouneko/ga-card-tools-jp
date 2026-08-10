@@ -77,6 +77,19 @@ button { font: inherit; cursor: pointer; }
 }
 button.badge-pub, button.badge-priv { cursor: pointer; }
 
+/* 構築フォーマットのバッジ(#4)。スタンダードは .badge-priv と同トーン、パンテオンは青系 */
+.badge-fmt {
+  font-size: .7rem; padding: 2px 10px; border-radius: 999px; font-weight: 700;
+  border: 1px solid var(--border); background: var(--panel-2); color: var(--muted);
+  white-space: nowrap;
+}
+.badge-fmt.is-pantheon {
+  background: rgba(110, 168, 254, .18); color: #9ec5ff; border-color: rgba(110, 168, 254, .5);
+}
+/* 共通CSSではないがトップ側との差で見た目が変わらないよう font-family を明示する */
+button.badge-fmt { cursor: pointer; font-family: inherit; }
+.badge-fmt[hidden] { display: none; }
+
 /* ---------- ログインパネル ---------- */
 .login-wrap { display: grid; place-items: center; padding: 32px 24px 64px; }
 .login-panel {
@@ -138,6 +151,12 @@ img.champ-thumb-img { display: block; }
 .deck-info h3 { margin: 0; font-size: 1rem; word-break: break-all; line-height: 1.4; }
 .deck-sub { margin: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .76rem; color: var(--muted); }
 .deck-actions { display: flex; flex-direction: column; gap: 6px; margin-top: auto; }
+/* 絞り込みの結果が0件のとき(#4) */
+.deck-empty {
+  grid-column: 1 / -1;
+  margin: 0; padding: 22px; text-align: center; color: var(--muted); font-size: .85rem;
+  border: 1px dashed var(--border); border-radius: 12px;
+}
 .deck-actions .btn { text-align: center; }
 
 /* ---------- デッキ編集 ---------- */
@@ -200,6 +219,9 @@ img.champ-thumb-img { display: block; }
 .meter > i.ok { background: var(--yes); }
 .meter > i.over { background: #b91c1c; }
 .zone-note { margin: 0 0 10px; font-size: .72rem; color: var(--muted); }
+/* 非アクティブゾーン(フォーマットを切り替えてカードが残っているとき)の注記(#4) */
+.zone-note.warn { color: #fca5a5; }
+.zone-note[hidden] { display: none; }
 .zone-empty { margin: 0; padding: 14px; font-size: .8rem; color: var(--muted); border: 1px dashed var(--border); border-radius: 10px; }
 
 /* カードタイル */
@@ -419,6 +441,44 @@ img.champ-thumb-img { display: block; }
 }
 .image-preview img { display: block; width: 100%; height: auto; border-radius: 10px; }
 
+/* ---------- フォーム系ダイアログ(新しいデッキ・インポートのフォーマット選択・#4) ---------- */
+.form-body { max-width: 560px; }
+.field { margin-top: 14px; }
+.field > label, .field > .field-label {
+  display: block; font-size: .78rem; color: var(--muted); margin-bottom: 5px;
+}
+.field input[type="text"] {
+  width: 100%; box-sizing: border-box;
+  background: var(--panel-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 9px 12px; font-size: .95rem; font-family: inherit;
+}
+.field input[type="text"]:focus { outline: 2px solid var(--accent-2); outline-offset: 1px; }
+.form-error { margin: 6px 0 0; font-size: .78rem; color: #fca5a5; }
+.form-error[hidden] { display: none; }
+
+/* フォーマットのラジオカード。375px幅では flex-wrap で縦積みになる */
+.fmt-choices { display: flex; gap: 10px; flex-wrap: wrap; }
+.fmt-choice {
+  flex: 1 1 220px; min-width: 0; display: block; cursor: pointer; position: relative;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 11px 13px;
+}
+/* ネイティブのラジオは隠すが、キーボード操作・スクリーンリーダー向けに要素自体は残す */
+.fmt-choice input[type="radio"] {
+  position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none;
+}
+.fmt-choice.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.fmt-choice:focus-within { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+.fmt-choice .ttl { font-size: .9rem; font-weight: 700; display: flex; align-items: center; gap: 7px; }
+.fmt-choice .ttl .dot {
+  width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--muted); flex: 0 0 auto;
+}
+.fmt-choice.sel .ttl .dot {
+  border-color: var(--accent);
+  background: radial-gradient(circle, var(--accent) 0 45%, transparent 46%);
+}
+.fmt-choice .desc { display: block; margin: 5px 0 0; font-size: .74rem; color: var(--muted); }
+
 /* ---------- Omnidexインポート ---------- */
 .import-text {
   width: 100%; box-sizing: border-box; resize: vertical; min-height: 240px;
@@ -563,6 +623,16 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
   .gtile.just-added { animation: none; }
 }
 
+/* ---------- フォーマット逸脱の警告バナー(#4) ---------- */
+/* タブ帯の直上に置くので、タブを切り替えても位置が動かない。
+   旧 .warn-banner(統計パネル最上部)はこれに置き換えて撤去した */
+.deck-warn {
+  margin: 12px 24px 0; padding: 9px 12px; border-radius: 10px; font-size: .85rem;
+  background: rgba(185, 28, 28, .14); border: 1px solid rgba(252, 165, 165, .45); color: #fca5a5;
+}
+.deck-warn[hidden] { display: none; }
+.deck-warn .hint { color: var(--muted); font-size: .8rem; }
+
 /* ---------- タブバー(デッキ / 統計) ---------- */
 .deck-tabs {
   display: flex; gap: 6px; padding: 10px 24px 0;
@@ -597,14 +667,9 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
 .stat-card > h3 { margin: 0 0 10px; font-size: .95rem; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .stat-card > h3 .cnt { color: var(--muted); font-weight: 400; font-size: .8rem; }
 
-/* ⚠️警告バナー(禁止カードがある時のみ最上部) */
-.warn-banner {
-  border: 1px dashed var(--border); border-left: 3px solid var(--danger);
-  border-radius: 8px; padding: 8px 12px; font-size: .85rem;
-}
+/* ⚠️警告バナーは統計パネル最上部から「タブ帯の直上」(.deck-warn)へ移設した(#4) */
 .fmt-ng { color: var(--danger); }
 .fmt-issues { display: flex; flex-direction: column; gap: 2px; }
-.warn-hint { color: var(--muted); font-size: .8rem; }
 
 /* フォーマット適合 */
 .fmt-row {

@@ -85,7 +85,10 @@ window.GA_I18N = {
     },
     types: {
       ACTION: "アクション", ALLY: "アライ", ATTACK: "アタック",
-      CHAMPION: "チャンピオン", DOMAIN: "ドメイン", ITEM: "アイテム",
+      CHAMPION: "チャンピオン", DOMAIN: "ドメイン",
+      // Boon(パンテオン専用・#4)。訳語は data/tl/rdop.js のカード名の訳に合わせる
+      // (「アストラエウスの大いなる恩恵」「アルテミスの小さな恩恵」)
+      "GREATER BOON": "大いなる恩恵", ITEM: "アイテム", "LESSER BOON": "小さな恩恵",
       PHANTASIA: "ファンタジア", REGALIA: "レガリア", TOKEN: "トークン",
       UNIQUE: "ユニーク", WEAPON: "ウェポン",
     },

@@ -6,7 +6,7 @@
 //   DELETE — デッキ削除（所有者のみ。deck_cards はFKのCASCADEで連動削除）
 
 import { all, one, run } from "../../../_lib/db.js";
-import { getDeck, isValidArtImage } from "../../../_lib/decks.js";
+import { getDeck, isValidArtImage, isValidDeckFormat } from "../../../_lib/decks.js";
 import { error, json, readJson } from "../../../_lib/http.js";
 import { getSessionUser } from "../../../_lib/session.js";
 
@@ -66,6 +66,12 @@ export async function onRequestPatch({ request, env, params }) {
   if ("is_public" in body) {
     sets.push("is_public = ?");
     values.push(body.is_public ? 1 : 0);
+  }
+  // 構築フォーマット(#4)。カードは一切動かさない(非アクティブなゾーンとして残す設計)
+  if ("format" in body) {
+    if (!isValidDeckFormat(body.format)) return error(400, "invalid_format");
+    sets.push("format = ?");
+    values.push(body.format);
   }
   if (sets.length === 0) return error(400, "no_fields");
 
