@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>issue #4 パンテオン構築対応 モック</title>
+<style>
+:root{
+  --bg:#0f1115; --panel:#171a21; --panel-2:#1f232c; --border:#2a2f3a;
+  --text:#e7e9ee; --muted:#9aa2b1; --accent:#d9a441; --accent-2:#6ea8fe;
+  --yes:#2f9e6b; --danger:#fca5a5; --radius:12px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);line-height:1.6;
+  font-family:system-ui,-apple-system,"Segoe UI","Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif}
+a{color:var(--accent-2)}
+button{font:inherit;cursor:pointer}
+.page{max-width:1180px;margin:0 auto;padding:24px 20px 80px}
+h1{font-size:1.5rem;margin:0 0 4px}
+.lead{color:var(--muted);font-size:.9rem;margin:0 0 8px;max-width:70ch}
+h2{font-size:1.05rem;margin:44px 0 6px;padding-top:16px;border-top:1px solid var(--border)}
+h2 .n{color:var(--accent);margin-right:6px}
+.note{color:var(--muted);font-size:.82rem;margin:0 0 14px;max-width:80ch}
+.note b{color:var(--text)}
+.cols{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+.col{flex:1 1 460px;min-width:0}
+.col.narrow{flex:0 0 auto}
+.caption{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.caption.now::before{content:"現状 ";color:var(--danger);font-weight:700}
+.caption.next::before{content:"変更後 ";color:#6fd3a3;font-weight:700}
+.frame{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;overflow:hidden}
+.frame.w375{width:375px;padding:12px}
+.frame.plain{background:var(--bg)}
+.tag375{font-size:.7rem;color:var(--muted);margin:0 0 6px}
+
+/* ---- 実物から移植したスタイル ---- */
+.btn{display:inline-block;background:var(--panel);color:var(--text);border:1px solid var(--border);
+  border-radius:8px;padding:9px 16px;font-size:.9rem;white-space:nowrap;text-decoration:none}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#201a0a;font-weight:700}
+.btn-sm{padding:5px 10px;font-size:.8rem;border-radius:6px}
+.btn-danger{color:#fca5a5}
+.badge-pub,.badge-priv{font-size:.7rem;padding:2px 10px;border-radius:999px;font-weight:700;
+  border:1px solid var(--border);background:var(--panel-2);color:var(--muted)}
+.badge-pub{background:rgba(47,158,107,.18);color:#6fd3a3;border-color:rgba(47,158,107,.5)}
+
+/* ★新規: フォーマットバッジ */
+.badge-fmt{font-size:.7rem;padding:2px 10px;border-radius:999px;font-weight:700;
+  border:1px solid var(--border);background:var(--panel-2);color:var(--muted);white-space:nowrap}
+.badge-fmt.is-pantheon{background:rgba(110,168,254,.18);color:#9ec5ff;border-color:rgba(110,168,254,.5)}
+button.badge-fmt{cursor:pointer}
+
+.editor-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:10px 0;border-bottom:1px solid var(--border);margin-bottom:12px}
+.ed-back{font-size:.85rem}
+.deck-title{font-weight:700;font-size:1rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.edit-pen{background:none;border:none;color:var(--muted);padding:0 2px}
+.save-state{font-size:.75rem;color:var(--muted)}
+.spacer{flex:1}
+
+.deck-tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin:0 0 14px}
+.deck-tabs button{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);
+  padding:9px 14px;font-size:.9rem}
+.deck-tabs button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--accent);font-weight:700}
+
+/* ★新規: タブ帯の直上に出す警告バナー */
+#deck-warn,.deck-warn{margin:0 0 10px;padding:9px 12px;border-radius:10px;font-size:.82rem;
+  background:rgba(185,28,28,.14);border:1px solid rgba(252,165,165,.45);color:#fca5a5}
+.deck-warn .hint{color:var(--muted);font-size:.76rem}
+
+/* 統計パネル内の旧バナー(撤去対象) */
+.warn-banner{margin:0 0 14px;padding:10px 12px;border-radius:10px;font-size:.85rem;
+  background:rgba(185,28,28,.14);border:1px solid rgba(252,165,165,.45)}
+.warn-banner .fmt-ng{color:#fca5a5}
+.warn-hint{color:var(--muted);font-size:.78rem}
+
+.zone{margin-bottom:22px}
+.zone h3{margin:0 0 6px;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+  display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.zone h3 .cnt{margin-left:auto;font-size:.82rem;color:var(--text);font-variant-numeric:tabular-nums}
+.zone h3 .cnt.ok{color:#6fd3a3}
+.zone h3 .cnt.over{color:#fca5a5}
+.meter{height:4px;border-radius:2px;background:var(--panel-2);margin-bottom:8px;overflow:hidden}
+.meter>i{display:block;height:100%;background:var(--accent);border-radius:2px}
+.meter>i.ok{background:var(--yes)}
+.meter>i.over{background:#b91c1c}
+.zone-note{margin:0 0 10px;font-size:.72rem;color:var(--muted)}
+.zone-note.warn{color:#fca5a5}
+.zone-empty{margin:0;padding:14px;font-size:.8rem;color:var(--muted);border:1px dashed var(--border);border-radius:10px}
+.zone-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}
+.cardph{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:var(--panel-2)}
+.cardph img{width:100%;aspect-ratio:63/88;object-fit:cover;display:block}
+.cardph .noimg{aspect-ratio:63/88;display:grid;place-items:center;padding:8px;color:var(--muted);
+  font-size:.7rem;text-align:center}
+.qty-badge{position:absolute;top:6px;right:6px;background:rgba(8,9,12,.82);color:#fff;
+  border:1px solid rgba(255,255,255,.35);font-size:.68rem;font-weight:800;border-radius:999px;padding:1px 7px}
+.fmt-icon{position:absolute;bottom:40px;left:6px;background:rgba(8,9,12,.92);
+  border:1px solid rgba(255,255,255,.5);font-size:.9rem;line-height:1;border-radius:8px;padding:3px 4px}
+.ctrl-strip{position:absolute;inset:auto 0 0 0;display:flex;gap:1px;background:var(--border)}
+.ctrl-strip button,.ctrl-strip .qv{border:none;background:rgba(15,17,21,.94);color:var(--text);
+  font-size:.8rem;font-weight:700;padding:5px 0;flex:1;text-align:center}
+.ctrl-strip .qv{color:var(--accent);font-weight:800}
+
+.stat-card{background:var(--panel-2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.stat-card h3{margin:0 0 10px;font-size:.9rem}
+.stat-card h3 .cnt{font-weight:400;font-size:.75rem;color:var(--muted);margin-left:6px}
+.fmt-row{display:flex;gap:12px;flex-wrap:wrap;align-items:baseline;padding:6px 0;border-top:1px solid var(--border)}
+.fmt-row:first-of-type{border-top:none}
+.fmt-name{font-weight:700;font-size:.85rem;min-width:7em}
+.fmt-ok{color:#6fd3a3;font-size:.82rem}
+.fmt-issues{display:flex;flex-direction:column;gap:3px}
+.fmt-ng{color:#fca5a5;font-size:.82rem}
+.sr-note{margin:8px 0 0;font-size:.72rem;color:var(--muted)}
+
+.list-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.list-controls label{font-size:.8rem;color:var(--muted)}
+select{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:8px;
+  padding:7px 10px;font-size:.85rem;font-family:inherit}
+.list-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.deck-list{display:grid;gap:12px}
+.deck-item{display:flex;gap:14px;background:var(--panel-2);border:1px solid var(--border);
+  border-radius:12px;padding:12px}
+.thumb-wrap{flex:0 0 62px}
+.champ-thumb-img{width:62px;border-radius:8px;display:block;aspect-ratio:63/88;object-fit:cover}
+.deck-info{min-width:0;flex:1}
+.deck-info h3{margin:0 0 4px;font-size:.95rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.deck-sub{margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.76rem;color:var(--muted)}
+.deck-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.deck-empty{margin:0;padding:22px;text-align:center;color:var(--muted);font-size:.85rem;
+  border:1px dashed var(--border);border-radius:12px}
+
+/* モーダル */
+.modal-body{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px 22px;position:relative}
+.modal-body h2{margin:0 0 4px;font-size:1.05rem;border:none;padding:0}
+.modal-close{position:absolute;top:10px;right:12px;background:none;border:none;color:var(--muted);font-size:1.1rem}
+.field{margin-top:14px}
+.field > label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:5px}
+.field input[type=text]{width:100%;background:var(--panel-2);color:var(--text);border:1px solid var(--border);
+  border-radius:8px;padding:9px 12px;font-size:.95rem;font-family:inherit}
+.form-error{margin:6px 0 0;font-size:.78rem;color:#fca5a5}
+.fmt-choices{display:flex;gap:10px;flex-wrap:wrap}
+.fmt-choice{flex:1 1 220px;min-width:0;display:block;cursor:pointer;
+  background:var(--panel-2);border:1px solid var(--border);border-radius:12px;padding:11px 13px}
+.fmt-choice.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.fmt-choice .ttl{font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:7px}
+.fmt-choice .ttl .dot{width:13px;height:13px;border-radius:50%;border:2px solid var(--muted);flex:0 0 auto}
+.fmt-choice.sel .ttl .dot{border-color:var(--accent);background:radial-gradient(circle,var(--accent) 0 45%,transparent 46%)}
+.fmt-choice .desc{margin:5px 0 0;font-size:.74rem;color:var(--muted)}
+.omni-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+
+.prompt-shot{background:#2b2f36;border:1px solid #454b56;border-radius:8px;padding:12px 14px;font-size:.85rem}
+.prompt-shot .t{font-size:.75rem;color:var(--muted);margin-bottom:6px}
+.prompt-shot input{width:100%;background:#fff;color:#111;border:1px solid #999;border-radius:4px;padding:5px 8px;font-size:.85rem}
+.crit{color:#fca5a5}
+.ok{color:#6fd3a3}
+ul.pts{margin:8px 0 0;padding-left:1.2em;font-size:.8rem;color:var(--muted)}
+ul.pts li{margin:2px 0}
+ul.pts b{color:var(--text)}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>issue #4 パンテオン構築対応 — 画面モック</h1>
+<p class="lead">設計書: <code>docs/design/4-パンテオン構築対応/パンテオン構築_設計.md</code>。
+カード名・画像・枚数は実データ（Radiant Origins Pantheon の Lorraine 構築）。
+各節で <b>PC幅</b> と <b>375px幅</b> を並べています。ボタンは飾りで動きません。</p>
+
+<!-- ============================================================ -->
+<h2><span class="n">①</span>新規作成モーダル（フォーマットを選ぶ）</h2>
+<p class="note">現状は <code>prompt()</code> でデッキ名しか聞けず、フォーマットを選ぶ余地が無い。
+モーダルに置き換え、<b>既定はスタンダード</b>。デッキ名が空なら入力欄の下にエラーを出して閉じない。</p>
+<div class="cols">
+  <div class="col">
+    <p class="caption now">＋ 新しいデッキ</p>
+    <div class="frame">
+      <div class="prompt-shot">
+        <div class="t">ga-card-tools-jp.pages.dev の内容</div>
+        <div>デッキ名を入力してください</div>
+        <input type="text" value="新しいデッキ" readonly>
+        <div style="text-align:right;margin-top:10px"><span class="btn btn-sm">キャンセル</span> <span class="btn btn-sm btn-primary">OK</span></div>
+      </div>
+      <ul class="pts"><li class="crit">フォーマットを選ぶ場所が無い</li></ul>
+    </div>
+  </div>
+  <div class="col">
+    <p class="caption next">＋ 新しいデッキ</p>
+    <div class="frame plain">
+      <div class="modal-body">
+        <button class="modal-close" aria-label="閉じる">✕</button>
+        <h2>＋ 新しいデッキ</h2>
+        <div class="field">
+          <label for="m-name">デッキ名</label>
+          <input id="m-name" type="text" value="新しいデッキ">
+        </div>
+        <div class="field">
+          <label>フォーマット</label>
+          <div class="fmt-choices">
+            <label class="fmt-choice sel">
+              <span class="ttl"><span class="dot"></span>⭐ スタンダード</span>
+              <p class="desc">メイン60枚以上・同名4枚まで／マテリアル12枚／サイドボードあり（15pt）</p>
+            </label>
+            <label class="fmt-choice">
+              <span class="ttl"><span class="dot"></span>🏛 パンテオン</span>
+              <p class="desc">メイン60枚以上・同名1枚（シングルトン）／マテリアル12枚／サイドボードなし・Boon 各1枚</p>
+            </label>
+          </div>
+        </div>
+        <div class="omni-actions"><button class="btn btn-sm">キャンセル</button><button class="btn btn-sm btn-primary">作成する</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="cols" style="margin-top:18px">
+  <div class="col narrow">
+    <p class="tag375">375px幅（フォーマットは縦並びに折り返す）</p>
+    <div class="frame w375 plain">
+      <div class="modal-body">
+        <button class="modal-close" aria-label="閉じる">✕</button>
+        <h2>＋ 新しいデッキ</h2>
+        <div class="field">
+          <label for="m-name2">デッキ名</label>
+          <input id="m-name2" type="text" value="">
+          <p class="form-error">デッキ名を入力してください</p>
+        </div>
+        <div class="field">
+          <label>フォーマット</label>
+          <div class="fmt-choices">
+            <label class="fmt-choice">
+              <span class="ttl"><span class="dot"></span>⭐ スタンダード</span>
+              <p class="desc">メイン60枚以上・同名4枚まで／マテリアル12枚／サイドボードあり（15pt）</p>
+            </label>
+            <label class="fmt-choice sel">
+              <span class="ttl"><span class="dot"></span>🏛 パンテオン</span>
+              <p class="desc">メイン60枚以上・同名1枚（シングルトン）／マテリアル12枚／サイドボードなし・Boon 各1枚</p>
+            </label>
+          </div>
+        </div>
+        <div class="omni-actions"><button class="btn btn-sm">キャンセル</button><button class="btn btn-sm btn-primary">作成する</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <p class="caption">確認ポイント</p>
+    <div class="frame">
+      <ul class="pts">
+        <li><b>375pxで横スクロールが出ないこと</b>（<code>fmt-choices</code> は <code>flex-wrap</code> で縦積み）</li>
+        <li>エラー時もモーダルは<b>閉じない</b>。API呼び出しも発生しない</li>
+        <li>デッキ名の入力欄で <b>Enter でも作成</b>できる</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2><span class="n">②</span>編集画面ヘッダ＋警告バナー（タブ帯の直上）</h2>
+<p class="note">警告は<b>タブ帯の直上</b>に置き、デッキタブ／統計タブのどちらでも見えるようにする。
+統計パネル最上部の旧バナーは<b>撤去</b>（重複するため）。最悪ケースとして<b>長いデッキ名</b>で確認する。</p>
+<div class="cols">
+  <div class="col">
+    <p class="caption now">編集画面（スタンダード固定・警告は統計タブの中だけ）</p>
+    <div class="frame">
+      <div class="editor-bar">
+        <a class="ed-back" href="#">← 一覧</a>
+        <span class="deck-title">ロレイン精霊支配パンテオン調整版2026年8月 <button class="edit-pen">✏️</button></span>
+        <button class="badge-pub">公開</button>
+        <span class="save-state">保存済み</span>
+        <span class="spacer"></span>
+        <button class="btn btn-sm">📤 omnidex提出用コピー</button>
+        <button class="btn btn-sm">🔗 共有リンクをコピー</button>
+      </div>
+      <div class="deck-tabs">
+        <button aria-selected="true">🃏 デッキ</button>
+        <button aria-selected="false">📊 統計</button>
+      </div>
+      <div class="warn-banner">
+        <span class="fmt-ng">⚠️ スタンダードで使用できない構成です（禁止カード 2枚）</span>
+        <span class="warn-hint">（詳細は最下部の「フォーマット適合」へ）</span>
+      </div>
+      <ul class="pts">
+        <li class="crit">フォーマットが分からない。パンテオンでも「スタンダードで使用できない」と出る</li>
+        <li class="crit">警告は<b>統計タブの中</b>にしか無く、デッキを組んでいる間は見えない</li>
+      </ul>
+    </div>
+  </div>
+  <div class="col">
+    <p class="caption next">編集画面（🏛 バッジ＋タブ帯直上の警告）</p>
+    <div class="frame">
+      <div class="editor-bar">
+        <a class="ed-back" href="#">← 一覧</a>
+        <span class="deck-title">ロレイン精霊支配パンテオン調整版2026年8月 <button class="edit-pen">✏️</button></span>
+        <button class="badge-pub">公開</button>
+        <button class="badge-fmt is-pantheon" title="クリックでフォーマットを変更">🏛 パンテオン</button>
+        <span class="save-state">保存済み</span>
+        <span class="spacer"></span>
+        <button class="btn btn-sm">📤 omnidex提出用コピー</button>
+        <button class="btn btn-sm">🔗 共有リンクをコピー</button>
+      </div>
+      <div class="deck-warn">
+        ⚠️ パンテオンで使用できない構成です（禁止カード 2枚・メイン同名1枚制限の超過 3種）
+        <span class="hint">（詳細は「📊 統計」タブのフォーマット適合へ）</span>
+      </div>
+      <div class="deck-tabs">
+        <button aria-selected="true">🃏 デッキ</button>
+        <button aria-selected="false">📊 統計</button>
+      </div>
+      <ul class="pts">
+        <li class="ok">タブを切り替えても<b>同じ位置に出たまま</b></li>
+        <li>不足（メイン60枚未満・Boon未設定）は<b>警告しない</b>＝構築途中に点灯しない</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="cols" style="margin-top:18px">
+  <div class="col narrow">
+    <p class="tag375">375px幅・最長デッキ名（デッキ名は1行で省略、バッジは折り返す）</p>
+    <div class="frame w375">
+      <div class="editor-bar">
+        <a class="ed-back" href="#">← 一覧</a>
+        <span class="deck-title">ロレイン精霊支配パンテオン調整版2026年8月大会用 <button class="edit-pen">✏️</button></span>
+        <button class="badge-pub">公開</button>
+        <button class="badge-fmt is-pantheon">🏛 パンテオン</button>
+        <span class="save-state">保存済み</span>
+      </div>
+      <div class="deck-warn">
+        ⚠️ パンテオンで使用できない構成です（禁止カード 2枚・メイン同名1枚制限の超過 3種）
+        <span class="hint">（詳細は「📊 統計」タブのフォーマット適合へ）</span>
+      </div>
+      <div class="deck-tabs">
+        <button aria-selected="true">🃏 デッキ</button>
+        <button aria-selected="false">📊 統計</button>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <p class="caption">フォーマットの変更（バッジをクリック）</p>
+    <div class="frame">
+      <div class="prompt-shot">
+        <div class="t">ga-card-tools-jp.pages.dev の内容</div>
+        <div>このデッキをパンテオンに変更します。<br>
+        パンテオンにサイドボードはないため、サイドボードの15枚は集計対象外になります（カードは残ります）。<br>
+        よろしいですか？</div>
+        <div style="text-align:right;margin-top:10px"><span class="btn btn-sm">キャンセル</span> <span class="btn btn-sm btn-primary">OK</span></div>
+      </div>
+      <ul class="pts">
+        <li><b>カードは絶対に削除しない</b>。非アクティブゾーンとして残す（③参照）</li>
+        <li>該当ゾーンが空なら2行目を省く</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2><span class="n">③</span>ゾーン構成（パンテオンゾーンの新設・サイドの非表示）</h2>
+<p class="note">パンテオンでは <b>マテリアル → メイン → パンテオン → 検討中</b>。
+サイドボードにカードが残っている場合だけ、<b>検討中の下</b>に「このフォーマットでは使いません」として出す（掃除できるように）。</p>
+<div class="cols">
+  <div class="col">
+    <p class="caption next">パンテオンゾーン（Lesser 1・Greater 1 が揃った状態）</p>
+    <div class="frame">
+      <div class="zone">
+        <h3>パンテオン <span class="cnt ok">Lesser 1/1・Greater 1/1</span></h3>
+        <div class="meter"><i class="ok" style="width:100%"></i></div>
+        <p class="zone-note">対戦開始時に裏向きで提示する Lesser Boon 1枚・Greater Boon 1枚。メインデッキには含めません。</p>
+        <div class="zone-grid">
+          <div class="cardph">
+            <img src="https://api.gatcg.com/cards/images/RzCde2mr3i.jpg" alt="アルテミスの小さな恩恵">
+            <span class="fmt-icon" title="Pantheon専用（スタンダード・ドラフトでは使用不可）">🏛</span>
+            <span class="qty-badge">×1</span>
+            <div class="ctrl-strip"><button>−</button><span class="qv">1</span><button>＋</button><button>⋯</button></div>
+          </div>
+          <div class="cardph">
+            <img src="https://api.gatcg.com/cards/images/xm66pkWE8x.jpg" alt="アストラエウスの大いなる恩恵">
+            <span class="fmt-icon" title="Pantheon専用（スタンダード・ドラフトでは使用不可）">🏛</span>
+            <span class="qty-badge">×1</span>
+            <div class="ctrl-strip"><button>−</button><span class="qv">1</span><button>＋</button><button>⋯</button></div>
+          </div>
+        </div>
+      </div>
+      <ul class="pts">
+        <li>カウンタは <b><code>Lesser 1/1・Greater 1/1</code></b>（ASCII表記。375pxで見出しを折り返さないため）</li>
+        <li>両方1枚で <span class="ok">緑</span>、どちらかが2枚以上で <span class="crit">赤</span>。0枚は色なし</li>
+      </ul>
+    </div>
+  </div>
+  <div class="col">
+    <p class="caption next">Boon不足・Boon重複の見え方</p>
+    <div class="frame">
+      <div class="zone">
+        <h3>パンテオン <span class="cnt">Lesser 0/1・Greater 1/1</span></h3>
+        <div class="meter"><i style="width:50%"></i></div>
+        <p class="zone-note">対戦開始時に裏向きで提示する Lesser Boon 1枚・Greater Boon 1枚。メインデッキには含めません。</p>
+      </div>
+      <div class="zone">
+        <h3>パンテオン <span class="cnt over">Lesser 2/1・Greater 1/1</span></h3>
+        <div class="meter"><i class="over" style="width:100%"></i></div>
+        <p class="zone-note">対戦開始時に裏向きで提示する Lesser Boon 1枚・Greater Boon 1枚。メインデッキには含めません。</p>
+      </div>
+      <div class="zone">
+        <h3>サイドボード（このフォーマットでは使いません） <span class="cnt">15枚</span></h3>
+        <p class="zone-note warn">⚠️ パンテオンにサイドボードはありません。統計・適合判定の対象外です（スタンダードに戻すと元通りに数えます）。</p>
+        <div class="zone-grid">
+          <div class="cardph">
+            <img src="https://api.gatcg.com/cards/images/ikXg6xeVIV.jpg" alt="守護のアミュレット">
+            <span class="qty-badge">×1</span>
+            <div class="ctrl-strip"><button>−</button><span class="qv">1</span><button>⋯</button></div>
+          </div>
+          <div class="cardph">
+            <img src="https://api.gatcg.com/cards/images/Wu0qJd2ZYr.jpg" alt="関税の指輪">
+            <span class="qty-badge">×2</span>
+            <div class="ctrl-strip"><button>−</button><span class="qv">2</span><button>⋯</button></div>
+          </div>
+        </div>
+      </div>
+      <ul class="pts"><li>非アクティブゾーンのタイルには <b><code>＋</code> を出さない</b>（減らす・移す・削除だけ）</li></ul>
+    </div>
+  </div>
+</div>
+
+<div class="cols" style="margin-top:18px">
+  <div class="col narrow">
+    <p class="tag375">375px幅（見出しが1行に収まること）</p>
+    <div class="frame w375">
+      <div class="zone">
+        <h3>パンテオン <span class="cnt ok">Lesser 1/1・Greater 1/1</span></h3>
+        <div class="meter"><i class="ok" style="width:100%"></i></div>
+        <p class="zone-note">対戦開始時に裏向きで提示する Lesser Boon 1枚・Greater Boon 1枚。メインデッキには含めません。</p>
+        <div class="zone-grid">
+          <div class="cardph"><img src="https://api.gatcg.com/cards/images/RzCde2mr3i.jpg" alt=""><span class="fmt-icon">🏛</span><span class="qty-badge">×1</span><div class="ctrl-strip"><button>−</button><span class="qv">1</span><button>＋</button><button>⋯</button></div></div>
+          <div class="cardph"><img src="https://api.gatcg.com/cards/images/xm66pkWE8x.jpg" alt=""><span class="fmt-icon">🏛</span><span class="qty-badge">×1</span><div class="ctrl-strip"><button>−</button><span class="qv">1</span><button>＋</button><button>⋯</button></div></div>
+        </div>
+      </div>
+      <div class="zone">
+        <h3>マテリアルデッキ <span class="cnt ok">12 / 12</span></h3>
+        <div class="meter"><i class="ok" style="width:100%"></i></div>
+        <div class="zone-grid">
+          <div class="cardph"><img src="https://api.gatcg.com/cards/images/8lbewemhus.jpg" alt="風の精霊"><span class="qty-badge">×1</span></div>
+          <div class="cardph"><img src="https://api.gatcg.com/cards/images/8kskierp5t.jpg" alt="ロレイン、放浪の戦士"><span class="qty-badge">×1</span></div>
+          <div class="cardph"><img src="https://api.gatcg.com/cards/images/kvoqk2m76t.jpg" alt="ロレイン、精霊の支配者"><span class="qty-badge">×1</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <p class="caption">検索結果の追加ボタン（アクティブなゾーンだけ出す）</p>
+    <div class="frame">
+      <p class="note" style="margin-bottom:8px">パンテオンのデッキで <b>Boonカード</b>を検索したとき:</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-sm" disabled title="このカードはマテリアルデッキに入れられません">＋マテリアル</button>
+        <button class="btn btn-sm" disabled title="このカードはメインデッキに入れられません">＋メイン</button>
+        <button class="btn btn-sm btn-primary">＋パンテオン</button>
+        <button class="btn btn-sm">＋検討中</button>
+      </div>
+      <p class="note" style="margin:14px 0 8px">同じデッキで <b>Boon以外</b>を検索したとき:</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-sm">＋マテリアル</button>
+        <button class="btn btn-sm btn-primary">＋メイン</button>
+        <button class="btn btn-sm" disabled title="このカードはパンテオンに入れられません">＋パンテオン</button>
+        <button class="btn btn-sm">＋検討中</button>
+      </div>
+      <ul class="pts">
+        <li><b><code>＋サイド</code> は出ない</b>（パンテオンでは非アクティブ）</li>
+        <li>スタンダードのデッキでは逆に <code>＋パンテオン</code> が出ず、<code>＋サイド</code> が出る</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2><span class="n">④</span>統計タブ「フォーマット適合」</h2>
+<p class="note">デッキのフォーマット<b>1行だけ</b>にする。判定対象ゾーンの説明と末尾の注記も切り替える。</p>
+<div class="cols">
+  <div class="col">
+    <p class="caption now">常に2行＋Boonは「管理対象外」</p>
+    <div class="frame">
+      <div class="stat-card">
+        <h3>フォーマット適合 <span class="cnt">スタンダード=メイン+マテリアル+サイド／パンテオン=メイン+マテリアルで判定</span></h3>
+        <div class="fmt-row"><span class="fmt-name">スタンダード</span>
+          <span class="fmt-issues"><span class="fmt-ng">⚠️ 禁止カード 2枚 — Greater Boon of Astraeus（アストラエウスの大いなる恩恵） ×1・Lesser Boon of Artemis（アルテミスの小さな恩恵） ×1</span></span>
+        </div>
+        <div class="fmt-row"><span class="fmt-name">パンテオン</span><span class="fmt-ok">✅ 使用可能</span></div>
+        <p class="sr-note">※パンテオンは別途Boon 2枚（Lesser／Greater 各1）が必要です（本ツールでは管理対象外）。パンテオンにサイドボードはありません。</p>
+      </div>
+      <ul class="pts">
+        <li class="crit">パンテオンのデッキなのに「スタンダードで禁止」が主役になる</li>
+        <li class="crit">Boonが「管理対象外」のまま</li>
+      </ul>
+    </div>
+  </div>
+  <div class="col">
+    <p class="caption next">デッキのフォーマット1行だけ</p>
+    <div class="frame">
+      <div class="stat-card">
+        <h3>フォーマット適合 <span class="cnt">メイン＋マテリアル＋パンテオンで判定</span></h3>
+        <div class="fmt-row"><span class="fmt-name">パンテオン</span>
+          <span class="fmt-issues">
+            <span class="fmt-ng">⚠️ メイン同名1枚制限の超過 3種 — Drawn Blade（抜き放たれた刃） ×2・Sword of Seeking（探求の剣） ×2・Worn Diary（使い古された日記） ×3</span>
+            <span class="fmt-ng">⚠️ Boonは Lesser・Greater 各1枚までです — Lesser Boon of Artemis（アルテミスの小さな恩恵） ×2</span>
+          </span>
+        </div>
+        <p class="sr-note">※パンテオンにサイドボードはありません。Boonは対戦開始時に Lesser・Greater 各1枚を裏向きで提示します。</p>
+      </div>
+      <div class="stat-card">
+        <h3>フォーマット適合 <span class="cnt">メイン＋マテリアル＋サイドで判定</span></h3>
+        <div class="fmt-row"><span class="fmt-name">スタンダード</span><span class="fmt-ok">✅ 使用可能</span></div>
+      </div>
+      <ul class="pts">
+        <li>上＝パンテオンのデッキ、下＝スタンダードのデッキ（同時には出ない）</li>
+        <li>Boon <b>0枚は不適合にしない</b>（構築途中で常時⚠️になるため。ゾーンのカウンタで示す）</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="cols" style="margin-top:18px">
+  <div class="col">
+    <p class="caption next">合計の内訳（非アクティブゾーンが残っている場合）</p>
+    <div class="frame">
+      <div class="stat-card">
+        <h3>合計 <span class="cnt">74枚 ＝ マテリアル12＋メイン60＋パンテオン2（「検討中」は含みません）（サイドボード15枚はパンテオンでは集計対象外）</span></h3>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <p class="caption">統計カードの並び（パンテオン）</p>
+    <div class="frame">
+      <ul class="pts">
+        <li>マテリアルデッキ → メインデッキ → <b>パンテオン</b> → 合計 → フォーマット適合</li>
+        <li><b>サイドボードの統計カードは出さない</b></li>
+        <li>統計パネル最上部の旧 <code>.warn-banner</code> は<b>撤去</b>（②に移設済み）</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2><span class="n">⑤</span>デッキ一覧（バッジ＋絞り込み）</h2>
+<div class="cols">
+  <div class="col">
+    <p class="caption now">フォーマットが分からない</p>
+    <div class="frame">
+      <div class="list-controls">
+        <label for="s1">並び替え</label>
+        <select id="s1"><option>更新が新しい順</option></select>
+        <div class="list-actions"><button class="btn btn-sm btn-primary">＋ 新しいデッキ</button><button class="btn btn-sm">📥 インポート</button></div>
+      </div>
+      <div class="deck-list">
+        <article class="deck-item">
+          <div class="thumb-wrap"><img class="champ-thumb-img" src="https://api.gatcg.com/cards/images/kvoqk2m76t.jpg" alt=""></div>
+          <div class="deck-info">
+            <h3>ロレイン精霊支配パンテオン調整版2026年8月</h3>
+            <p class="deck-sub"><span class="badge-pub">公開</span><span class="upd">更新: 3時間前</span></p>
+            <div class="deck-actions"><a class="btn btn-sm btn-primary" href="#">✏️ 編集</a><button class="btn btn-sm">複製</button><button class="btn btn-sm">🔗 共有</button></div>
+          </div>
+        </article>
+        <article class="deck-item">
+          <div class="thumb-wrap"><img class="champ-thumb-img" src="https://api.gatcg.com/cards/images/8kskierp5t.jpg" alt=""></div>
+          <div class="deck-info">
+            <h3>ロレイン スタンダード</h3>
+            <p class="deck-sub"><span class="badge-priv">非公開</span><span class="upd">更新: 2日前</span></p>
+            <div class="deck-actions"><a class="btn btn-sm btn-primary" href="#">✏️ 編集</a><button class="btn btn-sm">複製</button><button class="btn btn-sm">🔗 共有</button></div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <p class="caption next">バッジ＋絞り込み（件数つき）</p>
+    <div class="frame">
+      <div class="list-controls">
+        <label for="s2">並び替え</label>
+        <select id="s2"><option>更新が新しい順</option></select>
+        <label for="s3">フォーマット</label>
+        <select id="s3"><option>すべて（12）</option><option>⭐ スタンダード（10）</option><option>🏛 パンテオン（2）</option></select>
+        <div class="list-actions"><button class="btn btn-sm btn-primary">＋ 新しいデッキ</button><button class="btn btn-sm">📥 インポート</button></div>
+      </div>
+      <div class="deck-list">
+        <article class="deck-item">
+          <div class="thumb-wrap"><img class="champ-thumb-img" src="https://api.gatcg.com/cards/images/kvoqk2m76t.jpg" alt=""></div>
+          <div class="deck-info">
+            <h3>ロレイン精霊支配パンテオン調整版2026年8月</h3>
+            <p class="deck-sub"><span class="badge-pub">公開</span><span class="badge-fmt is-pantheon">🏛 パンテオン</span><span class="upd">更新: 3時間前</span></p>
+            <div class="deck-actions"><a class="btn btn-sm btn-primary" href="#">✏️ 編集</a><button class="btn btn-sm">複製</button><button class="btn btn-sm">🔗 共有</button></div>
+          </div>
+        </article>
+        <article class="deck-item">
+          <div class="thumb-wrap"><img class="champ-thumb-img" src="https://api.gatcg.com/cards/images/8kskierp5t.jpg" alt=""></div>
+          <div class="deck-info">
+            <h3>ロレイン スタンダード</h3>
+            <p class="deck-sub"><span class="badge-priv">非公開</span><span class="badge-fmt">⭐ スタンダード</span><span class="upd">更新: 2日前</span></p>
+            <div class="deck-actions"><a class="btn btn-sm btn-primary" href="#">✏️ 編集</a><button class="btn btn-sm">複製</button><button class="btn btn-sm">🔗 共有</button></div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="cols" style="margin-top:18px">
+  <div class="col narrow">
+    <p class="tag375">375px幅（<code>.deck-sub</code> が折り返す）</p>
+    <div class="frame w375">
+      <div class="list-controls">
+        <label for="s4">並び替え</label>
+        <select id="s4"><option>更新が新しい順</option></select>
+        <label for="s5">フォーマット</label>
+        <select id="s5"><option>🏛 パンテオン（2）</option></select>
+      </div>
+      <div class="deck-list">
+        <article class="deck-item">
+          <div class="thumb-wrap"><img class="champ-thumb-img" src="https://api.gatcg.com/cards/images/kvoqk2m76t.jpg" alt=""></div>
+          <div class="deck-info">
+            <h3>ロレイン精霊支配パンテオン調整版2026年8月</h3>
+            <p class="deck-sub"><span class="badge-pub">公開</span><span class="badge-fmt is-pantheon">🏛 パンテオン</span><span class="upd">更新: 3時間前</span></p>
+            <div class="deck-actions"><a class="btn btn-sm btn-primary" href="#">✏️ 編集</a><button class="btn btn-sm">複製</button><button class="btn btn-sm">🔗 共有</button><button class="btn btn-sm btn-danger">削除</button></div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <p class="caption next">絞り込みの結果が0件のとき</p>
+    <div class="frame">
+      <div class="list-controls">
+        <label for="s6">並び替え</label>
+        <select id="s6"><option>更新が新しい順</option></select>
+        <label for="s7">フォーマット</label>
+        <select id="s7"><option>🏛 パンテオン（0）</option></select>
+      </div>
+      <p class="deck-empty">該当するデッキがありません。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2><span class="n">⑥</span>omnidex提出用コピー（未決事項Cの暫定形）</h2>
+<p class="note">omnidexのテキスト形式に「パンテオン（Boon）」の見出しがあるか<b>未確認</b>のため、
+フェーズ1では<b>出力せず注記で断る</b>。仕様が判明したら設計を改版して出力に含める。</p>
+<div class="cols">
+  <div class="col">
+    <p class="caption next">パンテオンのデッキでコピーしたとき</p>
+    <div class="frame">
+      <div class="modal-body">
+        <h2>📤 omnidex提出用コピー</h2>
+        <p class="note" style="margin:6px 0 10px">omnidexのデッキ登録画面にそのまま貼り付けられます。</p>
+        <pre style="background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.78rem;overflow:auto"># Material Deck
+1 Drawn Blade
+1 Equinox Hour
+1 Lorraine, Blademaster
+1 Lorraine, Spirit Ruler
+1 Lorraine, Wandering Warrior
+1 Spirit of Wind
+
+# Main Deck
+1 Prismatic Edge
+1 Quietus Blade
+1 Safeguard Amulet
+1 Sword of Seeking
+1 Tariff Ring
+1 Worn Diary</pre>
+        <p class="sr-note">※ パンテオン（Boon 2枚）は、omnidexのテキスト形式が未確認のため含めていません。</p>
+        <div class="omni-actions"><button class="btn btn-sm btn-primary">📋 コピーする</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <p class="caption next">インポート（フォーマットのラジオを1行追加）</p>
+    <div class="frame">
+      <div class="modal-body">
+        <h2>📥 インポート</h2>
+        <div class="field">
+          <label>フォーマット</label>
+          <div class="fmt-choices">
+            <label class="fmt-choice sel"><span class="ttl"><span class="dot"></span>⭐ スタンダード</span></label>
+            <label class="fmt-choice"><span class="ttl"><span class="dot"></span>🏛 パンテオン</span></label>
+          </div>
+        </div>
+        <div class="field">
+          <label>Omnidexテキスト</label>
+          <textarea rows="5" style="width:100%;background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:.85rem"># Main Deck
+1 Greater Boon of Astraeus
+1 Lesser Boon of Artemis
+1 Prismatic Edge</textarea>
+        </div>
+        <div class="omni-actions"><button class="btn btn-sm btn-primary">読み込む</button></div>
+      </div>
+      <ul class="pts">
+        <li>🏛 パンテオンを選んだときだけ、<b>タイプがBoonのカードをパンテオンゾーンへ振り替える</b>
+          （上の例では Greater/Lesser の2枚がメインではなくパンテオンに入る）</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<p class="note" style="margin-top:40px">※ このモックは <code>style</code> 属性を使っています（幅の指定など）。
+<b>本番は CSP <code>style-src 'self'</code> のため style属性を使えません</b>。
+メーターの幅は既存どおり CSSOM（<code>bar.style.width = …</code>）で設定してください。</p>
+
+</div>
+</body>
+</html>
