@@ -1717,7 +1717,8 @@ function computeDeckStats(cards, bySlug, formatKey) {
 }
 
 // 警告バナー(#4)の理由。⚠️ 「不足」(メイン60枚未満・マテリアル12枚未満・Boon 0枚)は
-// 構築途中に常時点灯してノイズになるため出さない(ゾーンのカウンタに委ねる)
+// 構築途中に常時点灯してノイズになるため出さない(ゾーンのカウンタに委ねる)。
+// ⚠️ 並びは設計書§5-2(b)で固定。formatIssues()に判定を足したらここの理由にも足す
 function warnReasons(fmt) {
   const reasons = [];
   const bannedN = fmt.banned.reduce((s, b) => s + b.qty, 0);
@@ -1727,16 +1728,24 @@ function warnReasons(fmt) {
   if (seasonN) reasons.push(`シーズン禁止カード ${seasonN}枚`);
   if (overN) reasons.push(`枚数制限の超過 ${overN}種`);
   if (fmt.overBoon.length) reasons.push(`Boonの重複 ${fmt.overBoon.length}種`);
+  if (fmt.boonInDeck.length) reasons.push(`パンテオン外のBoon ${fmt.boonInDeck.length}種`);
   return reasons;
 }
 
 // タブ帯の直上の警告バナーを更新する。編集画面(#deck-warn)と共有画面(#v-deck-warn)で共用。
+// ⚠️ 表示条件は「統計の適合判定(formatIssues)にissueが1件以上あるか」で決める(設計書§5-2(b)第3版)。
+// 理由の列挙で条件を組み立てると、適合判定に項目を足したときに
+// 「適合行は不適合なのにバナーが出ない」同期漏れが起きる(初版で boonInDeck が実際に漏れた)。
 function updateDeckWarn(container, cards, bySlug, formatKey) {
   const key = normalizeFormat(formatKey);
-  const reasons = warnReasons(computeDeckStats(cards, bySlug, key).format);
-  container.hidden = !reasons.length;
-  if (!reasons.length) { container.innerHTML = ""; return; }
-  container.innerHTML = `⚠️ ${FORMAT_INFO[key].jp}で使用できない構成です（${escapeHtml(reasons.join("・"))}）`
+  const fmt = computeDeckStats(cards, bySlug, key).format;
+  const hasIssue = formatIssues(fmt).length > 0;
+  container.hidden = !hasIssue;
+  if (!hasIssue) { container.innerHTML = ""; return; }
+  // 理由ラベルが未定義の判定が増えても、バナー自体は出す(空の括弧は出さない)
+  const reasons = warnReasons(fmt);
+  container.innerHTML = `⚠️ ${FORMAT_INFO[key].jp}で使用できない構成です`
+    + (reasons.length ? `（${escapeHtml(reasons.join("・"))}）` : "")
     + `<span class="hint">（詳細は「📊 統計」タブのフォーマット適合へ）</span>`;
 }
 
@@ -1820,6 +1829,39 @@ const FORMAT_FOOT_NOTE = {
   PANTHEON: "※パンテオンにサイドボードはありません。Boonは対戦開始時に Lesser・Greater 各1枚を裏向きで提示します。",
 };
 
+// フォーマット適合の不適合項目(設計書§5-3(b))。統計の「フォーマット適合」行と
+// タブ帯直上の警告バナー(§5-2(b))が**同じ判定**を共有するための唯一の出所。
+// ⚠️ ここに判定を足すとバナーの表示条件にも自動で反映される(列挙で二重管理しない)。
+// 返すのはHTML断片(カード名は listCardNames が escape 済み)。
+function formatIssues(f) {
+  const key = f.key;
+  const issues = [];
+  if (f.banned.length) {
+    const n = f.banned.reduce((s, b) => s + b.qty, 0);
+    issues.push(`⚠️ 禁止カード ${n}枚 — ${listCardNames(f.banned)}`);
+  }
+  // シーズン禁止(#34)は恒久禁止と行を分ける(公式が別のリストと明言しているため合算しない)
+  if (f.seasonalActive.length) {
+    const n = f.seasonalActive.reduce((s, b) => s + b.qty, 0);
+    issues.push(`⚠️ シーズン禁止カード ${n}枚（${escapeHtml(seasonalName(f.seasonalActive[0].season))}） — ${listCardNames(f.seasonalActive)}`);
+  }
+  if (f.overMain.length) {
+    const limit = FORMAT_RULES[key].mainCopyLimit;
+    issues.push(`⚠️ メイン同名${limit}枚制限の超過 ${f.overMain.length}種 — ${listCardNames(f.overMain)}`);
+  }
+  if (f.overMaterial.length) {
+    issues.push(`⚠️ マテリアル同名1枚制限の超過 — ${listCardNames(f.overMaterial)}`);
+  }
+  // パンテオン専用(#4)。Boonの不足は出さない(§5-3(b))
+  if (f.overBoon.length) {
+    issues.push(`⚠️ Boonは Lesser・Greater 各1枚までです — ${listCardNames(f.overBoon)}`);
+  }
+  if (f.boonInDeck.length) {
+    issues.push(`⚠️ Boonはパンテオンゾーンに置いてください — ${listCardNames(f.boonInDeck)}`);
+  }
+  return issues;
+}
+
 // フォーマット適合カード。⚠️ デッキのフォーマット1行だけを出す(#4)。
 // 禁止カードに加え、枚数制限(スタンダード=メイン4枚/パンテオン=メイン1枚/マテリアル1枚)、
 // パンテオンではBoonの枚数も判定する。
@@ -1829,30 +1871,7 @@ function formatCardHtml(fmt) {
   const rowFor = (key) => {
     const f = fmt;
     const name = FORMAT_JP[key];
-    const issues = [];
-    if (f.banned.length) {
-      const n = f.banned.reduce((s, b) => s + b.qty, 0);
-      issues.push(`⚠️ 禁止カード ${n}枚 — ${listCardNames(f.banned)}`);
-    }
-    // シーズン禁止(#34)は恒久禁止と行を分ける(公式が別のリストと明言しているため合算しない)
-    if (f.seasonalActive.length) {
-      const n = f.seasonalActive.reduce((s, b) => s + b.qty, 0);
-      issues.push(`⚠️ シーズン禁止カード ${n}枚（${escapeHtml(seasonalName(f.seasonalActive[0].season))}） — ${listCardNames(f.seasonalActive)}`);
-    }
-    if (f.overMain.length) {
-      const limit = FORMAT_RULES[key].mainCopyLimit;
-      issues.push(`⚠️ メイン同名${limit}枚制限の超過 ${f.overMain.length}種 — ${listCardNames(f.overMain)}`);
-    }
-    if (f.overMaterial.length) {
-      issues.push(`⚠️ マテリアル同名1枚制限の超過 — ${listCardNames(f.overMaterial)}`);
-    }
-    // パンテオン専用(#4)。Boonの不足は出さない(§5-3(b))
-    if (f.overBoon.length) {
-      issues.push(`⚠️ Boonは Lesser・Greater 各1枚までです — ${listCardNames(f.overBoon)}`);
-    }
-    if (f.boonInDeck.length) {
-      issues.push(`⚠️ Boonはパンテオンゾーンに置いてください — ${listCardNames(f.boonInDeck)}`);
-    }
+    const issues = formatIssues(f);
     // 予告(発効前)は違反ではないので ✅ 使用可能 を消さず、情報行として必ず見える位置に添える(#34)
     const notes = [];
     if (f.seasonalSoon.length) {
