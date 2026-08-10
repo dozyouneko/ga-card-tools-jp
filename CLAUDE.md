@@ -309,6 +309,10 @@ gh issue list --label push待ち      # 承認済み・push待ち。⚠️セッ
   - ⚠️ **`scripts/` も配信される**(2026-08-08実測: `/scripts/lib/cards-snapshot.mjs`
     `/scripts/build-card-pages.mjs` とも **200**)。ビルドツールの変更でも**pushは本番公開**になるので、
     「サイトの見た目が変わらないから安全」と判断しない(#24の対象)
+  - ⚠️ **`migrations/` も配信される**(2026-08-10実測: `/migrations/0001_init.sql` 〜 `0004_deck_format.sql`
+    がいずれも **200**)。⭐ ただし**中身はスキーマ定義だけで秘匿情報は無い**ため、新しい種類の露出ではない
+    (#24の対象に含める)。⭐ **新規マイグレーションはデプロイ到達マーカーとして使える**
+    (新規URLなのでエッジに古いコピーが無く、404→200 で即確定できる。#4のpushで実際に約1分で確定した)
   - ⭐ **ドットフォルダ配下は配信されない。ルート直下のドットファイルは配信される**
     (2026-08-09実測・#9のpush時に確認。**キャッシュ回避クエリ付き**で測定):
 
@@ -489,6 +493,39 @@ gh issue list --label push待ち      # 承認済み・push待ち。⚠️セッ
     - ✅ 副産物として、**シーズン禁止(#34)の境界日にカードページが自動で切り替わる**
       (`effectiveFrom` / `effectiveTo` を跨いだ翌朝のcronが対象カードのページだけ再生成してpushする)
 - `npm run db:migrate:local` — D1ローカルDBのマイグレーション
+  - ⚠️ **`npm run db:migrate:remote` は既存DBでは必ず落ちる**(2026-08-10・#4で判明)。
+    `0001` から順に全部流す作りで、`0001_init.sql` に `IF NOT EXISTS` が無いため
+    `table users already exists` で最初のコマンドが失敗する(**0002の頃から同じ**)。是正は **#60**
+  - **本番D1への適用は単体実行する**:
+
+    ```bash
+    npx wrangler d1 execute DB --remote --file=migrations/000N_xxx.sql
+    ```
+
+    (`CLOUDFLARE_API_TOKEN`(=`~/.cloudflare-token`)と `CLOUDFLARE_ACCOUNT_ID` を渡す。
+    `wrangler login` は済んでいない＝`whoami` は「not authenticated」を返すが、トークン経由で通る)
+  - ⚠️ **⭐ 必ず「本番D1に適用 → push」の順**。逆順にすると、コードだけ本番に出た数分間
+    **新しい列を読むクエリが `no such column` で落ちる**(#4 では `/api/decks` の `SELECT d.format`＝
+    デッキ一覧が開けなくなる)。**列の追加は既存クエリを壊さない**ので、先に適用しておくのは安全
+  - 適用後は `SELECT <新列>, COUNT(*) FROM <表> GROUP BY <新列>;` で**既存行が既定値に倒れたか**を確認する
+- ⚠️ **デッキ構築ツールは「フォーマット」を持つ**(2026-08-10・#4〜)。
+  `decks.format` = `STANDARD` | `PANTHEON` の2値(既定 `STANDARD`。**既存65デッキは全て `STANDARD`**)。
+  **スタンダード決め打ちの前提でコードを足さないこと**:
+
+  | フォーマット | ゾーン(`deck_cards.board`) | メイン同名 | 特有の要件 |
+  |---|---|---|---|
+  | `STANDARD` | `material` / `main` / **`side`** / `maybe` | 4枚 | サイドは15pt制 |
+  | `PANTHEON` | `material` / `main` / **`pantheon`** / `maybe` | **1枚**(シングルトン) | **サイドボードなし**・Boon(Lesser/Greater)各1枚 |
+
+  - ⭐ **判定の出所は `app.js` の `formatIssues()` 1箇所**。統計の「フォーマット適合」と
+    タブ帯直上の警告バナー(`#deck-warn`)が**同じ関数を呼ぶ**。⚠️ **判定を足したら
+    `warnReasons()` の理由ラベルも足す**(足し忘れてもバナーは出る＝安全側だが理由が空になる)
+  - ⚠️ **`maybe`(検討中)は常に判定対象外**。非アクティブなゾーン(パンテオンでの `side` 等)も
+    **カードを消さずに残す**(掃除経路)が、統計・適合の対象からは外す
+  - Boonカード47枚は `types` が `LESSER BOON` / `GREATER BOON` で**パンテオン専用**
+    (`legality` の STANDARD/DRAFT が limit 0)。`isMaterialCard()` には該当しないので、
+    **ゾーン制限は `isBoonCard()` で別途見ている**
+  - 詳細は `docs/design/4-パンテオン構築対応/`
 
 ## 公式API(api.gatcg.com)の注意(2026-08-05〜)
 
@@ -572,6 +609,11 @@ gh issue list --label push待ち      # 承認済み・push待ち。⚠️セッ
   拡張子あり・なしの**両方を登録する**こと(実例: `_headers` の `decks.html` / `decks`)。
   この挙動は `npm run dev` では再現しないため、**リリース後に `curl -sI` で実物を確認する**
   (`_headers` 自体もローカルサーバーは解釈しない)
+  - ⚠️ **この308は「本番反映の確認」の測定側も壊す**(2026-08-10・#4のpushで実際に踏んだ)。
+    `curl -s https://…/tools/deck-builder/index.html | grep -c '…'` は**本文が0バイト**で返るため
+    **必ず0件**になり、「反映されていない」と誤読する(実測: 素のcurl **0バイト** / `-L` 付き **22,073バイト**)。
+    ⭐ **本文をgrepして反映を確かめるときは、末尾スラッシュのURL(`/tools/deck-builder/`)を使うか `-L` を付ける。**
+    ヘッダだけ見る `curl -sI` では気づけない(308も200も「応答はある」ため)
 - ⚠️ **CSPは「HTMLのmeta」と「`_headers`」の2箇所にあり、両方を直さないと効かない**(2026-08-09・#56)。
   Pagesは**一致した全ルールのCSPを重複して送り、ブラウザは積集合で評価する**ため、
   **片方が緩んでも、もう片方が拒否すればブロックされる**
