@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>issue #58 / #59 構築要件の是正 モック</title>
+<style>
+:root{
+  --bg:#0f1115; --panel:#171a21; --panel-2:#1f232c; --border:#2a2f3a;
+  --text:#e7e9ee; --muted:#9aa2b1; --accent:#d9a441; --accent-2:#6ea8fe;
+  --yes:#2f9e6b; --danger:#fca5a5; --radius:12px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);line-height:1.6;
+  font-family:system-ui,-apple-system,"Segoe UI","Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif}
+button{font:inherit;cursor:pointer}
+.page{max-width:1220px;margin:0 auto;padding:24px 20px 90px}
+h1{font-size:1.5rem;margin:0 0 4px}
+.lead{color:var(--muted);font-size:.9rem;margin:0 0 8px;max-width:74ch}
+h2{font-size:1.05rem;margin:46px 0 6px;padding-top:16px;border-top:1px solid var(--border)}
+h2 .n{color:var(--accent);margin-right:6px}
+h3.sub{font-size:.9rem;margin:22px 0 8px;color:var(--text)}
+.note{color:var(--muted);font-size:.82rem;margin:0 0 14px;max-width:86ch}
+.note b{color:var(--text)}
+.note code{background:var(--panel-2);border:1px solid var(--border);border-radius:4px;padding:0 4px;font-size:.95em}
+.cols{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+.col{flex:1 1 480px;min-width:0}
+.col.narrow{flex:0 0 auto}
+.caption{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.caption.now::before{content:"現状 ";color:var(--danger);font-weight:700}
+.caption.next::before{content:"変更後 ";color:#6fd3a3;font-weight:700}
+.frame{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;overflow:hidden}
+.frame.w375{width:375px;padding:12px}
+.tag375{font-size:.7rem;color:var(--muted);margin:0 0 6px}
+table.rules{border-collapse:collapse;font-size:.82rem;margin:0 0 18px;min-width:min(100%,640px)}
+table.rules th,table.rules td{border:1px solid var(--border);padding:6px 10px;text-align:left}
+table.rules th{background:var(--panel-2);color:var(--muted);font-weight:600}
+table.rules td b{color:#6fd3a3}
+table.rules td i{color:var(--danger);font-style:normal}
+.legend{font-size:.75rem;color:var(--muted);margin:8px 0 0}
+
+/* ---- 実物(tools/deck-builder/style.css)から移植 ---- */
+.zone{margin-bottom:26px}
+.zone:last-child{margin-bottom:0}
+.zone h3{margin:0 0 6px;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.zone h3 .cnt{margin-left:auto;font-size:.82rem;color:var(--text);font-variant-numeric:tabular-nums}
+.zone h3 .cnt.ok{color:#6fd3a3}
+.zone h3 .cnt.over{color:#fca5a5}
+.meter{height:4px;border-radius:2px;background:var(--panel-2);margin-bottom:8px;overflow:hidden}
+.meter>i{display:block;height:100%;width:0;background:var(--accent);border-radius:2px}
+.meter>i.ok{background:var(--yes)}
+.meter>i.over{background:#b91c1c}
+.zone-note{margin:0 0 10px;font-size:.72rem;color:var(--muted)}
+.zone-note.warn{color:#fca5a5}
+.zone-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.cardph{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:var(--panel-2)}
+.cardph .noimg{aspect-ratio:63/88;display:grid;place-items:center;padding:6px;
+  color:var(--muted);font-size:.62rem;text-align:center;line-height:1.35}
+.cardph.lv0 .noimg{color:#e7e9ee}
+.cardph.lv0{border-color:rgba(111,211,163,.6);box-shadow:0 0 0 1px rgba(111,211,163,.35) inset}
+.qty-badge{position:absolute;top:6px;right:6px;background:rgba(8,9,12,.82);color:#fff;
+  border:1px solid rgba(255,255,255,.35);border-radius:999px;font-size:.62rem;padding:0 5px}
+.lv0-tag{position:absolute;bottom:6px;left:6px;background:rgba(47,158,107,.9);color:#fff;
+  border-radius:4px;font-size:.58rem;padding:0 4px}
+
+.deck-warn{margin:0 0 12px;padding:9px 12px;border-radius:10px;font-size:.85rem;
+  background:rgba(185,28,28,.14);border:1px solid rgba(252,165,165,.45);color:#fca5a5}
+.deck-warn .hint{color:var(--muted);font-size:.8rem}
+.deck-tabs{display:flex;gap:6px;border-bottom:1px solid var(--border);margin:0 0 14px}
+.deck-tabs button{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);
+  padding:8px 12px;font-size:.85rem}
+.deck-tabs button[aria-selected=true]{color:var(--text);border-bottom-color:var(--accent)}
+
+.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.frame .stat-card{background:var(--panel-2)}
+.stat-card>h3{margin:0 0 10px;font-size:.95rem;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.stat-card>h3 .cnt{color:var(--muted);font-weight:400;font-size:.8rem}
+.fmt-row{display:flex;align-items:baseline;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);
+  font-size:.92rem;flex-wrap:wrap}
+.fmt-row:last-child{border-bottom:none}
+.fmt-name{min-width:8em;font-weight:600}
+.fmt-ok{color:#7fd4a8}
+.fmt-ng{color:var(--danger)}
+.fmt-issues{display:flex;flex-direction:column;gap:2px}
+.fmt-todo{color:var(--accent)}
+.fmt-notes{flex-basis:100%;display:flex;flex-direction:column;gap:2px}
+.fmt-info{color:var(--muted);font-size:.85rem}
+.sr-note{margin:6px 0 0;font-size:.75rem;color:var(--muted)}
+
+.newmark{outline:1px dashed rgba(217,164,65,.55);outline-offset:3px;border-radius:4px}
+.k{font-size:.7rem;color:var(--accent);margin-left:6px}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>issue #58 / #59 — デッキ構築ツールの構築要件の是正 モック</h1>
+<p class="lead">
+  #58「メインデッキ61枚以上を <i>超過(赤)</i> にしているのは誤り」と
+  #59「マテリアルのLv0チャンピオン必須を判定していない」を1本で直す。
+  カード名・枚数は<b>実データ</b>（2026-07-31 Coffer Sparks RDO Store Championship 優勝
+  BarrettCreative 選手のスタンダードデッキ／マテリアル12・メイン<b>62</b>・サイド13）。
+  破線の囲みが新規追加の要素。
+</p>
+
+<table class="rules">
+  <tr><th></th><th>スタンダード</th><th>パンテオン</th></tr>
+  <tr><th>メインデッキ</th><td><b>最低60枚・上限なし</b></td><td><b>最低60枚・上限なし</b></td></tr>
+  <tr><th>マテリアルデッキ</th><td>最大12枚（12枚未満でも合法）</td><td>ちょうど12枚</td></tr>
+  <tr><th>Lv0チャンピオン</th><td><b>マテリアルに最低1枚</b></td><td><b>マテリアルに最低1枚</b></td></tr>
+  <tr><th>サイドボード</th><td>最大15枚・15pt</td><td>存在しない</td></tr>
+</table>
+<p class="legend">出典: Grand Archive Comprehensive Rules v1.1.1 — General Rules / Format Conventions（2026-08-11 再確認）</p>
+
+
+<h2><span class="n">1.</span> #58 メインデッキのカウンタ</h2>
+<p class="note">
+  カウンタの表記を <code>N / 60</code> → <code>N / 60以上</code> に変え、
+  <b>61枚以上を <code>.over</code>（赤）にしない</b>。60枚以上は <code>.ok</code>（緑）で、メーターは100%で止める。
+  マテリアル（12枚）とサイド（15pt）は<b>従来どおり</b>超過を赤にする（どちらも「最大」だから正しい）。
+</p>
+
+<div class="cols">
+  <div class="col">
+    <p class="caption now">61枚以上のデッキ（実データ・優勝デッキ）</p>
+    <div class="frame">
+      <div class="zone">
+        <h3><span>メインデッキ</span> <span class="cnt over">62 / 60</span></h3>
+        <div class="meter"><i class="over" style="width:100%"></i></div>
+        <p class="zone-note warn">↑ 正当な構築なのに「超過」の赤で警告されている</p>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <p class="caption next">61枚以上のデッキ</p>
+    <div class="frame">
+      <div class="zone">
+        <h3><span>メインデッキ</span> <span class="cnt ok newmark">62 / 60以上</span></h3>
+        <div class="meter"><i class="ok" style="width:100%"></i></div>
+        <p class="zone-note">↑ 最低枚数を満たしているので緑。メーターは100%で頭打ち</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3 class="sub">3つの状態を並べる（変更後）</h3>
+<div class="cols">
+  <div class="col">
+    <div class="frame">
+      <div class="zone">
+        <h3><span>メインデッキ</span> <span class="cnt">55 / 60以上</span></h3>
+        <div class="meter"><i style="width:91.7%"></i></div>
+        <p class="zone-note">60枚未満 — 無色（<code>.cnt</code> に ok / over なし）・メーターは <code>--accent</code></p>
+      </div>
+      <div class="zone">
+        <h3><span>メインデッキ</span> <span class="cnt ok">60 / 60以上</span></h3>
+        <div class="meter"><i class="ok" style="width:100%"></i></div>
+        <p class="zone-note">ちょうど60枚 — 緑（現状と同じ）</p>
+      </div>
+      <div class="zone">
+        <h3><span>メインデッキ</span> <span class="cnt ok">62 / 60以上</span></h3>
+        <div class="meter"><i class="ok" style="width:100%"></i></div>
+        <p class="zone-note">61枚以上 — <b>緑のまま</b>（ここが修正点）。<code>.over</code> は<b>二度と付かない</b></p>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <p class="caption">比較: 変更しないゾーン</p>
+    <div class="frame">
+      <div class="zone">
+        <h3><span>マテリアルデッキ</span> <span class="cnt over">13 / 12</span></h3>
+        <div class="meter"><i class="over" style="width:100%"></i></div>
+        <p class="zone-note">マテリアルは「最大12枚」なので<b>13枚は赤のまま正しい</b></p>
+      </div>
+      <div class="zone">
+        <h3><span>サイドボード</span> <span class="cnt over">17 / 15 pt・13枚</span></h3>
+        <div class="meter"><i class="over" style="width:100%"></i></div>
+        <p class="zone-note">サイドも「最大15pt / 15枚」なので<b>赤のまま正しい</b></p>
+      </div>
+      <div class="zone">
+        <h3><span>パンテオン</span> <span class="cnt ok">Lesser 1/1・Greater 1/1</span></h3>
+        <div class="meter"><i class="ok" style="width:100%"></i></div>
+        <p class="zone-note">パンテオンゾーンは #4 のまま変更なし</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<h2><span class="n">2.</span> #59 マテリアルゾーンのLv0チャンピオン注記</h2>
+<p class="note">
+  マテリアルゾーンのメーター直下に注記を1行足す。<b>マテリアルに1枚以上あって、Lv0チャンピオンが0枚のときだけ</b>出す
+  （空のマテリアルには出さない ＝ 新規デッキを開いた瞬間に警告しない）。
+  Lv0チャンピオンが入っていれば注記は消える（「入っています」とは言わない）。
+  <b>タブ帯の警告バナー（<code>#deck-warn</code>）には出さない</b> — 構築途中は必ず未達で、常時点灯するため。
+</p>
+
+<div class="cols">
+  <div class="col">
+    <p class="caption now">Lv0チャンピオンが無いマテリアル（11枚）</p>
+    <div class="frame">
+      <div class="deck-warn" hidden></div>
+      <div class="zone">
+        <h3><span>マテリアルデッキ</span> <span class="cnt">11 / 12</span></h3>
+        <div class="meter"><i style="width:91.7%"></i></div>
+        <div class="zone-grid">
+          <div class="cardph"><div class="noimg">ロレイン、放浪の戦士</div><span class="qty-badge">×1</span></div>
+          <div class="cardph"><div class="noimg">ロレイン、剣の達人</div><span class="qty-badge">×1</span></div>
+          <div class="cardph"><div class="noimg">ロレイン、精霊の支配者</div><span class="qty-badge">×1</span></div>
+          <div class="cardph"><div class="noimg">予備の充電器</div><span class="qty-badge">×1</span></div>
+          <div class="cardph"><div class="noimg">クラレント、再想</div><span class="qty-badge">×1</span></div>
+          <div class="cardph"><div class="noimg">クラレント、平和の剣</div><span class="qty-badge">×1</span></div>
+        </div>
+      </div>
+      <p class="zone-note warn" style="margin-top:10px">↑ 何も指摘されない（統計も「✅ 使用可能」と出る）</p>
+    </div>
+  </div>
+  <div class="col">
+    <p class="caption next">Lv0チャンピオンが無いマテリアル（11枚）</p>
+    <div class="frame">
+      <div class="zone">
+        <h3><span>マテリアルデッキ</span> <span class="cnt">11 / 12</span></h3>
+        <div class="meter"><i style="width:91.7%"></i></div>
+        <p class="zone-note warn newmark">⚠️ Lv0チャンピオンが入っていません（マテリアルデッキには最低1枚必要です）</p>
+        <div class="zone-grid">
+          <div class="cardph"><div class="noimg">ロレイン、放浪の戦士</div><span class="qty-badge">×1</span></div>
+          <div class="cardph"><div class="noimg">ロレイン、剣の達人</div><span class="qty-badge">×1</span></div>
+          <div class="cardph"><div class="noimg">ロレイン、精霊の支配者</div><span class="qty-badge">×1</span></div>
+          <div class="cardph"><div class="noimg">予備の充電器</div><span class="qty-badge">×1</span></div>
+          <div class="cardph"><div class="noimg">クラレント、再想</div><span class="qty-badge">×1</span></div>
+          <div class="cardph"><div class="noimg">クラレント、平和の剣</div><span class="qty-badge">×1</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3 class="sub">Lv0チャンピオン（Spirit of Wind／風の精霊）を入れた状態 ＝ 注記が消える</h3>
+<div class="cols">
+  <div class="col">
+    <div class="frame">
+      <div class="zone">
+        <h3><span>マテリアルデッキ</span> <span class="cnt ok">12 / 12</span></h3>
+        <div class="meter"><i class="ok" style="width:100%"></i></div>
+        <div class="zone-grid">
+          <div class="cardph lv0"><div class="noimg">風の精霊</div><span class="qty-badge">×1</span><span class="lv0-tag">Lv0</span></div>
+          <div class="cardph"><div class="noimg">ロレイン、放浪の戦士</div><span class="qty-badge">×1</span></div>
+          <div class="cardph"><div class="noimg">ロレイン、剣の達人</div><span class="qty-badge">×1</span></div>
+          <div class="cardph"><div class="noimg">ロレイン、精霊の支配者</div><span class="qty-badge">×1</span></div>
+          <div class="cardph"><div class="noimg">予備の充電器</div><span class="qty-badge">×1</span></div>
+          <div class="cardph"><div class="noimg">クラレント、再想</div><span class="qty-badge">×1</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:10px">
+      ⚠️ <b>タイルの緑枠と <code>Lv0</code> ラベルはモックの説明用で、実装しない。</b>
+      Lv0チャンピオンは<b>マテリアル表示順の先頭</b>に来る（既存の <code>zoneComparator</code> がレベル昇順で並べるため）ので、
+      追加のマーカーは不要。
+    </p>
+  </div>
+  <div class="col">
+    <p class="caption">マテリアルが空のとき（注記は出さない）</p>
+    <div class="frame">
+      <div class="zone">
+        <h3><span>マテリアルデッキ</span> <span class="cnt">0 / 12</span></h3>
+        <div class="meter"><i style="width:0"></i></div>
+        <div style="margin:0;padding:14px;font-size:.8rem;color:var(--muted);border:1px dashed var(--border);border-radius:10px">
+          カードがありません。上の検索から追加できます。
+        </div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:10px">
+      新規デッキを開いた直後に ⚠️ が出るのを避ける。<b>統計タブの「🚧 構築中」には出る</b>
+      （統計は明示的に開くタブなので、そこでは不足を全部並べてよい）。
+    </p>
+  </div>
+</div>
+
+
+<h2><span class="n">3.</span> #59 統計「フォーマット適合」を3状態にする</h2>
+<p class="note">
+  現状は「違反がなければ ✅ 使用可能」の2状態で、カード5枚でも Lv0チャンピオン不在でも ✅ と出る。
+  <b>🚧 構築中</b>を足して3状態にする。
+  <b>🚧 はタブ帯の警告バナーの表示条件に入れない</b>（バナーは今までどおり <code>formatIssues()</code> ＝ 違反だけを見る）。
+</p>
+
+<div class="cols">
+  <div class="col">
+    <p class="caption now">スタンダード（マテリアル11枚・Lv0不在／メイン56枚）</p>
+    <div class="frame">
+      <div class="stat-card">
+        <h3>フォーマット適合 <span class="cnt">メイン＋マテリアル＋サイドで判定</span></h3>
+        <div class="fmt-row">
+          <span class="fmt-name">スタンダード</span>
+          <span class="fmt-ok">✅ 使用可能</span>
+        </div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:10px">↑ 大会に出せない構成なのに「使用可能」と出る（#59 の指摘）</p>
+  </div>
+  <div class="col">
+    <p class="caption next">スタンダード（同じ状態）</p>
+    <div class="frame">
+      <div class="stat-card">
+        <h3>フォーマット適合 <span class="cnt">メイン＋マテリアル＋サイドで判定</span></h3>
+        <div class="fmt-row">
+          <span class="fmt-name">スタンダード</span>
+          <span class="fmt-issues"><span class="fmt-todo newmark">🚧 構築中 — Lv0チャンピオンが未設定・メインデッキがあと4枚</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3 class="sub">3状態（変更後・スタンダード）</h3>
+<div class="cols">
+  <div class="col">
+    <div class="frame">
+      <p class="caption">① 違反あり ＝ ⚠️（バナーも点灯）</p>
+      <div class="stat-card" style="margin-bottom:14px">
+        <h3>フォーマット適合 <span class="cnt">メイン＋マテリアル＋サイドで判定</span></h3>
+        <div class="fmt-row">
+          <span class="fmt-name">スタンダード</span>
+          <span class="fmt-issues">
+            <span class="fmt-ng">⚠️ メイン同名4枚制限の超過 1種 — Reclaim（取り戻し） ×5</span>
+            <span class="fmt-todo newmark">🚧 構築中 — Lv0チャンピオンが未設定</span>
+          </span>
+        </div>
+      </div>
+
+      <p class="caption">② 違反なし・不足あり ＝ 🚧（バナーは出ない）</p>
+      <div class="stat-card" style="margin-bottom:14px">
+        <h3>フォーマット適合 <span class="cnt">メイン＋マテリアル＋サイドで判定</span></h3>
+        <div class="fmt-row">
+          <span class="fmt-name">スタンダード</span>
+          <span class="fmt-issues"><span class="fmt-todo">🚧 構築中 — Lv0チャンピオンが未設定・メインデッキがあと4枚</span></span>
+        </div>
+      </div>
+
+      <p class="caption">③ 違反なし・不足なし ＝ ✅（実データの優勝デッキ／メイン62枚）</p>
+      <div class="stat-card">
+        <h3>フォーマット適合 <span class="cnt">メイン＋マテリアル＋サイドで判定</span></h3>
+        <div class="fmt-row">
+          <span class="fmt-name">スタンダード</span>
+          <span class="fmt-ok">✅ 使用可能</span>
+        </div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:10px">
+      ⚠️ ①のとおり<b>違反と不足は同時に出す</b>（⚠️ を直した瞬間に 🚧 が新しく現れる、を避ける）。
+      ⚠️ <b>スタンダードのマテリアルは「最大12枚」なので、11枚でも不足に数えない</b>（公式ルールどおり）。
+      ③のデッキはマテリアル12枚だが、8枚でも Lv0チャンピオンさえ入っていれば ✅ になる。
+    </p>
+  </div>
+  <div class="col">
+    <p class="caption">パンテオンの3状態</p>
+    <div class="frame">
+      <div class="stat-card" style="margin-bottom:14px">
+        <h3>フォーマット適合 <span class="cnt">メイン＋マテリアル＋パンテオンで判定</span></h3>
+        <div class="fmt-row">
+          <span class="fmt-name">パンテオン</span>
+          <span class="fmt-issues">
+            <span class="fmt-ng">⚠️ Boonは Lesser・Greater 各1枚までです — Lesser Boon of Artemis（アルテミスの小さな恩恵） ×2</span>
+            <span class="fmt-todo">🚧 構築中 — マテリアルデッキがあと1枚・メインデッキがあと3枚</span>
+          </span>
+        </div>
+        <p class="sr-note">※パンテオンにサイドボードはありません。Boonは対戦開始時に Lesser・Greater 各1枚を裏向きで提示します。</p>
+      </div>
+
+      <div class="stat-card" style="margin-bottom:14px">
+        <h3>フォーマット適合 <span class="cnt">メイン＋マテリアル＋パンテオンで判定</span></h3>
+        <div class="fmt-row">
+          <span class="fmt-name">パンテオン</span>
+          <span class="fmt-issues"><span class="fmt-todo">🚧 構築中 — Greater Boonが未設定</span></span>
+        </div>
+        <p class="sr-note">※パンテオンにサイドボードはありません。Boonは対戦開始時に Lesser・Greater 各1枚を裏向きで提示します。</p>
+      </div>
+
+      <div class="stat-card">
+        <h3>フォーマット適合 <span class="cnt">メイン＋マテリアル＋パンテオンで判定</span></h3>
+        <div class="fmt-row">
+          <span class="fmt-name">パンテオン</span>
+          <span class="fmt-ok">✅ 使用可能</span>
+        </div>
+        <p class="sr-note">※パンテオンにサイドボードはありません。Boonは対戦開始時に Lesser・Greater 各1枚を裏向きで提示します。</p>
+      </div>
+    </div>
+    <p class="note" style="margin-top:10px">
+      ⚠️ <b>パンテオンのマテリアルは「ちょうど12枚」なので、12枚未満は不足に数える</b>（スタンダードと扱いが違う）。
+    </p>
+  </div>
+</div>
+
+<h3 class="sub">シーズン禁止の予告（#34）との同居 — 既存の ℹ️ 行はそのまま</h3>
+<div class="cols">
+  <div class="col">
+    <div class="frame">
+      <div class="stat-card">
+        <h3>フォーマット適合 <span class="cnt">メイン＋マテリアル＋サイドで判定</span></h3>
+        <div class="fmt-row">
+          <span class="fmt-name">スタンダード</span>
+          <span class="fmt-issues"><span class="fmt-todo">🚧 構築中 — Lv0チャンピオンが未設定</span></span>
+          <span class="fmt-notes"><span class="fmt-info">ℹ️ 2026-08-21からシーズン禁止になるカード 4枚 — Spirit Blade: Ascension（スピリットブレード：昇華） ×4</span></span>
+        </div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:10px">ℹ️ 行は <code>.fmt-notes</code>（<code>flex-basis:100%</code>）のまま。🚧 は <code>.fmt-issues</code> の中に入るので順序は ⚠️ → 🚧 → ℹ️。</p>
+  </div>
+  <div class="col"></div>
+</div>
+
+
+<h2><span class="n">4.</span> 最悪ケース（最長の文言）</h2>
+<p class="note">
+  不足5項目が同時に立つのは<b>パンテオンでメインに1枚だけ入れた状態</b>（マテリアル0・Boon 0）。
+  全ゾーンが空だと統計は「カードがありません」で適合カード自体が出ないため、これが最長になる。
+</p>
+<div class="cols">
+  <div class="col">
+    <div class="frame">
+      <div class="stat-card">
+        <h3>フォーマット適合 <span class="cnt">メイン＋マテリアル＋パンテオンで判定</span></h3>
+        <div class="fmt-row">
+          <span class="fmt-name">パンテオン</span>
+          <span class="fmt-issues"><span class="fmt-todo">🚧 構築中 — Lv0チャンピオンが未設定・マテリアルデッキがあと12枚・メインデッキがあと59枚・Lesser Boonが未設定・Greater Boonが未設定</span></span>
+        </div>
+        <p class="sr-note">※パンテオンにサイドボードはありません。Boonは対戦開始時に Lesser・Greater 各1枚を裏向きで提示します。</p>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <p class="caption">違反行と同居した場合（マテリアルに Nameless Champion 3枚・メイン1枚）</p>
+    <div class="frame">
+      <div class="stat-card">
+        <h3>フォーマット適合 <span class="cnt">メイン＋マテリアル＋パンテオンで判定</span></h3>
+        <div class="fmt-row">
+          <span class="fmt-name">パンテオン</span>
+          <span class="fmt-issues">
+            <span class="fmt-ng">⚠️ 禁止カード 3枚 — Nameless Champion（名もなきチャンピオン） ×1・Nameless Champion（名もなきチャンピオン） ×1・Nameless Champion（名もなきチャンピオン） ×1</span>
+            <span class="fmt-todo">🚧 構築中 — Lv0チャンピオンが未設定・マテリアルデッキがあと9枚・メインデッキがあと59枚・Lesser Boonが未設定・Greater Boonが未設定</span>
+          </span>
+        </div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:10px">
+      Nameless Champion（名もなきチャンピオン）は<b>パンテオン禁止44枚の実データ</b>で、
+      いずれも <code>CHAMPION</code>／<code>level: 1</code>。
+      <b>マテリアルに3枚入れても Lv0チャンピオンは満たされない</b>ことがこの例で分かる。
+    </p>
+  </div>
+</div>
+
+
+<h2><span class="n">5.</span> 375px幅</h2>
+<p class="note">
+  <b>横スクロールが出ないこと</b>と、<code>.zone h3</code> が<b>1行に収まること</b>を見る。
+  <code>62 / 60以上</code> は #4 で通した <code>Lesser 1/1・Greater 1/1</code>（13文字）より短い（8文字）ので余裕がある。
+</p>
+<div class="cols">
+  <div class="col narrow">
+    <p class="tag375">375px — ゾーン</p>
+    <div class="frame w375">
+      <div class="zone">
+        <h3><span>メインデッキ</span> <span class="cnt ok">62 / 60以上</span></h3>
+        <div class="meter"><i class="ok" style="width:100%"></i></div>
+      </div>
+      <div class="zone">
+        <h3><span>マテリアルデッキ</span> <span class="cnt">11 / 12</span></h3>
+        <div class="meter"><i style="width:91.7%"></i></div>
+        <p class="zone-note warn">⚠️ Lv0チャンピオンが入っていません（マテリアルデッキには最低1枚必要です）</p>
+        <div class="zone-grid">
+          <div class="cardph"><div class="noimg">ロレイン、放浪の戦士</div><span class="qty-badge">×1</span></div>
+          <div class="cardph"><div class="noimg">ロレイン、剣の達人</div><span class="qty-badge">×1</span></div>
+          <div class="cardph"><div class="noimg">予備の充電器</div><span class="qty-badge">×1</span></div>
+        </div>
+      </div>
+      <div class="zone">
+        <h3><span>パンテオン</span> <span class="cnt ok">Lesser 1/1・Greater 1/1</span></h3>
+        <div class="meter"><i class="ok" style="width:100%"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col narrow">
+    <p class="tag375">375px — 統計（最悪ケース）</p>
+    <div class="frame w375">
+      <div class="stat-card">
+        <h3>フォーマット適合 <span class="cnt">メイン＋マテリアル＋パンテオンで判定</span></h3>
+        <div class="fmt-row">
+          <span class="fmt-name">パンテオン</span>
+          <span class="fmt-issues"><span class="fmt-todo">🚧 構築中 — Lv0チャンピオンが未設定・マテリアルデッキがあと12枚・メインデッキがあと59枚・Lesser Boonが未設定・Greater Boonが未設定</span></span>
+        </div>
+        <p class="sr-note">※パンテオンにサイドボードはありません。Boonは対戦開始時に Lesser・Greater 各1枚を裏向きで提示します。</p>
+      </div>
+    </div>
+  </div>
+  <div class="col narrow">
+    <p class="tag375">375px — 通常</p>
+    <div class="frame w375">
+      <div class="deck-warn">⚠️ スタンダードで使用できない構成です（枚数制限の超過 1種）<span class="hint">（詳細は「📊 統計」タブのフォーマット適合へ）</span></div>
+      <div class="deck-tabs">
+        <button aria-selected="true">🃏 デッキ</button>
+        <button aria-selected="false">📊 統計</button>
+      </div>
+      <div class="stat-card">
+        <h3>フォーマット適合 <span class="cnt">メイン＋マテリアル＋サイドで判定</span></h3>
+        <div class="fmt-row">
+          <span class="fmt-name">スタンダード</span>
+          <span class="fmt-issues">
+            <span class="fmt-ng">⚠️ メイン同名4枚制限の超過 1種 — Reclaim（取り戻し） ×5</span>
+            <span class="fmt-todo">🚧 構築中 — Lv0チャンピオンが未設定</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2><span class="n">6.</span> 変えないもの</h2>
+<p class="note">
+  ・<b>タブ帯の警告バナー</b>（<code>#deck-warn</code>）— 表示条件も理由ラベルも一切変えない。🚧 は入れない<br>
+  ・<b>マテリアル / サイドのカウンタ・色分け</b> — どちらも「最大」なので現行の <code>ok</code>(=上限) / <code>over</code>(&gt;上限) が正しい<br>
+  ・<b>統計のゾーン別カード・合計の内訳</b>（<code>マテリアルデッキ 12枚</code> 等）<br>
+  ・<b>共有閲覧画面のゾーン見出し</b>（<code>メインデッキ 62枚</code>）— メーターもカウンタも無いので影響なし<br>
+  ・<b>omnidex提出用コピー / デッキ画像出力</b><br>
+  ・<b>API・DB・生成物</b> — 変更なし（<code>cards/</code> <code>sets/</code> の再生成は不要）
+</p>
+
+</div>
+</body>
+</html>
