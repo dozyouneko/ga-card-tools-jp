@@ -34,7 +34,9 @@ const seasonalReady = window.GA_CARD_I18N.loadSeasonalBanlist(SEASONAL_URL);
 const ZONES = ["material", "main", "side", "pantheon", "maybe"];
 const ZONE_LABEL = { material: "マテリアルデッキ", main: "メインデッキ", side: "サイドボード", pantheon: "パンテオン", maybe: "検討中" };
 const ZONE_SHORT = { material: "マテリアル", main: "メイン", side: "サイド", pantheon: "パンテオン", maybe: "検討中" };
-const MAIN_MAX = 60, MATERIAL_MAX = 12, SIDE_MAX_PT = 15, SIDE_MAX_CARDS = 15;
+// ⚠️ メインは「最低60枚・上限なし」(公式総合ルール v1.1.1)なので MAIN_MIN。
+// 61枚以上は正当な構築で、超過(.over)にはしない(#58)
+const MAIN_MIN = 60, MATERIAL_MAX = 12, SIDE_MAX_PT = 15, SIDE_MAX_CARDS = 15;
 
 // ---------- 構築フォーマット(#4) ----------
 // decks.format は 'STANDARD' | 'PANTHEON' の2値。未知の値・未指定は STANDARD に倒す
@@ -189,6 +191,14 @@ function boonKind(card) {
   return null;
 }
 function isBoonCard(card) { return boonKind(card) !== null; }
+
+// マテリアルデッキに最低1枚必要な Lv0チャンピオン(#59。両フォーマット共通の要件)。
+// ⚠️ level は厳密等価で比較する(level:null のカードが実在するため。lu-bu-indomitable-titan)。
+// Number(card.level) === 0 や !card.level は null を 0 と誤判定する
+function isLevelZeroChampion(card) {
+  const t = (card && card.types) || [];
+  return t.includes("CHAMPION") && card.level === 0;
+}
 
 // デッキ行のイラスト。art_image(版指定)があればそれを、なければカードのデフォルト(先頭の版)を使う
 function rowImageUrl(row, card) {
@@ -753,6 +763,13 @@ async function renderZones() {
         inactiveNote.textContent = `⚠️ ${FORMAT_INFO[format].jp}に${ZONE_LABEL[zone]}はありません。統計・適合判定の対象外です（${FORMAT_INFO[format === "PANTHEON" ? "STANDARD" : "PANTHEON"].jp}に戻すと元通りに数えます）。`;
       }
     }
+    // マテリアルのLv0チャンピオン必須(#59)。文言はHTMLに直書きで、ここは hidden の出し入れだけ。
+    // ⚠️ 空(0枚)のときは出さない(新規デッキを開いた瞬間に警告しないため)。フォーマットには依らない
+    const lv0Note = zoneEl.querySelector("[data-lv0-note]");
+    if (lv0Note) {
+      const hasLv0 = rows.some((r) => isLevelZeroChampion(bySlug.get(r.card_slug)));
+      lv0Note.hidden = !isActive || !rows.length || hasLv0;
+    }
 
     grid.innerHTML = "";
     if (!rows.length) {
@@ -851,12 +868,19 @@ function updateZoneHeader(zone, rows, bySlug, isActive = true) {
     cnt.classList.toggle("ok", ok);
     cnt.classList.toggle("over", over);
     setBar((Math.min(lesser, 1) + Math.min(greater, 1)) / 2, ok, over);
-  } else if (zone === "main" || zone === "material") {
-    const max = zone === "main" ? MAIN_MAX : MATERIAL_MAX;
-    cnt.textContent = `${total} / ${max}`;
-    cnt.classList.toggle("ok", total === max);
-    cnt.classList.toggle("over", total > max);
-    setBar(total / max, total === max, total > max);
+  } else if (zone === "main") {
+    // メインは「最低60枚・上限なし」。60枚以上は緑で、⚠️ over(赤)は付けない(#58)
+    cnt.textContent = `${total} / ${MAIN_MIN}以上`;
+    const ok = total >= MAIN_MIN;
+    cnt.classList.toggle("ok", ok);
+    cnt.classList.remove("over");
+    setBar(total / MAIN_MIN, ok, false);
+  } else if (zone === "material") {
+    // マテリアルは「最大12枚」なので超過は赤のまま(#58ではここを変えない)
+    cnt.textContent = `${total} / ${MATERIAL_MAX}`;
+    cnt.classList.toggle("ok", total === MATERIAL_MAX);
+    cnt.classList.toggle("over", total > MATERIAL_MAX);
+    setBar(total / MATERIAL_MAX, total === MATERIAL_MAX, total > MATERIAL_MAX);
   } else if (zone === "side") {
     const pt = rows.reduce((s, r) => s + sidePoints(bySlug.get(r.card_slug)) * r.qty, 0);
     cnt.textContent = `${pt} / ${SIDE_MAX_PT} pt・${total}枚`;
@@ -1532,7 +1556,8 @@ el.resultGrid.addEventListener("click", async (e) => {
       const bySlug = await ensureCards(zoneRows.map((c) => c.card_slug));
       const total = zoneRows.reduce((s, r) => s + r.qty, 0);
       const boons = zone === "pantheon" ? boonCounts(zoneRows, bySlug) : null;
-      const summary = zone === "main" ? `${total} / ${MAIN_MAX}`
+      // ⚠️ メインの表記はゾーンヘッダ(updateZoneHeader)と揃える(#58)
+      const summary = zone === "main" ? `${total} / ${MAIN_MIN}以上`
         : zone === "material" ? `${total} / ${MATERIAL_MAX}`
         : zone === "side" ? `${zoneRows.reduce((s, r) => s + sidePoints(bySlug.get(r.card_slug)) * r.qty, 0)} / ${SIDE_MAX_PT} pt`
         : boons ? `Lesser ${boons.lesser}/1・Greater ${boons.greater}/1`
@@ -1712,13 +1737,32 @@ function computeDeckStats(cards, bySlug, formatKey) {
     });
   }
 
-  const format = { key, banned, overMain, overMaterial, seasonalActive, seasonalSoon, overBoon, boonInDeck };
+  // 「不足」(構築中)の判定に使う数値(#59)。⚠️ 違反(上の issues)とは別物で、警告バナーには出さない。
+  // ⚠️ perSlug は rule.zones の行しか持たない(maybe・非アクティブゾーンは除外済み)ので、
+  // ここで数えたものは自動的に判定対象ゾーンだけになる
+  let lv0Champion = 0;
+  perSlug.forEach(({ card, qty }) => {
+    if (isLevelZeroChampion(card)) lv0Champion += qty.material || 0;
+  });
+  const boons = rule.boons ? boonCounts(cards.filter((c) => c.board === "pantheon"), bySlug) : { lesser: 0, greater: 0 };
+  const shortfall = {
+    lv0Champion,
+    materialCount: byZone.material ? byZone.material.count : 0,
+    mainCount: byZone.main ? byZone.main.count : 0,
+    lesserCount: boons.lesser,
+    greaterCount: boons.greater,
+  };
+
+  const format = { key, banned, overMain, overMaterial, seasonalActive, seasonalSoon, overBoon, boonInDeck, shortfall };
   return { key, zones: rule.zones, byZone, total, format };
 }
 
 // 警告バナー(#4)の理由。⚠️ 「不足」(メイン60枚未満・マテリアル12枚未満・Boon 0枚)は
 // 構築途中に常時点灯してノイズになるため出さない(ゾーンのカウンタに委ねる)。
-// ⚠️ 並びは設計書§5-2(b)で固定。formatIssues()に判定を足したらここの理由にも足す
+// ⚠️ 並びは設計書§5-2(b)で固定。formatIssues()に判定を足したらここの理由にも足す。
+// ⚠️ ただし「不足」(formatShortfalls)はここに足さない(#59 設計書§5-3(c))。
+// バナーは「このままでは大会に出せない違反」を伝えるもので、構築途中に必ず立つ不足を入れると
+// カードを1枚入れた瞬間から常時点灯する
 function warnReasons(fmt) {
   const reasons = [];
   const bannedN = fmt.banned.reduce((s, b) => s + b.qty, 0);
@@ -1862,24 +1906,51 @@ function formatIssues(f) {
   return issues;
 }
 
+// フォーマット適合の「不足」項目(#59 設計書§5-3(b))。formatIssues()と対になる。
+// ⚠️ これは違反(不適合)ではなく「まだ足りていない」＝構築中の表示で、
+// タブ帯直上の警告バナー(updateDeckWarn/warnReasons)には**足さない**。
+// ⚠️ 並びは material → main → pantheon のゾーン表示順で固定。
+// ⚠️ スタンダードのマテリアル枚数は不足に数えない(公式は「最大12枚」で下限がない)。
+// パンテオンだけ「ちょうど12枚」なので数える。
+function formatShortfalls(f) {
+  const rule = FORMAT_RULES[f.key];
+  const s = f.shortfall || {};
+  const out = [];
+  if (!s.lv0Champion) out.push("Lv0チャンピオンが未設定");
+  if (rule.boons && s.materialCount < MATERIAL_MAX) out.push(`マテリアルデッキがあと${MATERIAL_MAX - s.materialCount}枚`);
+  if (s.mainCount < MAIN_MIN) out.push(`メインデッキがあと${MAIN_MIN - s.mainCount}枚`);
+  if (rule.boons) {
+    // Boonは種類ごとに1項目ずつ出す(まとめない)
+    if (!s.lesserCount) out.push("Lesser Boonが未設定");
+    if (!s.greaterCount) out.push("Greater Boonが未設定");
+  }
+  return out;
+}
+
 // フォーマット適合カード。⚠️ デッキのフォーマット1行だけを出す(#4)。
 // 禁止カードに加え、枚数制限(スタンダード=メイン4枚/パンテオン=メイン1枚/マテリアル1枚)、
 // パンテオンではBoonの枚数も判定する。
-// デッキ最低枚数(60枚)とBoonの不足は構築途中に常時⚠️となりノイズのため判定せず、
-// ゾーンヘッダのメーター/カウンタに委ねる。
+// ⚠️ 不足(最低枚数・Lv0チャンピオン・Boon)は違反ではないので ⚠️ に混ぜず、
+// 🚧 構築中 の1行にまとめる(#59)。表示は ⚠️ 不適合 / 🚧 構築中 / ✅ 使用可能 の3状態で、
+// ⚠️ と 🚧 は同時に出る(違反を直した瞬間に 🚧 が新しく現れる形にしない)。
 function formatCardHtml(fmt) {
   const rowFor = (key) => {
     const f = fmt;
     const name = FORMAT_JP[key];
     const issues = formatIssues(f);
+    const shortfalls = formatShortfalls(f);
     // 予告(発効前)は違反ではないので ✅ 使用可能 を消さず、情報行として必ず見える位置に添える(#34)
     const notes = [];
     if (f.seasonalSoon.length) {
       const n = f.seasonalSoon.reduce((s, b) => s + b.qty, 0);
       notes.push(`ℹ️ ${escapeHtml(f.seasonalSoon[0].season.effectiveFrom)}からシーズン禁止になるカード ${n}枚 — ${listCardNames(f.seasonalSoon)}`);
     }
-    const body = issues.length
-      ? `<span class="fmt-issues">${issues.map((i) => `<span class="fmt-ng">${i}</span>`).join("")}</span>`
+    const lines = issues.map((i) => `<span class="fmt-ng">${i}</span>`);
+    if (shortfalls.length) {
+      lines.push(`<span class="fmt-todo">🚧 構築中 — ${escapeHtml(shortfalls.join("・"))}</span>`);
+    }
+    const body = lines.length
+      ? `<span class="fmt-issues">${lines.join("")}</span>`
       : `<span class="fmt-ok">✅ 使用可能</span>`;
     const noteHtml = notes.length
       ? `<span class="fmt-notes">${notes.map((i) => `<span class="fmt-info">${i}</span>`).join("")}</span>`

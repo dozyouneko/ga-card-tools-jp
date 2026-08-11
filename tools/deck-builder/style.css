@@ -679,6 +679,8 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
 .fmt-row:last-child { border-bottom: none; }
 .fmt-name { min-width: 8em; font-weight: 600; }
 .fmt-ok { color: #7fd4a8; }
+/* 構築中(不足あり・違反ではない)。違反の赤とも「使用可能」の緑とも区別する(#59) */
+.fmt-todo { color: var(--accent); }
 /* シーズン禁止の予告(#34)。違反ではないので警告色にせず、行を折り返して必ず見えるようにする */
 .fmt-notes { flex-basis: 100%; display: flex; flex-direction: column; gap: 2px; }
 .fmt-info { color: var(--muted); font-size: .85rem; }
