@@ -30,6 +30,10 @@ import { pathToFileURL } from "node:url";
 const HOST = "ga-card-tools-jp.pages.dev";
 const KEY = process.env.INDEXNOW_KEY || "c226706b28954362938a0297d5bc2b43";
 const ORIGIN = `https://${HOST}`;
+// キーファイルの実URL。⚠ IndexNowへ渡す keyLocation と、自己検査(#62 §5-2)の取得先を
+//   この1箇所から作る。取得側だけキャッシュ回避クエリを足すので、
+//   「片方にだけクエリが付く」ことがコード上で見えるようにしている。
+const KEY_FILE_URL = `${ORIGIN}/${KEY}.txt`;
 const MAX_URLS_PER_REQUEST = 10000; // IndexNowの仕様上限
 
 // 以下3つの環境変数は検証用の差し替え口（本番のcronは設定しない）。
@@ -117,11 +121,15 @@ function errorCodeOf(text) {
  *   403を警告に落とす（§5-1）とこのステップは恒久的に緑になるので、見張る役をここに置く。
  * ⭐ 「壊れていることを証明できた」ときだけ止める。「確かめられなかった」（ネットワーク例外）は
  *   警告だけ出して送信へ進む（一時的な断で job を赤くしないため）。
+ * ⚠ 取得は必ずキャッシュ回避クエリ付きで行う。Cloudflare Pages は削除したファイルの素のURLを
+ *   最大7日間200で返し得る（#10）ため、素のURLで見ると「消えた当日は合格してしまう」
+ *   ＝この検査の唯一の存在意義が7日間死ぬ。⚠ ログに出すURLはクエリ無し（毎回変わる値を残さない）。
  */
 async function verifyKeyFile() {
-  const url = `${ORIGIN}/${KEY}.txt`;
+  const url = KEY_FILE_URL;
   const get = async () => {
-    const res = await fetch(url);
+    // 再試行のたびに Date.now() を評価し直す（同じクエリでの再取得を避ける）。
+    const res = await fetch(`${KEY_FILE_URL}?cb=${Date.now()}`);
     return { status: res.status, body: await res.text() };
   };
   let got;
@@ -153,7 +161,9 @@ async function post(urlList) {
   const body = JSON.stringify({
     host: HOST,
     key: KEY,
-    keyLocation: `${ORIGIN}/${KEY}.txt`,
+    // ⚠ ここにキャッシュ回避クエリを付けてはいけない（IndexNowに渡すのは実URL）。
+    //   付けると本番の通知が壊れる。クエリを足すのは verifyKeyFile() の取得側だけ。
+    keyLocation: KEY_FILE_URL,
     urlList,
   });
   const send = () =>
