@@ -4,5 +4,17 @@
     "firstSeenAt": "2026-08-05",
     "category": "ascent",
     "startAt": "2026-08-15T01:00:00.000Z"
+  },
+  {
+    "id": 60363,
+    "firstSeenAt": "2026-08-12",
+    "category": "nationals",
+    "startAt": "2026-08-13T02:00:00.000Z"
+  },
+  {
+    "id": 60368,
+    "firstSeenAt": "2026-08-12",
+    "category": "regionals",
+    "startAt": "2026-08-14T22:00:00.000Z"
   }
 ]
