@@ -1,6 +1,0 @@
-{
-  "purpose": "Deploy-arrival marker for issue #64. Safe to ignore.",
-  "issue": "https://github.com/dozyouneko/ga-card-tools-jp/issues/64",
-  "created": "2026-08-13",
-  "note": "Marks that the deletion deploy reached the edge."
-}
