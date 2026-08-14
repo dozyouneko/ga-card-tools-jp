@@ -2737,6 +2737,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/tournaments/60363/</loc>
+    <lastmod>2026-08-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/prdevp/</loc>
     <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>

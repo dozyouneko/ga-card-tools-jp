@@ -1,10 +1,22 @@
 {
-  "updatedAt": "2026-08-13T18:56:14.081Z",
+  "updatedAt": "2026-08-14T18:44:56.869Z",
   "scan": {
     "minId": 46500,
-    "maxId": 60529
+    "maxId": 60635
   },
   "events": [
+    {
+      "id": 60363,
+      "name": "Grand Archive Gauntlet 2026",
+      "category": "nationals",
+      "format": "standard",
+      "startAt": "2026-08-13T02:00:00.000Z",
+      "season": "RDO",
+      "country": "SG",
+      "host": "Weebs of the Shore Events",
+      "playerCount": 43,
+      "deckCount": 43
+    },
     {
       "id": 57745,
       "name": "RDO Store Championship",
