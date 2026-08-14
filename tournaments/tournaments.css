@@ -84,6 +84,18 @@ td.rec, td.pct { font-variant-numeric:tabular-nums; color:var(--muted); white-sp
 td.score, th.score { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
 td.score { font-weight:600; }
 
+/* ---- チーム戦の順位表(#65): 1チーム = 1 <tbody class="team-block">。
+   モック(docs/design/65-チーム戦対応/モック_順位表.html)の案Aをそのまま実装した */
+.standings td:empty { padding:0; }
+.team-block { border-bottom:2px solid var(--line); }
+.team-row td { background:rgba(110,168,254,.06); }
+.team-row td.deck-id, .team-row td:last-child { background:rgba(110,168,254,.06); border-bottom-color:transparent; }
+.team-name { font-weight:700; }
+.mem-count { color:var(--muted); font-weight:400; font-size:.78rem; margin-left:8px; }
+.member-row td.player-name { font-weight:500; padding-left:26px; color:var(--text); }
+.member-row td { border-bottom:1px solid rgba(38,43,54,.35); }
+.slot { display:inline-block; min-width:1.5em; margin-right:6px; color:var(--muted); font-size:.78rem; font-variant-numeric:tabular-nums; }
+
 /* ---- 順位表の「デッキ」列: 属性玉 + チャンピオン名(#15) ----
    玉は公式カード画像から切り出した32px WebPをdata URIで持つ(外部リクエストなし)。
    名前は列幅に収まらなければ省略記号で詰め、全文は title で見せる */
@@ -197,7 +209,10 @@ td.deck-id { display:flex; align-items:center; gap:8px; min-width:0; }
   .cat-full { display:inline; }
 
   /* 順位表: 順位・プレイヤー名・デッキ導線 / 属性・チャンピオン / 勝ち点・成績 の3行(#15) */
-  .standings tbody tr { display:grid; grid-template-columns:auto 1fr auto; gap:2px 8px; align-items:baseline; }
+  /* #65: 1列目(順位)を固定下限幅にする。auto任せだと、チーム戦のメンバー行は
+     順位・勝ち点セルが両方とも空で1列目がほぼ0pxに潰れ、チーム名との字下げが崩れる
+     (メンバー行だけ列境界が左にずれ、padding-leftでの字下げが台無しになる) */
+  .standings tbody tr { display:grid; grid-template-columns:minmax(56px,auto) 1fr auto; gap:2px 8px; align-items:baseline; }
   .standings td.rank { grid-column:1; grid-row:1; }
   .standings td.player-name { grid-column:2; grid-row:1; }
   .standings tbody td:last-child { grid-column:3; grid-row:1; text-align:right; }
@@ -205,12 +220,20 @@ td.deck-id { display:flex; align-items:center; gap:8px; min-width:0; }
   .standings td.deck-id { grid-column:1/-1; grid-row:2; flex-wrap:wrap; }
   .standings td.deck-id .champ { overflow:visible; text-overflow:clip; white-space:normal; }
   .standings td.score { grid-column:1; grid-row:3; text-align:left; }
-  .standings td.score::before { content:"勝ち点 "; color:var(--muted); font-weight:400; font-size:.82rem; }
+  /* #65: チーム戦のメンバー行はscore/recが空セル(チーム単位の値のみ持つ)。
+     :not(:empty) を付けないと空セルにも「勝ち点 」「・」だけのラベルが浮いて出る */
+  .standings td.score:not(:empty)::before { content:"勝ち点 "; color:var(--muted); font-weight:400; font-size:.82rem; }
   .standings td.rec { grid-column:2/-1; grid-row:3; white-space:normal; }
-  .standings td.rec::before { content:"・"; color:var(--muted); margin-right:4px; }
+  .standings td.rec:not(:empty)::before { content:"・"; color:var(--muted); margin-right:4px; }
   /* タイブレーカーの参考値(GW%・MW%)はスマホでは出さない */
   .standings th.pct, .standings td.pct { display:none; }
   .rank-block > .cp-scroll { padding:0; }
+
+  /* ---- チーム戦(#65): メンバー行のインデントを詰め、「メンバー情報なし」の
+     grid-column を明示する(既定だと tbody td:last-child の grid-column:3 に負けて右寄せになる) ---- */
+  .member-row td.player-name { padding-left:14px; }
+  .member-row td.player-name.no-deck { grid-column:1/-1; text-align:left; }
+  .team-block { display:block; margin-bottom:6px; }
 
   .deck-body { margin:0; max-width:none; min-height:100%; max-height:100vh; border-radius:0; padding:16px; }
   .view-grid { grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:8px; }

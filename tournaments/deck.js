@@ -122,10 +122,15 @@
   // ---- 順位表の絞り込み(#15): プレイヤー名・チャンピオン名・属性で行を絞る ----
   // 絞り込み中は100行ごとの折りたたみを無視し、該当行を平坦に表示する
   // (折りたたんだブロックの中に隠れると検索の意味がなくなるため)
+  // #65: チーム戦は絞り込みの単位が行(tr)ではなくチーム(tbody.team-block)。
+  // data-search を持つ tbody.team-block があればそちらを単位にする(個人戦は従来どおり tr 単位)
   const rankQ = document.getElementById("rank-q");
   const wrap = document.getElementById("standings-wrap");
   if (rankQ && wrap) {
-    const rows = Array.from(wrap.querySelectorAll("tbody tr[data-player]"));
+    const teamUnits = Array.from(wrap.querySelectorAll("tbody.team-block[data-search]"));
+    const isTeamMode = teamUnits.length > 0;
+    const rows = isTeamMode ? teamUnits : Array.from(wrap.querySelectorAll("tbody tr[data-player]"));
+    const unit = wrap.dataset.unit || "名";
     const hitsEl = document.getElementById("rank-hits");
     const emptyEl = document.getElementById("rank-empty");
 
@@ -142,14 +147,16 @@
       // 該当0件のブロックは丸ごと隠す。ヘッダ行は先頭の可視ブロックにだけ残す
       let headShown = false;
       blocks.forEach((b, i) => {
-        const has = !!b.querySelector("tbody tr[data-player]:not([hidden])");
+        const has = isTeamMode
+          ? !!b.querySelector("tbody.team-block[data-search]:not([hidden])")
+          : !!b.querySelector("tbody tr[data-player]:not([hidden])");
         b.open = filtering ? true : openState[i];
         b.hidden = filtering && !has;
         const head = b.querySelector("thead");
         if (head) head.hidden = filtering && !(has && !headShown);
         if (filtering && has) headShown = true;
       });
-      hitsEl.textContent = q ? n + " / " + rows.length + "名" : "";
+      hitsEl.textContent = q ? n + " / " + rows.length + unit : "";
       emptyEl.hidden = !(q && n === 0);
     };
 

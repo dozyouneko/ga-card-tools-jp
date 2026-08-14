@@ -81,6 +81,13 @@ const LIMIT = (() => {
   const i = process.argv.indexOf("--limit");
   return i >= 0 ? parseInt(process.argv[i + 1], 10) : Infinity;
 })();
+// issue #65 §8-2: 検証専用。指定idだけをカテゴリ許可リストを無視して取り込む(cronからは呼ばない)
+const ONLY = (() => {
+  const i = process.argv.indexOf("--only");
+  if (i < 0) return null;
+  const ids = String(process.argv[i + 1] || "").split(",").map((s) => parseInt(s.trim(), 10)).filter(Number.isFinite);
+  return ids.length ? ids : null;
+})();
 
 const log = (s) => process.stderr.write(s + "\n");
 
@@ -186,17 +193,24 @@ function daysSince(iso) {
 
 // 大会1件を取得して「確定(event)」か「保留(pending)」かを判定する。
 // 対象カテゴリ外・中止は null(=収録しない)。
-async function collectEvent(ev, byName, unresolved) {
-  if (!CATEGORIES.includes(ev.category)) return null;
+// opts.bypassCategory: true のとき、カテゴリ許可リストのみ無視する(#65 §8-2 の --only 専用)
+async function collectEvent(ev, byName, unresolved, opts = {}) {
+  if (!opts.bypassCategory && !CATEGORIES.includes(ev.category)) return null;
   if (ev.status === "canceled") return null;         // 中止・テストイベントはpendingに残さず即除外
   if (day(ev.startAt) < INCLUDE_FROM_DATE) return null; // 前シーズン以前の大会は対象外
 
   const incomplete = ev.status !== "complete" || !ev.decklists;
   if (incomplete) return { pending: true };
 
-  const [players, standingsRes, decklists] = await Promise.all([
-    getSub(ev.id, "players"), getSub(ev.id, "standings"), getSub(ev.id, "decklists"),
-  ]);
+  // #65: チーム戦(team-standard-3v3等)はイベント本体に teamSize を持つ。これが唯一の判別子
+  // (既存451件には無いキーのため後方互換)。個人戦で /teams を叩くと400を返しfetchJson()が
+  // 3回リトライの末に例外を投げるため、チーム戦のときだけ追加で取得する
+  const isTeam = Number.isFinite(ev.teamSize) && ev.teamSize > 0;
+
+  const subs = [getSub(ev.id, "players"), getSub(ev.id, "standings"), getSub(ev.id, "decklists")];
+  if (isTeam) subs.push(getSub(ev.id, "teams"));
+  const [players, standingsRes, decklists, teamsRes] = await Promise.all(subs);
+
   const rows = (standingsRes && standingsRes.standings) || [];
   const decks = Array.isArray(decklists) ? decklists : [];
   if (!rows.length || !decks.length) return { pending: true };
@@ -204,22 +218,81 @@ async function collectEvent(ev, byName, unresolved) {
   const nameById = {};
   for (const p of Array.isArray(players) ? players : []) nameById[p.id] = p.username;
 
-  // standings は順位順に並んで返る(rankフィールドはないため配列順を順位として扱う)
-  // standings は statsScore(勝ち点)の降順で返る。同点はタイブレーカー(GW%/MW%)で並ぶ
-  const standings = rows.map((r, i) => ({
-    rank: i + 1,
-    player: r.id,
-    wins: r.statsWins ?? 0,
-    losses: r.statsLosses ?? 0,
-    ties: r.statsTies ?? 0,
-    // 勝ち点と不戦勝。byeは勝敗数に現れないため、これが無いと戦績と順位が食い違って見える
-    score: r.statsScore ?? null,
-    byes: r.statsByes ?? 0,
-    gwPercent: r.statsPercentGW ?? null,
-    mwPercent: r.statsPercentMW ?? null,
-    hasDeck: !!r.hasSubmittedDecklist && r.isDecklistPublic !== false,
-    status: r.status || "",
-  }));
+  let teamsOut = null;
+  let standings;
+
+  if (isTeam) {
+    // フェイルセーフ#4: /teams が空・取得できなければ「Player #undefined」のような
+    // 壊れた表示を出す前にpendingへ落とす(推測で描かない)
+    const teamsArr = Array.isArray(teamsRes) ? teamsRes : [];
+    if (!teamsArr.length) {
+      log(`  ⚠ #${ev.id}: チーム戦なのに /teams が空のためpendingにします`);
+      return { pending: true };
+    }
+    // チーム名は先頭・末尾の空白を含んで実在する(§2-5)ため、保存・突き合わせの両方でtrimする。
+    // standings[].team と teams[].name が必ず同じ文字列になるようにする(画面の突き合わせに使うため)
+    teamsOut = teamsArr.map((t) => ({
+      name: String(t.name || "").trim(),
+      placement: t.finalPlacement ?? null,
+      // slot順が保証されている確証はないため、表示側のslot番号がこの配列順と一致するよう
+      // 数値ソートしてから保存する(#65 §5-3)
+      players: (t.players || [])
+        .slice()
+        .sort((a, b) => Number(a.slot) - Number(b.slot))
+        .map((p) => ({ id: p.id, slot: p.slot })),
+    }));
+
+    // 名前 → チーム配列(同名重複に備え、配列順に消費する。#65 §5-3: 実測では重複0だが、
+    // 重複しても常に同じ入力から同じ出力になるようにする)
+    const byTeamName = new Map();
+    for (const t of teamsOut) {
+      if (!byTeamName.has(t.name)) byTeamName.set(t.name, []);
+      byTeamName.get(t.name).push(t);
+    }
+
+    standings = [];
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      const key = String(r.name || "").trim();
+      // フェイルセーフ#5: チーム戦なのに standings 行に name が無い(未知の形)→ pending
+      if (!key) {
+        log(`  ⚠ #${ev.id}: チーム戦の standings 行に name が無いためpendingにします`);
+        return { pending: true };
+      }
+      const bucket = byTeamName.get(key);
+      const team = bucket && bucket.length ? bucket.shift() : null;
+      standings.push({
+        rank: i + 1,
+        team: key,
+        members: team ? team.players.map((p) => p.id) : [],
+        wins: r.statsWins ?? 0,
+        losses: r.statsLosses ?? 0,
+        ties: r.statsTies ?? 0,
+        score: r.statsScore ?? null,
+        byes: r.statsByes ?? 0,
+        gwPercent: r.statsPercentGW ?? null,
+        mwPercent: r.statsPercentMW ?? null,
+        status: r.status || "",
+      });
+    }
+  } else {
+    // standings は順位順に並んで返る(rankフィールドはないため配列順を順位として扱う)
+    // standings は statsScore(勝ち点)の降順で返る。同点はタイブレーカー(GW%/MW%)で並ぶ
+    standings = rows.map((r, i) => ({
+      rank: i + 1,
+      player: r.id,
+      wins: r.statsWins ?? 0,
+      losses: r.statsLosses ?? 0,
+      ties: r.statsTies ?? 0,
+      // 勝ち点と不戦勝。byeは勝敗数に現れないため、これが無いと戦績と順位が食い違って見える
+      score: r.statsScore ?? null,
+      byes: r.statsByes ?? 0,
+      gwPercent: r.statsPercentGW ?? null,
+      mwPercent: r.statsPercentMW ?? null,
+      hasDeck: !!r.hasSubmittedDecklist && r.isDecklistPublic !== false,
+      status: r.status || "",
+    }));
+  }
 
   const zones = ["material", "main", "sideboard"];
   const deckByPlayer = decks
@@ -243,11 +316,17 @@ async function collectEvent(ev, byName, unresolved) {
         address: (ev.host && ev.host.address) || "",
         country: (ev.host && ev.host.addressCountryCode) || "",
       },
-      playerCount: Array.isArray(ev.players) ? ev.players.length : standings.length,
+      // チーム戦は既存の「ev.players配列 → standings.length」フォールバックだと
+      // standings.length がチーム数に落ちるため、/players の実件数を使う(#65 §5-4)
+      playerCount: isTeam
+        ? (Array.isArray(players) ? players.length : standings.length)
+        : (Array.isArray(ev.players) ? ev.players.length : standings.length),
+      ...(isTeam ? { teamSize: ev.teamSize, teamCount: teamsOut.length } : {}),
       swissRounds: ev.swissRounds ?? null,
       cutSize: ev.singleEliminationCutSize ?? null,
       url: ev.url || "",
       players: nameById,
+      ...(isTeam ? { teams: teamsOut } : {}),
       standings,
       decklists: deckByPlayer,
     },
@@ -379,6 +458,36 @@ async function scan(byName) {
   return index;
 }
 
+// issue #65 §8-2: 検証専用。指定idだけをカテゴリ許可リストを無視して取り込む。
+// 上端探索・pendingの再チェック・index.scan の更新は行わない(スキャン位置を汚さない)。
+// ⚠ 日次cronからは呼ばない(許可リストを迂回するため。用途はローカル検証のみ)
+async function collectOnly(ids, byName) {
+  mkdirSync(EVENTS_DIR, { recursive: true });
+  const pending = readJson(PENDING_JSON, []);
+  const unresolved = new Set();
+  log(`--only: 指定id ${ids.join(",")} を取り込みます(カテゴリ許可リストのみ無視)`);
+  for (const id of ids) {
+    const ev = await getEvent(id);
+    if (!ev) { log(`  ⚠ #${id}: イベントが見つかりません`); continue; }
+    const r = await collectEvent(ev, byName, unresolved, { bypassCategory: true });
+    if (!r) { log(`  #${id}: 収録対象外(中止 または開催日がシーズン開始前)`); continue; }
+    if (r.pending) {
+      if (!pending.some((p) => p.id === id)) {
+        pending.push({ id, firstSeenAt: today(), category: ev.category, startAt: ev.startAt || "" });
+      }
+      log(`  #${id}: pending(未確定。ページは生成されません)`);
+      continue;
+    }
+    writeFileSync(path.join(EVENTS_DIR, `${id}.json`), JSON.stringify(r.event) + "\n");
+    log(`  #${id}: 収録しました`);
+  }
+  pending.sort((a, b) => a.id - b.id);
+  writeFileSync(PENDING_JSON, JSON.stringify(pending, null, 2) + "\n");
+  if (unresolved.size) {
+    log(`⚠ slug未解決のカード名 ${unresolved.size}件: ${[...unresolved].slice(0, 20).join(" / ")}${unresolved.size > 20 ? " …" : ""}`);
+  }
+}
+
 // ---------- データ読み込み(生成用) ----------
 
 function loadEvents() {
@@ -395,6 +504,7 @@ function writeIndexJson(index, events) {
     id: e.id, name: e.name, category: e.category, format: e.format,
     startAt: e.startAt, season: e.season, country: e.host.country, host: e.host.name,
     playerCount: e.playerCount, deckCount: e.decklists.length,
+    ...(e.teamCount != null ? { teamCount: e.teamCount } : {}), // #65: チーム戦のみ(§4-2)
   }));
   mkdirSync(DATA_DIR, { recursive: true });
   writeFileSync(INDEX_JSON, JSON.stringify(index, null, 2) + "\n");
@@ -403,7 +513,10 @@ function writeIndexJson(index, events) {
 // ---------- 表示用ヘルパー ----------
 
 const day = (iso) => (iso || "").slice(0, 10);
-const formatJp = (f) => CI.FORMAT_JP[String(f || "").toUpperCase()] || f || "—";
+// #65 §6-4: 大会のフォーマット名専用のラベル表(shared/js/card-i18n.js の FORMAT_JP は
+// カードの使用可否表示の語彙のため触らない。大会側で独自に持つ)
+const TOURNAMENT_FORMAT_JP = { "TEAM-STANDARD-3V3": "チーム戦スタンダード（3v3）" };
+const formatJp = (f) => TOURNAMENT_FORMAT_JP[String(f || "").toUpperCase()] || CI.FORMAT_JP[String(f || "").toUpperCase()] || f || "—";
 const catInfo = (c) => CATEGORY_JP[c] || { label: c, full: c, cls: "store" };
 const pct = (v) => (v == null ? "—" : `${Math.round(v * 10) / 10}%`);
 const RANK_ICON = { 1: "🥇", 2: "🥈", 3: "🥉" };
@@ -569,7 +682,7 @@ function listPage(events) {
         <td class="country">${countryLabel(e.host.country)}</td>
         <td class="format">${esc(formatJp(e.format))}</td>
         <td class="cat"><span class="cat-badge cat-${c.cls}"><span class="cat-short">${esc(c.label)}</span><span class="cat-full">${esc(c.full)}</span></span></td>
-        <td class="num">${e.playerCount}名</td>
+        <td class="num">${e.teamCount != null ? `${e.playerCount}名（${e.teamCount}チーム）` : `${e.playerCount}名`}</td>
       </tr>`;
   }).join("\n");
 
@@ -654,8 +767,9 @@ ${siteFooter()}
 function searchBlob(ev) {
   const champs = [...new Set(Object.values(ev.deckInfo || {}).map((d) => d.full))]
     .filter((c) => c !== NO_DECK_INFO);
+  const teamNames = (ev.teams || []).map((t) => t.name); // #65 §6-5: チーム名も検索対象に含める
   return [ev.id, ev.name, ev.host.name, ev.host.country, countryLabelText(ev.host.country),
-    formatJp(ev.format), catInfo(ev.category).full, ...Object.values(ev.players), ...champs].join(" ");
+    formatJp(ev.format), catInfo(ev.category).full, ...Object.values(ev.players), ...champs, ...teamNames].join(" ");
 }
 
 // searchBlob用(esc前の生文字列)
@@ -680,7 +794,11 @@ function eventPage(ev) {
   const c = catInfo(ev.category);
   const date = day(ev.startAt);
   const title = `${ev.name}（${date}） - 大会デッキ | Grand Archive 日本語カードDB`;
-  const top = ev.standings.slice(0, 3).map((s) => playerName(ev, s.player)).join("・");
+  // #65: チーム戦は ev.teamSize の有無だけで判別する(既存451件には無いキー=後方互換)
+  const isTeam = Number.isFinite(ev.teamSize) && ev.teamSize > 0;
+  const top = isTeam
+    ? ev.standings.slice(0, 3).map((s) => s.team).join("・")
+    : ev.standings.slice(0, 3).map((s) => playerName(ev, s.player)).join("・");
   const description = `${date}開催「${ev.name}」（${c.full}・${formatJp(ev.format)}・${ev.playerCount}名）の順位表と提出デッキ${ev.decklists.length}件を日本語訳付きで掲載。上位: ${top}。`;
 
   const deckPlayers = new Set(ev.decklists.map((d) => d.player));
@@ -711,21 +829,72 @@ function eventPage(ev) {
         <td>${link}</td>
       </tr>`;
   };
-  const thead = `<thead><tr><th>順位</th><th>プレイヤー</th><th>デッキ</th><th class="score">勝ち点</th><th>成績</th><th class="pct">GW%</th><th class="pct">MW%</th><th></th></tr></thead>`;
+
+  // #65 §6-1: チーム戦は1チーム=1 <tbody class="team-block"> にチーム行+メンバー行を並べる。
+  // 絞り込みは行単位ではなくこのtbody単位で行う(§6-3)ため、data-searchもここに持たせる
+  const memberRow = (playerId, slot) => {
+    const link = deckPlayers.has(playerId)
+      ? `<a class="deck-link" href="#${deckAnchor(playerId)}">📄 デッキを見る</a>`
+      : `<span class="no-deck">デッキ未提出</span>`;
+    const name = playerName(ev, playerId);
+    const info = ev.deckInfo[playerId];
+    const deckCell = info
+      ? `${info.els.length ? `<span class="orbs">${orbsHtml(info.els)}</span>` : ""}<span class="champ" title="${esc(info.full)}">${esc(info.champ)}</span>`
+      : `<span class="champ no-deck">${NO_DECK_INFO}</span>`;
+    return `<tr class="member-row" data-player="${playerId}">
+        <td class="rank"></td>
+        <td class="player-name member"><span class="slot">${slot}</span>${esc(name)}</td>
+        <td class="deck-id">${deckCell}</td>
+        <td class="score"></td>
+        <td class="rec"></td>
+        <td class="pct"></td>
+        <td class="pct"></td>
+        <td>${link}</td>
+      </tr>`;
+  };
+  const teamBlock = (s) => {
+    const teamRow = `<tr class="team-row${s.rank === 1 ? " top1" : ""}">
+        <td class="rank">${RANK_ICON[s.rank] || ""}${s.rank}</td>
+        <td class="player-name team-name">${esc(s.team)}<span class="mem-count">${s.members.length}名</span></td>
+        <td class="deck-id"></td>
+        <td class="score">${s.score == null ? "—" : s.score}</td>
+        <td class="rec">${esc(recordLabel(s))}</td>
+        <td class="pct">${esc(pct(s.gwPercent))}</td>
+        <td class="pct">${esc(pct(s.mwPercent))}</td>
+        <td></td>
+      </tr>`;
+    const memberRows = s.members.length
+      ? s.members.map((id, i) => memberRow(id, i + 1)).join("\n")
+      : `<tr class="member-row"><td class="rank"></td><td class="player-name member no-deck" colspan="7">メンバー情報なし</td></tr>`;
+    // 絞り込み用の全文: チーム名＋全メンバー名＋チャンピオン名(省略前)＋属性(英字コード・日本語名)
+    const memberNames = s.members.map((id) => playerName(ev, id));
+    const champBits = s.members.flatMap((id) => {
+      const info = ev.deckInfo[id];
+      return info ? [info.full, ...info.els.flatMap((e) => [e, elementJp(e)])] : [];
+    });
+    const blob = [s.team, ...memberNames, ...champBits].join(" ");
+    return `<tbody class="team-block" data-search="${esc(blob)}">
+${teamRow}
+${memberRows}
+      </tbody>`;
+  };
+
+  const thead = `<thead><tr><th>順位</th><th>${isTeam ? "チーム / メンバー" : "プレイヤー"}</th><th>デッキ</th><th class="score">勝ち点</th><th>成績</th><th class="pct">GW%</th><th class="pct">MW%</th><th></th></tr></thead>`;
   const table = (list) => `<div class="cp-scroll"><table class="standings">
     ${thead}
-    <tbody>
+    ${isTeam ? list.map(teamBlock).join("\n") : `<tbody>
 ${list.map(row).join("\n")}
-    </tbody>
+    </tbody>`}
   </table></div>`;
 
-  // 100名を超える大会は縦に長くなりすぎるため100行ごとに折りたたむ(先頭ブロックのみ開く)
+  // 100(チーム戦は100チーム)を超える大会は縦に長くなりすぎるため100行ごとに折りたたむ(先頭ブロックのみ開く)
+  const rankUnit = isTeam ? "チーム" : "名";
   const standingsHtml = ev.standings.length <= RANK_BLOCK_SIZE ? table(ev.standings)
     : Array.from({ length: Math.ceil(ev.standings.length / RANK_BLOCK_SIZE) }, (_, i) => {
       const list = ev.standings.slice(i * RANK_BLOCK_SIZE, (i + 1) * RANK_BLOCK_SIZE);
       const range = `${list[0].rank}〜${list[list.length - 1].rank}位`;
       return `  <details class="rank-block"${i === 0 ? " open" : ""}>
-    <summary>${range}<span class="cp-muted">（${list.length}名）</span></summary>
+    <summary>${range}<span class="cp-muted">（${list.length}${rankUnit}）</span></summary>
 ${table(list)}
   </details>`;
     }).join("\n");
@@ -757,17 +926,17 @@ ${crumb([["トップ", "/"], ["大会デッキ", "/tournaments/"], [ev.name]])}
     </div>
   </div>
 
-  <h2>順位表（${ev.standings.length}名・スイス終了時点）</h2>
+  <h2>${isTeam ? `順位表（${ev.teamCount}チーム・${ev.playerCount}名・スイス終了時点）` : `順位表（${ev.standings.length}名・スイス終了時点）`}</h2>
   <!-- 順位表の上には操作ヒントだけ残し、免責文は表の下の注釈群へ移す(#18) -->
   <p class="cp-muted">カードをクリックすると日本語の詳細が開きます。</p>
   <div class="rank-filter">
-    <input type="search" id="rank-q" placeholder="プレイヤー名・チャンピオン名・属性で絞り込み…" aria-label="順位表をプレイヤー名・チャンピオン名・属性で絞り込み">
+    <input type="search" id="rank-q" placeholder="${isTeam ? "チーム名・プレイヤー名・チャンピオン名・属性で絞り込み…" : "プレイヤー名・チャンピオン名・属性で絞り込み…"}" aria-label="順位表をプレイヤー名・チャンピオン名・属性で絞り込み">
     <span class="rank-hits" id="rank-hits" role="status"></span>
   </div>
-  <div id="standings-wrap">
+  <div id="standings-wrap"${isTeam ? ` data-unit="${rankUnit}"` : ""}>
 ${standingsHtml}
   </div>
-  <p class="rank-empty" id="rank-empty" hidden>該当する選手がいません。</p>
+  <p class="rank-empty" id="rank-empty" hidden>${isTeam ? "該当するチームがいません。" : "該当する選手がいません。"}</p>
   <p class="cp-muted">順位は勝ち点順で、同点はタイブレーカー（GW%＝ゲーム勝率、MW%＝マッチ勝率）によります。勝ち点には不戦勝（bye）を含みます。順位はスイスラウンド終了時点のもので、決勝トーナメントの結果は含みません。</p>
   <p class="cp-muted">当時のフォーマットで提出されたリストのため、現行ルールでの使用可否は判定していません。</p>
 
@@ -810,8 +979,12 @@ function cardTile(entry, cardBySlug) {
 // 該当する1件だけを取り出してダイアログに描画する(tournaments/deck.js)。
 // summary = ダイアログの見出し / それ以降 = ダイアログの本文になる。
 function deckAccordion(ev, deck, cardBySlug) {
+  const isTeam = Number.isFinite(ev.teamSize) && ev.teamSize > 0;
   const name = playerName(ev, deck.player);
-  const st = ev.standings.find((s) => s.player === deck.player);
+  // チーム戦の standings 行は player を持たない(§2-3)ため、members から所属チームを引く
+  const st = isTeam
+    ? ev.standings.find((s) => (s.members || []).includes(deck.player))
+    : ev.standings.find((s) => s.player === deck.player);
   const rank = st ? st.rank : null;
 
   const zones = ZONES.map((z) => {
@@ -826,11 +999,17 @@ ${cards.map((c) => "          " + cardTile(c, cardBySlug)).join("\n")}
       </section>`;
   }).filter(Boolean).join("\n");
 
-  const summary = [
-    rank ? `<span class="rank-badge">${RANK_ICON[rank] || ""}${rank}位</span>` : "",
-    `<span class="deck-player">${esc(name)}</span>`,
-    st ? `<span class="cp-muted">${esc(recordLabel(st))}</span>` : "",
-  ].filter(Boolean).join(" ");
+  // #65 §6-6: チーム戦は見出しを「snackz（Two Sight・1位）」の形にする(個人戦は現行のまま)
+  const summary = isTeam
+    ? [
+        `<span class="deck-player">${esc(name)}${st ? `（${esc(st.team)}・${rank}位）` : ""}</span>`,
+        st ? `<span class="cp-muted">${esc(recordLabel(st))}</span>` : "",
+      ].filter(Boolean).join(" ")
+    : [
+        rank ? `<span class="rank-badge">${RANK_ICON[rank] || ""}${rank}位</span>` : "",
+        `<span class="deck-player">${esc(name)}</span>`,
+        st ? `<span class="cp-muted">${esc(recordLabel(st))}</span>` : "",
+      ].filter(Boolean).join(" ");
 
   return `    <details class="deck-acc" id="${deckAnchor(deck.player)}">
       <summary>${summary}</summary>
@@ -938,6 +1117,18 @@ td.rec, td.pct { font-variant-numeric:tabular-nums; color:var(--muted); white-sp
 td.score, th.score { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
 td.score { font-weight:600; }
 
+/* ---- チーム戦の順位表(#65): 1チーム = 1 <tbody class="team-block">。
+   モック(docs/design/65-チーム戦対応/モック_順位表.html)の案Aをそのまま実装した */
+.standings td:empty { padding:0; }
+.team-block { border-bottom:2px solid var(--line); }
+.team-row td { background:rgba(110,168,254,.06); }
+.team-row td.deck-id, .team-row td:last-child { background:rgba(110,168,254,.06); border-bottom-color:transparent; }
+.team-name { font-weight:700; }
+.mem-count { color:var(--muted); font-weight:400; font-size:.78rem; margin-left:8px; }
+.member-row td.player-name { font-weight:500; padding-left:26px; color:var(--text); }
+.member-row td { border-bottom:1px solid rgba(38,43,54,.35); }
+.slot { display:inline-block; min-width:1.5em; margin-right:6px; color:var(--muted); font-size:.78rem; font-variant-numeric:tabular-nums; }
+
 /* ---- 順位表の「デッキ」列: 属性玉 + チャンピオン名(#15) ----
    玉は公式カード画像から切り出した32px WebPをdata URIで持つ(外部リクエストなし)。
    名前は列幅に収まらなければ省略記号で詰め、全文は title で見せる */
@@ -1040,7 +1231,10 @@ ${ORB_CSS}
   .cat-full { display:inline; }
 
   /* 順位表: 順位・プレイヤー名・デッキ導線 / 属性・チャンピオン / 勝ち点・成績 の3行(#15) */
-  .standings tbody tr { display:grid; grid-template-columns:auto 1fr auto; gap:2px 8px; align-items:baseline; }
+  /* #65: 1列目(順位)を固定下限幅にする。auto任せだと、チーム戦のメンバー行は
+     順位・勝ち点セルが両方とも空で1列目がほぼ0pxに潰れ、チーム名との字下げが崩れる
+     (メンバー行だけ列境界が左にずれ、padding-leftでの字下げが台無しになる) */
+  .standings tbody tr { display:grid; grid-template-columns:minmax(56px,auto) 1fr auto; gap:2px 8px; align-items:baseline; }
   .standings td.rank { grid-column:1; grid-row:1; }
   .standings td.player-name { grid-column:2; grid-row:1; }
   .standings tbody td:last-child { grid-column:3; grid-row:1; text-align:right; }
@@ -1048,12 +1242,20 @@ ${ORB_CSS}
   .standings td.deck-id { grid-column:1/-1; grid-row:2; flex-wrap:wrap; }
   .standings td.deck-id .champ { overflow:visible; text-overflow:clip; white-space:normal; }
   .standings td.score { grid-column:1; grid-row:3; text-align:left; }
-  .standings td.score::before { content:"勝ち点 "; color:var(--muted); font-weight:400; font-size:.82rem; }
+  /* #65: チーム戦のメンバー行はscore/recが空セル(チーム単位の値のみ持つ)。
+     :not(:empty) を付けないと空セルにも「勝ち点 」「・」だけのラベルが浮いて出る */
+  .standings td.score:not(:empty)::before { content:"勝ち点 "; color:var(--muted); font-weight:400; font-size:.82rem; }
   .standings td.rec { grid-column:2/-1; grid-row:3; white-space:normal; }
-  .standings td.rec::before { content:"・"; color:var(--muted); margin-right:4px; }
+  .standings td.rec:not(:empty)::before { content:"・"; color:var(--muted); margin-right:4px; }
   /* タイブレーカーの参考値(GW%・MW%)はスマホでは出さない */
   .standings th.pct, .standings td.pct { display:none; }
   .rank-block > .cp-scroll { padding:0; }
+
+  /* ---- チーム戦(#65): メンバー行のインデントを詰め、「メンバー情報なし」の
+     grid-column を明示する(既定だと tbody td:last-child の grid-column:3 に負けて右寄せになる) ---- */
+  .member-row td.player-name { padding-left:14px; }
+  .member-row td.player-name.no-deck { grid-column:1/-1; text-align:left; }
+  .team-block { display:block; margin-bottom:6px; }
 
   .deck-body { margin:0; max-width:none; min-height:100%; max-height:100vh; border-radius:0; padding:16px; }
   .view-grid { grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:8px; }
@@ -1351,10 +1553,15 @@ const DECK_JS = `// 大会詳細ページのデッキ表示まわり。生成元
   // ---- 順位表の絞り込み(#15): プレイヤー名・チャンピオン名・属性で行を絞る ----
   // 絞り込み中は100行ごとの折りたたみを無視し、該当行を平坦に表示する
   // (折りたたんだブロックの中に隠れると検索の意味がなくなるため)
+  // #65: チーム戦は絞り込みの単位が行(tr)ではなくチーム(tbody.team-block)。
+  // data-search を持つ tbody.team-block があればそちらを単位にする(個人戦は従来どおり tr 単位)
   const rankQ = document.getElementById("rank-q");
   const wrap = document.getElementById("standings-wrap");
   if (rankQ && wrap) {
-    const rows = Array.from(wrap.querySelectorAll("tbody tr[data-player]"));
+    const teamUnits = Array.from(wrap.querySelectorAll("tbody.team-block[data-search]"));
+    const isTeamMode = teamUnits.length > 0;
+    const rows = isTeamMode ? teamUnits : Array.from(wrap.querySelectorAll("tbody tr[data-player]"));
+    const unit = wrap.dataset.unit || "名";
     const hitsEl = document.getElementById("rank-hits");
     const emptyEl = document.getElementById("rank-empty");
 
@@ -1371,14 +1578,16 @@ const DECK_JS = `// 大会詳細ページのデッキ表示まわり。生成元
       // 該当0件のブロックは丸ごと隠す。ヘッダ行は先頭の可視ブロックにだけ残す
       let headShown = false;
       blocks.forEach((b, i) => {
-        const has = !!b.querySelector("tbody tr[data-player]:not([hidden])");
+        const has = isTeamMode
+          ? !!b.querySelector("tbody.team-block[data-search]:not([hidden])")
+          : !!b.querySelector("tbody tr[data-player]:not([hidden])");
         b.open = filtering ? true : openState[i];
         b.hidden = filtering && !has;
         const head = b.querySelector("thead");
         if (head) head.hidden = filtering && !(has && !headShown);
         if (filtering && has) headShown = true;
       });
-      hitsEl.textContent = q ? n + " / " + rows.length + "名" : "";
+      hitsEl.textContent = q ? n + " / " + rows.length + unit : "";
       emptyEl.hidden = !(q && n === 0);
     };
 
@@ -1450,7 +1659,10 @@ function build(events, cardBySlug) {
 async function main() {
   const { byName, bySlug } = indexCards(await loadCards(ROOT));
   let index = readJson(INDEX_JSON, { updatedAt: "", scan: { minId: null, maxId: null }, events: [] });
-  if (!NO_SCAN) {
+  if (ONLY) {
+    // #65 §8-2: 検証専用。上端探索・pendingの再チェック・index.scan の更新はしない
+    await collectOnly(ONLY, byName);
+  } else if (!NO_SCAN) {
     index = await scan(byName);
   } else {
     log("--no-scan: 大会APIは叩かず既存データからページのみ生成します");
