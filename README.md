@@ -95,7 +95,7 @@ Grand Archive TCG を日本で遊ぶ人向けの、非公式ファンサイト�
 ```bash
 npm run dev              # 静的プレビュー(ポート3000)
 npm run pages:dev        # Pages Functions込みのローカル実行(wrangler、ポート8788)
-npm run db:migrate:local # ローカルD1のマイグレーション
+npm run db:migrate:local # ローカルD1の初期化(migrations/ を順に適用。空のDB向け)
 npm run validate         # データ検証
 npm run build:cards      # カード個別ページ・セット別ページ・sitemap.xml を生成
 npm run build:tournaments # 大会データをスキャンして大会ページを生成
@@ -151,7 +151,10 @@ npm run build:tournaments # 大会データをスキャンして大会ページ�
 ビルド不要・出力ディレクトリはリポジトリのルート（`/`）で、`_headers` によるパス別CSPがそのまま適用されます。
 
 - デッキ構築ツールのAPIは同一プロジェクトの **Pages Functions**（[functions/](functions/)）+ **D1** で動作。
-  スキーマ変更時は `npm run db:migrate:remote` を本番D1に適用
+  スキーマ変更時は **追加した `migrations/` のファイルだけ**を本番D1へ単体で適用する
+  （`npx wrangler d1 execute DB --remote --file=migrations/000N_xxx.sql`）。
+  ⚠️ **必ず「本番D1へ適用 → push」の順**。逆順にすると、コードだけが本番に出た数分間、
+  新しい列を読むクエリが `no such column` で落ちます（列の追加は既存クエリを壊さないため、先に適用しておくのは安全）
 - 環境変数（Discord OAuth）は **secret_text（暗号化変数）** で設定すること
   （`wrangler.toml` が設定のソース・オブ・トゥルースのため、plain_text はデプロイごとに消えます）
 - デプロイ後は DevTools コンソールに **CSP 違反が出ていないこと**を確認

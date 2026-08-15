@@ -13,8 +13,8 @@
     "build:cards": "node scripts/build-card-pages.mjs",
     "build:tournaments": "node scripts/build-tournament-pages.mjs",
     "pages:dev": "wrangler pages dev . --local",
-    "db:migrate:local": "wrangler d1 execute DB --local --file=migrations/0001_init.sql && wrangler d1 execute DB --local --file=migrations/0002_deck_card_art.sql && wrangler d1 execute DB --local --file=migrations/0003_deck_thumb.sql && wrangler d1 execute DB --local --file=migrations/0004_deck_format.sql",
-    "db:migrate:remote": "wrangler d1 execute DB --remote --file=migrations/0001_init.sql && wrangler d1 execute DB --remote --file=migrations/0002_deck_card_art.sql && wrangler d1 execute DB --remote --file=migrations/0003_deck_thumb.sql && wrangler d1 execute DB --remote --file=migrations/0004_deck_format.sql"
+    "db:migrate:local": "for f in migrations/*.sql; do echo \"-- $f\"; wrangler d1 execute DB --local --file=\"$f\" || exit 1; done",
+    "db:migrate:remote": "echo '⚠️  本番D1へは一括適用できません（既存テーブルがあるため必ず失敗します）。' && echo '   追加した migrations/ のファイルだけを単体で実行してください:' && echo '     npx wrangler d1 execute DB --remote --file=migrations/000N_xxx.sql' && echo '   ⚠️ 必ず「本番D1へ適用 → push」の順。手順は README.md の「公開方法」節を参照。' && exit 1"
   },
   "engines": {
     "node": ">=20"

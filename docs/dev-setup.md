@@ -414,7 +414,8 @@ git config user.email "1020dozyouneko@gmail.com"
 Claudeがやること:
 
 1. `npm install`(postCreateで済んでいるはずだが確認)
-2. `npm run db:migrate:local` — ローカルD1(`.wrangler/state`)にマイグレーション0001〜0003を適用
+2. `npm run db:migrate:local` — ローカルD1(`.wrangler/state`)に `migrations/` 配下を順に適用
+   (空のDB向け。⚠️ 適用済みのDBでは1本目の `table users already exists` で停止するが、これは正常)
 3. `npm run pages:dev` をバックグラウンド起動(port 8788)
 4. スモークテスト:
    - `curl http://localhost:8788/api/health` → `{"ok":true,...}` で5テーブル(users / auth_identities / sessions / decks / deck_cards)
