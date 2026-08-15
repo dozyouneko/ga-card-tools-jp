@@ -543,7 +543,13 @@ gh issue list --label push待ち      # 承認済み・push待ち。⚠️セッ
         **IndexNowへ渡す `keyLocation` に付けると本番の通知が壊れる**
         (fetch例外は fail-open で送信へ進む＝一時的な断で赤くしない)
   - **cronがコミットする範囲**(#30・2026-07-27〜):
-    `data/tournaments` `tournaments` `sitemap.xml` `cards` `sets` `data/card-meta-index.json` `data/featured-sets.json`
+    `data/tournaments` `tournaments` `sitemap.xml` `cards` `sets` `data/card-meta-index.json`
+    `data/featured-sets.json` **`index.html`**
+    - ⚠️ **`index.html`(トップページ)が入っている**のを忘れない(2026-08-15・#60の確認で判明。
+      それまでCLAUDE.mdもREADMEも列挙から漏らしていた)。トップの静的リンクは
+      `build:cards` がAPIから生成するので、**新セットが出た日はトップも自動publishされる**
+    - ⭐ 正は**ワークフローの `git add` 行**(`.github/workflows/build-tournaments.yml`)。
+      **列挙をここに書き写す運用なので、ワークフローを変えたらこの2箇所(CLAUDE.md・README.md)も直す**
     - 以前は **`sitemap.xml` だけ**をコミットし、カードページ2,240枚・セットページ56枚は生成して捨てていた。
       そのため**新セットが出た日に sitemap が存在しないページを指して404**になる状態だった
     - ✅ おかげで**新カードのページ・sitemapエントリ・訳の埋め込みは翌朝までに自動で揃う**
@@ -560,10 +566,21 @@ gh issue list --label push待ち      # 承認済み・push待ち。⚠️セッ
       **その日の大会データの取り込みごと失われる**ため
     - ✅ 副産物として、**シーズン禁止(#34)の境界日にカードページが自動で切り替わる**
       (`effectiveFrom` / `effectiveTo` を跨いだ翌朝のcronが対象カードのページだけ再生成してpushする)
-- `npm run db:migrate:local` — D1ローカルDBのマイグレーション
-  - ⚠️ **`npm run db:migrate:remote` は既存DBでは必ず落ちる**(2026-08-10・#4で判明)。
-    `0001` から順に全部流す作りで、`0001_init.sql` に `IF NOT EXISTS` が無いため
-    `table users already exists` で最初のコマンドが失敗する(**0002の頃から同じ**)。是正は **#60**
+- `npm run db:migrate:local` — **空のローカルD1を初期化する**(`migrations/*.sql` をファイル名順に流す)
+  - ⚠️ **適用済みのDBに対しては1本目の `table users already exists` で停止する。これは正常**
+    (`|| exit 1` による fail-fast)。⭐ **停止を「本番DBが壊れた」と読み違えて `DROP TABLE` で
+    作り直そうとしないこと**——`migrations/` は `CREATE TABLE`/`ALTER TABLE ADD COLUMN` しか無く、
+    **失敗しても何も壊れない**(#60の影響度評価)。作り直すなら `.wrangler/state/v3/d1` を消す
+  - ⭐ **glob ループなので、`migrations/` にファイルを足しても `package.json` の追記は要らない**(#60)
+  - ⚠️ **`npm run db:migrate:remote` は「一括適用はできない」と案内して exit 1 するだけ**(#60・2026-08-15〜)。
+    **wrangler を起動しないので本番D1には一切アクセスしない**。
+    (2026-08-10〜08-15は `0001` から全部流す作りで、`0001_init.sql` に `IF NOT EXISTS` が無いため
+    `table users already exists` で必ず失敗していた＝**壊れているのに使えるように見える**状態だった)
+  - ⚠️ **`wrangler d1 migrations apply` は使えない**(#60で実測)。適用済み判定に使う `d1_migrations` の
+    **記録が空**なので、打つと **0001 から流して同じエラーになる**。移行するには本番D1へ
+    「適用済み」を1回だけ手で `INSERT` するブートストラップが要る
+    → ⭐ **次にスキーマ変更(0005)が必要になった機会に、ユーザー立ち会いで移行する**
+    (根拠と手順は `docs/design/60-D1マイグレーション手順の是正/` §2)
   - **本番D1への適用は単体実行する**:
 
     ```bash
