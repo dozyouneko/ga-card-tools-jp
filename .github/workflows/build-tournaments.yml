@@ -59,6 +59,9 @@ jobs:
           # ここに含める(手書きだとPRDスポイラー等の最も需要が高い日に載り漏れる)。
           # ⚠ ルート直下のトップページがcronの自動publish対象に入る。マーカー欠落は
           #   build-card-pages.mjs が exit 1 で落とし、npm run validate も検査する(#37 設計書 §4.4/§4.5)。
+          # ⚠ この git add の対象を増減したら、README.md「大会データの自動更新」節と
+          #   CLAUDE.md「cronがコミットする範囲」の列挙も直すこと(#70)。npm run validate が
+          #   3箇所を集合比較しており、食い違うと exit 1 する。
           git add data/tournaments tournaments sitemap.xml cards sets data/card-meta-index.json data/featured-sets.json index.html
           if git diff --cached --quiet; then
             echo "更新なし(新しく確定した大会はありませんでした)"

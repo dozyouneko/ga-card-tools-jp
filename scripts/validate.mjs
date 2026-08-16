@@ -12,6 +12,7 @@
 // data/tl-*.json（ブラウザが読む生成物）が data/tl/*.js と一致しているかを検査する（#22 フェーズ2）。
 // 加えて index.html のマーカー間の /sets/ リンクが cards/index.html と一致するかを検査する（#37）。
 // さらに meta.sets（エキスパンション絞り込みの選択肢）が全セットを覆っているかを検査する（#40）。
+// 加えて cronワークフローの git add 対象と README.md / CLAUDE.md の列挙が一致するかを検査する（#70）。
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -246,6 +247,75 @@ if (loaded) {
     console.error(`\nBROKEN META INDEX (data/card-meta-index.json):`);
     bad.forEach((m) => console.error(`  - ${m}`));
     console.error(`  → node scripts/gen-card-meta-index.mjs を実行して生成し直し、コミットしてください`);
+  }
+}
+
+// --- cronの git add 対象とドキュメント列挙の一致（#70） ---------------------
+// .github/workflows/build-tournaments.yml の git add 行（＝日次cronが自動publishする範囲）は
+// README.md「大会データの自動更新」節と CLAUDE.md「cronがコミットする範囲」に書き写されており、
+// #30 → #69 と2回ドリフトした（README は「カードページは含めません」と事実と正反対の断定を
+// 約3週間掲げていた）。ワークフローを書き換えるのは常に人なので、ここで人を止める。
+// ⚠ 抽出に失敗したときに「一致」へ倒さないこと。検査が壊れて黙って通るのが最悪の失敗
+//   （行が消えた・分割された・マーカーが無い・列挙が空 のすべてを exit 1 にする）。
+const CRON_WORKFLOW = ".github/workflows/build-tournaments.yml";
+{
+  const bad = [];
+  // 末尾スラッシュだけ正規化する。cards と cards/ の差はパスの増減を隠さないため
+  const norm = (p) => p.replace(/\/+$/, "");
+  // マーカー間のインラインコード `…` を拾う。**`x`** のような強調は外側なので影響しない
+  const codesIn = (s) => [...s.matchAll(/`([^`\n]+)`/g)].map((m) => norm(m[1].trim())).filter(Boolean);
+  let wfPaths = null;
+  try {
+    const yml = readFileSync(path.join(root, CRON_WORKFLOW), "utf8");
+    // ⚠ 行頭指定は必須。外すと「下の git add 対象(#30)」というコメント行まで拾う
+    const lines = yml.split(/\r?\n/).filter((l) => /^\s*git add /.test(l));
+    if (lines.length !== 1) {
+      bad.push(`git add 行が1行ではありません（${lines.length}行）— 抽出規則が陳腐化しています`);
+    } else {
+      wfPaths = lines[0].replace(/^\s*git add\s+/, "").trim().split(/\s+/).map(norm).filter(Boolean);
+      if (!wfPaths.length) bad.push("git add 行にパスがありません — 抽出規則が陳腐化しています");
+    }
+  } catch (e) {
+    bad.push(`読み込みに失敗: ${e.message}`);
+  }
+  if (wfPaths) {
+    for (const file of ["README.md", "CLAUDE.md"]) {
+      let text;
+      try {
+        text = readFileSync(path.join(root, file), "utf8");
+      } catch (e) {
+        bad.push(`${file} の読み込みに失敗: ${e.message}`);
+        continue;
+      }
+      const s = text.indexOf("<!-- CRON-ADD:START -->");
+      const t = text.indexOf("<!-- CRON-ADD:END -->");
+      if (s < 0 || t < 0 || t < s) {
+        bad.push(`${file} にマーカーがありません`);
+        continue;
+      }
+      const docPaths = codesIn(text.slice(s + "<!-- CRON-ADD:START -->".length, t));
+      if (!docPaths.length) {
+        bad.push(`${file} のマーカー間に列挙がありません`);
+        continue;
+      }
+      // 順序・重複は問わない（順序が違っても情報は欠けない）。集合として比較する
+      const docSet = new Set(docPaths);
+      const wfSet = new Set(wfPaths);
+      const missing = wfPaths.filter((p) => !docSet.has(p));
+      const extra = docPaths.filter((p) => !wfSet.has(p));
+      if (missing.length) bad.push(`${file} に無い: ${[...new Set(missing)].join(" ")}`);
+      if (extra.length) bad.push(`${file} にだけある: ${[...new Set(extra)].join(" ")}`);
+    }
+    if (!bad.length) {
+      console.log(`cron git add paths in sync — ${wfPaths.length}パス（README.md / CLAUDE.md）`);
+    }
+  }
+  if (bad.length) {
+    problems++;
+    console.error(`\nCRON PATH DRIFT (${CRON_WORKFLOW}):`);
+    bad.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → 正はワークフローの git add 行です。README.md「大会データの自動更新」節と`);
+    console.error(`    CLAUDE.md「cronがコミットする範囲」のマーカー間の列挙を合わせてください`);
   }
 }
 

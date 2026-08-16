@@ -167,10 +167,12 @@ npm run build:tournaments # 大会データをスキャンして大会ページ�
 （push をトリガーに Cloudflare Pages の自動デプロイが動きます）。
 
 - 動作確認・障害時は GitHub の Actions 画面から `workflow_dispatch` で手動実行できます
-- コミット対象は `data/tournaments` / `tournaments` / `sitemap.xml` / `cards` / `sets` /
-  `data/card-meta-index.json` / `data/featured-sets.json` / `index.html`
+- コミット対象は <!-- CRON-ADD:START -->`data/tournaments` / `tournaments` / `sitemap.xml` / `cards` / `sets` /
+  `data/card-meta-index.json` / `data/featured-sets.json` / `index.html`<!-- CRON-ADD:END -->
   （⚠️ #30 以降、**カードページ・セットページ・トップページも含みます**。新セットが出た日は
   数百〜数千ファイルがレビューなしで自動publishされます）
+  - 正は [build-tournaments.yml](.github/workflows/build-tournaments.yml) の `git add` 行です。
+    ⚠️ 変更したらこの列挙も直してください（`npm run validate` が一致を検査し、食い違うと exit 1 します）
 - スクリプトが失敗した場合はワークフローが失敗するだけで push されません（大会データは古いまま＝安全側）
 
 ## 留意点

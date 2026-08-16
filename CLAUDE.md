@@ -543,13 +543,18 @@ gh issue list --label push待ち      # 承認済み・push待ち。⚠️セッ
         **IndexNowへ渡す `keyLocation` に付けると本番の通知が壊れる**
         (fetch例外は fail-open で送信へ進む＝一時的な断で赤くしない)
   - **cronがコミットする範囲**(#30・2026-07-27〜):
-    `data/tournaments` `tournaments` `sitemap.xml` `cards` `sets` `data/card-meta-index.json`
-    `data/featured-sets.json` **`index.html`**
+    <!-- CRON-ADD:START -->`data/tournaments` `tournaments` `sitemap.xml` `cards` `sets` `data/card-meta-index.json`
+    `data/featured-sets.json` **`index.html`**<!-- CRON-ADD:END -->
     - ⚠️ **`index.html`(トップページ)が入っている**のを忘れない(2026-08-15・#60の確認で判明。
       それまでCLAUDE.mdもREADMEも列挙から漏らしていた)。トップの静的リンクは
       `build:cards` がAPIから生成するので、**新セットが出た日はトップも自動publishされる**
     - ⭐ 正は**ワークフローの `git add` 行**(`.github/workflows/build-tournaments.yml`)。
       **列挙をここに書き写す運用なので、ワークフローを変えたらこの2箇所(CLAUDE.md・README.md)も直す**
+      - ✅ **2026-08-16〜、`npm run validate` が3箇所(ワークフロー・README・CLAUDE.md)の集合一致を検査する**(#70)。
+        食い違うと **exit 1**。⚠️ **cronは `validate` を実行しない**が、`git add` 行を変えるのは**常に人**なので
+        検出経路として成立する(レビューの必須基準 M3 が `validate` の exit 0 を要求する)
+      - ⚠️ 上の列挙は**HTMLコメントのマーカーで囲ってある**(GitHubの描画では見えない)。
+        **節を書き換えるときもマーカーを消さない**(消すと検査が exit 1 で落ちる＝安全側だが手を止める)
     - 以前は **`sitemap.xml` だけ**をコミットし、カードページ2,240枚・セットページ56枚は生成して捨てていた。
       そのため**新セットが出た日に sitemap が存在しないページを指して404**になる状態だった
     - ✅ おかげで**新カードのページ・sitemapエントリ・訳の埋め込みは翌朝までに自動で揃う**
