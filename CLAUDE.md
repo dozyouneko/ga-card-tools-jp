@@ -542,8 +542,8 @@ gh issue list --label push待ち      # 承認済み・push待ち。⚠️セッ
         **送信せず exit 1**。⚠️ **クエリを付けるのは検査の取得側だけ**——
         **IndexNowへ渡す `keyLocation` に付けると本番の通知が壊れる**
         (fetch例外は fail-open で送信へ進む＝一時的な断で赤くしない)
-  - **cronがコミットする範囲**(#30・2026-07-27〜):
-    <!-- CRON-ADD:START -->`data/tournaments` `tournaments` `sitemap.xml` `cards` `sets` `data/card-meta-index.json`
+  - **cronがコミットする範囲**(#30・2026-07-27〜): <!-- CRON-ADD:START -->
+    `data/tournaments` `tournaments` `sitemap.xml` `cards` `sets` `data/card-meta-index.json`
     `data/featured-sets.json` **`index.html`**<!-- CRON-ADD:END -->
     - ⚠️ **`index.html`(トップページ)が入っている**のを忘れない(2026-08-15・#60の確認で判明。
       それまでCLAUDE.mdもREADMEも列挙から漏らしていた)。トップの静的リンクは
