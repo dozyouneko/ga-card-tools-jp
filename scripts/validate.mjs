@@ -287,13 +287,28 @@ const CRON_WORKFLOW = ".github/workflows/build-tournaments.yml";
         bad.push(`${file} の読み込みに失敗: ${e.message}`);
         continue;
       }
-      const s = text.indexOf("<!-- CRON-ADD:START -->");
-      const t = text.indexOf("<!-- CRON-ADD:END -->");
-      if (s < 0 || t < 0 || t < s) {
+      // ⚠ 出現数まで数える。indexOf は最初の1組しか見ないので、2組目に古い列挙を残すと
+      //   検査が黙って通ってしまう（#70 のレビュー指摘 S1）。1組だけを許す
+      const START = "<!-- CRON-ADD:START -->";
+      const END = "<!-- CRON-ADD:END -->";
+      const countOf = (needle) => text.split(needle).length - 1;
+      const sn = countOf(START);
+      const en = countOf(END);
+      if (sn === 0 || en === 0) {
         bad.push(`${file} にマーカーがありません`);
         continue;
       }
-      const docPaths = codesIn(text.slice(s + "<!-- CRON-ADD:START -->".length, t));
+      if (sn !== 1 || en !== 1) {
+        bad.push(`${file} にマーカーが複数あります（START ${sn}個 / END ${en}個）— 1組だけにしてください`);
+        continue;
+      }
+      const s = text.indexOf(START);
+      const t = text.indexOf(END);
+      if (t < s) {
+        bad.push(`${file} にマーカーがありません`);
+        continue;
+      }
+      const docPaths = codesIn(text.slice(s + START.length, t));
       if (!docPaths.length) {
         bad.push(`${file} のマーカー間に列挙がありません`);
         continue;
