@@ -245,6 +245,9 @@ U1 成立の直後に `.claude/settings.json` の `if:` を1行編集したと�
 ⚠️ **したがって現時点で確定しているのは U1（発火することがある）だけ。**
 `if:` が実際に絞れるのか・`matcher` だけで足りるのかは**まだ誰も測っていない**。
 
+> ✅ **2026-08-16・第4段で U2 は対照実験つきで再成立した**（→「U2 の再成立」節）。
+> ⭐ 決め手は「**フックが生きていることを先に証明したうえで**、範囲外への Write が発火しないことを見る」順序。
+
 ### 第4段の仕込み（この節のコミット時点）
 
 ⚠️ **対照として「`if:` を外したエントリ」を置くのは分類器が拒む**（R4の法則：発火範囲を広げる変更）。
@@ -325,12 +328,90 @@ E2（`//`）が発火し E3（`/`）が発火しなかった。パーミッシ�
 - ⭐ `tool_input.file_path` は**絶対パス**で入る（`/workspaces/claude-test-vsc/tmp/design/70/target.txt`）。
   スクリプト側でパス判定するなら**絶対パス前提**で書く
 
+### ⭐⭐ U2 の再成立 — `if:` のパス絞り込みは**本当に効く**（対照実験つき）
+
+第3段で「R6と区別できない」として**取り下げた U2 を、今回は決着させられた**。
+
+第4段の実測の直後（＝**同一セッション・`settings.json` に触れていない**状態）に、
+**範囲外**の `tmp/design/70-hook撤去手順.md` を **Write** した:
+
+| 条件 | 結果 |
+|---|---|
+| このセッションでフックが生きているか | ⭕ **生きている**（数分前に E1・E2・W1 が発火済み） |
+| 範囲外パスへの Write | ❌ **発火せず**（`probe-W1.log` は **1行のまま**） |
+
+⭐ **これが決定的。** 第2段の「範囲外は発火しない」という観測は R6（設定を触ると以後止まる）でも
+同じ結果になるため無効だったが、**今回はフックが生きている証拠が先にある**ので、
+発火しなかった理由は **`if:` のパス一致が働いた**以外にない。
+
+→ ⭕ **`if:` はツール名とパスの両方で正確に絞れる。** 案Dを「`build-tournaments.yml` の編集**だけ**を
+捕まえる」形で書ける（無関係な編集で警告が飛ばない＝**オオカミ少年にならない**）。
+
+### ⭐ 発火が確認できた定義の全文（案Dの実装雛形）
+
+⚠️ `.claude/settings.json` は**git未追跡**で、撤去すると失われるため**ここに転記して保存する**。
+下記は **E1・E2・W1 の3エントリが実際に発火した**ことを確認済みの定義（E3は不一致＝**表記の反例**として価値がある）。
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Edit(tmp/design/70/**)",
+            "command": "/workspaces/claude-test-vsc/tmp/design/70/probe.sh E1 log",
+            "timeout": 20,
+            "statusMessage": "#70 hook実測E1(相対)"
+          },
+          {
+            "type": "command",
+            "if": "Edit(//workspaces/claude-test-vsc/tmp/design/70/**)",
+            "command": "/workspaces/claude-test-vsc/tmp/design/70/probe.sh E2 stderr",
+            "timeout": 20,
+            "statusMessage": "#70 hook実測E2(絶対//)"
+          },
+          {
+            "type": "command",
+            "if": "Edit(/workspaces/claude-test-vsc/tmp/design/70/**)",
+            "command": "/workspaces/claude-test-vsc/tmp/design/70/probe.sh E3 log",
+            "timeout": 20,
+            "statusMessage": "#70 hook実測E3(絶対/)"
+          },
+          {
+            "type": "command",
+            "if": "Write(//workspaces/claude-test-vsc/tmp/design/70/**)",
+            "command": "/workspaces/claude-test-vsc/tmp/design/70/probe.sh W1 json",
+            "timeout": 20,
+            "statusMessage": "#70 hook実測W1(Write絶対//)"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+⭐ **この形から案Dへ移すときの読み替え**:
+
+| 実測での書き方 | 案Dでの書き方 |
+|---|---|
+| `"matcher": "Edit\|Write"` | **そのまま**（候補を広く拾う役） |
+| `"if": "Edit(tmp/design/70/**)"` | `"if": "Edit(.github/workflows/build-tournaments.yml)\|Write(.github/workflows/build-tournaments.yml)"`<br>⚠️ **Edit と Write の両方**を書く（片方だけだと取りこぼす） |
+| `probe.sh <label> stderr`（exit 2） | 追従先2箇所（CLAUDE.md・README.md）を突きつけるスクリプト |
+| `"statusMessage"` | ⭕ そのまま使える（ユーザーの端末に出る進捗表示） |
+
+⚠️ **`systemMessage` は使わない**（モデルに届かないことを実測済み）。
+
 ### この段で確定した制約（設計書へ持ち込む）
 
 | 制約 | 設計への影響 |
 |---|---|
 | **`systemMessage` はモデルに届かない** | 警告は **exit 2 + stderr** か **additionalContext** で出す |
 | **単一 `/` の絶対パスは一致しない** | `if:` は**相対表記**で書く（絶対なら `//`） |
+| ⭕ **`if:` はツール名とパスで正確に絞れる**（U2再成立） | 対象を `build-tournaments.yml` 1ファイルに限定できる＝**無関係な編集で警告が飛ばない** |
 | **同じ定義でも発火しない起動がある**（第3段 vs 第4段） | 「フックがあるから安心」と書かない。**保険であって保証ではない** |
 | **設定変更はセッション再起動まで効かない**（R3）・**変えたセッションでは以後止まる**（R6） | 導入手順に「再起動して確認」を明記 |
 | **Bash（`sed -i` 等）経由の編集は捕まらない** | 同上 |
