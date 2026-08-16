@@ -1,10 +1,35 @@
 {
-  "updatedAt": "2026-08-15T18:20:24.249Z",
+  "updatedAt": "2026-08-16T18:20:08.902Z",
   "scan": {
     "minId": 46500,
-    "maxId": 60767
+    "maxId": 60899
   },
   "events": [
+    {
+      "id": 59730,
+      "name": "Ascent Worlds Singapore Team Standard 3v3",
+      "category": "ascent",
+      "format": "team-standard-3v3",
+      "startAt": "2026-08-15T01:00:00.000Z",
+      "season": "RDO",
+      "country": "MY",
+      "host": "AK Games Centre",
+      "playerCount": 645,
+      "deckCount": 645,
+      "teamCount": 237
+    },
+    {
+      "id": 60368,
+      "name": "Quicksilver Cup Auckland 2026",
+      "category": "regionals",
+      "format": "standard",
+      "startAt": "2026-08-14T22:00:00.000Z",
+      "season": "RDO",
+      "country": "NZ",
+      "host": "Geek Culture",
+      "playerCount": 53,
+      "deckCount": 53
+    },
     {
       "id": 60363,
       "name": "Grand Archive Gauntlet 2026",
