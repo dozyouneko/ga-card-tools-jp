@@ -15,6 +15,12 @@ window.GA_I18N = {
     // エキスパンション（セット／版ごとに分割。発売日の新しい順。label 末尾に略語を付す）
     // prefixes は API の prefix パラメータ。1エントリ＝1prefix。新セットは先頭付近に追記。
     sets: [
+      { label: ".asphodel/paradise（PRD）", prefixes: ["PRD"] },
+      { label: ".asphodel/paradise 1st Ed.（PRD 1st）", prefixes: ["PRD 1st"] },
+      { label: ".asphodel/paradise Grimoire（PRDG）", prefixes: ["PRDG"] },
+      { label: ".asphodel/paradise: Pantheon（PRDP）", prefixes: ["PRDP"] },
+      { label: ".asphodel/paradise Starter（PRDSD）", prefixes: ["PRDSD"] },
+      { label: ".asphodel/paradise Draft Pack（PRDDP）", prefixes: ["PRDDP"] },
       { label: ".asphodel/paradise Event Pack（PRDEVP）", prefixes: ["PRDEVP"] },
       { label: "Supporter Pack 4（SP4）", prefixes: ["SP4"] },
       { label: "Radiant Origins（RDO）", prefixes: ["RDO"] },

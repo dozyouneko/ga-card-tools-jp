@@ -2755,6 +2755,42 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/sets/prd/</loc>
+    <lastmod>2026-08-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/sets/prd-1st/</loc>
+    <lastmod>2026-08-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/sets/prdg/</loc>
+    <lastmod>2026-08-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/sets/prdp/</loc>
+    <lastmod>2026-08-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/sets/prdsd/</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/sets/prddp/</loc>
+    <lastmod>2026-08-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/prdevp/</loc>
     <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
@@ -3093,42 +3129,6 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/demo22/</loc>
     <lastmod>2025-03-07</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://ga-card-tools-jp.pages.dev/sets/prd/</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://ga-card-tools-jp.pages.dev/sets/prd-1st/</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://ga-card-tools-jp.pages.dev/sets/prddp/</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://ga-card-tools-jp.pages.dev/sets/prdg/</loc>
-    <lastmod>2026-08-05</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://ga-card-tools-jp.pages.dev/sets/prdp/</loc>
-    <lastmod>2026-08-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://ga-card-tools-jp.pages.dev/sets/prdsd/</loc>
-    <lastmod>2026-08-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -8751,6 +8751,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/genbus-command/</loc>
     <lastmod>2025-03-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/gencode-womb/</loc>
+    <lastmod>2026-08-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
