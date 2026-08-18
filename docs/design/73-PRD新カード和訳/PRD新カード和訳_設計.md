@@ -7,6 +7,7 @@ GitHub issue: [#73](https://github.com/dozyouneko/ga-card-tools-jp/issues/73)
 | 日付 | 版 | 内容 |
 |---|---|---|
 | 2026-08-18 | 初版 | 実データ調査（未訳254枚の内訳・新キーワード10種）を実施。ユーザー決定4件（訳文の作成主体・優先順位・ファイル分割・`Aenean`表記・チャンピオン名方針）を反映し、バッチ1〜3の期待値を実測で確定。**バッチ1（44枚）が実装待ち**、バッチ2（176枚）・バッチ3（34枚）は本設計書のルールを流用して継続 |
+| 2026-08-18 | 第2版 | ⚠️ **ユーザー指摘により初版の誤りを訂正**: `buff counter` は**新キーワードではなく既訳のある既存キーワード**（Forest Cake 等・既訳126枚に183回出現／`terms` にも `バフカウンター` が登録済み）。初版の突合が**太字マークを除去せず**に文字列一致を取っていたため、`**buff** counter` の形を拾えていなかった。→ **新キーワードは9種**に訂正し、`terms` の追加も **9件→8件**に修正（§1-3・§2-2）。他9種は正しい手法で再検証し新規で確定。**枚数・バッチ・検証項目の期待値に変更なし** |
 
 ## 目的
 
@@ -68,25 +69,42 @@ GitHub issue: [#73](https://github.com/dozyouneko/ga-card-tools-jp/issues/73)
 
 ⭐ **開発担当への注意**: 進捗を「305枚中◯枚」と数えない。**正は254**。
 
-### 1-3. 新キーワード10種（既訳セットに一度も出現しない＝訳語を新規に決める必要がある）
+### 1-3. 新キーワード**9種**（既訳セットに一度も出現しない＝訳語を新規に決める必要がある）
 
-既訳2,262枚の英語効果文コーパス（445,658文字）と突き合わせて、出現数0だったもの:
+既訳2,262枚の英語効果文コーパスおよび `terms` 辞書と突き合わせて、いずれにも無かったもの:
 
 | English | PRD内の出現 | 備考 |
 |---|---:|---|
-| **buff** counter | 38 | 全て "buff counter" の形（単独の "buff" は0） |
 | **static** counter | 29 | アルケイン属性の新カウンター |
-| **Cascade** | 21 | **箇条書きで効果が変わる新メカニクス**。訳出の型を §2-2 で規定 |
+| **Cascade** | 21 | **箇条書きで効果が変わる新メカニクス**。訳出の型を §2-3 で規定 |
 | **Elysian Aura** | 10 | リマインダー文つき |
-| Non-Champion **Object Link** | 6 | 既存 Ally Link / Weapon Link の派生 |
+| **Sword Weapon Link** | 4 | 既存 Ally Link の派生 |
 | **Link Shield** | 4 | |
 | **Multistrike** N | 3 | |
 | **Dante Lineage** | 3 | 先例あり（Tristan / Lorraine Lineage） |
+| Elysian Test Subject | 3 | トークン名（太字ではない） |
 | **Aenean Progression** | 2 | |
-| Elysian Test Subject | 3 | トークン名 |
+| Non-Champion **Object Link** | 1 | 既存 Ally Link の派生 |
 
-**既訳を流用できるもの**（新規に訳を作らない）: `Level Locked`・`Powercell`・`Deluge`・`Ephemerate`・
-`scavenge`・`true sight`・`Stealth`・`Spellshroud`・`Bulwark`・`Vigor`・`Empower`・`Recover`・`Ally Link`・`Floating Memory`
+**既訳を流用できるもの**（新規に訳を作らない）: **`buff counter`（バフカウンター）**・`Level Locked`・`Powercell`・
+`Deluge`・`Ephemerate`・`scavenge`・`true sight`・`Stealth`・`Spellshroud`・`Bulwark`・`Vigor`・`Empower`・
+`Recover`・`Ally Link`・`Floating Memory`
+
+#### ⚠️ 初版の誤りと、突合するときの注意（第2版で追記）
+
+初版はこの表に **`buff counter` を新キーワードとして載せていたが誤り**だった（ユーザー指摘で発覚）。
+実際は**既訳126枚に183回出現**する既存キーワードで、`terms` にも `buff counter => バフカウンター` が登録済み。
+
+原因は突合方法にある。効果文は **`put a **buff** counter on that ally.`** のように
+**キーワードだけが太字**になるため、`"buff counter"` の素の文字列一致では**語間の `**` に阻まれて0件になる**。
+
+⭐ **英語効果文で語句を突き合わせるときは、必ず太字・斜体マークを除去してから比較する**:
+
+```js
+const clean = s => String(s || "").replace(/\*+/g, " ").replace(/\s+/g, " ").toLowerCase();
+```
+
+（第2版では上記 `clean()` で全語を再検証済み。残り9種は既訳コーパス・`terms` とも出現0で**新規と確定**）
 
 ### 1-4. セットの世界観
 
@@ -119,8 +137,8 @@ TRANSLATION.md の規則「**キーワード能力名はカタカナ**／能力�
 
 | English | 日本語（確定） | 根拠 |
 |---|---|---|
-| buff counter | **バフカウンター** | 既存「バルワークカウンター」「ウィザーカウンター」と同型 |
-| static counter | **スタティックカウンター** | 同上 |
+| ~~buff counter~~ | **バフカウンター** | ⚠️ **新規ではない。既訳の定訳をそのまま使う**（第2版で訂正）。`terms` 登録済みなので**追加しないこと** |
+| static counter | **スタティックカウンター** | 既存「バルワークカウンター」「ウィザーカウンター」と同型 |
 | Cascade / cascade | **カスケード** | キーワード能力名＝カタカナ |
 | Elysian | **エリュシオン** | ⚠️ **既訳あり**（「エリュシオンのアストロラーベ」）。**新規に決めず踏襲する** |
 | Elysian Aura | **エリュシオンオーラ** | 上記＋カタカナ規則 |
@@ -139,8 +157,12 @@ TRANSLATION.md の規則「**キーワード能力名はカタカナ**／能力�
 ⚠️ **`data/translations.js` の `terms` にも追加する**（効果文の用語ハイライト・解説に使われる）。
 登録形式は既存に倣い **`日本語（English）`**（例: `スカベンジ（Scavenge N）`）。
 追加対象は上表のうち **Cascade・Elysian Aura・Multistrike・Link Shield・
-Non-Champion Object Link・Sword Weapon Link・static counter・buff counter・Dante Lineage** の **9件**。
-（`Aenean` 系は能力名ではなく形容詞のため terms には入れない）
+Non-Champion Object Link・Sword Weapon Link・static counter・Dante Lineage** の **8件**。
+
+- （`Aenean` 系は能力名ではなく形容詞のため terms には入れない）
+- ⚠️ **`buff counter` は追加しない**（第2版で訂正）。**既に `buff counter => バフカウンター` が登録済み**で、
+  重ねて書くと既存定義を上書きしてしまう。追加前に必ず
+  `grep -n "buff counter" data/translations.js` で**既存の登録を確認する**
 
 ### 2-3. Cascade の訳出テンプレート（確定）
 
@@ -243,9 +265,14 @@ PRD > PRD 1st > PRDG > PRDP > PRDSD > PRDDP > PRDEVP
 | **バッチ2** | `prd.js` の残り | **176** | PRD本編の完了 |
 | **バッチ3** | 周辺セット（PRDP 12 / PRDSD 10 / PRDDP 7 / PRD 1st 5） | **34** | 全254枚の完了 |
 
-バッチ1の定義: **タイプに `CHAMPION` を含む**、**または** 効果文に §1-3 の新キーワード
+バッチ1の定義: **タイプに `CHAMPION` を含む**、**または** 効果文に新キーワード
 （`cascade` / `elysian aura` / `multistrike` / `link shield` / `object link` / `static counter` /
 `buff counter` / `dante lineage` / `aenean progression`）を**1つ以上含む**カード。対象44枚は §7 に全件列挙。
+
+⚠️ **第2版の注記**: 上の選定は初版の基準（`buff counter` を新キーワードとみなしていた）で確定したもの。
+§1-3 の訂正により `buff counter` は新規ではなくなったが、**これだけを根拠に選ばれたのは
+`anointed-purifier` の1枚のみ**で、**バッチ1は44枚のまま変更しない**（実測済みの期待値表を維持するため）。
+同カードは既訳キーワードの適用例として先に訳す価値があり、バッチ1に含めて差し支えない。
 
 ### バッチごとのファイル別内訳
 
@@ -271,7 +298,8 @@ PRD > PRD 1st > PRDG > PRDP > PRDSD > PRDDP > PRDEVP
    - ヘッダは既存 `p26.js` / `sp3.js` に倣う（`"use strict";` + セット名コメント + `Object.assign`）
    - **§2-2の対訳表・§2-3のCascadeテンプレート・§2-4のチャンピオン名に従う**
    - フレーバーは訳す。⚠️ ただし**実在の人物クレジット**（世界王者名等）は原文のまま＝`flavor` キーを置かない（#1 設計書第2版①の方針）
-3. **`data/translations.js` の `terms` に9件追加**（§2-2の⚠️印。形式は `日本語（English）`）
+3. **`data/translations.js` の `terms` に8件追加**（§2-2の⚠️印。形式は `日本語（English）`）
+   - ⚠️ **`buff counter` は既に登録済みなので追加しない**（第2版の訂正）
 4. **`node scripts/gen-tl-json.mjs`** を実行し `data/tl-names.json` / `data/tl-effects.json` を再生成
    （⚠️ **忘れると本番に出ない**。`npm run validate` が exit 1 で検出する）
 5. **`npm run build:cards`** を実行し、カード個別ページ・セットページに訳を埋め込む
@@ -351,7 +379,7 @@ grep -cE '^  "[a-z0-9-]+": \{' data/tl/prd.js
 `git diff --stat` の差分が**次の範囲に収まる**こと:
 
 - `data/tl/prd.js` `prd-1st.js` `prdp.js` `prdsd.js` `prddp.js`（新規5ファイル）
-- `data/translations.js`（terms 9件追加）
+- `data/translations.js`（terms **8件**追加。⚠️ 既存の `buff counter` 行が**変更されていない**ことも確認する）
 - `data/tl-names.json` `data/tl-effects.json`（再生成）
 - `cards/<slug>/index.html` × **44**（訳を入れたカードのページ）
 - セットページは**ちょうど5ファイル**（2026-08-18 実測）:
