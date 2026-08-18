@@ -10,6 +10,7 @@ GitHub issue: [#73](https://github.com/dozyouneko/ga-card-tools-jp/issues/73)
 | 2026-08-18 | 第2版 | ⚠️ **ユーザー指摘により初版の誤りを訂正**: `buff counter` は**新キーワードではなく既訳のある既存キーワード**（Forest Cake 等・既訳126枚に183回出現／`terms` にも `バフカウンター` が登録済み）。初版の突合が**太字マークを除去せず**に文字列一致を取っていたため、`**buff** counter` の形を拾えていなかった。→ **新キーワードは9種**に訂正し、`terms` の追加も **9件→8件**に修正（§1-3・§2-2）。他9種は正しい手法で再検証し新規で確定。**枚数・バッチ・検証項目の期待値に変更なし** |
 | 2026-08-18 | 第3版 | **バッチ1(44枚)の実装を承認**(コミット `c1b7ea00`・レビュー合格)。ユーザー決定2件を反映: ①**Cascadeの解説文は断定を外した文面に差し替える**(§2-2末尾)②**ハイテク製品ラインの訳語はカタカナ統一**(§2-6を新設)。開発担当の確認事項A(`[レスト]`)・B(波及差分)を**承認**し、§2-3の`[REST]`表記の誤りを訂正・§5 V5に波及差分を明記。⚠️ **残作業2点**(`dante-hemomancer`のリネージュ注記・Cascade解説文の差し替え)は`実装待ち`に戻す |
 | 2026-08-18 | 第4版 | **バッチ1(44枚)完了**。第3版の残作業2点を `576afc0a` で実装しレビュー合格・設計承認。`dante-hemomancer` のリネージュ注記は他4枚と同一書式で5/5に、`terms.cascade.desc` は§2-2の確定文面と**一字一句一致**(237バイト・diffゼロ)を確認。⭐ APIドリフトの混入0件(`build:cards` がスナップショットキャッシュを再利用したため)。**ユーザーのpush判断待ち**(`push待ち`)。次は**バッチ2(176枚)**だが、⚠️ 出力量がバッチ1の2.9倍(約86KB)のため**60枚×3分割**を推奨(§3の1単位のままでは1ターンに収まらない見込み) |
+| 2026-08-18 | 第5版 | **バッチ2（176枚）の設計を確定**（バッチ1はpush・本番反映まで完了）。⭐ パイロット計測（44枚を1ターンで完走）に基づき **44枚×4サブバッチ**に分割（176＝44×4）し、**サブバッチAに命名リスクの高い語族（Aenean 17／Droid 13／Tech系 13／Bladehand 1）を集約**（§9-1・§11）。レビューは **A → 合格後にB+C+D の2ユニット**（ユーザー決定）。§2-7 に**命名ルール9語族**を新設し、Droid複合語5枚の訳名をユーザー確定。⭐ **`terms` の追加は0件**であることを実測で確定（§10 V4）。検証項目は段階ごとの期待値を全て実測（未訳数・エントリ数・索引slug数・**セットページの `cp-en-inline` 数**）。⚠️ **`sets/evp/` が正当な差分に含まれる**ことを発見（EVP収録2枚）＝ドリフト誤認の防止 |
 
 ## 目的
 
@@ -259,6 +260,58 @@ PRDDPの3枚も英語名が同一のため**同じ訳名でよい**（クラス�
 - ⚠️ **既知のトレードオフ**: 日本語検索で「杖」「刃」を打っても製品ライン名はヒットしない
 - ⭐ **バッチ2・3でも同じ方針を適用する**（`VelTech` 系のカードが残っている）
 
+
+### 2-7. バッチ2の命名ルール（確定・第5版）
+
+バッチ1の実装報告 6-C で「判断に迷った」名前が14件挙がったため、**バッチ2で2枚以上に登場する語族**を
+実測で洗い出し（`tmp/design/73/names.mjs`・2026-08-18）、**既訳の先例が示す訳し方に倒して確定**した。
+⚠️ **下表に載っている語は開発担当が判断し直さない。** 載っていない語は §2-1 の委任範囲（創作的訳出）。
+
+| 語族 | 枚数 | **確定ルール** | 根拠となる先例 |
+|---|---:|---|---|
+| `Aenean X` | 17 | **「アエネアンの◯◯」**（`Aenean` はカタカナ・後続を和訳して「の」で繋ぐ） | §2-4「ダンテ、アエネアンの秘儀参入者」／バッチ1「アエネアンの拒絶」 |
+| `... Droid` | 13 | **「ドロイド」**（カタカナ）。⭐ **動物・動作との複合語も音写する** | ユーザー決定（2026-08-18）／既訳 `Moonveil Android → ムーンヴェイル・アンドロイド` |
+| `...Tech`（製品＝ITEM/REGALIA） | 10 | **§2-6 を適用**。ブランド名カタカナ＋**「・」**＋後続もカタカナ | §2-6（`AquaTech Blade X → アクアテック・ブレードX`） |
+| `VelTech ...`（人＝ALLY） | 3 | **「ヴェルテックの◯◯」**（ブランドはカタカナ・**役割は和訳**して「の」で繋ぐ） | 既訳 `Automaton Beastkeeper → オートマトンの獣飼い`／`Novice Mechanist → 見習い機械技師` |
+| `... X Ultra` | 3 | **「・Xウルトラ」**（§2-6） | §2-6（`Ionizer X Ultra → イオナイザー・Xウルトラ`） |
+| `... Bladehand` | 3 | **「◯◯の剣使い」** | 既訳 `Sworn Windhand → 誓約の風使い` |
+| `... Synchron` | 3 | **「◯◯のシンクロン」**（カタカナ） | 造語のためカタカナ音写（`Hemosynth → ヘモシンス` と同じ扱い） |
+| `... Fractal` | 4 | **「◯◯のフラクタル」** | 既訳20件（`Explosive Fractal → 爆発のフラクタル`） |
+| `Cell` / `Powercell` | 5 | **「セル」／「パワーセル」** | 既訳 `Powercell → パワーセル`・`Cell Assembler → セル組立工` |
+
+#### ⭐ Droid 複合語5枚（ユーザー確定訳・そのまま使う）
+
+| slug | English | **確定訳名** |
+|---|---|---|
+| `biding-endroid` | Biding Endroid | **待機のエンドロイド** |
+| `gray-lupindroid` | Gray Lupindroid | **灰色のルピンドロイド** |
+| `incinerator-felindroid` | Incinerator Felindroid | **焼却のフェリンドロイド** |
+| `trained-birdroid` | Trained Birdroid | **訓練されたバードロイド** |
+| `production-crawldroid` | Production Crawldroid | **生産のクロールドロイド** |
+
+⚠️ **既知のトレードオフ**（ユーザー了承済み）: 音写のため「狼」「猫」「鳥」で日本語検索してもヒットしない。
+§2-6 の製品ラインと同じ判断（カタカナで世界観を揃えることを優先）。
+
+#### ブランド名の確定カタカナ表記（表記ゆれ防止）
+
+| English | 確定 | | English | 確定 |
+|---|---|---|---|---|
+| AquaTech | アクアテック | | ResonanTech | レゾナンテック |
+| ChannelTech | チャンネルテック | | SignalTech | シグナルテック |
+| CookTech | クックテック | | StrideTech | ストライドテック |
+| PlasmaTech | プラズマテック | | VelTech | **ヴェルテック** |
+
+（`FlameTech → フレイムテック`・`GustTech → ガストテック` はバッチ1で確定済み）
+
+#### ⚠️ フレーバーの注意（バッチ2の実データで確認済み）
+
+- **実在人物のクレジットは0件**（98枚のフレーバーを全数検査）。§8-3 の懸念は**バッチ2では発生しない**。
+  唯一の署名 `— Lorraine Allard`（`edge-of-tomorrow`）は**ゲーム内のチャンピオン**なので通常どおり訳す
+- ⚠️ **ダンテ『神曲』からの引用が混じる**（例: `sift` のフレーバーは「地獄篇」第1歌の遊泳者の比喩）。
+  **既存の邦訳（寿岳文章訳・平川祐弘訳など）を転載せず、原文から自分で訳す**（著作権のため）
+
+---
+
 ### 2-5. ファイル分割（確定）
 
 **prefixごとに5ファイル**を新規作成する（ユーザー決定・2026-08-18）。
@@ -455,6 +508,9 @@ APIドリフトは `editions` の並び替え・画像URLの入れ替えなど**
 | バッチ2完了後 | 0 | 5 | 0 | 12 | 10 | 7 | 0 | **34** |
 | バッチ3完了後 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** |
 
+⭐ **上表のバッチ2完了後の値は第5版で再実測し、一致を確認済み**（§10 V1）。
+⚠️ **バッチ2の実装ステップ・検証項目・対象一覧は §9〜§11 が正**（本節は概観）。
+
 **バッチ3のコミットで `closes #73`** を書いてよい。
 
 ### TRANSLATION.md への追記（バッチ3完了時にまとめて実施する）
@@ -519,13 +575,414 @@ APIドリフトは `editions` の並び替え・画像URLの入れ替えなど**
 
 ## 8. 未決事項
 
-1. **バッチ1のpush（本番公開）の可否** — 発売日 8/21 との兼ね合いでユーザーが判断する。
-   ⚠️ 承認後は `push待ち` ラベルを付け、**どのセッションも着手しない**
+1. ✅ **バッチ1のpushは完了**（2026-08-19 00:54 JST・本番反映確認済み）。**未決ではない**
 2. **`data/translations.js` の `terms` 解説文** — 見出し語（`日本語（English）`）は §2-2 で確定したが、
    **解説本文**は開発担当が既存の同種キーワードの書きぶりに合わせて書く。
    ⚠️ Cascade は既存に類似メカニクスが無いため、**書いたらissueに全文を貼って設計担当の確認を受ける**
-3. **フレーバーの人名クレジット** — PRD に世界王者クレジット等が含まれるかは未確認。
-   出てきたら #1 の方針（原文のまま・`flavor` キーを置かない）に従い、**判断に迷ったらissueに上げる**
+3. ✅ **フレーバーの人名クレジット — バッチ2では発生しない**（第5版で98枚を全数検査し0件）。
+   唯一の署名 `— Lorraine Allard` はゲーム内キャラクター。⚠️ **バッチ3の34枚は未検査**なので、
+   出てきたら #1 の方針（原文のまま・`flavor` キーを置かない）に従う
+4. **バッチ2のpush（本番公開）の可否** — 発売日 8/21 との兼ね合いでユーザーが判断する。
+   ⭐ **ユニット1（44枚）の時点で公開するか、176枚そろえてから公開するかもユーザー判断**
+
+
+---
+
+## 9. バッチ2の実装ステップ（第5版・実装待ち）
+
+### 9-1. サブバッチ分割（確定）
+
+**176枚を44枚×4サブバッチ**に割る。⭐ **44枚はバッチ1が1ターンで書き切った実証済みの単位**
+（実装報告のパイロット計測: 44枚を分割せず完了・出力30,293バイト）。**176 = 44×4 でちょうど4倍**になる。
+
+| サブバッチ | 枚数 | 内容 | 一覧 |
+|---|---:|---|---|
+| **A** | 44 | ⭐ **命名リスクの高い語族を集約**: Aenean 17 + Droid 13 + Tech系 13 + Bladehand 1 | §11-A |
+| **B** | 44 | 残り132枚の slug 昇順 1〜44 | §11-B |
+| **C** | 44 | 同 45〜88 | §11-C |
+| **D** | 44 | 同 89〜132 | §11-D |
+
+⭐ **Aを語族で固めたのは意図的**。§2-7 で確定した命名ルール（Aenean／Droid／Tech／Bladehand）が
+**1サブバッチ目で全部出そろう**ため、レビューと設計確認を1回通せば残り132枚は機械的に書ける。
+
+- 出力量の見積り: バッチ2の英語原文はバッチ1の **3.17倍**（effect 32,182字＋flavor 5,888字）。
+  1サブバッチあたり **約24KB**（バッチ1実績30KBより軽い＝**1ターンに収まる**）
+- ⚠️ **`data/tl/prd.js` は末尾に追記してよい**。既存の大型ファイルは
+  `alc.js` / `mrc.js` / `amb.js` / `hvn.js` の**4件が非ソート**（`dtr.js` のみ昇順）＝
+  **slug昇順は本リポジトリの規約ではない**。並べ替えのための既存行の移動はしないこと
+
+### 9-2. レビュー単位（ユーザー決定・2026-08-18）
+
+**2ユニットに分けて `レビュー待ち` に出す**（44枚ごとに4回は回さない）:
+
+```text
+ユニット1: サブバッチA(44枚)      → レビュー → 設計確認  ← ここで命名方針を確定させる
+ユニット2: サブバッチB+C+D(132枚) → レビュー → 設計確認
+```
+
+⚠️ **ユニット1の設計確認が済むまでBに着手しない。** Aの命名が差し戻された場合、
+同じ語族がB〜Dにも波及するため、先に進むと手戻りが3倍になる。
+
+### 9-3. 手順
+
+#### ⭐ 事前: スナップショットを固定してAPIドリフトを防ぐ
+
+```bash
+GA_SNAPSHOT_MAX_AGE_MIN=0    # 0 = 無期限（取り直さない）
+```
+
+⚠️ **`tmp/api-cache/cards-snapshot.json` は 2026-08-18T14:49Z 取得＝既定60分の期限切れ**。
+着手時の最初のコマンドで**一度だけ取り直され**、以降この環境変数で固定される。
+⭐ **翻訳作業はAPIを見に行く必要がないため、固定すれば #71 の実行時ドリフト（31ファイル）は構造的に混入しない**
+（CLAUDE.md の `build:cards` の項）。
+
+#### ユニット1（サブバッチA）
+
+1. `node scripts/scaffold.mjs PRD prd` — 英語原文を取得（§11-A の44枚が含まれることを確認）
+2. `data/tl/prd.js` の**末尾に44枚を追記**（§2-2〜§2-7 に従う。⚠️ **§2-7の表にある語は判断し直さない**）
+3. `node scripts/gen-tl-json.mjs`
+4. `node scripts/gen-card-meta-index.mjs`（⚠️ **ネットワーク必須**）
+5. `GA_SNAPSHOT_MAX_AGE_MIN=0 npm run build:cards`
+6. `npm run validate` / `node scripts/check-terminology.mjs PRD`
+7. §10 の検証（V1〜V6）を実行し、**差分が V5 の48ファイル＋データ4件に収まること**を確認 → コミット
+8. 実装報告コメント → `レビュー待ち`
+
+#### ユニット2（サブバッチB → C → D）
+
+- **B・C は「訳の追記 → `gen-tl-json.mjs` → `npm run validate` → コミット」だけでよい**
+  （⭐ `validate` の索引検査は**索引自身の内部整合しか見ない**ため、
+  `gen-card-meta-index.mjs` と `build:cards` を回さなくても **exit 0** になる。実測確認済み）
+- **D を書き終えたあとに、上の 4〜8 をまとめて1回実行する**（索引と生成ページはここで一気に揃える）
+
+⚠️ **`closes #73` はまだ書かない**（バッチ3の34枚が残る）。
+
+## 10. バッチ2の検証項目
+
+⚠️ **期待値はすべて 2026-08-18 にスナップショット（`2026-08-17T13:02:21Z` 取得分）と
+既存生成物で実測済み**。手法は**バッチ1の実測結果で妥当性を確認してある**
+（セットページ5/5一致・波及ページの予測が実測15枚に全て含まれることを確認）。
+
+### V1. 未訳数（`node scripts/scaffold.mjs <prefix>` の `untranslated`）
+
+| prefix | 着手前 | **A完了** | B完了 | C完了 | **D完了（バッチ2完了）** |
+|---|---:|---:|---:|---:|---:|
+| PRD | 176 | **132** | 88 | 44 | **0** |
+| PRD 1st | 13 | **13** | 12 | 8 | **5** |
+| PRDG | 0 | 0 | 0 | 0 | **0** |
+| PRDP | 12 | **12** | 12 | 12 | **12** |
+| PRDSD | 32 | **29** | 19 | 16 | **10** |
+| PRDDP | 7 | **7** | 7 | 7 | **7** |
+| PRDEVP | 0 | 0 | 0 | 0 | **0** |
+| **ユニーク残** | 210 | **166** | 122 | 78 | **34** |
+
+⚠️ **PRDP（12）と PRDDP（7）はバッチ2で1枚も減らない**（該当カードが全てバッチ3のため）。
+**減っていないことが正常**なので、異常と判断して余計な訳を足さないこと。
+
+### V2. `data/tl/prd.js` の収録エントリ数
+
+```bash
+grep -cE '^  "[a-z0-9-]+": \{' data/tl/prd.js
+```
+
+| 段階 | 着手前 | **A完了** | B完了 | C完了 | **D完了** |
+|---|---:|---:|---:|---:|---:|
+| `data/tl/prd.js` | 35 | **79** | 123 | 167 | **211** |
+
+⚠️ **他の4ファイルは1枚も増えない**（`prd-1st.js` 3 / `prdp.js` 2 / `prdsd.js` 1 / `prddp.js` 3 のまま）。
+バッチ2は**すべて `prd.js` に入る**（§2-5 の振り分け優先順で PRD が最優先のため）。
+
+### V3. 生成物の整合
+
+- `npm run validate` が **exit 0**
+- `node scripts/check-terminology.mjs PRD` の報告が **0件**
+- `validate` の索引の行が **`card-meta-index sort keys OK — 2350slug`**（A完了）／
+  **`2482slug`**（D完了）になること（着手前は `2306slug`）
+  - ⚠️ **B・Cのコミットでは索引を再生成しないので `2350slug` のまま**＝**それが正常**
+
+### V4. ⭐ `data/translations.js` に差分が出ないこと（バッチ2の最重要チェック）
+
+**バッチ2では `terms` を1件も追加しない。** 根拠（2026-08-18 実測）:
+
+- §1-3 の新キーワード9種のうち、バッチ2の176枚に出るのは **`static counter`（7枚）と
+  `buff counter`（18枚）だけ**で、**どちらもバッチ1で登録済み**
+- それ以外にバッチ2にだけ出る語（`training` / `on destroy` / `command automaton` / `scavenged`）は
+  **すべて既訳カードに用例がある**（`training` 9枚・`on destroy` 2枚・`command automaton` 2枚）＝
+  **訳語を新規に決める必要がない**
+
+⚠️ **`terms` を足したくなったら、足す前にissueに書いて設計担当の判断を待つ**（§2-1 の例外の範囲外）。
+
+### V5. 画面表示（最終形での期待値）
+
+#### ユニット1（サブバッチA）— `gray-lupindroid` 1枚で5点まとめて確認する
+
+カード個別ページ `cards/gray-lupindroid/` を開き、次がすべて満たされること:
+
+1. `<title>` が **`灰色のルピンドロイド | Gray Lupindroid - Grand Archive 日本語カードDB`**
+   （§2-7 のユーザー確定訳。**タイトル書式は既存カードページと同一**）
+2. 効果文の **`CARDNAME` が「灰色のルピンドロイド」に置換**されている
+3. **「バフカウンター」がハイライト付き**で表示され、「このカードの用語」欄に解説が出る
+   - ⚠️ **原文は `put a **buff** counter on CARDNAME` で、太字が `buff` だけに掛かり語中で切れている**。
+     訳文は **`**バフカウンター**を1個置く`** のように**語全体を太字**にする
+     （CLAUDE.md の「太字マークを除去してから比較する」の実例。素の文字列一致では拾えない形）
+4. **「トゥルーサイト」「ステルス」**もハイライトされる（既訳 `terms` の流用が効いている確認）
+5. **フレーバーが訳出**されている（原文 `Though wholly metal, it somehow blends into nature.`）
+
+#### ユニット2（サブバッチB+C+D）
+
+6. `cards/charge-static/`（サブバッチB）で **「スタティックカウンター」がハイライト＋用語解説**が出ること
+   - ⭐ **`terms` を1件も追加していないのに効く**ことの確認（V4の裏づけ）
+7. トップページ（`npm run dev` → ポート3000）でエキスパンション
+   **`.asphodel/paradise（PRD）`** を選び、**全232件**が表示され、
+   **カード名が英語のままのタイルが1枚も無い**こと
+
+### V6. 意図しない差分が無いこと（⭐ 期待ファイル数を実測で確定してある）
+
+| ユニット | カードページ | 波及ページ | セットページ | **HTML計** | データ |
+|---|---:|---|---|---:|---|
+| **1（A・44枚）** | 44 | **2**: `core-fractal` `powercell` | **2**: `sets/prd/` `sets/prdsd/` | **48** | `tl/prd.js` `tl-names.json` `tl-effects.json` `card-meta-index.json` |
+| **2（B+C+D・132枚）** | 132 | **4**: `aenean-crystallization` `augustine-votary-of-yore` `elysian-test-subject` `powercell` | **4**: `sets/prd/` `sets/prd-1st/` `sets/prdsd/` `sets/evp/` | **140** | 同上 |
+
+- ⚠️ **B・Cの中間コミットは `data/tl/prd.js` `tl-names.json` `tl-effects.json` の3件だけ**
+  （`build:cards` を回さないため）
+- ⭐ **`sets/evp/`（Event Packs・2023年）が入るのは正常**。`cato-meadows-channeler` と
+  `fran-carmine-spark` の2枚が**PRD系ではない EVP にも収録されている**ため。
+  ⚠️ **これをAPIドリフトと誤認して `git checkout --` で戻さないこと**
+- **波及の見分け方**（第3版§5より）: 波及差分は **1行（+1/-1）** で、内容は
+  「関連カード欄のリンク先の表示名が英語→日本語に変わった」もの。
+  ⚠️ **バッチ2では `terms` を足さないので、バッチ1で13枚出た「用語欄が増える」型の波及は発生しない**
+- 上記以外のファイルに差分が出たら **APIドリフト**（#71 の再発）なので、
+  `git checkout -- <path>` で戻し、**翌朝のcronに任せる**
+
+#### セットページの訳済み件数（機械的に数えられる指標）
+
+```bash
+grep -o 'cp-en-inline' sets/prd/index.html | wc -l
+```
+
+| ファイル | 着手前 | **A完了** | **D完了** | 総カード行 |
+|---|---:|---:|---:|---:|
+| `sets/prd/` | 56 | **100** | **232** | 232 |
+| `sets/prd-1st/` | 14 | 14 | **22** | 27 |
+| `sets/prdsd/` | 29 | **32** | **51** | 61 |
+| `sets/evp/` | 22 | 22 | **24** | 24 |
+
+⭐ `cp-en-inline`（英語名の併記スパン）は**訳済みカードにだけ付く**ので、この数＝訳済み枚数。
+着手前の4セットすべてで **総カード行 − 未訳数** と一致することを確認済み（手法の妥当性検証）。
+**`sets/prd/` が 232/232 になればPRD本編は全訳完了**。
+
+## 11. バッチ2の対象176枚（サブバッチ別）
+
+<!-- 生成: tmp/design/73/split.mjs（2026-08-18・スナップショット 2026-08-17T13:02:21Z） -->
+
+⚠️ **この一覧が正**。`scaffold.mjs` の出力には**バッチ3の34枚が混ざらない**（別prefixのため）が、
+`prd.js` に書くのは**下の176枚だけ**。
+
+
+### 11-A. サブバッチA（44枚・命名リスクの高い語族／ユニット1）
+
+⭐ Aenean 17 + Droid 13 + Tech系 13 + Bladehand 1。**§2-7 の命名ルールがここで全部出そろう**。
+
+| # | slug | English | タイプ |
+|---:|---|---|---|
+| 1 | `aenean-cryosalvo` | Aenean Cryosalvo | ACTION |
+| 2 | `aenean-crystallization` | Aenean Crystallization | ACTION |
+| 3 | `aenean-cyclic-winds` | Aenean Cyclic Winds | ACTION |
+| 4 | `aenean-cyclone` | Aenean Cyclone | ACTION |
+| 5 | `aenean-flurry-of-fire` | Aenean Flurry of Fire | ACTION |
+| 6 | `aenean-flux-generator` | Aenean Flux Generator | ITEM |
+| 7 | `aenean-frostlance` | Aenean Frostlance | ACTION |
+| 8 | `aenean-frozen-shunt` | Aenean Frozen Shunt | ACTION |
+| 9 | `aenean-guttering-flames` | Aenean Guttering Flames | PHANTASIA |
+| 10 | `aenean-pointed-flare` | Aenean Pointed Flare | ACTION |
+| 11 | `aenean-reclaim` | Aenean Reclaim | ACTION |
+| 12 | `aenean-scorching-comet` | Aenean Scorching Comet | ACTION |
+| 13 | `aenean-spark-alight` | Aenean Spark Alight | ACTION |
+| 14 | `aenean-swelling-gusts` | Aenean Swelling Gusts | ACTION |
+| 15 | `aenean-swelling-tides` | Aenean Swelling Tides | ACTION |
+| 16 | `aenean-tailwind-boost` | Aenean Tailwind Boost | ACTION |
+| 17 | `aenean-ward` | Aenean Ward | ACTION |
+| 18 | `aquatech-shell` | AquaTech Shell | ITEM |
+| 19 | `biding-endroid` | Biding Endroid | ALLY |
+| 20 | `cellforger-droid` | Cellforger Droid | ALLY |
+| 21 | `cellwarden-droid` | Cellwarden Droid | ALLY |
+| 22 | `channeltech-charm-s` | ChannelTech Charm S | ITEM |
+| 23 | `cooktech-apron` | CookTech Apron | ITEM |
+| 24 | `cooktech-knife` | CookTech Knife | ITEM |
+| 25 | `cooktech-mixer` | CookTech Mixer | ITEM |
+| 26 | `delivery-droid` | Delivery Droid | ALLY |
+| 27 | `fountain-bladehand` | Fountain Bladehand | ALLY |
+| 28 | `gray-lupindroid` | Gray Lupindroid | ALLY |
+| 29 | `haze-droid` | Haze Droid | ALLY |
+| 30 | `hydrocask-droid` | Hydrocask Droid | ALLY |
+| 31 | `incinerator-felindroid` | Incinerator Felindroid | ALLY |
+| 32 | `overcharged-droid` | Overcharged Droid | ALLY |
+| 33 | `plasmatech-blaster` | PlasmaTech Blaster | ITEM |
+| 34 | `production-crawldroid` | Production Crawldroid | ALLY |
+| 35 | `resonantech-module` | ResonanTech Module | REGALIA/ITEM |
+| 36 | `signaltech-one` | SignalTech One | ITEM |
+| 37 | `signaltech-x-ultra` | SignalTech X Ultra | REGALIA/ITEM |
+| 38 | `stridetech-w` | StrideTech W | ITEM |
+| 39 | `sturdy-droid` | Sturdy Droid | ALLY |
+| 40 | `trained-birdroid` | Trained Birdroid | ALLY |
+| 41 | `unbroken-droid` | Unbroken Droid | ALLY |
+| 42 | `veltech-armiger` | VelTech Armiger | ALLY |
+| 43 | `veltech-gear-hoarder` | VelTech Gear Hoarder | ALLY |
+| 44 | `veltech-qa-tester` | VelTech QA Tester | ALLY |
+
+
+### 11-B. サブバッチB（44枚）
+
+
+| # | slug | English | タイプ |
+|---:|---|---|---|
+| 1 | `acheron-express-officer` | Acheron Express Officer | ALLY |
+| 2 | `another-round` | Another Round | ACTION |
+| 3 | `aquaveil-ambusher` | Aquaveil Ambusher | ALLY |
+| 4 | `battery-core-x` | Battery Core X | REGALIA/ITEM |
+| 5 | `belted-tune` | Belted Tune | ACTION |
+| 6 | `bifurcating-fractal` | Bifurcating Fractal | PHANTASIA |
+| 7 | `blightheart-adept` | Blightheart Adept | ALLY |
+| 8 | `blightheart-thaumaturge` | Blightheart Thaumaturge | ALLY |
+| 9 | `blistering-insurgent` | Blistering Insurgent | ALLY |
+| 10 | `blood-surge` | Blood Surge | ACTION |
+| 11 | `break-the-line` | Break the Line | ACTION |
+| 12 | `breakwater-cadet` | Breakwater Cadet | ALLY |
+| 13 | `breaths-coloratura` | Breath's Coloratura | ACTION |
+| 14 | `breezy-looper` | Breezy Looper | ALLY |
+| 15 | `brooch-x-ultra` | Brooch X Ultra | ITEM |
+| 16 | `business-card` | Business Card | ITEM |
+| 17 | `camil-basked-abundance` | Camil, Basked Abundance | UNIQUE/ALLY |
+| 18 | `cato-meadows-channeler` | Cato, Meadow's Channeler | UNIQUE/ALLY |
+| 19 | `cell-production` | Cell Production | ACTION |
+| 20 | `cell-reactor` | Cell Reactor | REGALIA/ITEM |
+| 21 | `charge-static` | Charge Static | ACTION |
+| 22 | `charger-x-ultra` | Charger X Ultra | ITEM |
+| 23 | `collect-junk` | Collect Junk | ACTION |
+| 24 | `conductive-strike` | Conductive Strike | ATTACK |
+| 25 | `convergent-beam` | Convergent Beam | ACTION |
+| 26 | `core-fractal` | Core Fractal | TOKEN/PHANTASIA |
+| 27 | `corrosive-juggler` | Corrosive Juggler | ALLY |
+| 28 | `creative-tinder` | Creative Tinder | ACTION |
+| 29 | `cryogenic-ritual` | Cryogenic Ritual | ACTION |
+| 30 | `current-groover` | Current Groover | ALLY |
+| 31 | `cutthroat-operative` | Cutthroat Operative | ALLY |
+| 32 | `delicious-pastry` | Delicious Pastry | TOKEN/ITEM |
+| 33 | `demons-bargain` | Demon's Bargain | ACTION |
+| 34 | `destined-encounter` | Destined Encounter | ACTION |
+| 35 | `devils-lifeline` | Devil's Lifeline | ACTION |
+| 36 | `discharger` | Discharger | REGALIA/ITEM |
+| 37 | `draught-dodge` | Draught Dodge | ACTION |
+| 38 | `edge-of-tomorrow` | Edge of Tomorrow | ACTION |
+| 39 | `emberslash` | Emberslash | ATTACK |
+| 40 | `eminence-in-fury` | Eminence in Fury | ACTION |
+| 41 | `epicurean-institute` | Epicurean Institute | DOMAIN |
+| 42 | `equip-with-courage` | Equip with Courage | ACTION |
+| 43 | `escharotomy` | Escharotomy | ACTION |
+| 44 | `evaporation-synchron` | Evaporation Synchron | REGALIA/ITEM |
+
+
+### 11-C. サブバッチC（44枚）
+
+
+| # | slug | English | タイプ |
+|---:|---|---|---|
+| 1 | `exhilarating-plume` | Exhilarating Plume | PHANTASIA |
+| 2 | `exquisite-dessert` | Exquisite Dessert | ITEM |
+| 3 | `extinguishing-synchron` | Extinguishing Synchron | REGALIA/ITEM |
+| 4 | `fanclub-leader` | Fanclub Leader | ALLY |
+| 5 | `fanned-synchron` | Fanned Synchron | REGALIA/ITEM |
+| 6 | `fling-food` | Fling Food | ACTION |
+| 7 | `forese-fervid-cantor` | Forese, Fervid Cantor | UNIQUE/ALLY |
+| 8 | `fortification` | Fortification | ACTION |
+| 9 | `fran-carmine-spark` | Fran, Carmine Spark | UNIQUE/ALLY |
+| 10 | `frigid-embrittlement` | Frigid Embrittlement | ACTION |
+| 11 | `gear-haul` | Gear Haul | ACTION |
+| 12 | `golden-measure-patisserie` | Golden Measure Patisserie | UNIQUE/DOMAIN |
+| 13 | `hardy-veteran` | Hardy Veteran | ALLY |
+| 14 | `hefty-hammering` | Hefty Hammering | ATTACK |
+| 15 | `hemoflux-drain` | Hemoflux Drain | ACTION |
+| 16 | `hightail` | Hightail | ACTION |
+| 17 | `hot-cake` | Hot Cake | ITEM |
+| 18 | `hulking-rearguard` | Hulking Rearguard | ALLY |
+| 19 | `hydrating-fractal` | Hydrating Fractal | PHANTASIA |
+| 20 | `inflamed-bladehand` | Inflamed Bladehand | ALLY |
+| 21 | `ischemic-soldier` | Ischemic Soldier | ALLY |
+| 22 | `jovial-tinkerer` | Jovial Tinkerer | ALLY |
+| 23 | `judas-claret-intercessor` | Judas, Claret Intercessor | UNIQUE/ALLY |
+| 24 | `keen-tidebinder` | Keen Tidebinder | ALLY |
+| 25 | `lacunarity-guide` | Lacunarity Guide | ALLY |
+| 26 | `leran-pastoral-hymns` | Leran, Pastoral Hymns | UNIQUE/DOMAIN |
+| 27 | `lurching-rogue` | Lurching Rogue | ALLY |
+| 28 | `martial-flowstate` | Martial Flowstate | PHANTASIA |
+| 29 | `merciless-toss` | Merciless Toss | ACTION |
+| 30 | `molten-impact` | Molten Impact | ACTION |
+| 31 | `music-aficionado` | Music Aficionado | ALLY |
+| 32 | `musical-curator` | Musical Curator | ALLY |
+| 33 | `outfitted-ravager` | Outfitted Ravager | ALLY |
+| 34 | `package-courier` | Package Courier | ALLY |
+| 35 | `peer-the-depths` | Peer the Depths | ACTION |
+| 36 | `performance-enthusiast` | Performance Enthusiast | ALLY |
+| 37 | `perfusive-envelopment` | Perfusive Envelopment | PHANTASIA |
+| 38 | `piccarda-night-rider` | Piccarda, Night Rider | UNIQUE/ALLY |
+| 39 | `plutus-fortunes-favor` | Plutus, Fortune's Favor | UNIQUE/ALLY |
+| 40 | `powerforged-burst` | Powerforged Burst | ACTION |
+| 41 | `pyrolysis-sage` | Pyrolysis Sage | ALLY |
+| 42 | `rampant-bladehand` | Rampant Bladehand | ALLY |
+| 43 | `rampart-defender` | Rampart Defender | ALLY |
+| 44 | `refreshing-slice` | Refreshing Slice | ATTACK |
+
+
+### 11-D. サブバッチD（44枚）
+
+
+| # | slug | English | タイプ |
+|---:|---|---|---|
+| 1 | `reinforcing-air` | Reinforcing Air | ACTION |
+| 2 | `return-stroke` | Return Stroke | ATTACK |
+| 3 | `revoker-bell` | Revoker Bell | REGALIA/ITEM |
+| 4 | `rhesus-eradication` | Rhesus Eradication | ACTION |
+| 5 | `rig-for-detonation` | Rig for Detonation | ACTION |
+| 6 | `riveting-winds` | Riveting Winds | ACTION |
+| 7 | `rolling-chorus` | Rolling Chorus | ACTION |
+| 8 | `rondo-of-the-wind` | Rondo of the Wind | ACTION |
+| 9 | `rumble-coordinator` | Rumble Coordinator | ALLY |
+| 10 | `scars-of-old` | Scars of Old | ACTION |
+| 11 | `seed-of-empowerment` | Seed of Empowerment | REGALIA/ITEM |
+| 12 | `sift` | Sift | ACTION |
+| 13 | `signal-gunner` | Signal Gunner | ALLY |
+| 14 | `sinfonia-of-hope` | Sinfonia of Hope | ACTION |
+| 15 | `singed-emotions` | Singed Emotions | ACTION |
+| 16 | `smoldering-cook` | Smoldering Cook | ALLY |
+| 17 | `sneaky-raccoon` | Sneaky Raccoon | ALLY |
+| 18 | `soaked-slash` | Soaked Slash | ATTACK |
+| 19 | `sordelle-unmoored-exception` | Sordelle, Unmoored Exception | UNIQUE/ALLY |
+| 20 | `spellshield-exia` | Spellshield: Exia | ACTION |
+| 21 | `stabilizing-bladecore` | Stabilizing BladeCore | ITEM |
+| 22 | `stoked-slice` | Stoked Slice | ATTACK |
+| 23 | `thermal-break` | Thermal Break | ACTION |
+| 24 | `tidal-fractal` | Tidal Fractal | PHANTASIA |
+| 25 | `tidewall-sentinel` | Tidewall Sentinel | ALLY |
+| 26 | `tindered-soldier` | Tindered Soldier | ALLY |
+| 27 | `tower-of-dis` | Tower of Dis | UNIQUE/DOMAIN |
+| 28 | `triboelectric-fortification` | Triboelectric Fortification | ACTION |
+| 29 | `tribute-singer` | Tribute Singer | ALLY |
+| 30 | `turbulent-bounty-hunter` | Turbulent Bounty Hunter | ALLY |
+| 31 | `umbilical-ritual` | Umbilical Ritual | ACTION |
+| 32 | `uncanny-realization` | Uncanny Realization | ATTACK |
+| 33 | `unruled-bereavement` | Unruled Bereavement | ACTION |
+| 34 | `updraft-slice` | Updraft Slice | ATTACK |
+| 35 | `varicose-amplification` | Varicose Amplification | PHANTASIA |
+| 36 | `vascular-collapse` | Vascular Collapse | ACTION |
+| 37 | `velocity-punch` | Vel-ocity Punch | ITEM |
+| 38 | `weight-of-looking-up` | Weight of Looking Up | ACTION |
+| 39 | `welcome-merriment` | Welcome Merriment | ACTION |
+| 40 | `where-futures-stir` | Where Futures Stir | PHANTASIA |
+| 41 | `wicked-gildbreaker` | Wicked Gildbreaker | ALLY |
+| 42 | `wind-surge-emitter` | Wind Surge Emitter | REGALIA/ITEM |
+| 43 | `wuthering-sforzando` | Wuthering Sforzando | ACTION |
+| 44 | `zena-echo-weaver` | ZENA, Echo Weaver | UNIQUE/ALLY |
+
+---
 
 ## 参考
 
