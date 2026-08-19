@@ -852,6 +852,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
     effect:
       "［クラスボーナス］ **登場時：** **エンパワー2**。\n\n" +
       "［クラスボーナス］ あなたが**エンパワー**するたび、別の対象のアライに**バフカウンター**を1個置く。この能力はターンに1回のみ誘発する。",
+    flavor: "「今や、私は自分自身の主人だ。」",
   },
 
   // Cell Production  [ACTION]  NORM
@@ -1144,6 +1145,7 @@ window.GA_I18N.cards = Object.assign(window.GA_I18N.cards || {}, {
     name: "フラン、深紅の火花",
     effect:
       "［クラスボーナス］ **攻撃時：** 対象のプレイヤーは自分の墓地からカードを1枚追放する。この方法で火エレメントのカードが追放されたなら、あなたは**エンパワー3**する。",
+    flavor: "「惨めな境遇にあって、私たちが幸福だった頃を思い返すことほど大きな悲しみはない。」",
   },
 
   // Frigid Embrittlement  [ACTION]  WATER
