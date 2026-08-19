@@ -13,6 +13,7 @@ GitHub issue: [#73](https://github.com/dozyouneko/ga-card-tools-jp/issues/73)
 | 2026-08-18 | 第5版 | **バッチ2（176枚）の設計を確定**（バッチ1はpush・本番反映まで完了）。⭐ パイロット計測（44枚を1ターンで完走）に基づき **44枚×4サブバッチ**に分割（176＝44×4）し、**サブバッチAに命名リスクの高い語族（Aenean 17／Droid 13／Tech系 13／Bladehand 1）を集約**（§9-1・§11）。レビューは **A → 合格後にB+C+D の2ユニット**（ユーザー決定）。§2-7 に**命名ルール9語族**を新設し、Droid複合語5枚の訳名をユーザー確定。⭐ **`terms` の追加は0件**であることを実測で確定（§10 V4）。検証項目は段階ごとの期待値を全て実測（未訳数・エントリ数・索引slug数・**セットページの `cp-en-inline` 数**）。⚠️ **`sets/evp/` が正当な差分に含まれる**ことを発見（EVP収録2枚）＝ドリフト誤認の防止 |
 | 2026-08-19 | 第6版 | **ユニット1（サブバッチA・44枚）完了**（実装 `283804cb`・レビュー合格・設計承認）。§2-7 に**確定訳5語**（`DisCorp`→ディスコープ／`Resonator`→レゾネーター／`Higher Plane`→上位界／`Disonian`→ディソニア人／`Core Fractal`→**コアフラクタル**＝§2-7の例外）と**Droidの接続形**を追加。⚠️ **`DisCorp`・`Resonator` はフレーバー語ではなくサブタイプ**（20枚・9枚）で効果文にも出るため、ユニット2の前に確定させた。⚠️ **`subtypes` 辞書にPRDの新サブタイプ5種が無く68枚が英字表示**の問題を別issueに切り出す（バッチ2のスコープ外＝§10 V4「`translations.js` 差分0」は維持）。⚠️ **2026-08-19にGitHubアカウントが停止され、push・issue操作が不能**（`issue反映待ち_2026-08-19.md`） |
 | 2026-08-19 | 第7版 | ⭐ **バッチ2（176枚）完了 — PRD本編が全訳になった**（`sets/prd/` の `cp-en-inline` が **232/232**）。ユニット2（B/C/D・132枚）は**M1-1で1往復差し戻し**のうえ合格（`a61b2abc`/`5228daec`/`0a071894`→`ef2a77db`）。⚠️ **差し戻しの原因はフレーバーの在り処**: `cato-meadows-channeler`・`fran-carmine-spark` の2枚だけ**トップレベルの `flavor`** にあり（`editions[].flavor` は `null`）、edition側だけを見ると**構造的に見えない**。⭐ 全2,494枚中**411枚**がこの構造だがPRD系はこの2枚だけで、**バッチ3の34枚には0枚**。開発担当の確認事項（固有名詞19語ほか）を全て承認。⚠️ **辞書の抜け3種**（`subtypes` 5種で68枚が英字表示／`terms` 2種／`TRANSLATION.md` の `Retort`）と**検出経路の不在**をフォローアップissueに切り出す。残りは**バッチ3（34枚）** |
+| 2026-08-19 | 第8版 | **バッチ3（34枚）の設計を確定**（§13）。34枚は実証済み単位44枚を下回るため**1サブバッチ・レビュー1回**。⚠️ **`Coordinator` の訳がバッチ1「コーディネーター」とバッチ2「指揮者」で割れていた**のを発見し、**3枚が同一サイクル（ALLY/WARRIOR,HUMAN）**であることから「**指揮者**」に統一。`fulgurite-coordinator` の改名をバッチ3のスコープに含める。§2-8 に**Boon 12枚**（既訳50枚のパターン）ほかの命名を追加。期待値は全て実測（未訳**0**＝全254枚完了／索引2516slug／HTML 41＋データ8／PRD系全セットページが完訳）。⚠️ `TRANSLATION.md` への追記は**フォローアップissueへ移した**（`Retort` の誤りと併せて扱うため） |
 
 ## 目的
 
@@ -334,6 +335,54 @@ PRDDPの3枚も英語名が同一のため**同じ訳名でよい**（クラス�
   唯一の署名 `— Lorraine Allard`（`edge-of-tomorrow`）は**ゲーム内のチャンピオン**なので通常どおり訳す
 - ⚠️ **ダンテ『神曲』からの引用が混じる**（例: `sift` のフレーバーは「地獄篇」第1歌の遊泳者の比喩）。
   **既存の邦訳（寿岳文章訳・平川祐弘訳など）を転載せず、原文から自分で訳す**（著作権のため）
+
+
+### 2-8. バッチ3の命名ルール（確定・第8版）
+
+#### ⭐ Boonカード12枚（バッチ3の35%）— 既訳50枚のパターンに完全に従う
+
+| English | **確定パターン** |
+|---|---|
+| `Greater Boon of X` | **「Xの大いなる恩恵」** |
+| `Lesser Boon of X` | **「Xの小さな恩恵」** |
+
+⚠️ **既訳50枚（Greater 16 / Lesser 33 / その他1）が例外なくこの形**。`X` は
+**神名・地名などの固有名詞はカタカナ**、**一般名詞は和訳**（既訳の `アグニ` / `魅惑` の両方が実在）。
+
+| slug | English | 確定/参照する訳 |
+|---|---|---|
+| `greater-boon-of-proxia` / `lesser-boon-of-proxia` | Proxia | **プロクシア**（⚠️ **2枚で必ず一致させる**。既訳0件のため新規確定） |
+| `greater-boon-of-rosen` | Rosen | **ローゼン**（既訳 `Lesser Boon of Rosen → ローゼンの小さな恩恵` に合わせる） |
+| `lesser-boon-of-flock` | Flock | **群れ**（バッチ1 `Greater Boon of Flock → 群れの大いなる恩恵` に合わせる） |
+| `lesser-boon-of-fractals` | Fractals | **フラクタル**（§2-7） |
+| `lesser-boon-of-elysian-blood` | Elysian Blood | **エリュシオンの血**（§2-2 の `Elysian → エリュシオン`） |
+
+残り（`Nourishment` / `Permeation` / `Provocation` / `Refuge` / `Sword Saint` / `Virelai`）は §2-1 の委任範囲。
+
+#### ⚠️ `Coordinator` の訳を「指揮者」に統一する（既訳の不整合を是正）
+
+**バッチ1とバッチ2で訳が割れてしまった。** バッチ3に3枚目が来るため、ここで統一する。
+
+| slug | English | 現在の訳 | **確定訳** |
+|---|---|---|---|
+| `fulgurite-coordinator` | Fulgurite Coordinator | フルグライト・コーディネーター | ⚠️ **フルグライトの指揮者**（要修正） |
+| `rumble-coordinator` | Rumble Coordinator | 乱闘の指揮者 | 乱闘の指揮者（変更なし） |
+| `surged-coordinator` | Surged Coordinator | （未訳） | **◯◯の指揮者** |
+
+⭐ **3枚は `types`・`subtypes` が完全に同一**（`ALLY` / `WARRIOR,HUMAN`）＝**同一サイクル**で、訳し分ける根拠が無い。
+§2-7 の「**人（ALLY）は役割を和訳する**」にも合致するため「**指揮者**」を正とする。
+⚠️ **`fulgurite-coordinator` の修正はバッチ3のスコープに含める**（§13）。
+
+#### その他（既存ルールの適用先）
+
+| slug | English | 適用するルール |
+|---|---|---|
+| `shieldroid` | Shieldroid | §2-7 Droid＝**カタカナ音写**（→ シールドロイド） |
+| `veltech-presidential-card` | VelTech Presidential Card | §2-6・§2-7 **製品（REGALIA/ITEM）はブランド＋「・」＋カタカナ** |
+| `jovian-hilt-x-ultra` | Jovian Hilt X Ultra | §2-6 **「・Xウルトラ」** |
+| `virgil-altered-future` | Virgil, Altered Future | §2-2 の `Virgil → **ウェルギリウス**` |
+| `agnis-signet` / `banner-of-ares` | Agni's Signet / Banner of Ares | 既訳 `アグニ`（Lesser Boon of Agni）／`アレス`（Atmos Armor Type-Ares） |
+| `magus-initiate` | Magus Initiate | 既訳 `Magus Disciple → 魔導士の弟子`／`Aenean Initiate → 秘儀参入者`（§2-4） |
 
 ---
 
@@ -1033,3 +1082,172 @@ grep -o 'cp-en-inline' sets/prd/index.html | wc -l
 4. 対象34枚の内訳: `prdp.js` **12** / `prdsd.js` **10** / `prddp.js` **7** / `prd-1st.js` **5**
    （⚠️ **`prd.js` には1枚も入らない**＝PRD本編は完了済み）
 5. **バッチ3のコミットで `closes #73` を書いてよい**
+
+---
+
+## 13. バッチ3（34枚）の実装ステップと検証項目（第8版・実装待ち）
+
+⭐ **これで #73 は完了**（未訳254枚 → 0枚）。
+
+### 13-1. スコープ
+
+**34枚を1サブバッチで実装する**（44枚の実証済み単位を下回るため分割しない。レビューも1回）。
+
+| ファイル | 追加 | エントリ数（現在 → 完了後） |
+|---|---:|---|
+| `data/tl/prdp.js` | 12 | 2 → **14** |
+| `data/tl/prdsd.js` | 10 | 1 → **11** |
+| `data/tl/prddp.js` | 7 | 3 → **10** |
+| `data/tl/prd-1st.js` | 5 | 3 → **8** |
+| **合計** | **34** | |
+
+⚠️ **`data/tl/prd.js` には1枚も追加しない**（PRD本編はバッチ2で完了・211エントリのまま）。
+⚠️ ただし **§2-8 の `fulgurite-coordinator` の改名で `prd.js` の1行だけ変更する**。
+
+### 13-2. 手順
+
+1. ⭐ **`GA_SNAPSHOT_MAX_AGE_MIN=0`** を全コマンドに付ける（APIドリフトを構造的に排除）
+2. `node scripts/scaffold.mjs "PRD 1st" prd-1st` 他、**4prefix分**を実行して原文を取得
+3. 4ファイルに **§13-5 の34枚**を追記（§2-2〜§2-8 に従う）
+4. **§2-8 の `fulgurite-coordinator`** を「フルグライトの指揮者」に修正（`data/tl/prd.js`）
+5. `node scripts/gen-tl-json.mjs` → `node scripts/gen-card-meta-index.mjs` → `npm run build:cards`
+6. `npm run validate` ／ `node scripts/check-terminology.mjs` を**4prefix分**
+7. §13-3 の検証 → コミット
+
+⭐ **フレーバーは必ず両方を見る**: `card.flavor || (card.editions||[]).map(e=>e.flavor).find(Boolean)`。
+⚠️ **バッチ2はこれで1往復差し戻しになった。** バッチ3の該当は**0枚**（原文flavorあり**17枚**は
+すべて `editions[].flavor` 側）だが、**式は正しい形で書き、17/17 を数えて報告する**。
+
+### 13-3. 検証項目
+
+#### V1. 未訳数（`node scripts/scaffold.mjs <prefix>` の `untranslated`）
+
+| prefix | 着手前 | **完了後** |
+|---|---:|---:|
+| PRD | 0 | **0** |
+| PRD 1st | 5 | **0** |
+| PRDG | 0 | **0** |
+| PRDP | 12 | **0** |
+| PRDSD | 10 | **0** |
+| PRDDP | 7 | **0** |
+| PRDEVP | 0 | **0** |
+| **ユニーク残** | 34 | ⭐ **0（全254枚の翻訳完了）** |
+
+#### V2. ファイルごとのエントリ数
+
+```bash
+grep -cE '^  "[a-z0-9-]+": \{' data/tl/prdp.js
+```
+
+`prdp.js` **14** ／ `prdsd.js` **11** ／ `prddp.js` **10** ／ `prd-1st.js` **8** ／ `prd.js` **211（不変）**
+
+#### V3. 生成物の整合
+
+- `npm run validate` が **exit 0**、索引の行が **`card-meta-index sort keys OK — 2516slug`**（着手前 2482）
+- `check-terminology.mjs` を **`"PRD 1st"` `PRDP` `PRDSD` `PRDDP` の4prefix**で実行し **0件**
+
+#### V4. ⭐ `data/translations.js` に差分が出ないこと
+
+**バッチ3でも `terms` を1件も追加しない。** 根拠（2026-08-19 実測）:
+
+- `level locked` は **登録済み**（`lesser-boon-of-provocation`）
+- `first boon` は未登録だが **既訳 `greater-boon-of-luxera` に「ファーストブーン」の用例あり**（そのまま倣う）
+- `blood counter`（`crimson-vein` 1枚）は**既知の抜け**で、**フォローアップissueで対応**する
+
+#### V5. 画面表示（最終形での期待値）
+
+1. トップでエキスパンションを **`.asphodel/paradise: Pantheon（PRDP）`** に絞り、**全14件**が表示され、
+   **カード名が英語のままのタイルが0枚**であること
+2. `cards/fulgurite-coordinator/` の `<title>` が
+   **`フルグライトの指揮者 | Fulgurite Coordinator - Grand Archive 日本語カードDB`** になっていること
+   （＝§2-8 の統一が反映されている）
+3. Boonカードの詳細モーダルで **「レベルロック」がハイライト＋用語解説**が出ること
+   （`lesser-boon-of-provocation`。⭐ `terms` を足していないのに効くことの確認）
+
+#### V6. 意図しない差分が無いこと（⭐ 期待ファイル数を実測で確定）
+
+| 種別 | 期待 | 内訳 |
+|---|---:|---|
+| カードページ | **36** | 訳34 ＋ 改名1（`fulgurite-coordinator`）＋ 波及1（`elysian-test-subject`） |
+| セットページ | **5** | `sets/prd/` `sets/prd-1st/` `sets/prdp/` `sets/prdsd/` `sets/prddp/` |
+| **HTML計** | **41** | |
+| データ | **8** | `tl/prdp.js` `tl/prdsd.js` `tl/prddp.js` `tl/prd-1st.js` `tl/prd.js`（改名の1行）＋ `tl-names.json` `tl-effects.json` `card-meta-index.json` |
+
+- ⭐ **`sets/prd/` に差分が出るのは改名によるもので正常**（cp-en-inline の数は **232 のまま不変**）
+- ⚠️ **`sets/evp/` には差分が出ない**（バッチ3にEVP収録カードは無い。出たらAPIドリフトを疑う）
+- 上記以外に差分が出たら **APIドリフト**なので `git checkout -- <path>` で戻す
+
+#### セットページの訳済み件数（`grep -o 'cp-en-inline' … | wc -l`）
+
+| ファイル | 着手前 | **完了後** | 総カード行 |
+|---|---:|---:|---:|
+| `sets/prdp/` | 2 | **14** | 14 |
+| `sets/prdsd/` | 51 | **61** | 61 |
+| `sets/prddp/` | 32 | **39** | 39 |
+| `sets/prd-1st/` | 22 | **27** | 27 |
+| `sets/prd/` | 232 | 232（不変） | 232 |
+
+⭐ **完了後はPRD系の全セットページが「訳済み ＝ 総カード行」になる。**
+
+### 13-4. 完了時
+
+- **`closes #73` を書いてよい**（バッチ3で全254枚が完了するため）
+- ⚠️ ただし **`TRANSLATION.md` への追記**（§6 の「バッチ3完了時にまとめて実施する」）は
+  **フォローアップissueに移した**ので、ここでは行わない
+  （⚠️ `TRANSLATION.md` はルート直下＝**本番配信対象**で、`Retort` の修正と併せて扱うため）
+
+### 13-5. バッチ3の対象34枚
+
+#### `data/tl/prd-1st.js`（5枚 — PRD 1st）
+
+| # | slug | English | タイプ |
+|---:|---|---|---|
+| 1 | `capacitance-x-psycho` | Capacitance X Psycho | REGALIA/WEAPON |
+| 2 | `cardiac-vessel` | Cardiac Vessel | UNIQUE/PHANTASIA |
+| 3 | `nightframe-hounds-bike` | Nightframe, Hound's Bike | UNIQUE/ITEM |
+| 4 | `veltech-presidential-card` | VelTech Presidential Card | REGALIA/ITEM |
+| 5 | `virgil-altered-future` | Virgil, Altered Future | UNIQUE/ALLY |
+
+#### `data/tl/prdp.js`（12枚 — PRDP）
+
+| # | slug | English | タイプ |
+|---:|---|---|---|
+| 1 | `greater-boon-of-proxia` | Greater Boon of Proxia | GREATER BOON |
+| 2 | `greater-boon-of-rosen` | Greater Boon of Rosen | GREATER BOON |
+| 3 | `lesser-boon-of-elysian-blood` | Lesser Boon of Elysian Blood | LESSER BOON |
+| 4 | `lesser-boon-of-flock` | Lesser Boon of Flock | LESSER BOON |
+| 5 | `lesser-boon-of-fractals` | Lesser Boon of Fractals | LESSER BOON |
+| 6 | `lesser-boon-of-nourishment` | Lesser Boon of Nourishment | LESSER BOON |
+| 7 | `lesser-boon-of-permeation` | Lesser Boon of Permeation | LESSER BOON |
+| 8 | `lesser-boon-of-provocation` | Lesser Boon of Provocation | LESSER BOON |
+| 9 | `lesser-boon-of-proxia` | Lesser Boon of Proxia | LESSER BOON |
+| 10 | `lesser-boon-of-refuge` | Lesser Boon of Refuge | LESSER BOON |
+| 11 | `lesser-boon-of-sword-saint` | Lesser Boon of Sword Saint | LESSER BOON |
+| 12 | `lesser-boon-of-virelai` | Lesser Boon of Virelai | LESSER BOON |
+
+#### `data/tl/prdsd.js`（10枚 — PRDSD）
+
+| # | slug | English | タイプ |
+|---:|---|---|---|
+| 1 | `crimson-vein` | Crimson Vein | REGALIA/ITEM |
+| 2 | `forging-heat` | Forging Heat | ACTION |
+| 3 | `fulminator-rising-storm` | Fulminator, Rising Storm | REGALIA/WEAPON |
+| 4 | `gencode-womb` | Gencode Womb | REGALIA/ITEM |
+| 5 | `jovian-hilt-x-ultra` | Jovian Hilt X Ultra | REGALIA/ITEM |
+| 6 | `magus-initiate` | Magus Initiate | ALLY |
+| 7 | `memory-invocation` | Memory Invocation | ACTION |
+| 8 | `reliable-blade` | Reliable Blade | REGALIA/WEAPON |
+| 9 | `shieldroid` | Shieldroid | ALLY |
+| 10 | `surged-coordinator` | Surged Coordinator | ALLY |
+
+#### `data/tl/prddp.js`（7枚 — PRDDP）
+
+| # | slug | English | タイプ |
+|---:|---|---|---|
+| 1 | `agnis-signet` | Agni's Signet | REGALIA/ITEM |
+| 2 | `banner-of-ares` | Banner of Ares | REGALIA/ITEM |
+| 3 | `heart-of-the-frost` | Heart of the Frost | REGALIA/ITEM |
+| 4 | `pride-of-demiourgos` | Pride of Demiourgos | REGALIA/ITEM |
+| 5 | `reluctant-breath` | Reluctant Breath | REGALIA/ITEM |
+| 6 | `treasure-of-the-depths` | Treasure of the Depths | REGALIA/ITEM |
+| 7 | `unbridled-flare` | Unbridled Flare | REGALIA/ITEM |
