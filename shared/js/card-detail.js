@@ -26,7 +26,7 @@ window.GA_CARD_DETAIL = (() => {
     tr, isTranslated, jpName, label, translationsReady,
     cardImages, rarityCode, speedLabel,
     FORMAT_JP, EXCLUSIVE_FORMAT_INFO, bannedFormats, exclusiveFormat, exclusiveNote,
-    backFace, loadNames, loadEffects,
+    backFace, flavorOf, loadNames, loadEffects,
     loadSeasonalBanlist, seasonalBanState, seasonalBannerText,
   } = window.GA_CARD_I18N;
   const I18N = window.GA_I18N || { meta: {}, terms: {}, cards: {} };
@@ -234,7 +234,7 @@ window.GA_CARD_DETAIL = (() => {
     $("d-effect-en").innerHTML = renderEffect(card.effect, card.name);
 
     // フレーバー
-    const flavor = (t && t.flavor) || card.flavor;
+    const flavor = flavorOf(card, t); // ⚠ 置き場が2つある(card.flavor / editions[].flavor)。判定は card-i18n.js に集約
     const flavorWrap = $("d-flavor-wrap");
     if (flavor) {
       $("d-flavor").textContent = flavor;

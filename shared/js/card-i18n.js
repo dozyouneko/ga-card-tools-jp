@@ -302,6 +302,38 @@ window.GA_CARD_I18N = (() => {
     return `<span class="season-badge season-${info.state}" title="${escapeHtml(seasonalTitle(info))}">${escapeHtml(seasonalText(info))}</span>`;
   }
 
+  // ---------- フレーバーテキスト ----------
+  // フレーバーの空判定。⚠ 空白1文字(" ")を持つカードが実在する（virgil-altered-future /
+  // zinn-volnia-abbess）。truthy なので || では弾けず、空の枠だけが描画される。
+  function flavorPick(v) {
+    return (typeof v === "string" && v.trim()) ? v.trim() : "";
+  }
+
+  // フレーバーテキストの取り出し。⚠ 消費側（静的カードページ・詳細モーダル・backFace）は
+  // すべてこの1関数に寄せること（同じ選択規則を複数箇所に書くと必ず食い違う）。
+  // ⚠ 置き場が2つある: トップレベル card.flavor と版ごとの editions[].flavor。
+  //    後者しか持たないカードが586枚あり、うち474枚は「原文があるのに画面のどこにも出ない」状態だった。
+  // ⚠ 版によって文面が違うカードが110枚ある。editions の配列順は公式API側で入れ替わるため、
+  //    配列順で拾うと出力が非決定的になり、cronが毎日ノイズコミットを作る。→ 初出の版に固定する。
+  // @returns {string} 見つからなければ ""（null/undefined/" " を返さない）
+  function flavorOf(card, t) {
+    const jp = flavorPick(t && t.flavor);
+    if (jp) return jp;                                  // 日本語訳が最優先（既存の優先順を変えない）
+    const own = flavorPick(card && card.flavor);
+    if (own) return own;
+    const eds = ((card && card.editions) || []).filter((e) => e && flavorPick(e.flavor));
+    if (!eds.length) return "";
+    // 初出（set.release_date の昇順）。⚠ 1970-01-01 は API 未設定を意味するので「不明」として末尾へ。
+    // 同着は edition.slug の昇順で決める（slug は版ごとに一意なので必ず決着する）。
+    const key = (e) => {
+      const d = (e.set && e.set.release_date) || "";
+      return (!d || d.startsWith("1970")) ? "9999" : d;
+    };
+    eds.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1
+      : String(a.slug) < String(b.slug) ? -1 : 1));
+    return flavorPick(eds[0].flavor);
+  }
+
   // ---------- 両面（flip）カード ----------
   // 公式APIは常に「表面」のカードを返し、裏面は edition.other_orientations[0] に格納する。
   // 画像は other_orientations[0].edition.image、裏面は独自の slug/name/effect を持つ。
@@ -332,7 +364,7 @@ window.GA_CARD_I18N = (() => {
       life: b.life,
       durability: b.durability,
       speed: b.speed,
-      flavor: b.flavor || bed.flavor || null,
+      flavor: flavorOf(b, null) || flavorPick(bed.flavor) || null,
       image: bed.image ? IMG_BASE + bed.image : null,
     };
   }
@@ -345,6 +377,6 @@ window.GA_CARD_I18N = (() => {
     bannedFormats, legalFormats, exclusiveFormat, exclusiveNote, formatBadgeHtml,
     todayJst, setTodayForTest, setSeasonalBanlist, loadSeasonalBanlist, seasonalBanState,
     seasonalIcon, seasonalName, seasonalText, seasonalTitle, seasonalBannerText, seasonalBadgeHtml,
-    flipEdition, backFace,
+    flipEdition, backFace, flavorOf,
   };
 })();

@@ -365,7 +365,7 @@ function cardPage(rawCard) {
     : "";
 
   const terms = matchedTerms(card);
-  const flavor = (t && t.flavor) || card.flavor;
+  const flavor = CI.flavorOf(card, t); // ⚠ 置き場が2つある(card.flavor / editions[].flavor)。判定は card-i18n.js に集約
   const flavorBlock = flavor
     ? `<section class="cp-block"><h2>フレーバーテキスト</h2><p class="cp-flavor">${esc(flavor)}</p></section>`
     : "";
