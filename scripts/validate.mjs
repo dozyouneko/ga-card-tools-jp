@@ -12,6 +12,7 @@
 // data/tl-*.json（ブラウザが読む生成物）が data/tl/*.js と一致しているかを検査する（#22 フェーズ2）。
 // 加えて index.html のマーカー間の /sets/ リンクが cards/index.html と一致するかを検査する（#37）。
 // さらに meta.sets（エキスパンション絞り込みの選択肢）が全セットを覆っているかを検査する（#40）。
+// 同型で meta.subtypes（サブタイプ行の訳語）が実データの全サブタイプを覆っているかも検査する。
 // 加えて cronワークフローの git add 対象と README.md / CLAUDE.md の列挙が一致するかを検査する（#70）。
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
@@ -179,6 +180,49 @@ if (loaded) {
     bad.forEach((m) => console.error(`  - ${m}`));
     console.error(`  → data/translations.js の meta.sets に { label: "…（PREFIX）", prefixes: ["PREFIX"] } を`);
     console.error(`    発売日の新しい順の位置へ追記し、npm run build:cards を実行してコミットしてください`);
+  }
+}
+
+// サブタイプ辞書の網羅性チェック（#40 と同型）
+// カードページ・詳細モーダルのサブタイプ行は data/translations.js の meta.subtypes を手で書く。
+// 新セットで新しいサブタイプが増えても英字のまま出るだけなので画面は壊れず、更新の号令も無い
+// （実測: PRD 系の10種／94枚が登録されないまま気づかれなかった）。ここで人を止める。
+// ⚠ 正はコミット済みの data/card-meta-index.json（日次cronが毎日再生成する）。生成スクリプトを
+//   呼んで突き合わせない（両辺が同源になり常に通る）。
+// ⚠ 片方向にする。辞書にあるが実データに無いコード（SHENJU 等）は報告しない
+//   ——新セットの訳を先回りで入れておくのは正当な運用で、ここで落とすとそれが止まる。
+if (loaded) {
+  const bad = [];
+  try {
+    const idx = JSON.parse(readFileSync(path.join(root, "data", "card-meta-index.json"), "utf8"));
+    const dict = idx.d || [];
+    const used = new Set();
+    for (const e of Object.values(idx.m || {})) {
+      // entry[3] がサブタイプのトークンID列（#27 の形式）。旧形式・壊れた行は飛ばす
+      if (!Array.isArray(e) || !Array.isArray(e[3])) continue;
+      for (const i of e[3]) if (dict[i] != null) used.add(dict[i]);
+    }
+    // ⚠ 抽出に失敗したときに「一致」へ倒さない。0件は索引の破損であって「網羅できている」ではない
+    if (used.size === 0) {
+      bad.push("索引からサブタイプを1件も取り出せません（索引の破損か形式変更の疑い）");
+    } else {
+      const registered = (loaded.meta && loaded.meta.subtypes) || {};
+      const missing = [...used].filter((code) => !registered[code]).sort();
+      if (missing.length) {
+        bad.push(`実データにあるが data/translations.js の meta.subtypes に無い: ${missing.join(" ")}`);
+      } else {
+        console.log(`meta.subtypes covers all subtypes — ${used.size}種`);
+      }
+    }
+  } catch (e) {
+    bad.push(`読み込みに失敗: ${e.message}`);
+  }
+  if (bad.length) {
+    problems++;
+    console.error(`\nUNREGISTERED SUBTYPES (meta.subtypes):`);
+    bad.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → data/translations.js の meta.subtypes に CODE: "訳語" をアルファベット順の位置へ追記し、`);
+    console.error(`    npm run build:cards を実行してコミットしてください（サブタイプ行が素の英字のまま出ています）`);
   }
 }
 

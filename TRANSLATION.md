@@ -74,7 +74,7 @@ DTRSD（Distorted Reflections スターターデッキ）に続き、最新弾 R
 | Deluge | デリュージ |
 | Pride | プライド |
 | Foster / fostered | フォスター / フォスターされた |
-| Retort | リトート |
+| Retort | リトルト |
 | Cardistry | カーディストリ |
 | Agility | アジリティ |
 | Preserve / preserved | プリザーブ / プリザーブされた |
