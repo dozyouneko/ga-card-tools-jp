@@ -14,7 +14,10 @@
     "build:tournaments": "node scripts/build-tournament-pages.mjs",
     "pages:dev": "wrangler pages dev . --local",
     "db:migrate:local": "for f in migrations/*.sql; do echo \"-- $f\"; wrangler d1 execute DB --local --file=\"$f\" || exit 1; done",
-    "db:migrate:remote": "echo '⚠️  本番D1へは一括適用できません（既存テーブルがあるため必ず失敗します）。' && echo '   追加した migrations/ のファイルだけを単体で実行してください:' && echo '     npx wrangler d1 execute DB --remote --file=migrations/000N_xxx.sql' && echo '   ⚠️ 必ず「本番D1へ適用 → push」の順。手順は README.md の「公開方法」節を参照。' && exit 1"
+    "db:migrate:remote": "echo '⚠️  本番D1へは一括適用できません（既存テーブルがあるため必ず失敗します）。' && echo '   追加した migrations/ のファイルだけを単体で実行してください:' && echo '     npx wrangler d1 execute DB --remote --file=migrations/000N_xxx.sql' && echo '   ⚠️ 必ず「本番D1へ適用 → push」の順。手順は README.md の「公開方法」節を参照。' && exit 1",
+    "deploy:stage": "rm -rf tmp/deploy-stage && mkdir -p tmp/deploy-stage && git archive HEAD | tar -x -C tmp/deploy-stage && echo \"ステージング: $(find tmp/deploy-stage -type f | wc -l) ファイル (git追跡分のみ)\"",
+    "deploy:preview": "npm run deploy:stage && cd tmp/deploy-stage && CLOUDFLARE_API_TOKEN=$(tr -d '\\r\\n' < ~/.cloudflare-token) CLOUDFLARE_ACCOUNT_ID=$(node -e \"import('$INIT_CWD/scripts/dashboard/collect-d1.mjs').then(m=>console.log(m.ACCOUNT_ID))\") \"$INIT_CWD\"/node_modules/.bin/wrangler pages deploy --branch=${DEPLOY_BRANCH:-preview}",
+    "deploy:prod": "[ \"$CONFIRM\" = publish ] || { echo '⚠️  これは本番公開です（Cloudflare Pages の production）。'; echo '   ユーザーの明示的な指示を得たうえで、次の形で実行してください:'; echo '     CONFIRM=publish npm run deploy:prod'; exit 1; }; npm run deploy:stage && cd tmp/deploy-stage && CLOUDFLARE_API_TOKEN=$(tr -d '\\r\\n' < ~/.cloudflare-token) CLOUDFLARE_ACCOUNT_ID=$(node -e \"import('$INIT_CWD/scripts/dashboard/collect-d1.mjs').then(m=>console.log(m.ACCOUNT_ID))\") \"$INIT_CWD\"/node_modules/.bin/wrangler pages deploy --branch=main"
   },
   "engines": {
     "node": ">=20"

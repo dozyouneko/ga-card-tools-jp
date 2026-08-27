@@ -378,13 +378,17 @@ X投稿用画像・**`env-backup-*.tar.gz`** があり、**公開URLに載りう
 (⚠️ Pagesのアップロードは `.gitignore` を見ない)。
 
 ```bash
-SP=<作業ツリー外の一時ディレクトリ>            # 例: セッションのscratchpad。⚠️ tmp/ には作らない
-rm -rf "$SP/stage" && mkdir -p "$SP/stage"
-git archive HEAD | tar -x -C "$SP/stage"      # ← 追跡ファイルだけ = GitHub連携ビルドと同一
-cd "$SP/stage" && CLOUDFLARE_API_TOKEN=$(tr -d '\r\n' < ~/.cloudflare-token) \
-  CLOUDFLARE_ACCOUNT_ID=<scripts/dashboard/collect-d1.mjs の ACCOUNT_ID と同じ値> \
-  /workspaces/claude-test-vsc/node_modules/.bin/wrangler pages deploy --branch=<ブランチ名>
+npm run deploy:preview                  # プレビューへ(既定ブランチ preview)。DEPLOY_BRANCH=xxx で変更可
+CONFIRM=publish npm run deploy:prod     # ⚠️ 本番公開。ユーザーの明示的な指示を得てから
 ```
+
+- ⭐ **どちらのスクリプトも `deploy:stage` を必ず経由する**(`git archive HEAD` で `tmp/deploy-stage/` に
+  追跡ファイルだけを展開してから、その中で `wrangler pages deploy` を実行する)。
+  ⭐ **`tmp/` 混入の罠を「覚えておく」のではなく構造で防ぐ**のが目的
+- ⚠️ **`deploy:prod` は `CONFIRM=publish` が無いと exit 1 で拒否する**(`db:migrate:remote` と同じ流儀)。
+  ⭐ **誤爆を防ぐと同時に、「公開の指示を受けた」ことが実行ログに残る**
+- ⚠️ **ガードはあくまで誤爆防止で、判断の代わりではない。**
+  **本番公開はユーザーの明示的な指示があるまで実行しない**(経路①のpushと同じ規則)
 
 - ⭐ **`git archive HEAD` を使う理由は漏洩対策だけではない。** ②は
   **gitの状態と無関係な本番**を作れてしまう経路なので、**必ずHEADから作って乖離を生まない**。
