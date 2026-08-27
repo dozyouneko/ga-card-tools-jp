@@ -350,6 +350,78 @@ gh issue list --label push待ち      # 承認済み・push待ち。⚠️セッ
 - 例外: GitHub Actions `build-tournaments.yml` による日次の自動commit・pushは
   ユーザー合意済みの運用のため対象外
 
+## 本番公開の第2経路: wrangler直接デプロイ(2026-08-27〜)
+
+**本番公開の経路は2つある。** 既定はpushだが、**GitHubが使えなくても
+`wrangler pages deploy` で本番に出せる**(2026-08-27にプレビューで実証)。
+
+| 経路 | 起こし方 | 使う場面 |
+|---|---|---|
+| ① push → Pages自動デプロイ | `git push origin main` | 通常。`deployments_enabled: true` のまま生きている |
+| ② wrangler直接デプロイ | 下記手順 | **GitHubが止まっているとき**・push前にプレビューで見たいとき |
+
+- ⚠️ ⭐ **②も本番公開である。** 「pushしていないから安全」ではない。
+  **公開の可否は常にユーザーが判断する**という規則は、経路が変わっても一切変わらない
+- ⭐ **②が使えるのは `~/.cloudflare-token`(実体は `wrangler-deck-builder`)が
+  `Cloudflare Pages: 編集` を持つため**(他に D1:編集 / アカウント分析:読み取り /
+  アカウント設定:読み取り / ユーザーの詳細:読み取り)。
+  ⚠️ **トークン画面で `ロール`(Roll)を押すと失われる**(wranglerもダッシュボードのRUM取得も同時に落ちる)。
+  ⚠️ トークン自身の権限一覧は API から読めない(`/user/tokens` が **403**)ので、確認はダッシュボード目視
+- ⚠️ **②はGitHubの代替にはならない。** 回復するのは**本番公開だけ**で、
+  issueハンドオフ・日次cronは止まったまま(記録は `docs/design/` 代替を続ける)
+
+### ⚠️ 手順: 必ずステージングを作ってから実行する
+
+⚠️ ⭐ **リポジトリ直下で `wrangler pages deploy .` を打ってはいけない。**
+未追跡の **`tmp/`(2026-08-27実測 548MB)** には運営ダッシュボード出力(登録者数・閲覧数)・
+X投稿用画像・**`env-backup-*.tar.gz`** があり、**公開URLに載りうる**
+(⚠️ Pagesのアップロードは `.gitignore` を見ない)。
+
+```bash
+SP=<作業ツリー外の一時ディレクトリ>            # 例: セッションのscratchpad。⚠️ tmp/ には作らない
+rm -rf "$SP/stage" && mkdir -p "$SP/stage"
+git archive HEAD | tar -x -C "$SP/stage"      # ← 追跡ファイルだけ = GitHub連携ビルドと同一
+cd "$SP/stage" && CLOUDFLARE_API_TOKEN=$(tr -d '\r\n' < ~/.cloudflare-token) \
+  CLOUDFLARE_ACCOUNT_ID=<scripts/dashboard/collect-d1.mjs の ACCOUNT_ID と同じ値> \
+  /workspaces/claude-test-vsc/node_modules/.bin/wrangler pages deploy --branch=<ブランチ名>
+```
+
+- ⭐ **`git archive HEAD` を使う理由は漏洩対策だけではない。** ②は
+  **gitの状態と無関係な本番**を作れてしまう経路なので、**必ずHEADから作って乖離を生まない**。
+  ズレたまま後日pushすると、次の自動デプロイが**黙って上書きする**
+- ⚠️ **`--config` でのパス指定は使えない**(`Pages does not support custom paths for the
+  Wrangler configuration file`)。**ステージングの中に `cd` してから実行する**
+- ⚠️ `wrangler.toml` に `pages_build_output_dir = "."` があるので**ディレクトリ引数は渡さない**
+- 実測(2026-08-27・4179ファイル・262MB): 新規**792ファイルのみ**のアップロードで **3.4秒**
+  (残り3369はGit連携ビルドの資産を再利用)。Functionsも `Compiled Worker successfully` でビルドされる
+- ⚠️ 事後に**危険物が載っていないこと**を必ず確認する(すべて404が正):
+  `/tmp/dashboard/index.html` `/node_modules/…` `/.wrangler/state`
+
+### プレビュー(`--branch` が `main` 以外)の性質
+
+| 項目 | 2026-08-27 実測 |
+|---|---|
+| 本番デプロイ | **変化しない**(`a7f1e444`・`c5777923` のまま) |
+| URL | `https://<ブランチ名>.ga-card-tools-jp.pages.dev` と `https://<id>.…` の2つ |
+| 検索エンジン | ⭐ **`x-robots-tag: noindex` が自動で付く**(本番には付かない) |
+| Functions | 動く(`/api/me`=401・`/docs/`=404 とも本番と一致) |
+| **D1バインディング** | **疎通する**(`/api/health` が本番と同一のテーブル一覧を返す) |
+
+- ⚠️ ⭐ **プレビューのD1は本番と同じデータベースを指す**(`database_id` が同一)。
+  **プレビューURLからのデッキ操作は本番データを書き換える**。閲覧はしてよいが**書き込みはしない**
+- ⭐ **未pushコミットの見た目をpush前に確認できる**のが最大の利点。
+  `git archive HEAD` から作るので、**そのままpushしたときに出るものと一致する**
+- ⚠️ プレビューURLは**認証が無く公開されている**(推測されにくいだけ)。
+  未公開の変更を載せる以上、**URLを外部に貼らない**
+- ⭐ `/api/health` は**D1バインディングの疎通確認専用**のエンドポイント(認証不要・SELECTのみ)。
+  新しい公開経路を試すときの**最初の1手**にする
+
+### 本番へ出すとき(`--branch=main`)
+
+⚠️ **ユーザーの明示的な指示があるまで実行しない**(経路①と同じ)。到達確認の方法も同じで、
+**素のURLとキャッシュ回避クエリを並べ、全数一致するまで反復する**
+(「環境の注意」のPagesキャッシュの節を参照)。
+
 ## 開発コマンド
 
 - `npm run dev` — 静的プレビュー(scripts/serve.mjs、ポート3000)
