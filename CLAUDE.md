@@ -441,6 +441,33 @@ CONFIRM=publish npm run deploy:prod     # ⚠️ 本番公開。ユーザーの�
 **素のURLとキャッシュ回避クエリを並べ、全数一致するまで反復する**
 (「環境の注意」のPagesキャッシュの節を参照)。
 
+## ⚠️ 大会データの週1更新（2026-08-27〜・公開済みの約束）
+
+**Xで「大会データは週1回程度を目安に更新する」と公言した**
+（<https://x.com/maru_selector/status/2092974480545226799?s=20> へのリプライ）。
+⚠️ **これは対外的な約束なので、守れないと信用を損なう**。日次cronが止まっている間の**暫定の運用義務**。
+
+- **起点 2026-08-27**。以後**週1回**、次の3つを順に実行して公開する（＝日次cronの代行）:
+
+  ```bash
+  node scripts/build-tournament-pages.mjs   # 大会スキャン＋ページ生成
+  node scripts/build-card-pages.mjs         # カード/セット/sitemap（⚠️ tournaments の後）
+  node scripts/gen-card-meta-index.mjs      # 日本語検索のメタ索引
+  ```
+
+  → `npm run validate` → **cronと同じ8パスでコミット** → `CONFIRM=publish npm run deploy:prod`
+- ⚠️ **リマインダーの仕組みは無い**（issueもcronも止まっているため、気づけるのは人だけ）。
+  ⭐ **セッション開始時に「最後の定期再生成コミットから1週間経っていないか」を見る**:
+
+  ```bash
+  git log -1 --format='%ci %s' --grep='定期再生成'
+  ```
+
+- ⭐ **GitHubが復旧して日次cronが戻れば、この約束は自動で果たされる＝この節は不要になる**。
+  復旧後に削除すること（⚠️ 残すと、動いていない義務がドキュメントに残り続ける）
+- ⚠️ **同時に「載っていない大会があればお知らせください」とも公言している**ので、
+  問い合わせが来たら `data/tournaments/pending.json` を先に見る（未確定の大会はそこに積まれている）
+
 ## 開発コマンド
 
 - `npm run dev` — 静的プレビュー(scripts/serve.mjs、ポート3000)
