@@ -404,7 +404,7 @@ cd "$SP/stage" && CLOUDFLARE_API_TOKEN=$(tr -d '\r\n' < ~/.cloudflare-token) \
 | 本番デプロイ | **変化しない**(`a7f1e444`・`c5777923` のまま) |
 | URL | `https://<ブランチ名>.ga-card-tools-jp.pages.dev` と `https://<id>.…` の2つ |
 | 検索エンジン | ⭐ **`x-robots-tag: noindex` が自動で付く**(本番には付かない) |
-| Functions | 動く(`/api/me`=401・`/docs/`=404 とも本番と一致) |
+| Functions | 動く(`/api/me`=401・`/docs/`=404 とも本番と一致)。⚠️ **ただしDiscordログインは動かない**(下記) |
 | **D1バインディング** | **疎通する**(`/api/health` が本番と同一のテーブル一覧を返す) |
 
 - ⚠️ ⭐ **プレビューのD1は本番と同じデータベースを指す**(`database_id` が同一)。
@@ -415,6 +415,21 @@ cd "$SP/stage" && CLOUDFLARE_API_TOKEN=$(tr -d '\r\n' < ~/.cloudflare-token) \
   未公開の変更を載せる以上、**URLを外部に貼らない**
 - ⭐ `/api/health` は**D1バインディングの疎通確認専用**のエンドポイント(認証不要・SELECTのみ)。
   新しい公開経路を試すときの**最初の1手**にする
+- ⭐ **ダッシュボードで設定した環境変数・シークレットは、wranglerデプロイでも配られる**
+  (2026-08-27実測: `wrangler.toml` に `[vars]` が無いのに、デプロイ記録へ
+  `DISCORD_CLIENT_SECRET` が入っていた)。⭐ **「`wrangler.toml` があるとダッシュボード設定が
+  無視される」ということはない**＝経路②で本番へ出してもログインは壊れない
+- ⚠️ ⭐ **デッキ構築ツールはプレビューでは使えない**(2026-08-27実測)。理由は2つあり、どちらも設定漏れ:
+  ① Pagesの **Preview環境に `DISCORD_CLIENT_ID` が無い**(Productionにはある)ため、
+  `/api/auth/discord/authorize` の Location が **`client_id=undefined`** になる
+  ② `redirect_uri` は `url.origin` から組み立てる(`functions/api/auth/discord/authorize.js`)ので
+  **プレビューのURLになり、Discord側の登録済みリダイレクトURIと一致しない**
+  - 直すには **①ダッシュボードでPreview環境に `DISCORD_CLIENT_ID` を追加**し、
+    **②Discord Developer Portalにプレビューの callback URL を登録する**(どちらもユーザー作業)。
+    ⭐ ブランチ別名URL(`https://<ブランチ名>.…`)は**デプロイし直しても変わらない**ので登録は1回で済む
+  - ⚠️ ⭐ **ただし直すと安全装置が外れる。** プレビューのD1は**本番と同じDB**なので、
+    ログインできるようにした瞬間から**プレビューでのデッキ操作が本番データを書き換える**。
+    ⭐ 安全に使いたいなら、先に **Preview環境へ別のD1を割り当てる**(`[env.preview]` + 新DB + マイグレーション)
 
 ### 本番へ出すとき(`--branch=main`)
 
