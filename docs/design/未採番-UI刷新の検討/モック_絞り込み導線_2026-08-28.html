@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- ⚠️ これは設計検討用のモック。本番の配信対象ではない（docs/ 配下は functions/docs/[[path]].js が404を返す）。
+     判断1（スマホで絞り込みに戻る導線）の意識合わせ用。設計書: UI刷新_調査メモ_2026-08-28.md §4-2
+     同じ内容を Artifact としても公開している: https://claude.ai/code/artifact/aa4d1df8-9bca-4b4a-b177-536c0e043aa8 -->
+<title>スマホ絞り込み導線</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap">
+
+<style>
+/* ============================================================
+   トークン — 資料そのものの配色（3状態すべてを素の :root から定義する）
+   ⚠️ スマホ画面の中身は「実機の色」なので、テーマに関係なく固定する（下の .ph-* 参照）
+   ============================================================ */
+:root{
+  --ground:#f2f1ec;
+  --raise:#fbfaf7;
+  --ink:#20222a;
+  --ink-2:#5d616c;
+  --rule:#dedad1;
+  --rule-2:#eceae4;
+  --gold:#9a6d16;
+  --gold-soft:#f0e4c9;
+  --now:#8a8d97;
+  --shadow:0 1px 2px rgba(32,34,42,.05), 0 12px 32px -16px rgba(32,34,42,.28);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#14161b;
+    --raise:#1b1e25;
+    --ink:#e9ebf0;
+    --ink-2:#a0a6b4;
+    --rule:#2c313c;
+    --rule-2:#232830;
+    --gold:#d9a441;
+    --gold-soft:#3a2f16;
+    --now:#787d8a;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#14161b;
+  --raise:#1b1e25;
+  --ink:#e9ebf0;
+  --ink-2:#a0a6b4;
+  --rule:#2c313c;
+  --rule-2:#232830;
+  --gold:#d9a441;
+  --gold-soft:#3a2f16;
+  --now:#787d8a;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;
+  line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums;}
+
+/* ---------- ページ骨格 ---------- */
+.wrap{max-width:1180px;margin:0 auto;padding:40px 24px 96px;}
+.masthead{border-bottom:1px solid var(--rule);padding-bottom:28px;margin-bottom:36px;}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--gold);margin:0 0 10px;font-weight:600;
+}
+h1{font-size:clamp(1.6rem,3.6vw,2.3rem);font-weight:900;margin:0 0 12px;letter-spacing:-.01em;text-wrap:balance;}
+.lede{margin:0;color:var(--ink-2);max-width:64ch;font-size:1.02rem;}
+
+.stage{display:grid;grid-template-columns:390px minmax(0,1fr);gap:44px;align-items:start;}
+@media (max-width:1020px){.stage{grid-template-columns:1fr;gap:36px;justify-items:center;}}
+
+.phone-col{position:sticky;top:32px;}
+@media (max-width:1020px){.phone-col{position:static;}}
+
+.phone-cap{
+  display:flex;align-items:baseline;gap:10px;margin-bottom:12px;
+}
+.phone-cap b{font-size:.95rem;font-weight:700;}
+.phone-cap .mono{font-size:.72rem;color:var(--ink-2);}
+
+/* ============================================================
+   スマホ画面 — ⚠️ ここから内側は「実機の色」。テーマで変えない
+   （値は style.css の :root をそのまま引き写している）
+   ============================================================ */
+.phone{
+  --bg:#0f1115; --panel:#171a21; --panel-2:#1f232c; --border:#2a2f3a;
+  --text:#e7e9ee; --muted:#9aa2b1; --accent:#d9a441; --accent-2:#6ea8fe;
+  width:390px;height:844px;position:relative;overflow:hidden;
+  border-radius:26px;border:1px solid var(--rule);
+  background:var(--bg);color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI","Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif;
+  line-height:1.6;
+  box-shadow:var(--shadow);
+}
+.ph-scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;}
+.ph-scroll::-webkit-scrollbar{width:0;}
+
+.ph-header{
+  display:flex;align-items:center;gap:10px;padding:14px 12px;
+  background:linear-gradient(180deg,#14171d,#0f1115);
+  border-bottom:1px solid var(--border);
+}
+.ph-mark{
+  width:34px;height:34px;border-radius:8px;background:var(--accent);color:#201a0a;
+  display:grid;place-items:center;font-weight:800;font-size:.8rem;letter-spacing:1px;flex:0 0 auto;
+}
+.ph-title{margin:0;font-size:1rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ph-tools{
+  margin-left:auto;flex:0 0 auto;background:var(--panel);color:var(--text);
+  border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:.82rem;
+  min-height:44px;font-family:inherit;
+}
+
+/* 検索条件バー — 実測 179px（閉）を再現 */
+.ph-controls{
+  display:flex;flex-direction:column;gap:10px;padding:12px;
+  background:rgba(15,17,21,.92);border-bottom:1px solid var(--border);
+}
+.ph-controls.is-sticky{position:sticky;top:0;z-index:5;backdrop-filter:blur(6px);}
+.ph-input{
+  width:100%;background:var(--panel);color:var(--muted);border:1px solid var(--border);
+  border-radius:8px;padding:11px 12px;font-size:16px;font-family:inherit;
+}
+.ph-fbtn{
+  width:100%;text-align:left;background:var(--panel);color:var(--text);
+  border:1px solid var(--border);border-radius:8px;padding:11px 12px;font-size:16px;
+  font-family:inherit;display:flex;align-items:center;gap:8px;cursor:pointer;
+}
+.ph-fbtn .pill{
+  background:var(--accent);color:#201a0a;border-radius:10px;
+  font-size:.72rem;font-weight:700;padding:1px 8px;
+}
+
+/* カードグリッド */
+.ph-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:12px 12px 120px;}
+.ph-card{
+  background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;
+  text-align:left;
+}
+.ph-art{aspect-ratio:63/88;position:relative;}
+.ph-art::after{
+  content:"";position:absolute;inset:0;
+  background:
+    radial-gradient(120% 70% at 50% 8%, rgba(255,255,255,.22), transparent 60%),
+    linear-gradient(160deg, var(--c1), var(--c2));
+}
+.ph-art .orb{
+  position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:50%;
+  background:rgba(11,13,17,.72);border:1px solid rgba(255,255,255,.22);
+  z-index:2;display:grid;place-items:center;font-size:.6rem;color:#fff;
+}
+.ph-art .cost{
+  position:absolute;top:6px;left:6px;min-width:18px;height:18px;border-radius:5px;
+  background:rgba(11,13,17,.72);border:1px solid rgba(255,255,255,.22);
+  z-index:2;display:grid;place-items:center;font-size:.62rem;font-weight:700;color:#fff;
+}
+.ph-cbody{padding:8px 10px 12px;}
+.ph-cname{margin:0;font-weight:700;font-size:.86rem;line-height:1.35;}
+.ph-cen{margin:2px 0 0;color:var(--muted);font-size:.66rem;}
+.ph-chips{margin:7px 0 0;display:flex;flex-wrap:wrap;gap:5px;}
+.ph-chip{
+  font-size:.65rem;background:var(--panel-2);border:1px solid var(--border);
+  padding:1px 7px;border-radius:999px;color:var(--muted);
+}
+.ph-chip.el{color:var(--accent);border-color:#3a3320;}
+
+/* ---------- FAB ---------- */
+.ph-fab{
+  position:absolute;z-index:16;
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--accent);color:#201a0a;border:none;border-radius:999px;
+  padding:14px 20px;font-size:.95rem;font-weight:700;font-family:inherit;cursor:pointer;
+  box-shadow:0 6px 20px rgba(0,0,0,.45);
+  transition:opacity .18s ease, transform .18s ease, bottom .18s ease;
+}
+.ph-fab .fcount{
+  background:rgba(32,26,10,.82);color:var(--accent);
+  border-radius:999px;font-size:.72rem;padding:1px 7px;font-weight:700;
+}
+.ph-fab[data-pos="br"]{right:16px;bottom:22px;}
+.ph-fab[data-pos="bc"]{left:50%;transform:translateX(-50%);bottom:22px;}
+.phone[data-printbar="on"] .ph-fab[data-pos="br"]{bottom:78px;}
+.phone[data-printbar="on"] .ph-fab[data-pos="bc"]{bottom:78px;}
+.ph-fab.is-hidden{opacity:0;pointer-events:none;transform:translateY(10px) scale(.94);}
+.ph-fab[data-pos="bc"].is-hidden{transform:translateX(-50%) translateY(10px) scale(.94);}
+
+/* ---------- ボトムシート ---------- */
+.ph-veil{
+  position:absolute;inset:0;z-index:18;background:rgba(8,9,12,.6);
+  opacity:0;pointer-events:none;transition:opacity .22s ease;
+}
+.ph-veil.is-open{opacity:1;pointer-events:auto;}
+.ph-sheet{
+  position:absolute;left:0;right:0;bottom:0;z-index:19;
+  max-height:76%;overflow-y:auto;
+  background:var(--panel);border-top:1px solid var(--border);
+  border-radius:18px 18px 0 0;padding:8px 12px 20px;
+  transform:translateY(102%);transition:transform .26s cubic-bezier(.22,.7,.3,1);
+}
+.ph-sheet.is-open{transform:translateY(0);}
+.ph-grab{width:38px;height:4px;border-radius:99px;background:var(--border);margin:6px auto 12px;}
+.ph-sheet h3{margin:0 0 12px;font-size:.95rem;display:flex;align-items:center;gap:8px;}
+.ph-sheet h3 .x{
+  margin-left:auto;background:none;border:none;color:var(--muted);
+  font-size:1.5rem;line-height:1;cursor:pointer;padding:0 4px;font-family:inherit;
+}
+.ph-g{border:1px solid var(--border);border-radius:10px;background:var(--panel-2);margin-bottom:8px;}
+.ph-g > .gh{display:flex;align-items:center;gap:10px;padding:9px 12px;font-weight:700;font-size:.88rem;}
+.ph-g .gb{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 11px;}
+.ph-ch{
+  background:var(--panel);border:1px solid var(--border);border-radius:999px;
+  color:var(--text);font-size:.78rem;padding:6px 12px;cursor:pointer;font-family:inherit;
+}
+.ph-ch[aria-pressed="true"]{background:var(--accent);color:#201a0a;border-color:var(--accent);font-weight:700;}
+.ph-sheet .sheet-foot{display:flex;gap:8px;padding-top:4px;}
+.ph-sheet .sheet-foot button{
+  flex:1;border-radius:8px;padding:12px;font-size:.9rem;font-family:inherit;cursor:pointer;
+  border:1px solid var(--border);background:var(--panel-2);color:var(--text);
+}
+.ph-sheet .sheet-foot .apply{background:var(--accent);color:#201a0a;border-color:var(--accent);font-weight:700;}
+
+/* ---------- 印刷トレイバー（既存） ---------- */
+.ph-printbar{
+  position:absolute;left:0;right:0;bottom:0;z-index:15;
+  display:none;align-items:center;justify-content:center;gap:14px;
+  padding:12px;background:rgba(23,26,33,.96);border-top:1px solid var(--border);
+}
+.phone[data-printbar="on"] .ph-printbar{display:flex;}
+.ph-printbar span{font-size:.85rem;}
+.ph-printbar button{
+  background:var(--accent);color:#201a0a;border:none;border-radius:8px;
+  padding:8px 16px;font-weight:700;font-family:inherit;cursor:pointer;
+}
+
+/* ============================================================
+   右カラム — 操作パネルと注記
+   ============================================================ */
+.panel{display:flex;flex-direction:column;gap:26px;min-width:0;width:100%;max-width:560px;}
+
+.card{
+  background:var(--raise);border:1px solid var(--rule);border-radius:14px;
+  padding:22px 24px;box-shadow:var(--shadow);
+}
+.card > h2{
+  margin:0 0 4px;font-size:1.02rem;font-weight:800;letter-spacing:-.005em;
+}
+.card > .sub{margin:0 0 18px;color:var(--ink-2);font-size:.88rem;}
+
+.opt{border-top:1px solid var(--rule-2);padding:16px 0 0;margin-top:16px;}
+.opt:first-of-type{border-top:none;padding-top:0;margin-top:0;}
+.opt .q{display:flex;align-items:baseline;gap:9px;margin:0 0 3px;}
+.opt .q .tag{
+  font-family:"IBM Plex Mono",monospace;font-size:.66rem;font-weight:600;
+  color:var(--gold);background:var(--gold-soft);border-radius:4px;padding:1px 6px;
+  letter-spacing:.04em;flex:0 0 auto;
+}
+.opt .q b{font-size:.93rem;font-weight:700;}
+.opt .why{margin:0 0 11px;color:var(--ink-2);font-size:.83rem;line-height:1.65;}
+
+.seg{display:flex;gap:0;border:1px solid var(--rule);border-radius:9px;overflow:hidden;width:fit-content;max-width:100%;flex-wrap:wrap;}
+.seg button{
+  border:none;background:transparent;color:var(--ink-2);
+  font-family:inherit;font-size:.84rem;padding:9px 15px;cursor:pointer;
+  border-right:1px solid var(--rule);transition:background .12s ease,color .12s ease;
+}
+.seg button:last-child{border-right:none;}
+.seg button[aria-pressed="true"]{background:var(--gold);color:var(--raise);font-weight:700;}
+:root[data-theme="dark"] .seg button[aria-pressed="true"],
+:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#201a0a;}
+.seg button:focus-visible{outline:2px solid var(--gold);outline-offset:-2px;}
+
+.note{
+  border-left:3px solid var(--gold);background:var(--gold-soft);
+  padding:13px 16px;border-radius:0 8px 8px 0;font-size:.85rem;line-height:1.7;
+}
+.note b{font-weight:700;}
+
+/* 決定済み表 */
+table.fixed{width:100%;border-collapse:collapse;font-size:.85rem;}
+table.fixed th,table.fixed td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--rule-2);vertical-align:top;}
+table.fixed th{font-weight:700;white-space:nowrap;width:1%;color:var(--ink-2);font-size:.8rem;}
+table.fixed tr:last-child td,table.fixed tr:last-child th{border-bottom:none;}
+code{
+  font-family:"IBM Plex Mono",monospace;font-size:.86em;
+  background:var(--rule-2);border-radius:4px;padding:1px 5px;
+}
+
+.metrics{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px;}
+.metric{
+  flex:1 1 120px;border:1px solid var(--rule);border-radius:10px;padding:11px 13px;background:var(--ground);
+}
+.metric .k{font-size:.72rem;color:var(--ink-2);margin:0 0 3px;}
+.metric .v{font-family:"IBM Plex Mono",monospace;font-size:1.15rem;font-weight:600;margin:0;line-height:1.2;}
+.metric .v small{font-size:.72rem;color:var(--ink-2);font-weight:400;}
+
+ul.tight{margin:10px 0 0;padding-left:1.15em;}
+ul.tight li{margin-bottom:7px;font-size:.86rem;color:var(--ink-2);line-height:1.65;}
+ul.tight li b{color:var(--ink);}
+
+@media (prefers-reduced-motion:reduce){
+  *{transition-duration:.01ms !important;animation-duration:.01ms !important;}
+  .ph-scroll{scroll-behavior:auto;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <p class="eyebrow">判断1 · 意識合わせ用モック</p>
+    <h1>スマホで絞り込みに戻る導線</h1>
+    <p class="lede">
+      1-e案（フローティングボタン）が実際どう見えるかの確認用です。右側のスイッチで見え方を切り替えながら、
+      スマホ画面をそのまま操作できます。<b>スクロールすると検索条件が画面外に出る</b>ところまでは今の実物と同じ挙動です。
+    </p>
+  </header>
+
+  <div class="stage">
+    <!-- ============ 左：スマホ ============ -->
+    <div class="phone-col">
+      <div class="phone-cap">
+        <b>iPhone 14 相当</b>
+        <span class="mono">390 × 844</span>
+      </div>
+
+      <div class="phone" id="phone" data-printbar="off">
+        <div class="ph-scroll" id="scroller">
+          <header class="ph-header">
+            <span class="ph-mark">GA</span>
+            <h2 class="ph-title">Grand Archive 日本語カードDB</h2>
+            <button class="ph-tools" type="button">ツール ▾</button>
+          </header>
+
+          <section class="ph-controls" id="controls">
+            <input class="ph-input" type="text" value="カード名で検索（英語）… 例: lorraine" readonly aria-label="カード名で検索">
+            <input class="ph-input" type="text" value="効果テキストで部分検索… 例: 追放" readonly aria-label="効果テキストで検索">
+            <button class="ph-fbtn" type="button" id="inlineFilter">
+              絞り込み・並び替え ▾ <span class="pill" id="inlinePill" hidden>0</span>
+            </button>
+          </section>
+
+          <main class="ph-grid" id="grid"></main>
+        </div>
+
+        <button class="ph-fab is-hidden" id="fab" type="button" data-pos="br">
+          絞り込み <span class="fcount" id="fabCount" hidden>0</span>
+        </button>
+
+        <div class="ph-veil" id="veil"></div>
+
+        <section class="ph-sheet" id="sheet" aria-label="絞り込み">
+          <div class="ph-grab"></div>
+          <h3>絞り込み・並び替え <button class="x" type="button" id="sheetClose" aria-label="閉じる">×</button></h3>
+          <div id="groups"></div>
+          <div class="sheet-foot">
+            <button type="button" id="clearAll">リセット</button>
+            <button type="button" class="apply" id="applyBtn">この条件で見る</button>
+          </div>
+        </section>
+
+        <div class="ph-printbar">
+          <span>印刷リスト 3枚</span>
+          <button type="button">印刷リストを開く ▶</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 右：操作パネル ============ -->
+    <div class="panel">
+
+      <section class="card">
+        <h2>見え方を切り替える</h2>
+        <p class="sub">実際に触ってから決めてください。すべて左のスマホに即反映されます。</p>
+
+        <div class="opt">
+          <p class="q"><span class="tag">1-e-1</span><b>開き方</b></p>
+          <p class="why">これが1-e案の中身そのものです。ボトムシートなら「戻る」動作自体が無くなります。</p>
+          <div class="seg" role="group" aria-label="開き方">
+            <button type="button" data-k="open" data-v="sheet" aria-pressed="true">下からシートで開く</button>
+            <button type="button" data-k="open" data-v="scroll" aria-pressed="false">最上部へ戻る</button>
+          </div>
+        </div>
+
+        <div class="opt">
+          <p class="q"><span class="tag">1-e-2</span><b>ボタンの位置</b></p>
+          <p class="why">右下は親指が届きやすい一方、カードの右列に重なります。中央下は重なりが左右に分散します。</p>
+          <div class="seg" role="group" aria-label="ボタンの位置">
+            <button type="button" data-k="pos" data-v="br" aria-pressed="true">右下</button>
+            <button type="button" data-k="pos" data-v="bc" aria-pressed="false">中央下</button>
+          </div>
+        </div>
+
+        <div class="opt">
+          <p class="q"><span class="tag">1-e-3</span><b>出るタイミング</b></p>
+          <p class="why">検索条件が画面外に出てから出す方が視覚的なノイズは少なく、常時表示は迷いがありません。</p>
+          <div class="seg" role="group" aria-label="出るタイミング">
+            <button type="button" data-k="when" data-v="scrolled" aria-pressed="true">条件が隠れたら</button>
+            <button type="button" data-k="when" data-v="always" aria-pressed="false">常に表示</button>
+          </div>
+        </div>
+
+        <div class="opt">
+          <p class="q"><span class="tag">1-e-4</span><b>選択件数のバッジ</b></p>
+          <p class="why">今そのバッジは絞り込みトグルに付いています。シートを閉じた後、何件絞っているかが分かります。</p>
+          <div class="seg" role="group" aria-label="バッジ">
+            <button type="button" data-k="badge" data-v="on" aria-pressed="true">出す</button>
+            <button type="button" data-k="badge" data-v="off" aria-pressed="false">出さない</button>
+          </div>
+        </div>
+
+        <div class="opt">
+          <p class="q"><span class="tag">検証</span><b>印刷リストバーが出ている状態</b></p>
+          <p class="why">カードを1枚でも追加すると画面下部に固定バーが出ます。ここが1-e案で唯一の衝突箇所です。</p>
+          <div class="seg" role="group" aria-label="印刷バー">
+            <button type="button" data-k="printbar" data-v="off" aria-pressed="true">出ていない</button>
+            <button type="button" data-k="printbar" data-v="on" aria-pressed="false">出ている</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>この案が効く理由</h2>
+        <p class="sub">判断1の表で比較した「常時占有」を実測値で並べたものです。</p>
+        <div class="metrics">
+          <div class="metric">
+            <p class="k">今の検索条件バー（閉）</p>
+            <p class="v">179<small> px / 21%</small></p>
+          </div>
+          <div class="metric">
+            <p class="k">同（絞り込みを開く）</p>
+            <p class="v">642<small> px / 76%</small></p>
+          </div>
+          <div class="metric">
+            <p class="k">1-e案のボタン</p>
+            <p class="v">0<small> px / 0%</small></p>
+          </div>
+        </div>
+        <ul class="tight">
+          <li><b>1-a案（バー全体を追従）は破綻します。</b>絞り込みを開いた状態だと画面の76%、4グループを全部開くと221%が貼り付いたままになり、カードが見えません。</li>
+          <li><b>1-e案は一覧を1pxも削りません。</b>ボタンはカードの上に浮くだけで、レイアウトを押し出しません。</li>
+          <li>⚠️ 代わりに<b>検索語の打ち直しには一手増えます</b>（ボタン → シート）。ここが許容できるかが判断の軸です。</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>すでに決まっていること</h2>
+        <p class="sub">判断2・3は推奨案で確定済みです。モックの挙動にも反映しています。</p>
+        <table class="fixed">
+          <tr>
+            <th>判断2</th>
+            <td><code>overflow-x: hidden</code> → <code>clip</code> に置換。横はみ出し防止を保ったまま <code>position: sticky</code> が生き返ります。</td>
+          </tr>
+          <tr>
+            <th>判断3</th>
+            <td><code>style.css</code> の1箇所を直し、これを読む5ページ（トップ・404・デッキ構築・キーワード解説・印刷PDF）共通で適用。他4ページは回帰確認のみ。</td>
+          </tr>
+        </table>
+        <div class="note" style="margin-top:16px;">
+          <b>⚠️ 判断2は1-e案でも必要です。</b>
+          1-e案はフローティングボタンなので <code>sticky</code> を使いませんが、
+          <code>overflow-x: hidden</code> は<b>スマホ幅の sticky を全部壊している</b>状態です。
+          今後どこかで追従UIを使うたびに同じ罠を踏むので、原因そのものは今回まとめて直します。
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>このモックで再現していないもの</h2>
+        <ul class="tight" style="margin-top:0;">
+          <li><b>カード画像</b>は公式APIから読めないため、属性色のグラデーションで代用しています。カード名12枚は実データです。</li>
+          <li><b>絞り込みの選択肢</b>は代表的なものだけです。実物は属性・クラス・種別・サブタイプの4グループにチップが50個以上並びます。</li>
+          <li><b>慣性スクロールやタッチの感触</b>は実機と異なります。指の届きやすさは実機で確かめてください。</li>
+        </ul>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---- 実データのカード名（data/tl-names.json より） ---- */
+  var CARDS = [
+    {jp:"アリス、幻影の君主",      en:"Alice, Phantom Monarch",     el:"闇", cost:3, c1:"#4b3566", c2:"#191326"},
+    {jp:"アリサナ、星天の頂",      en:"Arisanna, Astral Zenith",    el:"光", cost:4, c1:"#7d6a34", c2:"#241d10"},
+    {jp:"ロレイン、剣の達人",      en:"Lorraine, Blademaster",      el:"無", cost:2, c1:"#4a4f5c", c2:"#181b21"},
+    {jp:"アエラ、西風の使徒",      en:"Aella, Zephyr's Hand",       el:"風", cost:2, c1:"#2f6b5c", c2:"#111f1c"},
+    {jp:"アスネ、火の精霊",        en:"Aithne, Spirit of Fire",     el:"火", cost:3, c1:"#7a3524", c2:"#24110c"},
+    {jp:"アリエル、ナチュラの大天使", en:"Ariel, Archangel of Natura", el:"地", cost:5, c1:"#4c6a2c", c2:"#161f0f"},
+    {jp:"アンドロニカ、永遠の先触れ", en:"Andronika, Eternal Herald",  el:"水", cost:4, c1:"#2b5578", c2:"#101a24"},
+    {jp:"マーリン、記憶泥棒",      en:"Merlin, Memory Thief",       el:"水", cost:2, c1:"#31597a", c2:"#111b25"},
+    {jp:"アーガス、全てを見通す巨人", en:"Argus, All-Seeing Giant",    el:"地", cost:6, c1:"#55642f", c2:"#191e10"},
+    {jp:"アルダス、洪水生まれの助祭", en:"Ardus, Floodborne Deacon",   el:"水", cost:3, c1:"#27607a", c2:"#0f1d25"},
+    {jp:"アリマ、ガイアの翼",      en:"Arima, Gaia's Wings",        el:"風", cost:2, c1:"#356b58", c2:"#12201b"},
+    {jp:"アレン、獣を招く者",      en:"Allen, Beast Beckoner",      el:"地", cost:1, c1:"#5a6630", c2:"#1a1e10"}
+  ];
+
+  var GROUPS = [
+    {name:"属性",     items:["火","水","風","地","光","闇","星","無"]},
+    {name:"クラス",   items:["ウォリアー","メイジ","レンジャー","アサシン","ガーディアン","クレリック"]},
+    {name:"種別",     items:["チャンピオン","アライ","アクション","アイテム","レガリア"]},
+    {name:"サブタイプ", items:["ソーサリー","アタック","アクセサリー","ウェポン"]}
+  ];
+
+  var grid = document.getElementById("grid");
+  CARDS.forEach(function(c){
+    var el = document.createElement("article");
+    el.className = "ph-card";
+    el.innerHTML =
+      '<div class="ph-art" style="--c1:' + c.c1 + ';--c2:' + c.c2 + '">' +
+        '<span class="cost">' + c.cost + '</span><span class="orb">' + c.el + '</span>' +
+      '</div>' +
+      '<div class="ph-cbody">' +
+        '<h3 class="ph-cname"></h3>' +
+        '<p class="ph-cen"></p>' +
+        '<div class="ph-chips"><span class="ph-chip el"></span><span class="ph-chip">チャンピオン</span></div>' +
+      '</div>';
+    el.querySelector(".ph-cname").textContent = c.jp;
+    el.querySelector(".ph-cen").textContent = c.en;
+    el.querySelector(".ph-chip.el").textContent = c.el;
+    grid.appendChild(el);
+  });
+  /* ⚠️ style属性は CSP style-src 'self' に抵触しうるので CSSOM で当て直す */
+  Array.prototype.forEach.call(grid.querySelectorAll(".ph-art"), function(a, i){
+    a.style.setProperty("--c1", CARDS[i].c1);
+    a.style.setProperty("--c2", CARDS[i].c2);
+  });
+
+  var selected = new Set();
+  var groupsEl = document.getElementById("groups");
+  GROUPS.forEach(function(g){
+    var box = document.createElement("div");
+    box.className = "ph-g";
+    var head = document.createElement("div");
+    head.className = "gh";
+    head.textContent = g.name;
+    var body = document.createElement("div");
+    body.className = "gb";
+    g.items.forEach(function(it){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "ph-ch";
+      b.setAttribute("aria-pressed", "false");
+      b.textContent = it;
+      b.addEventListener("click", function(){
+        var on = b.getAttribute("aria-pressed") === "true";
+        b.setAttribute("aria-pressed", on ? "false" : "true");
+        var key = g.name + ":" + it;
+        if (on) { selected.delete(key); } else { selected.add(key); }
+        renderCount();
+      });
+      body.appendChild(b);
+    });
+    box.appendChild(head); box.appendChild(body);
+    groupsEl.appendChild(box);
+  });
+
+  var state = { open:"sheet", pos:"br", when:"scrolled", badge:"on", printbar:"off" };
+
+  var phone      = document.getElementById("phone");
+  var scroller   = document.getElementById("scroller");
+  var controls   = document.getElementById("controls");
+  var fab        = document.getElementById("fab");
+  var fabCount   = document.getElementById("fabCount");
+  var inlinePill = document.getElementById("inlinePill");
+  var veil       = document.getElementById("veil");
+  var sheet      = document.getElementById("sheet");
+
+  function renderCount(){
+    var n = selected.size;
+    var show = state.badge === "on" && n > 0;
+    fabCount.hidden = !show;
+    fabCount.textContent = n;
+    inlinePill.hidden = !(n > 0);
+    inlinePill.textContent = n;
+  }
+
+  function updateFab(){
+    fab.setAttribute("data-pos", state.pos);
+    if (state.when === "always") { fab.classList.remove("is-hidden"); return; }
+    var past = scroller.scrollTop > (controls.offsetTop + controls.offsetHeight - 8);
+    fab.classList.toggle("is-hidden", !past);
+  }
+
+  function openSheet(){
+    if (state.open === "scroll") { scroller.scrollTo({ top: 0 }); return; }
+    sheet.classList.add("is-open");
+    veil.classList.add("is-open");
+  }
+  function closeSheet(){
+    sheet.classList.remove("is-open");
+    veil.classList.remove("is-open");
+  }
+
+  scroller.addEventListener("scroll", updateFab, { passive:true });
+  fab.addEventListener("click", openSheet);
+  document.getElementById("inlineFilter").addEventListener("click", openSheet);
+  veil.addEventListener("click", closeSheet);
+  document.getElementById("sheetClose").addEventListener("click", closeSheet);
+  document.getElementById("applyBtn").addEventListener("click", closeSheet);
+  document.getElementById("clearAll").addEventListener("click", function(){
+    selected.clear();
+    Array.prototype.forEach.call(groupsEl.querySelectorAll(".ph-ch"), function(b){
+      b.setAttribute("aria-pressed", "false");
+    });
+    renderCount();
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".seg button"), function(btn){
+    btn.addEventListener("click", function(){
+      var k = btn.getAttribute("data-k");
+      var v = btn.getAttribute("data-v");
+      state[k] = v;
+      Array.prototype.forEach.call(
+        btn.parentNode.querySelectorAll("button"),
+        function(sib){ sib.setAttribute("aria-pressed", String(sib === btn)); }
+      );
+      if (k === "printbar") { phone.setAttribute("data-printbar", v); }
+      if (k === "open" && v === "scroll") { closeSheet(); }
+      renderCount();
+      updateFab();
+    });
+  });
+
+  renderCount();
+  updateFab();
+})();
+</script>
+</body>
+</html>
