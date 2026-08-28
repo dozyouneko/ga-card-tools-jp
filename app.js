@@ -30,6 +30,13 @@ const el = {
   filterToggle: document.getElementById("filter-toggle"),
   filterToggleLabel: document.getElementById("filter-toggle-label"),
   filterToggleBadge: document.getElementById("filter-toggle-badge"),
+  // スマホの絞り込みボトムシート（PC幅では #filter-sheet が display:contents で無効化される）
+  filterSheet: document.getElementById("filter-sheet"),
+  filterSheetClose: document.getElementById("filter-sheet-close"),
+  filterApply: document.getElementById("filter-apply"),
+  filterFab: document.getElementById("filter-fab"),
+  filterFabBadge: document.getElementById("filter-fab-badge"),
+  filterVeil: document.getElementById("filter-veil"),
 };
 
 // 共通ヘルパー(shared/js/card-i18n.js)。トップページとデッキ構築ツールで共用
@@ -409,11 +416,22 @@ function clearPrint() {
 function updatePrintBar() {
   const bar = document.getElementById("print-bar");
   const n = totalCards();
-  if (n === 0) { bar.hidden = true; return; }
+  if (n === 0) { bar.hidden = true; syncPrintBarHeight(); return; }
   const pages = CardSheet.pageCountFor(n);
   document.getElementById("print-bar-text").textContent =
     `印刷リスト: ${printList.length}種 / ${n}枚（A4 ${pages}ページ）`;
   bar.hidden = false;
+  syncPrintBarHeight();
+}
+
+// 印刷バーの実測高さを CSS カスタムプロパティに書き、FAB の退避量に使う。
+// ⚠ 固定値（56px 等）にしてはいけない。文言が折り返すのでバーの高さは 60〜79px で変わり、
+// 固定値だと長い文言のときに FAB がバーに重なる。
+// ⚠ CSP が style-src 'self' なので style 属性は使えない。CSSOM（setProperty）で書く
+function syncPrintBarHeight() {
+  const bar = document.getElementById("print-bar");
+  const h = bar && !bar.hidden ? bar.getBoundingClientRect().height : 0;
+  document.documentElement.style.setProperty("--printbar-h", Math.round(h) + "px");
 }
 
 function renderTray() {
@@ -509,7 +527,8 @@ function openTray() {
 }
 function closeTray() {
   document.getElementById("tray").hidden = true;
-  document.body.classList.remove("no-scroll");
+  // ⚠ 絞り込みシートも同じ no-scroll を使う。開いているなら外さない
+  if (!isFilterSheetOpen()) document.body.classList.remove("no-scroll");
 }
 
 // ---------- イベント配線 ----------
@@ -611,11 +630,135 @@ function reloadFromUrl() {
   runSearch(true);
 }
 
-// スマホでは絞り込み全体が畳まれるため、畳んだ状態でも選択件数が分かるようにトグルへバッジを出す
+// スマホでは絞り込み全体が畳まれるため、畳んだ状態でも選択件数が分かるようにトグルへバッジを出す。
+// ⚠ 件数の出所を分けない。インラインのトグルと FAB の2つのバッジに「同じ n」を書く
 function updateFilterBadge() {
   const n = filterGroups().reduce((sum, g) => sum + g.getValues().length, 0);
+  const text = String(n);
   el.filterToggleBadge.hidden = n === 0;
-  el.filterToggleBadge.textContent = String(n);
+  el.filterToggleBadge.textContent = text;
+  if (el.filterFabBadge) {
+    el.filterFabBadge.hidden = n === 0;
+    el.filterFabBadge.textContent = text;
+  }
+  // バッジは数字だけなので、読み上げに件数が乗るよう FAB のアクセシブル名にも書く
+  if (el.filterFab) {
+    el.filterFab.setAttribute("aria-label", n === 0 ? "絞り込み・並び替え" : `絞り込み・並び替え（${n}件選択中）`);
+  }
+}
+
+// ---------- 絞り込みボトムシート（スマホ）----------
+// ⚠ 状態は .controls の filters-open クラス1つだけ。FAB とインラインのトグルの
+// どちらから開いても同じ関数を通す（入口ごとに状態を持つと2つのバッジ・aria が食い違う）
+const MOBILE_MQ = window.matchMedia("(max-width: 640px)");
+const SHEET_FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+let filterOpener = null; // 閉じたときフォーカスを戻す先（開いた側のボタンを覚えておく）
+
+function isFilterSheetOpen() {
+  return !!(el.controls && el.controls.classList.contains("filters-open"));
+}
+
+function setFilterExpanded(open) {
+  // ⚠ 片方だけ更新しない（FAB とトグルは同じシートを指している）
+  if (el.filterToggle) el.filterToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  if (el.filterFab) el.filterFab.setAttribute("aria-expanded", open ? "true" : "false");
+  if (el.filterToggleLabel) el.filterToggleLabel.textContent = "絞り込み・並び替え " + (open ? "▲" : "▾");
+}
+
+function openFilterSheet(opener) {
+  if (!el.controls || isFilterSheetOpen()) return;
+  filterOpener = opener || null;
+  el.controls.classList.add("filters-open");
+  setFilterExpanded(true);
+  // ⚠ ダイアログ意味論はスマホで開いている間だけ。
+  // PC では常時表示のインラインパネルであってダイアログではない
+  if (MOBILE_MQ.matches && el.filterSheet) {
+    el.filterSheet.setAttribute("role", "dialog");
+    el.filterSheet.setAttribute("aria-modal", "true");
+    el.filterSheet.setAttribute("aria-label", "絞り込み・並び替え");
+    document.body.classList.add("no-scroll");
+    if (el.filterSheetClose) el.filterSheetClose.focus();
+  }
+}
+
+function closeFilterSheet() {
+  if (!el.controls || !isFilterSheetOpen()) return;
+  el.controls.classList.remove("filters-open");
+  setFilterExpanded(false);
+  if (el.filterSheet) {
+    el.filterSheet.removeAttribute("role");
+    el.filterSheet.removeAttribute("aria-modal");
+    el.filterSheet.removeAttribute("aria-label");
+  }
+  // ⚠ 印刷トレイも同じ no-scroll を使う。開いているなら外さない
+  const tray = document.getElementById("tray");
+  if (!tray || tray.hidden) document.body.classList.remove("no-scroll");
+  const back = filterOpener;
+  filterOpener = null;
+  // ⚠ どちらから開いたかを覚えて戻す（FAB から開いたら FAB へ、トグルからならトグルへ）
+  if (back && document.contains(back) && back.getClientRects().length) back.focus();
+}
+
+function toggleFilterSheet(opener) {
+  if (isFilterSheetOpen()) closeFilterSheet();
+  else openFilterSheet(opener);
+}
+
+// シート内の「今フォーカスできる」要素。閉じた <details> の中は display:none なので矩形を持たない
+function sheetFocusables() {
+  if (!el.filterSheet) return [];
+  return Array.from(el.filterSheet.querySelectorAll(SHEET_FOCUSABLE))
+    .filter((n) => n.getClientRects().length > 0);
+}
+
+// FAB は「.controls が画面外に出たら」出す。スクロールイベントで毎フレーム測らないため
+// IntersectionObserver を使う。⚠ PC幅では出さない（CSS と JS の両方でガードする）
+let controlsIntersecting = true;
+function updateFabVisibility() {
+  if (!el.filterFab) return;
+  const show = MOBILE_MQ.matches && !controlsIntersecting;
+  el.filterFab.classList.toggle("is-hidden", !show);
+}
+
+function initFilterSheet() {
+  if (el.filterToggle && el.controls) {
+    el.filterToggle.addEventListener("click", () => toggleFilterSheet(el.filterToggle));
+  }
+  if (el.filterFab) el.filterFab.addEventListener("click", () => openFilterSheet(el.filterFab));
+  if (el.filterSheetClose) el.filterSheetClose.addEventListener("click", closeFilterSheet);
+  // 「この条件で見る」は閉じるだけ。チップ変更で既に即時検索が走っているので再検索しない
+  if (el.filterApply) el.filterApply.addEventListener("click", closeFilterSheet);
+  if (el.filterVeil) el.filterVeil.addEventListener("click", closeFilterSheet);
+
+  // フォーカストラップ（Esc は既存のグローバル keydown 側で扱う）
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Tab" || !MOBILE_MQ.matches || !isFilterSheetOpen()) return;
+    const nodes = sheetFocusables();
+    if (!nodes.length) return;
+    const first = nodes[0];
+    const last = nodes[nodes.length - 1];
+    const cur = document.activeElement;
+    const inside = el.filterSheet.contains(cur);
+    if (e.shiftKey) {
+      if (!inside || cur === first) { e.preventDefault(); last.focus(); }
+    } else if (!inside || cur === last) {
+      e.preventDefault(); first.focus();
+    }
+  });
+
+  if (el.controls && el.filterFab && "IntersectionObserver" in window) {
+    new IntersectionObserver((entries) => {
+      controlsIntersecting = entries[entries.length - 1].isIntersecting;
+      updateFabVisibility();
+    }, { threshold: 0 }).observe(el.controls);
+  }
+  // 幅が PC 側へ移ったらダイアログ意味論を残さない（§6-3 は「スマホで開いている間だけ」）
+  MOBILE_MQ.addEventListener("change", () => {
+    if (!MOBILE_MQ.matches && isFilterSheetOpen()) closeFilterSheet();
+    updateFabVisibility();
+  });
+  updateFabVisibility();
 }
 
 function init() {
@@ -645,14 +788,9 @@ function init() {
     runSearch(true);
   });
 
-  // 絞り込み・並び替えパネルの開閉（スマホのみトグル表示。PCでは常時表示）
-  if (el.filterToggle && el.controls) {
-    el.filterToggle.addEventListener("click", () => {
-      const open = el.controls.classList.toggle("filters-open");
-      el.filterToggle.setAttribute("aria-expanded", open ? "true" : "false");
-      el.filterToggleLabel.textContent = "絞り込み・並び替え " + (open ? "▲" : "▾");
-    });
-  }
+  // 絞り込み・並び替えパネルの開閉（スマホのみ。PCでは常時表示）。
+  // インラインのトグル・FAB・×・ベール・Esc をまとめて配線する
+  initFilterSheet();
 
   // ヘッダのツールリンクの開閉（スマホのみトグル表示。PCでは常時表示）
   const toolsToggle = document.getElementById("tools-toggle");
@@ -722,6 +860,7 @@ function init() {
     if (e.key !== "Escape") return;
     if (!document.getElementById("tray").hidden) closeTray();
     else if (GA_CARD_DETAIL.isOpen()) GA_CARD_DETAIL.close();
+    else if (MOBILE_MQ.matches && isFilterSheetOpen()) closeFilterSheet();
   });
 
   window.addEventListener("hashchange", handleHash);
@@ -733,6 +872,8 @@ function init() {
   window.addEventListener("popstate", () => { if (currentQs() !== queryString()) reloadFromUrl(); });
 
   updatePrintBar(); // localStorage から復元
+  // 幅が変わるとバーの文言の折り返しが変わり高さも変わる。FAB の退避量を追従させる
+  window.addEventListener("resize", syncPrintBarHeight);
 
   // 名前の訳が入る前に描画すると英語名のグリッドが一瞬出るため、初期表示だけは取得を待つ。
   // シーズン禁止(#34)のバッジも描画時に要るので同じ便で待つ（描画とのレースを作らない）。

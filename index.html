@@ -55,7 +55,16 @@
       <input type="search" id="q" placeholder="カード名で検索（英語）… 例: lorraine" autocomplete="off" />
       <input type="search" id="qtext" placeholder="効果テキストで部分検索（英語 / 日本語）… 例: draw, 追放" autocomplete="off" />
     </div>
-    <button id="filter-toggle" class="filter-toggle" type="button" aria-expanded="false" aria-controls="filter-row"><span id="filter-toggle-label">絞り込み・並び替え ▾</span><span id="filter-toggle-badge" class="fbadge" hidden></span></button>
+    <!-- ⚠ aria-controls はシート全体(#filter-sheet)を指す。FAB(#filter-fab)と指し先を揃えてある -->
+    <button id="filter-toggle" class="filter-toggle" type="button" aria-expanded="false" aria-controls="filter-sheet"><span id="filter-toggle-label">絞り込み・並び替え ▾</span><span id="filter-toggle-badge" class="fbadge" hidden></span></button>
+    <!-- スマホ幅ではボトムシート、PC幅では display:contents で「箱を作らない」ラッパ。
+         ⚠ #filter-row の中身は shared/js/card-search.js の fillChips() が参照を握っているので動かさない -->
+    <div id="filter-sheet">
+    <div id="filter-sheet-grab" aria-hidden="true"></div>
+    <div id="filter-sheet-head">
+      <h2 id="filter-sheet-title">絞り込み・並び替え</h2>
+      <button id="filter-sheet-close" type="button" aria-label="閉じる">×</button>
+    </div>
     <div class="filter-row" id="filter-row">
     <!-- 複数選択（AND/OR）の絞り込み。中身は shared/js/card-search.js の fillChips() が構築する -->
     <details class="fgroup" id="g-element"></details>
@@ -77,6 +86,11 @@
     <button id="reset" type="button">リセット</button>
     </div>
     </div>
+    <!-- ⚠ リセットは上の #reset を使う（シート内に同じ機能を2つ置かない） -->
+    <div id="filter-sheet-foot">
+      <button id="filter-apply" type="button">この条件で見る</button>
+    </div>
+    </div>
   </section>
 
   <p id="status" class="status" role="status" aria-live="polite">読み込み中…</p>
@@ -88,6 +102,12 @@
   </div>
 
   <!-- カード詳細モーダルは shared/js/card-detail.js が #gacd-modal としてDOM注入する -->
+
+  <!-- 絞り込みシートを開くFABとベール。
+       ⚠ <body> 直下に置くこと。.controls の中に入れると backdrop-filter の包含ブロックと
+       スタッキングコンテキストに閉じ込められ、画面下端に来ない／印刷バーの下に潜る -->
+  <button id="filter-fab" class="is-hidden" type="button" aria-expanded="false" aria-controls="filter-sheet" aria-label="絞り込み・並び替え"><span id="filter-fab-label">絞り込み</span><span id="filter-fab-badge" hidden></span></button>
+  <div id="filter-veil"></div>
 
   <!-- 印刷トレイ バー（1枚以上追加されると表示） -->
   <div id="print-bar" class="print-bar" hidden>
