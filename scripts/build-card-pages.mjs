@@ -147,12 +147,33 @@ const day = (iso) => {
   return d === "1970-01-01" ? "" : d;
 };
 
+// 版の正規順序。⚠ この比較器の出力順が、次の4つを支配する:
+//   ① 代表画像(og:image / twitter:image / 本文の画像) ② イラスト切替サムネイルの並び
+//   ③ 収録セット表の行順 ④ セットページが各セットで採る版(main() のグルーピング)
+// ⚠ 公式APIの editions 配列順は予告なく入れ替わる。第2キー以降を削ると出力が非決定的になり、
+//   中身が変わらない日に日次cronがノイズコミットを作る(#71)。整形目的で簡略化しないこと。
+//   1. 所属セットの発売日 降順   … 代表は最新セットの版(既存の主キー。最古版だと旧セットの絵柄になる)
+//   2. meta.sets の並び 昇順     … 同日なら本編セット→サプリメント→プロモ(未登録セットは 9999 で末尾)
+//   3. レアリティ 昇順           … 通常版を特殊仕様(PR/CSR/CUR/CPR)より優先
+//   4. カード番号 昇順(数値考慮) … 同一セット内が #048A → #048B → #048C の自然順になる
+//   5. 版slug 昇順               … 最終決着キー(カード内で一意。実測: 4,940版で重複0)
+function editionOrder(a, b) {
+  const byDate = day(b.set && b.set.release_date).localeCompare(day(a.set && a.set.release_date));
+  if (byDate) return byDate;
+  const bySet = setOrder((a.set && a.set.prefix) || "") - setOrder((b.set && b.set.prefix) || "");
+  if (bySet) return bySet;
+  const byRarity = (a.rarity == null ? 99 : a.rarity) - (b.rarity == null ? 99 : b.rarity);
+  if (byRarity) return byRarity;
+  const byNumber = String(a.collector_number || "")
+    .localeCompare(String(b.collector_number || ""), "en", { numeric: true });
+  if (byNumber) return byNumber;
+  return String(a.slug || "").localeCompare(String(b.slug || ""));
+}
+
 // 版を「所属セットの発売日が新しい順」に並べたカードのビューを返す。
 // 代表画像・パンくず・収録一覧すべて最新版基準(指摘: 最古版だと旧セットの絵柄になる)。
 function newestFirst(card) {
-  const eds = [...(card.editions || card.result_editions || [])].sort((a, b) =>
-    day(b.set && b.set.release_date).localeCompare(day(a.set && a.set.release_date))
-  );
+  const eds = [...(card.editions || card.result_editions || [])].sort(editionOrder);
   return { ...card, editions: eds, result_editions: eds };
 }
 
@@ -786,7 +807,9 @@ async function main() {
   const bySets = new Map();
   for (const card of cards) {
     const seen = new Set();
-    for (const ed of card.editions || card.result_editions || []) {
+    // ⚠ 生の配列順で採ると「同じセットに複数の版を持つカード」でどの版を載せるかが
+    //   公式APIの配列順に依存する(#71)。newestFirst() の正規順序で回す。
+    for (const ed of newestFirst(card).editions) {
       const prefix = ed.set && ed.set.prefix;
       if (!prefix || seen.has(prefix)) continue;
       seen.add(prefix);
