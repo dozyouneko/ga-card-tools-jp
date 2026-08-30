@@ -14,7 +14,10 @@
 // さらに meta.sets（エキスパンション絞り込みの選択肢）が全セットを覆っているかを検査する（#40）。
 // 同型で meta.subtypes（サブタイプ行の訳語）が実データの全サブタイプを覆っているかも検査する。
 // 加えて cronワークフローの git add 対象と README.md / CLAUDE.md の列挙が一致するかを検査する（#70）。
+// 最後に、生成済みカードページの日本語効果文に「ハイライトされていない用語」が残っていないかを
+// 検査する（用語ハイライトの語形ずれ・片方向）。⚠ この検査だけ非同期（並列読み込み）。
 import { readFileSync, readdirSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadI18n } from "./lib/load-i18n.mjs";
@@ -375,6 +378,116 @@ const CRON_WORKFLOW = ".github/workflows/build-tournaments.yml";
     bad.forEach((m) => console.error(`  - ${m}`));
     console.error(`  → 正はワークフローの git add 行です。README.md「大会データの自動更新」節と`);
     console.error(`    CLAUDE.md「cronがコミットする範囲」のマーカー間の列挙を合わせてください`);
+  }
+}
+
+// --- カードページの用語ハイライトの取りこぼし検査（用語ハイライトの語形ずれ） -------------
+// 日本語効果文に用語がはっきり書かれているのにハイライトも用語解説も出ない、という欠落が
+// 155件/140枚あった（英語原文の語形がずれてキーが当たらない／英語原文に該当語が無い）。
+// fail-open なので画面は壊れず、黙って出ないだけ＝人が気づけない。ここで止める。
+//
+// ⚠ 正はコミット済みの cards/<slug>/index.html（日次cronが毎日再生成する）。生成関数を呼んで
+//   突き合わせない（両辺が同源になり常に通る）。この検査が赤くなるのは主に次の3つ:
+//     1. 照合規則の回帰（matchedTerms() が英語ゲートだけに戻った）
+//     2. data/translations.js に用語を足した／data/tl/*.js に訳を足したのに build:cards 未実行
+//     3. ハイライト実装のデグレ
+// ⚠ 片方向にする。「用語解説に出ているのに訳文に中核語が無い」（無害・実測11件）では落とさない
+//   ——辞書に先回りで用語を入れておくのは正当な運用（meta.subtypes 検査と同じ方針）。
+// ⚠ この検査は shadowstrike の1枚を原理的に拾えない（既に「プレパレーション」が term-hl に
+//   包まれており、span の内側を除くと中核語「プレパレーションカウンター」が現れないため）。
+//   ＝緑になっても占有判定の順序が正しい保証にはならない。
+if (loaded) {
+  const bad = [];
+  const cores = [
+    ...new Set(
+      Object.values(loaded.terms || {})
+        .map((t) => String((t && t.jp) || "").split("（")[0].trim())
+        .filter((c) => c.length >= 2)
+    ),
+  ];
+  // ⚠ grep 'term-hl">核' の形では判定できない。subtype-hl が内側に入ると文字列が割れて0件に
+  //   見える。タグを走査して「term-hl / card-name-hl の内側か」を判定し、内側は捨てる。
+  //   残りのタグは境界（改行）に潰す（タグをまたいだ偶然の連結を用語と誤認しないため）。
+  const visibleText = (html) => {
+    let out = "";
+    let depth = 0;
+    let prot = -1; // 保護spanが開いた深さ（-1 = 保護外）
+    const re = /<[^>]*>/g;
+    let last = 0;
+    let m;
+    while ((m = re.exec(html))) {
+      if (prot < 0) out += html.slice(last, m.index);
+      out += "\n";
+      const tag = m[0];
+      if (/^<span[\s>]/.test(tag)) {
+        depth++;
+        if (prot < 0 && /class="(?:term-hl|card-name-hl)"/.test(tag)) prot = depth;
+      } else if (/^<\/span>/.test(tag)) {
+        if (prot === depth) prot = -1;
+        depth--;
+      }
+      last = m.index + tag.length;
+    }
+    if (prot < 0) out += html.slice(last);
+    return out
+      .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&");
+  };
+  // ⚠ 効果（日本語）の節は1ページに複数ある（両面カードは裏面にも出る）。全部見る。
+  const SECTION = /<h2>効果（日本語）<\/h2><p class="cp-effect">([\s\S]*?)<\/p>/g;
+  const scan = (html) => {
+    const hits = new Set();
+    for (const m of html.matchAll(SECTION)) {
+      const text = visibleText(m[1]);
+      for (const c of cores) if (text.includes(c)) hits.add(c);
+    }
+    return [...hits];
+  };
+
+  let pages = 0;
+  const missed = [];
+  try {
+    const cardsDir = path.join(root, "cards");
+    const slugs = readdirSync(cardsDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name)
+      .sort();
+    // ⚠ 逐次 readFileSync は 2,495ファイルで約7秒かかる（validate 全体が約1秒）。並列8で読む。
+    // ⚠ `n += await readFile(...)` と書かないこと（+= は await の前に左辺を読むため集計が壊れる）。
+    let next = 0;
+    const worker = async () => {
+      for (;;) {
+        const i = next++;
+        if (i >= slugs.length) return;
+        let html;
+        try {
+          html = await readFile(path.join(cardsDir, slugs[i], "index.html"), "utf8");
+        } catch {
+          continue; // index.html が無いディレクトリは対象外
+        }
+        pages++;
+        const hits = scan(html);
+        if (hits.length) missed.push(`${slugs[i]}（${hits.join("・")}）`);
+      }
+    };
+    await Promise.all(Array.from({ length: 8 }, worker));
+    missed.sort(); // 並列実行なので順序は不定。表示を決定的にする
+    if (!pages) bad.push("cards/ にカードページが1枚もありません（生成前？）");
+    else if (missed.length) {
+      bad.push(`日本語効果文にあるのにハイライトされていない用語: ${missed.length}ページ`);
+      bad.push(`  例: ${missed.slice(0, 5).join(" / ")}`);
+    } else {
+      console.log(`card term highlights up to date — ${pages} ページ`);
+    }
+  } catch (e) {
+    bad.push(`読み込みに失敗: ${e.message}`);
+  }
+  if (bad.length) {
+    problems++;
+    console.error(`\nUNHIGHLIGHTED TERMS (cards/<slug>/index.html):`);
+    bad.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → 用語を足した/訳を足した場合は npm run build:cards を実行してコミットしてください`);
+    console.error(`    件数が多い場合は matchedTerms()（shared/js/card-detail.js / scripts/build-card-pages.mjs）の回帰を疑ってください`);
   }
 }
 

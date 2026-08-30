@@ -183,20 +183,87 @@ function escapeRegExp(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-// 効果文中に登場するゲーム用語(terms辞書のキーが英語効果文に含まれるもの)を抽出
+// 用語エントリの「中核語」= jp の「（」より前。highlightTerms が日本語文から探す文字列と同じで、
+// 案C′ では「その用語を採るかどうかのゲートそのもの」になる。
+function termCore(entry) {
+  return String((entry && entry.jp) || "").split("（")[0].trim();
+}
+
+// 効果文中に登場するゲーム用語を抽出する（案C′ = 英語ゲート ∪ 訳文駆動）。
+//
+// 手順1（英語ゲート・従来どおり）: 英語効果文に terms のキーが \b 前方一致したものを採る。
+// 手順2（訳文ゲート・追加）: 手順1で採れなかったキーのうち、中核語が「和訳の効果文」に
+//   現れるものを候補にする。⚠ 自分のカード名は同じ長さの空白で潰してから探すこと
+//   （「雪のフラクタル」→ fractal のような名前由来の誤検出が入る。highlightCardName() が
+//   先に保護する領域なので、ハイライトは出ないのに用語解説だけ増える）。
+// 手順3（占有判定）: 採用済みと候補を中核語の長い順に **混ぜて** 並べ、全文字が未占有の
+//   出現だけを占有する。占有できた候補だけを採る（「フローティングメモリー」に覆われた
+//   「メモリー」まで用語解説に並ぶのを防ぐ）。
+// ⚠ 手順3で「採用済みを先に全部占有してから候補を見る」と実装しないこと。長い候補
+//   （プレパレーションカウンター）が短い採用済み（プレパレーション）に食われ、静かに落ちる。
+// ⚠ 和訳が無い面は手順2〜3を丸ごと飛ばし、従来と同じ（英語ゲートのみの）結果に縮退する
+//   （fail-open。訳データの取得に失敗した場合も同じ）。
+// ⚠ 戻り値は「手順1の採用分（従来の並び）→ 手順3で採った候補」の順。既存ページの
+//   用語解説の並びを変えないため、この順序を守ること。
 function matchedTerms(card) {
+  // マークダウンの強調記号(*)を除去してから判定する。
+  // API原文は "**buff** counter" のように語の一部だけを太字化するため、
+  // 除去しないと "buff counter" 等の複数語キーが分断されて一致しない。
   const haystack = `${card.effect || ""}`.replace(/\*/g, "").toLowerCase();
+  const keys = Object.keys(I18N.terms || {});
   const found = [];
-  Object.keys(I18N.terms || {}).forEach((key) => {
-    if (new RegExp("\\b" + escapeRegExp(key)).test(haystack)) found.push(I18N.terms[key]);
+  const gated = new Set();
+  keys.forEach((key) => {
+    // 語頭のワード境界(\b)で判定して英単語の途中でのヒットを防ぐ。
+    // 語尾は境界を課さないため、複数形・活用（banished / materializes 等）は引き続き一致する。
+    if (new RegExp("\\b" + escapeRegExp(key)).test(haystack)) {
+      found.push(I18N.terms[key]);
+      gated.add(key);
+    }
   });
-  return found;
+
+  const t = CI.tr(card);
+  let text = t && t.effect ? String(t.effect).replace(/\*/g, "") : "";
+  if (!text) return found;
+  const name = CI.jpName(card).trim();
+  if (name.length >= 2 && CI.hasJapanese(name)) text = text.split(name).join(" ".repeat(name.length));
+
+  const cands = [];
+  keys.forEach((key) => {
+    if (gated.has(key)) return;
+    const core = termCore(I18N.terms[key]);
+    if (core.length >= 2 && text.indexOf(core) >= 0) {
+      cands.push({ entry: I18N.terms[key], core, keep: false });
+    }
+  });
+  if (!cands.length) return found;
+
+  const queue = found
+    .map((entry) => ({ entry, core: termCore(entry), keep: true }))
+    .concat(cands)
+    .filter((x) => x.core.length >= 2)
+    .sort((a, b) => b.core.length - a.core.length);
+  const used = new Array(text.length).fill(false);
+  const extra = [];
+  queue.forEach((item) => {
+    let hit = false;
+    for (let i = text.indexOf(item.core); i >= 0; i = text.indexOf(item.core, i + 1)) {
+      let free = true;
+      for (let j = 0; j < item.core.length; j++) if (used[i + j]) { free = false; break; }
+      if (!free) continue;
+      for (let j = 0; j < item.core.length; j++) used[i + j] = true;
+      hit = true;
+    }
+    // 採用済み（手順1）は占有だけ行い、常に採用のまま（手順1の結果は減らさない）
+    if (hit && !item.keep) extra.push(item.entry);
+  });
+  return found.concat(extra);
 }
 
 function highlightTerms(html, terms) {
   if (!terms || !terms.length) return html;
   const cores = [...new Set(
-    terms.map((t) => String(t.jp || "").split("（")[0].trim()).filter((c) => c.length >= 2)
+    terms.map(termCore).filter((c) => c.length >= 2)
   )].sort((a, b) => b.length - a.length);
   if (!cores.length) return html;
   const re = new RegExp("(" + cores.map(escapeRegExp).join("|") + ")", "g");
@@ -220,8 +287,12 @@ function highlightCardName(html, card) {
   return html.replace(re, '<span class="card-name-hl">$&</span>');
 }
 
-function applyOutsideSpans(html, className, fn) {
-  const re = new RegExp(`(<span class="${className}">.*?</span>)`, "g");
+// classNames は文字列または配列(複数クラスを同時に保護する)。
+// ⚠ 正規表現が `.*?</span>` の非貪欲一致なので、入れ子の無い span にしか使えない。
+//   呼び出し順を入れ替えないこと(card-name-hl / term-hl はこの時点で入れ子を含まない)。
+function applyOutsideSpans(html, classNames, fn) {
+  const alt = (Array.isArray(classNames) ? classNames : [classNames]).join("|");
+  const re = new RegExp(`(<span class="(?:${alt})">.*?</span>)`, "g");
   return html.split(re).map((seg, i) => (i % 2 === 1 ? seg : fn(seg))).join("");
 }
 
@@ -233,7 +304,9 @@ function jpEffectHtml(face, terms) {
     let html = CI.renderEffect(jpEffect);
     html = highlightCardName(html, face);
     html = applyOutsideSpans(html, "card-name-hl", (seg) => highlightTerms(seg, terms));
-    html = applyOutsideSpans(html, "card-name-hl", (seg) => highlightSubtypes(seg, face));
+    // ⚠ サブタイプは term-hl の内側にも入れない(入ると1語の途中で色と背景が変わる)。
+    //   1回目(highlightTerms 側)は term-hl がまだ存在しないので保護対象に加えない。
+    html = applyOutsideSpans(html, ["card-name-hl", "term-hl"], (seg) => highlightSubtypes(seg, face));
     return html;
   }
   if (!face.effect) return '<span class="cp-muted">（効果テキストなし）</span>';
