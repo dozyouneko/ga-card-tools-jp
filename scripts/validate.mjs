@@ -381,6 +381,144 @@ const CRON_WORKFLOW = ".github/workflows/build-tournaments.yml";
   }
 }
 
+// --- 起票案の状態行と索引の整合検査（未採番・起票案の整合検査） ---------------
+// docs/design/** の起票案（起票案*.md / 派生起票案*.md）の状態は「各ファイルの1行目」が正で、
+// docs/design/待ち行列/待ち行列と復旧手順.md がその一覧（索引）を持つ。索引は人が手で書き写す
+// ので必ずドリフトする（#70 の git add 列挙と同型）。ここで人を止める。見るのは2点だけ:
+//   A 収録漏れ … 起票案が索引にリンクされているか
+//   B 件数一致 … 索引の見出し（**N件**）と、状態行から数えた実数
+// ⚠ 照合は「パスの完全一致」。基名の部分一致は採らない（誤検知1件・見逃し1件を実測）。
+//   基名 起票案_2026-08-26.md は2ファイルあり、さらに 派生起票案_2026-08-26.md の部分文字列。
+//   索引のリンクは索引の位置から解決して正規化する（同フォルダのスラッシュ無しリンクも通す）。
+// ⚠ 索引の表構造・列は見ない（索引を整形しただけで落ちる検査にしない）。
+// ⚠ 抽出に失敗したときに「一致」へ倒さないこと（#40 の教訓）。索引が読めない・見出しが取れない・
+//   見出しが複数ある・起票案が0件 のすべてを exit 1 にする（fail-open は1つも無い）。
+// ⚠ この検査のため「起票案」で始まる名前の .md は起票案以外の目的で置けない。除外リストで逃げると
+//   本物を取りこぼす穴が増えるので、名前のほうを直す（設計書自身がこれを踏んで改名した）。
+const DRAFT_INDEX = "docs/design/待ち行列/待ち行列と復旧手順.md";
+const DRAFT_ROOT = "docs/design";
+{
+  const bad = [];
+  // 1行目の状態行。⚠ 日付は形式だけ見る（値の妥当性も「最終確認からN日」の鮮度も見ない
+  //   ＝その日の変更と無関係に時計だけで赤くなる検査にしない）
+  const STATUS_RE = /^\*\*状態: (生きている|完了|取り下げ)\*\*（最終確認 (\d{4}-\d{2}-\d{2})）/;
+  const IS_DRAFT = /^(派生)?起票案/; // ⚠ 前方一致。「含む」だと無関係な文書まで拾う
+  const LINK_RE = /\]\(([^)\s#]+\.md)[)#]/g; // ](path.md) と ](path.md#anchor) の両方
+  const toRel = (p) => path.relative(root, p).split(path.sep).join("/");
+
+  // --- 起票案を集める（再帰・リポジトリ相対パスに正規化して昇順） ---
+  const drafts = [];
+  const walk = (dir) => {
+    let entries;
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch (e) {
+      bad.push(`走査に失敗: ${toRel(dir)}（${e.message}）`);
+      return;
+    }
+    for (const ent of entries) {
+      const full = path.join(dir, ent.name);
+      if (ent.isDirectory()) walk(full);
+      else if (ent.isFile() && ent.name.endsWith(".md") && IS_DRAFT.test(ent.name)) drafts.push(toRel(full));
+    }
+  };
+  walk(path.join(root, DRAFT_ROOT));
+  drafts.sort(); // 出力を決定的にする
+  // ⚠ 0件を「全部一致」に倒さない。走査の壊れ（パス定数の誤り・実行位置違い）が黙って緑になる
+  if (!drafts.length) bad.push(`起票案が1件も見つかりません: ${DRAFT_ROOT}`);
+
+  // --- 状態行を読む ---
+  const counted = { 生きている: 0, 完了: 0, 取り下げ: 0 };
+  let unreadable = 0;
+  for (const rel of drafts) {
+    let first;
+    try {
+      // ⚠ BOM 付きで保存されると「1行目が無い」に見えて原因が分かりにくい。先に除去する
+      first = readFileSync(path.join(root, rel), "utf8").replace(/^\uFEFF/, "").split(/\r?\n/)[0] || "";
+    } catch (e) {
+      bad.push(`起票案の読み込みに失敗: ${rel}（${e.message}）`);
+      unreadable++;
+      continue;
+    }
+    const m = STATUS_RE.exec(first);
+    if (!m) {
+      // ⭐ この検査のいちばんの効き目＝状態行なしの起票案を新規に作れなくなる
+      bad.push(`起票案の1行目に状態行がありません: ${rel}`);
+      unreadable++;
+      continue;
+    }
+    counted[m[1]]++;
+  }
+
+  // --- 索引を読む ---
+  let idx = null;
+  try {
+    idx = readFileSync(path.join(root, DRAFT_INDEX), "utf8");
+  } catch {
+    bad.push(`索引が見つかりません: ${DRAFT_INDEX}`);
+  }
+  // ⚠ 見出しの語は索引側が「完了済み」、状態行側が「完了」。ラベルは状態行側に寄せる。
+  // ⚠ 閉じ括弧まで要求しないこと（全件見出しは ** の直後が「）」ではなく「・」で 0回一致になる）。
+  // ⚠ 逆に緩めると索引の別の見出し2本（「#### ②-A 完了済みタスク **5件**」と
+  //   「### ② issueを起票する（**完了済み5件 …**）」）を拾って壊れる。緩めた瞬間に
+  //   「見出しが N個 あります」で赤くなる。
+  const HEAD_RES = [
+    ["全件", /^#{2,3} .*起票案の一覧（\*\*全(\d+)件\*\*/gm],
+    ["生きている", /^#{2,3} .*生きている（\*\*(\d+)件\*\*/gm],
+    ["完了", /^#{2,3} .*完了済み（\*\*(\d+)件\*\*/gm],
+    ["取り下げ", /^#{2,3} .*取り下げ（\*\*(\d+)件\*\*/gm],
+  ];
+  let idxCounts = idx === null ? null : {};
+  if (idx !== null) {
+    for (const [label, re] of HEAD_RES) {
+      const hits = [...idx.matchAll(re)];
+      if (hits.length === 0) {
+        bad.push(`索引に「${label}」の件数見出しが見つかりません`);
+        idxCounts = null;
+      } else if (hits.length > 1) {
+        bad.push(`索引に「${label}」の件数見出しが ${hits.length}個 あります（1個だけにしてください）`);
+        idxCounts = null;
+      } else if (idxCounts) {
+        idxCounts[label] = Number(hits[0][1]);
+      }
+    }
+  }
+
+  // ⚠ 索引が読めない／見出しが取れないときは A・B とも実行しない（「一致」に倒さないため）
+  if (idxCounts) {
+    const base = path.posix.dirname(DRAFT_INDEX);
+    const linked = new Set(
+      [...idx.matchAll(LINK_RE)].map((m) => path.posix.normalize(path.posix.join(base, m[1]))),
+    );
+    // A 収録漏れ（⚠ 基名ではなくパスを出す。基名は重複するのでどちらの話か判別できない）
+    for (const rel of drafts) if (!linked.has(rel)) bad.push(`索引に載っていない起票案: ${rel}`);
+    // B 件数一致（⚠ 実数が確定しないまま比較すると1つの原因で2種類のエラーが出る）
+    if (unreadable) {
+      bad.push(`件数の比較を省略しました（状態行を読めない起票案が ${unreadable}件 あるため）`);
+    } else {
+      const actual = { 全件: drafts.length, ...counted };
+      for (const [label] of HEAD_RES) {
+        if (idxCounts[label] !== actual[label]) {
+          bad.push(`索引の件数が実数と一致しません: ${label} 索引${idxCounts[label]} / 実数${actual[label]}`);
+        }
+      }
+    }
+  }
+
+  if (bad.length) {
+    problems++;
+    console.error(`\nISSUE DRAFT DRIFT (${DRAFT_INDEX}):`);
+    bad.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → 状態の正は各起票案の1行目です。索引 §1 の一覧と見出しの件数を合わせてください`);
+    console.error(`    （手順は ${DRAFT_INDEX} §4）`);
+    console.error(`  → 「起票案」で始まる名前の .md はすべて起票案として扱われます。設計書・解説文書には別の名前を付けてください`);
+  } else {
+    console.log(
+      `issue drafts in sync — 起票案${drafts.length}件（生きている${counted["生きている"]} / 完了${counted["完了"]} / 取り下げ${counted["取り下げ"]}）`,
+    );
+  }
+}
+
 // --- カードページの用語ハイライトの取りこぼし検査（用語ハイライトの語形ずれ） -------------
 // 日本語効果文に用語がはっきり書かれているのにハイライトも用語解説も出ない、という欠落が
 // 155件/140枚あった（英語原文の語形がずれてキーが当たらない／英語原文に該当語が無い）。
