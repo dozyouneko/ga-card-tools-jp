@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # セッション役割つき Claude Code 起動ショートカット
 #
+#   cc-lead    … リードセッション（.claude/agents/lead.md）
+#                design/dev/review を直接呼び、設計〜レビューを1ターミナルで回す
 #   cc-design  … 設計担当セッション（.claude/agents/design.md）
 #   cc-sprint  … スプリント進行役（.claude/agents/sprint.md）
 #                dev/review をサブエージェントとして交互に呼び、1ターミナルで回す
@@ -8,7 +10,8 @@
 #   cc-review  … レビュー担当を単独で起動（.claude/agents/review.md）
 #   cc-pr      … 広報担当（.claude/agents/pr.md）X投稿用の画像・投稿文を作る
 #
-# 通常は cc-design（設計）と cc-sprint（実装〜レビュー）の2つだけ使う。
+# cc-lead だけで 設計→実装→レビュー が回る（ユーザーとの窓口が1つで済む）。
+# cc-design（設計）と cc-sprint（実装〜レビュー）の2つに分ける従来の運用も残してある。
 # cc-dev / cc-review は工程を1つだけ手動で回したいときの直接起動用。
 # cc-pr は 設計→開発→レビュー のサイクルの外側で、投稿を作りたいときだけ使う。
 # サイクルは 設計 → 開発 → レビュー。ラベルは 実装待ち → レビュー待ち → 設計確認待ち と回る。
@@ -25,6 +28,7 @@
 _GA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # どちらもリポジトリルートで起動する（CLAUDE.md と .claude/agents/ の探索を確実にするため）
+cc-lead() { (cd "$_GA_ROOT" && claude --agent lead -n リード "$@"); }
 cc-design() { (cd "$_GA_ROOT" && claude --agent design -n 設計 "$@"); }
 cc-dev() { (cd "$_GA_ROOT" && claude --agent dev -n 開発 "$@"); }
 cc-review() { (cd "$_GA_ROOT" && claude --agent review -n レビュー "$@"); }
