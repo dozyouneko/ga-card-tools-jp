@@ -574,17 +574,26 @@ if (loaded) {
   };
   // ⚠ 効果（日本語）の節は1ページに複数ある（両面カードは裏面にも出る）。全部見る。
   const SECTION = /<h2>効果（日本語）<\/h2><p class="cp-effect">([\s\S]*?)<\/p>/g;
+  // ⚠ (b) の右辺。SECTION と「同じHTMLを別の数え方で数える」ことが要点。
+  //   SECTION から見出し部分を切り出して使い回さないこと——両辺が同源になると常に一致し、
+  //   この検査自体が新しい「無言の緑」になる。
+  const JP_H2 = /<h2>効果（日本語）<\/h2>/g;
   const scan = (html) => {
     const hits = new Set();
+    let sections = 0;
     for (const m of html.matchAll(SECTION)) {
+      sections++;
       const text = visibleText(m[1]);
       for (const c of cores) if (text.includes(c)) hits.add(c);
     }
-    return [...hits];
+    return { hits: [...hits], sections };
   };
 
   let pages = 0;
+  let sections = 0;
   const missed = [];
+  const noSection = []; // (a) 効果（日本語）の節を1つも走査できないページ
+  const partial = []; // (b) 見出しの数と走査できた節の数が食い違うページ
   try {
     const cardsDir = path.join(root, "cards");
     const slugs = readdirSync(cardsDir, { withFileTypes: true })
@@ -605,18 +614,40 @@ if (loaded) {
           continue; // index.html が無いディレクトリは対象外
         }
         pages++;
-        const hits = scan(html);
+        // ⚠ 検査が空回りしていないことの確認（(a)(b)）。生成器のマークアップが変わると
+        //   SECTION が1つも当たらなくなるが、それだけでは hits が空＝緑になってしまう。
+        const h = [...html.matchAll(JP_H2)].length;
+        const { hits, sections: s } = scan(html);
+        sections += s;
+        // ⚠ else if にする。節が0のページで (b) も積むと、1つの原因で2種類のエラーが出る。
+        if (s === 0) noSection.push(slugs[i]);
+        else if (s !== h) partial.push(`${slugs[i]}（節${s} / 見出し${h}）`);
         if (hits.length) missed.push(`${slugs[i]}（${hits.join("・")}）`);
       }
     };
     await Promise.all(Array.from({ length: 8 }, worker));
-    missed.sort(); // 並列実行なので順序は不定。表示を決定的にする
+    // 並列実行なので順序は不定。表示を決定的にする
+    missed.sort();
+    noSection.sort();
+    partial.sort();
     if (!pages) bad.push("cards/ にカードページが1枚もありません（生成前？）");
-    else if (missed.length) {
-      bad.push(`日本語効果文にあるのにハイライトされていない用語: ${missed.length}ページ`);
-      bad.push(`  例: ${missed.slice(0, 5).join(" / ")}`);
-    } else {
-      console.log(`card term highlights up to date — ${pages} ページ`);
+    else {
+      // ⚠ else if で連ねない（併発しうる）。(c)→(a)→(b)→既存 の順に積む。
+      if (!cores.length)
+        bad.push("用語辞書から中核語を1つも取り出せません（data/translations.js の terms を確認してください）");
+      if (noSection.length) {
+        bad.push(`効果（日本語）の節を1つも走査できないページ: ${noSection.length}ページ`);
+        bad.push(`  例: ${noSection.slice(0, 5).join(" / ")}`);
+      }
+      if (partial.length) {
+        bad.push(`効果（日本語）の見出しの数と走査できた節の数が違うページ: ${partial.length}ページ`);
+        bad.push(`  例: ${partial.slice(0, 5).join(" / ")}`);
+      }
+      if (missed.length) {
+        bad.push(`日本語効果文にあるのにハイライトされていない用語: ${missed.length}ページ`);
+        bad.push(`  例: ${missed.slice(0, 5).join(" / ")}`);
+      }
+      if (!bad.length) console.log(`card term highlights up to date — ${pages} ページ / ${sections} 節`);
     }
   } catch (e) {
     bad.push(`読み込みに失敗: ${e.message}`);
@@ -627,6 +658,9 @@ if (loaded) {
     bad.forEach((m) => console.error(`  - ${m}`));
     console.error(`  → 用語を足した/訳を足した場合は npm run build:cards を実行してコミットしてください`);
     console.error(`    件数が多い場合は matchedTerms()（shared/js/card-detail.js / scripts/build-card-pages.mjs）の回帰を疑ってください`);
+    // ⚠ 条件付き。用語の取りこぼしだけで落ちたときに出すと原因と無関係な方向へ誘導する。
+    if (noSection.length || partial.length)
+      console.error(`    節を走査できない場合は build-card-pages.mjs の effectSections() のマークアップ変更を疑ってください（検査の SECTION 正規表現も同時に直す）`);
   }
 }
 
