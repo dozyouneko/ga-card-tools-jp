@@ -1,0 +1,137 @@
+/* モック（PC左ペイン＋HeroUI案A）の外枠のスタイル。
+   ⚠️ これは設計検討用のモックであり本番の配信対象ではない（docs/ 配下は functions/docs/[[path]].js が404を返す）。
+   ⚠️ 中身（iframe）に注入する候補CSSは モック_PC左ペイン_2026-09-02.js が持つ。ここには置かない。 */
+
+:root {
+  --m-bg: #12141a;
+  --m-panel: #1b1e26;
+  --m-panel-2: #232732;
+  --m-border: #333846;
+  --m-text: #e7e9ee;
+  --m-muted: #99a1b0;
+  --m-accent: #d9a441;
+  --m-blue: #6ea8fe;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--m-bg);
+  color: var(--m-text);
+  font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ---------- 操作パネル ---------- */
+.panel {
+  flex: 0 0 auto;
+  background: linear-gradient(180deg, #1c1f27, #171a21);
+  border-bottom: 1px solid var(--m-border);
+  padding: 10px 16px 12px;
+}
+
+.panel h1 {
+  margin: 0 0 2px;
+  font-size: .95rem;
+  letter-spacing: .02em;
+}
+
+.panel h1 .tag {
+  display: inline-block;
+  background: var(--m-accent);
+  color: #201a0a;
+  font-size: .66rem;
+  font-weight: 800;
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-right: 8px;
+  vertical-align: 2px;
+}
+
+.panel .lead {
+  margin: 0 0 10px;
+  color: var(--m-muted);
+  font-size: .76rem;
+}
+
+.rows { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: flex-start; }
+
+.grp { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.grp > .lbl {
+  color: var(--m-muted);
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  min-width: 4.5em;
+}
+
+.seg { display: inline-flex; border: 1px solid var(--m-border); border-radius: 8px; overflow: hidden; }
+.seg button {
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--m-border);
+  color: var(--m-muted);
+  font: inherit;
+  font-size: .78rem;
+  padding: 6px 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.seg button:last-child { border-right: 0; }
+.seg button:hover { color: var(--m-text); background: rgba(255,255,255,.04); }
+.seg button.on { background: var(--m-accent); color: #201a0a; font-weight: 700; }
+.seg button:focus-visible { outline: 2px solid var(--m-blue); outline-offset: -2px; }
+
+.note {
+  margin: 9px 0 0;
+  color: var(--m-muted);
+  font-size: .73rem;
+  line-height: 1.65;
+  border-left: 2px solid var(--m-accent);
+  padding-left: 9px;
+}
+.note b { color: var(--m-text); }
+.note .warn { color: #f0b86e; }
+
+/* ---------- ステージ（iframe） ---------- */
+.stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background:
+    repeating-linear-gradient(45deg, #0d0f13 0 10px, #101319 10px 20px);
+}
+
+.frame-wrap {
+  flex: 0 0 auto;
+  border: 1px solid var(--m-border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0f1115;
+  box-shadow: 0 18px 50px -20px rgba(0,0,0,.9);
+  position: relative;
+}
+.frame-wrap.full { width: 100%; height: 100%; }
+
+iframe { display: block; border: 0; background: #0f1115; }
+
+.size-tag {
+  position: absolute;
+  top: 0; right: 0;
+  background: rgba(0,0,0,.7);
+  color: var(--m-muted);
+  font-size: .66rem;
+  padding: 3px 8px;
+  border-bottom-left-radius: 8px;
+  pointer-events: none;
+  z-index: 2;
+}

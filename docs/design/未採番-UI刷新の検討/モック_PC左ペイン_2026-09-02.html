@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- ⚠️ 設計検討用のモック。本番の配信対象ではない（docs/ 配下は functions/docs/[[path]].js が404を返す）。
+     設計書: PC左ペイン_設計.md ／ 起票案: 起票案_2026-09-02_PC左ペインとHeroUI案Aの採否.md
+
+     ⭐ 実物（/ ＝ index.html）を iframe で読み込み、候補CSSを CSSOM で注入する方式。
+        コピーを持たないので、本体が変わってもモックが陳腐化しない。
+     ⚠️ ローカルサーバー（例: PORT=3400 npm run dev）から
+        /docs/design/未採番-UI刷新の検討/モック_PC左ペイン_2026-09-02.html で開くこと。
+        file:// で開くと同一オリジンにならず注入できない。 -->
+<title>モック：PC左ペイン＋HeroUI案A</title>
+<link rel="stylesheet" href="モック_PC左ペイン_2026-09-02.css">
+</head>
+<body>
+
+<div class="panel">
+  <h1><span class="tag">モック</span>PC左ペイン＋HeroUI案Aの採否</h1>
+  <p class="lead">下の枠は<b>実物のトップページ</b>（実データ）。ボタンで候補レイアウトを切り替えて、そのまま操作できます。</p>
+
+  <div class="rows">
+    <div class="grp">
+      <span class="lbl">レイアウト</span>
+      <div class="seg" data-g="layout">
+        <button data-v="none" class="on">現状</button>
+        <button data-v="pane1">案1：全部ペイン</button>
+        <button data-v="pane2">案2：検索は上部</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <span class="lbl">ペイン幅</span>
+      <div class="seg" data-g="pane">
+        <button data-v="280">280</button>
+        <button data-v="320" class="on">320</button>
+        <button data-v="360">360</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <span class="lbl">見た目</span>
+      <div class="seg" data-g="skin">
+        <button data-v="0" class="on">現状</button>
+        <button data-v="1">案A-最小</button>
+        <button data-v="2">案A-しっかり</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <span class="lbl">画面幅</span>
+      <div class="seg" data-g="vw">
+        <button data-v="full" class="on">フル</button>
+        <button data-v="2560x1440">2560</button>
+        <button data-v="1920x1080">1920</button>
+        <button data-v="1440x900">1440</button>
+        <button data-v="1280x800">1280</button>
+        <button data-v="1024x768">1024</button>
+        <button data-v="390x844">390</button>
+        <button data-v="375x812">375</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <span class="lbl">確認</span>
+      <div class="seg">
+        <button id="worst" type="button">最悪ケース（4グループ全開＋サブタイプ157）</button>
+        <button id="reload" type="button">再読込</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="note" id="note"></p>
+</div>
+
+<div class="stage" id="stage">
+  <div class="frame-wrap full" id="frame-wrap">
+    <span class="size-tag" id="size-tag"></span>
+    <iframe id="frame" src="/" title="トップページ（実物）"></iframe>
+  </div>
+</div>
+
+<script src="モック_PC左ペイン_2026-09-02.js"></script>
+</body>
+</html>
