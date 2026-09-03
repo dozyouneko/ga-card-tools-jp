@@ -83,6 +83,38 @@
 .fgroup .chip:has(input:focus-visible) { outline: 2px solid var(--accent-2); outline-offset: 1px; }
 .fgroup .chip em { font-style: normal; color: var(--muted); font-size: .72rem; }
 
+/* 選択肢を絞り込む入力欄（チップ絞り込み欄・2026-09-03）
+   ⚠️ 要素を作るのは共有の fillChips() なので、見た目もここに置く。
+      オプトイン（fillChips(..., { search: true }) かつ選択肢が30種超）のため、
+      渡していないページ（デッキ構築ツール）では要素が生成されず、このルールは死んだまま。
+   ⚠️ font-size はここで指定しない。ページ側の一括指定
+      （style.css の .controls input … PC .875rem / スマホ 16px）に任せる。
+      ここで小さくすると iOS がフォーカス時にズームする（C2）。 */
+.fgroup .cfilter { display: flex; align-items: center; gap: 8px; padding: 0 12px 9px; }
+.fgroup .cfilter[hidden] { display: none; }
+/* ⚠️ 破線の枠は「カードを検索する欄ではない」ことを見た目で示すため（C1）。
+   font-family: inherit は共通CSSに入力を置くときの決まり（読み込む側の指定に依存しない） */
+.fgroup .cfinput {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-family: inherit;
+}
+.fgroup .cfinput:focus {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 1px;
+  border-style: solid;
+}
+.fgroup .cfhint { color: var(--muted); font-size: .76rem; white-space: nowrap; }
+/* ⚠️ .fgroup .chips は display:flex なので、[hidden] だけでは子のチップが隠れない（C6）。
+   .more（すべて表示ボタン）も絞り込み中は隠すので同様に必要 */
+.fgroup .chip[hidden] { display: none; }
+.fgroup .more[hidden] { display: none; }
+
 /* サブタイプは種類が多いため既定は上位20種のみ。残りは「すべて表示」で開く */
 .fgroup .more { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 12px 12px; }
 .fgroup .morebtn {
@@ -114,6 +146,8 @@
    チップ側では大きすぎるので戻す */
 @media (max-width: 640px) {
   .fgroup .chips { gap: 5px; }
+  /* ⚠️ font-size はここでも触らない（ページ側の 16px を残す・C2）。触るのは余白だけ */
+  .fgroup .cfinput { padding: 9px 10px; }
   .fgroup .chip { font-size: .8rem; padding: 6px 10px 6px 8px; }
   .fgroup .andor button { font-size: .78rem; padding: 8px 12px; }
   .fgroup .morebtn { font-size: .82rem; padding: 7px 12px; }

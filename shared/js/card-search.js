@@ -78,6 +78,12 @@ window.GA_CARD_SEARCH = (() => {
   // scripts/lib/element-orbs.json のキーと対応する。
   const ORB_ELEMENTS = ["NORM", "FIRE", "WATER", "WIND", "ARCANE", "ASTRA", "CRUX", "EXIA", "LUXEM", "NEOS", "TERA", "UMBRA"];
 
+  // 「選択肢が多い群」に出す絞り込み欄の閾値（設計書「チップ絞り込み欄」§2）。
+  // ⚠ サブタイプ決め打ちにしない。⭐ 将来ほかの群がここを超えた日に、何もしなくても欄が現れる
+  //   （＝#40 のような「新しい値が来たら手で足す」箇所を増やさない）。
+  //   実測（2026-09-03）: エレメント13 / クラス9 / タイプ13 / レアリティ9 / サブタイプ157
+  const SEARCH_MIN = 30;
+
   // サブタイプは147種あるため既定は出現頻度の上位20種だけ出す(残りは「すべて表示」で開く)。
   // 下の順位は tmp/api-cache/cards-snapshot.json（2,240枚・2026-07-22）から出現数の降順で算出したもの。
   // ⚠ snapshot 側の異なり数は146。フリップ面22件を収録しないため SHENJU が現れないだけで、齟齬ではない。
@@ -119,6 +125,9 @@ window.GA_CARD_SEARCH = (() => {
   //   opts.label … 見出し（必須）
   //   opts.orbs  … true なら属性玉アイコンを付ける（エレメント用）
   //   opts.top   … 既定で表示するキーの配列（残りは「すべて表示」で開く。サブタイプ用）
+  //   opts.search … true なら「選択肢を絞り込む入力欄」を出す（オプトイン）。
+  //     ⚠ 渡しても実際に出るのは選択肢が SEARCH_MIN 種を超える群だけ（下記）。
+  //     ⚠ 渡さない呼び出し側（デッキ構築ツール）では要素そのものが作られない＝完全な no-op。
   function fillChips(details, kind, opts) {
     opts = opts || {};
     const map = (I18N.meta && I18N.meta[kind]) || {};
@@ -157,20 +166,21 @@ window.GA_CARD_SEARCH = (() => {
     let restChips = null;
     let moreBtn = null;
     let moreHint = null;
+    let moreWrap = null;   // 「すべて表示」ボタンを包む <p>（絞り込み中は隠す）
     if (rest.length) {
       restChips = document.createElement("div");
       restChips.className = "chips chips-rest";
       restChips.hidden = true;
       rest.forEach((k) => restChips.appendChild(chipLabel(k, map[k], false)));
-      const more = document.createElement("p");
-      more.className = "more";
+      moreWrap = document.createElement("p");
+      moreWrap.className = "more";
       moreBtn = document.createElement("button");
       moreBtn.type = "button";
       moreBtn.className = "morebtn";
       moreHint = document.createElement("span");
       moreHint.className = "hint";
-      more.append(moreBtn, moreHint);
-      details.append(restChips, more);
+      moreWrap.append(moreBtn, moreHint);
+      details.append(restChips, moreWrap);
     }
 
     // 「すべて表示」の文言を1か所で決める。⚠ 開閉は click / setValues / reset の3か所から
@@ -183,6 +193,79 @@ window.GA_CARD_SEARCH = (() => {
       moreHint.textContent = expanded ? `全${keys.length}種を表示中` : `よく使う${head.length}種を表示中`;
     }
     syncMore();
+
+    // ---------- 選択肢を絞り込む入力欄（設計書「チップ絞り込み欄」§3〜§5）----------
+    // ⭐ 絞るのは「選択肢」であってカードではない。入力しても再検索は走らない（C3）。
+    // ⚠ .chips-rest の表示状態を書く4人目になる（他は moreBtn の click / setValues / reset）。
+    //   文言は syncMore() だけが書く。ここは件数を別要素（.cfhint）に出す（S-2）。
+    let cfInput = null;
+    let cfHint = null;
+    // 検索を始める直前の restChips.hidden。入力が空に戻ったらここへ復元する（S-1）。
+    // ⚠ 「常に畳む」にすると、ユーザーが自分で開いた状態を検索が勝手に畳んでしまう。
+    let restBeforeSearch = null;
+    const allChips = () => Array.from(details.querySelectorAll(".chip"));
+
+    // 絞り込みを「掛けていない状態」に戻す（入力・件数・チップの hidden を素に戻す）。
+    // ⚠ restChips.hidden はここでは触らない（reset / setValues 側の既存処理に任せる）
+    function clearChipFilter() {
+      if (!cfInput) return;
+      cfInput.value = "";
+      cfHint.textContent = "";
+      restBeforeSearch = null;
+      if (moreWrap) moreWrap.hidden = false;
+      allChips().forEach((c) => { c.hidden = false; });
+    }
+
+    function applyChipFilter() {
+      const q = cfInput.value.trim().toLowerCase();
+      const searching = q !== "";
+      if (searching && restBeforeSearch === null) {
+        restBeforeSearch = restChips ? restChips.hidden : false;
+      }
+      if (restChips) {
+        // C-A: 検索中は「よく使う分」の外まで対象にする（隠れたままだと残りを取りこぼす）
+        if (searching) restChips.hidden = false;
+        else if (restBeforeSearch !== null) restChips.hidden = restBeforeSearch;
+        syncMore();
+      }
+      if (moreWrap) moreWrap.hidden = searching;
+      if (!searching) restBeforeSearch = null;
+      let shown = 0;
+      allChips().forEach((c) => {
+        const hit = !searching || c.textContent.toLowerCase().includes(q);
+        const box = c.querySelector('input[type="checkbox"]');
+        // C-B: 選択済みは一致しなくても残す（消すと「選んだのに外せない」状態になる）
+        c.hidden = !(hit || (box && box.checked));
+        if (hit) shown += 1;
+      });
+      cfHint.textContent = searching ? (shown ? `${shown}件が一致` : "一致なし") : "";
+    }
+
+    if (opts.search && keys.length > SEARCH_MIN) {
+      const cfBox = document.createElement("div");
+      cfBox.className = "cfilter";
+      cfInput = document.createElement("input");
+      cfInput.type = "search";
+      cfInput.className = "cfinput";
+      // ⚠ 「カードを検索する欄」と誤解されないよう、群の内側に置き文言で用途を示す（C1）
+      cfInput.placeholder = `${keys.length}種から絞り込む… 例: ドラゴン / dragon`;
+      // ⚠ aria-live は付けない。一致件数が打鍵ごとに読み上げられると邪魔になる（C5）
+      cfInput.setAttribute("aria-label", `${opts.label || kind}の選択肢を絞り込む`);
+      cfHint = document.createElement("span");
+      cfHint.className = "cfhint";
+      cfBox.append(cfInput, cfHint);
+      summary.after(cfBox);
+      cfInput.addEventListener("input", applyChipFilter);
+      cfInput.addEventListener("keydown", (e) => {
+        if (e.key !== "Escape") return;
+        // ⚠ 入力があるときだけ止めて中身を消す。空のときは止めない
+        //   （スマホのボトムシートを Esc で閉じたいため・C4）
+        if (!cfInput.value) return;
+        e.stopPropagation();
+        clearChipFilter();
+        applyChipFilter();
+      });
+    }
 
     // エレメントANDで0件が確定する組み合わせの警告（グループを閉じていても分かるよう status にも出す）
     const warn = document.createElement("p");
@@ -237,6 +320,9 @@ window.GA_CARD_SEARCH = (() => {
     details.getMode = () => mode;
     // URLからの復元用（#20）。復元中に1項目ずつ検索が走らないよう onChange は発火させない
     details.setValues = (list) => {
+      // ⚠ 復元前に絞り込みを解除する（S-4）。絞ったままだと「選択済みは残す」（C-B）と
+      //   競合し、復元した値だけが見えて他が消えた状態になる
+      clearChipFilter();
       const want = new Set((list || []).map((v) => String(v).toUpperCase()));
       let inRest = false;
       Array.from(boxes()).forEach((b) => {
@@ -259,6 +345,7 @@ window.GA_CARD_SEARCH = (() => {
     details.onChange = (cb) => { changed = cb; };
     details.warnEl = warn;
     details.reset = () => {
+      clearChipFilter(); // ⚠ 検索欄も空にする（S-3）。忘れると選択肢が絞られたまま残る
       Array.from(boxes()).forEach((b) => { b.checked = false; });
       mode = "OR";
       details.open = false;

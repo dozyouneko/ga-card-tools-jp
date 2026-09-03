@@ -863,11 +863,14 @@ function initAccordion() {
 
 function init() {
   // 複数選択（AND/OR）の絞り込みグループ。既定は閉じた状態（開くとチップが50個以上並ぶため）
-  GA_CARD_SEARCH.fillChips(el.gElement, "elements", { label: "エレメント", orbs: true });
-  GA_CARD_SEARCH.fillChips(el.gClass, "classes", { label: "クラス" });
-  GA_CARD_SEARCH.fillChips(el.gType, "types", { label: "タイプ" });
-  GA_CARD_SEARCH.fillChips(el.gSubtype, "subtypes", { label: "サブタイプ", top: GA_CARD_SEARCH.SUBTYPE_TOP });
-  GA_CARD_SEARCH.fillChips(el.gRarity, "rarities", { label: "レアリティ" });
+  // ⚠ search: true は「選択肢を絞り込む欄」のオプトイン。⭐ 全群に渡し、実際にどれへ出すかは
+  //   fillChips() 側の閾値（SEARCH_MIN=30種）が決める。ここで群を名指ししない——
+  //   将来ほかの群が閾値を超えた日に、何もしなくても欄が現れるようにするため（設計書 §2）
+  GA_CARD_SEARCH.fillChips(el.gElement, "elements", { label: "エレメント", orbs: true, search: true });
+  GA_CARD_SEARCH.fillChips(el.gClass, "classes", { label: "クラス", search: true });
+  GA_CARD_SEARCH.fillChips(el.gType, "types", { label: "タイプ", search: true });
+  GA_CARD_SEARCH.fillChips(el.gSubtype, "subtypes", { label: "サブタイプ", top: GA_CARD_SEARCH.SUBTYPE_TOP, search: true });
+  GA_CARD_SEARCH.fillChips(el.gRarity, "rarities", { label: "レアリティ", search: true });
   GA_CARD_SEARCH.fillFormatSelect(el.fFormat);
   GA_CARD_SEARCH.fillSetSelect(el.fSet);
   resetControls(); // 起動時は必ず「全て」から開始（前回選択の復元を打ち消す）
