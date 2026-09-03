@@ -393,7 +393,8 @@ window.GA_CARD_SEARCH = (() => {
   }
 
   // 複数選択できる絞り込み項目（els のキー / APIのクエリ名 / カードの配列プロパティ）
-  // ⚠ 第3要素が null の項目は「カード直下に配列プロパティが無い」＝ haveOf() が版から組み立てる。
+  // ⚠ 第3要素が null の項目は「カード直下に配列プロパティが無い」＝ 版（editions[]）を見る項目で、
+  //   create() 内の editionSetOf()／rarityMatchesIn() が2段階で判定する（意味統一の設計書 §4）。
   //   同時に「メタ索引に列挙値が無い」印でもあり、metaMatches() は候補を落とさない（fail-open）。
   const MULTI = [
     ["cls", "class", "classes"],
@@ -409,19 +410,6 @@ window.GA_CARD_SEARCH = (() => {
   // ⚠ この判定を使う場所は3つある（metaMatches の読み飛ばし／D-1 の概算判定／D-2 の想定内除外）。
   //    ⭐ 必ずこの関数から導くこと——別々にハードコードすると片方だけ直したときに静かにずれる。
   const isIndexBlind = (entry) => entry[2] === null;
-
-  // 絞り込みの照合に使う「カードが持っている値」の配列。
-  // ⚠ field が null の項目はここで版から組み立てる。レアリティは版ごとに違うので重複を潰し、
-  //   意味は「いずれかの版がそのレアリティ」とする（＝公式APIの rarity= の挙動と一致。
-  //   スナップショット2,495枚での実測が API の total_cards と全値一致することを確認済み）。
-  function haveOf(card, field, key) {
-    if (field) return card[field] || [];
-    if (key === "rarity") {
-      const eds = card.editions || card.result_editions || [];
-      return [...new Set(eds.map((e) => String(e.rarity)))];
-    }
-    return [];
-  }
 
   // ---------- 数値項目の並び替え（#39 → #44 で全件取得に変更）----------
 
@@ -572,19 +560,58 @@ window.GA_CARD_SEARCH = (() => {
     }
 
     // カードの配列プロパティが選択値に合致するか（AND=すべて含む / OR=いずれかを含む）
+    // ⚠ 版レベルの項目（isIndexBlind＝第3要素が null）はここを通さない。版の候補集合 E を
+    //   先に作る必要があるため、editionSetOf()／rarityMatchesIn() が判定する（意味統一 §4）。
+    //   呼び出し側は必ず isIndexBlind() で読み飛ばすが、万一通っても「絞らない」に倒す（fail-open）。
     function matchesMulti(card, key, field) {
       const list = vals(key);
       if (!list.length) return true;
-      const have = haveOf(card, field, key);
+      if (!field) return true; // 版レベルの項目（呼び出し側が2段階で別に判定する）
+      const have = card[field] || [];
       return modeOf(els[key]) === "AND"
         ? list.every((v) => have.includes(v))
         : list.some((v) => have.includes(v));
     }
 
+    // ---------- 版レベルの絞り込み（エキスパンション × レアリティ）----------
+    // ⭐ 意味統一の設計書 §4: 版レベルの条件は「項目ごとに独立」ではなく2段階で評価する。
+    //     ① エキスパンションで版の候補集合 E を作る（絞り込みが無効なら E = 全版）
+    //     ② その E の中でレアリティを判定する
+    // ⚠ レアリティを MULTI の一般ループに戻してはいけない。項目ごとに独立に判定すると
+    //   「PTM版を持ち、かつ（別の版が）CSR」まで通り、同じ条件でも公式API＝英語モードと
+    //   結果が食い違う（427通り中351通り＝82.2%で食い違っていた）。
+    // ⚠ 逆に「全部を同じ版で束ねる」のも誤り。レアリティのAND指定（CでもSRでも刷られている）は
+    //   複数の版にまたがる意味なので、同じ版に束ねると必ず0件になる。
+    function editionSetOf(card) {
+      const eds = card.editions || card.result_editions || [];
+      const pre = setPrefixes(val(els.set));
+      if (!pre.length) return eds; // エキスパンション絞り込みが無効 → E = 全版
+      return eds.filter((e) => e.set && pre.includes(e.set.prefix));
+    }
+
+    // E の中でレアリティ条件が成立するか。
+    //   OR  … ∃e∈E: rarity(e) ∈ R  （＝公式APIの prefix + rarity と完全一致）
+    //   AND … ∀r∈R: ∃e∈E: rarity(e) = r（「その版群の中で両方刷られている」）
+    // ⚠ els.rarity を持たないページ（デッキ構築ツール）では valuesOf(null)=[] で常に true＝no-op。
+    function rarityMatchesIn(eds) {
+      const list = vals("rarity");
+      if (!list.length) return true;
+      const have = new Set(eds.map((e) => String(e.rarity)));
+      return modeOf(els.rarity) === "AND"
+        ? list.every((v) => have.has(v))
+        : list.some((v) => have.has(v));
+    }
+
     // APIレスポンスの後段フィルタ。APIはANDに非対応なのでAND指定の項目だけを客側で間引く
     // （フォーマット・エキスパンションはAPI側で正しく絞られているため触らない）
+    // ⚠ レアリティのANDは「E（＝APIが prefix で絞ったのと同じ版群）の中で」判定する（意味統一 §4）。
+    //   新しい規則はAPIの絞り込みと整合する（APIの結果は必ず上位集合）ので取りこぼさない。
     function matchesAndFilters(card) {
-      return MULTI.every(([key, , field]) => !isAnd(key) || matchesMulti(card, key, field));
+      for (const m of MULTI) {
+        if (isIndexBlind(m)) continue; // 版レベルは下でまとめて判定
+        if (isAnd(m[0]) && !matchesMulti(card, m[0], m[2])) return false;
+      }
+      return !isAnd("rarity") || rarityMatchesIn(editionSetOf(card));
     }
 
     // JPモードで class/element/type/subtype/rarity/format/set のいずれかを絞り込んでいるか。
@@ -817,10 +844,12 @@ window.GA_CARD_SEARCH = (() => {
     // ⚠ skipIndexBlind: 索引が見られない条件（レアリティ）だけを外して判定し直すための旗（D-2）。
     //   ⭐ 通常の呼び出しでは全条件を見る。旗を立てた判定と結果が食い違ったカードは
     //     「索引の盲点だけが理由で落ちた＝想定内」であって、索引の腐りではない。
+    //   ⚠ 意味は「レアリティを完全に無視する」。E の絞り込み（エキスパンション）は残す——
+    //     ここで E まで外すと、エキスパンション違いで落ちたカードまで「想定内」に数えてしまう。
     function matchesActiveFilters(card, o) {
       const skipBlind = !!(o && o.skipIndexBlind);
       for (const m of MULTI) {
-        if (skipBlind && isIndexBlind(m)) continue;
+        if (isIndexBlind(m)) continue; // 版レベルは下の2段階でまとめて判定する
         if (!matchesMulti(card, m[0], m[2])) return false;
       }
       if (val(els.format)) {
@@ -829,11 +858,11 @@ window.GA_CARD_SEARCH = (() => {
         const banned = bannedFormats(card).includes(fmt);
         if (state === "LEGAL" ? banned : !banned) return false;
       }
-      const pre = setPrefixes(val(els.set));
-      if (pre.length) {
-        const eds = card.editions || card.result_editions || [];
-        if (!eds.some((e) => e.set && pre.includes(e.set.prefix))) return false;
-      }
+      // ① 版の候補集合 E をエキスパンションで作る（意味統一 §4）
+      const eds = editionSetOf(card);
+      if (setPrefixes(val(els.set)).length && !eds.length) return false;
+      // ② その E の中でレアリティを判定する
+      if (!skipBlind && !rarityMatchesIn(eds)) return false;
       return true;
     }
 

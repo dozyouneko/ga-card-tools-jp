@@ -18,7 +18,7 @@ const el = {
   gElement: document.getElementById("g-element"),
   gType: document.getElementById("g-type"),
   gSubtype: document.getElementById("g-subtype"),
-  // レアリティは editions[].rarity（card 直下に無い）。値の取り出しは card-search.js の haveOf() が担う
+  // レアリティは editions[].rarity（card 直下に無い）。判定は card-search.js が版の集合ごと行う（意味統一 §4）
   gRarity: document.getElementById("g-rarity"),
   fFormat: document.getElementById("f-format"),
   fSet: document.getElementById("f-set"),
