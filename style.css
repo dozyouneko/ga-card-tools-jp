@@ -600,6 +600,13 @@ a { color: var(--accent-2); }
      ⚠️ セレクタを .controls で限定して style.css に書く。shared/css/filter-chips.css に
         書くとデッキ構築ツールのチップまで200pxで切れる（R6・S1） */
   .controls .fgroup .chips { max-height: 200px; overflow-y: auto; }
+  /* ⚠️ 「すべて表示」を押したら上限を外す。⭐ .chips-rest も class に chips を持つため、
+     掛けたままだと 200px のスクロール領域が縦に2つ並ぶ（2026-09-03 にユーザーが指摘）。
+     ⭐ 「すべて表示」は “全部見たい” という意思表示なので、展開中はペイン側の1本だけを
+        スクロールさせる。⚠️ 入れ子のスクロールを増やす方向で直さないこと。
+     ⚠️ 設計書 §3-4「1グループ開いた状態はペインに収まる」は “よく使う分だけ” の状態の話で、
+        展開中にペインが伸びてスクロールするのは想定内。 */
+  .controls .fgroup:has(.chips-rest:not([hidden])) .chips { max-height: none; overflow-y: visible; }
   /* ⚠️ 上の max-height でチップ領域がスクロールコンテナになる。チェックボックスは
      position:absolute（filter-chips.css）で、ここでは .controls が position:static のため
      包含ブロックが初期包含ブロックになり、Tab でフォーカスしても

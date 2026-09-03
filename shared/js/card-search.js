@@ -154,6 +154,7 @@ window.GA_CARD_SEARCH = (() => {
 
     let restChips = null;
     let moreBtn = null;
+    let moreHint = null;
     if (rest.length) {
       restChips = document.createElement("div");
       restChips.className = "chips chips-rest";
@@ -164,13 +165,22 @@ window.GA_CARD_SEARCH = (() => {
       moreBtn = document.createElement("button");
       moreBtn.type = "button";
       moreBtn.className = "morebtn";
-      moreBtn.textContent = `＋ すべて表示（${keys.length}種）`;
-      const hint = document.createElement("span");
-      hint.className = "hint";
-      hint.textContent = `よく使う${head.length}種を表示中`;
-      more.append(moreBtn, hint);
+      moreHint = document.createElement("span");
+      moreHint.className = "hint";
+      more.append(moreBtn, moreHint);
       details.append(restChips, more);
     }
+
+    // 「すべて表示」の文言を1か所で決める。⚠ 開閉は click / setValues / reset の3か所から
+    // 起こるので、各所に文言を書き分けない（2026-09-03: 補助テキストだけ更新漏れがあり、
+    // 展開後も「よく使う20種を表示中」が出たままだった）
+    function syncMore() {
+      if (!moreBtn) return;
+      const expanded = !restChips.hidden;
+      moreBtn.textContent = expanded ? "− よく使う分だけ表示" : `＋ すべて表示（${keys.length}種）`;
+      moreHint.textContent = expanded ? `全${keys.length}種を表示中` : `よく使う${head.length}種を表示中`;
+    }
+    syncMore();
 
     // エレメントANDで0件が確定する組み合わせの警告（グループを閉じていても分かるよう status にも出す）
     const warn = document.createElement("p");
@@ -217,7 +227,7 @@ window.GA_CARD_SEARCH = (() => {
     if (moreBtn) {
       moreBtn.addEventListener("click", () => {
         restChips.hidden = !restChips.hidden;
-        moreBtn.textContent = restChips.hidden ? `＋ すべて表示（${keys.length}種）` : "− よく使う分だけ表示";
+        syncMore();
       });
     }
 
@@ -234,7 +244,7 @@ window.GA_CARD_SEARCH = (() => {
       // 「すべて表示」に隠れた値を復元したときは展開する（バッジだけ増えてチップが見えないのを防ぐ）
       if (inRest && restChips.hidden) {
         restChips.hidden = false;
-        moreBtn.textContent = "− よく使う分だけ表示";
+        syncMore();
       }
       sync();
     };
@@ -253,7 +263,7 @@ window.GA_CARD_SEARCH = (() => {
       warn.hidden = true;
       if (restChips) {
         restChips.hidden = true;
-        moreBtn.textContent = `＋ すべて表示（${keys.length}種）`;
+        syncMore();
       }
       sync();
     };
