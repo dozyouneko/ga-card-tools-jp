@@ -204,13 +204,16 @@ window.GA_CARD_SEARCH = (() => {
     // ⚠ 「常に畳む」にすると、ユーザーが自分で開いた状態を検索が勝手に畳んでしまう。
     let restBeforeSearch = null;
     const allChips = () => Array.from(details.querySelectorAll(".chip"));
+    // 入力が空のときの .cfhint。⭐ その群の選択肢の総数を出し、「絞る対象はカードではなく
+    // 選択肢である」ことを数で伝える（C1 の訂正・1.1）。⚠ ハードコードしない
+    const emptyHint = () => `${keys.length}種`;
 
     // 絞り込みを「掛けていない状態」に戻す（入力・件数・チップの hidden を素に戻す）。
     // ⚠ restChips.hidden はここでは触らない（reset / setValues 側の既存処理に任せる）
     function clearChipFilter() {
       if (!cfInput) return;
       cfInput.value = "";
-      cfHint.textContent = "";
+      cfHint.textContent = emptyHint();
       restBeforeSearch = null;
       if (moreWrap) moreWrap.hidden = false;
       allChips().forEach((c) => { c.hidden = false; });
@@ -231,14 +234,22 @@ window.GA_CARD_SEARCH = (() => {
       if (moreWrap) moreWrap.hidden = searching;
       if (!searching) restBeforeSearch = null;
       let shown = 0;
+      let keptSelected = 0; // 一致しないが選択済みなので残したチップ（C-B・C7）
       allChips().forEach((c) => {
         const hit = !searching || c.textContent.toLowerCase().includes(q);
         const box = c.querySelector('input[type="checkbox"]');
         // C-B: 選択済みは一致しなくても残す（消すと「選んだのに外せない」状態になる）
-        c.hidden = !(hit || (box && box.checked));
+        const keep = hit || (box && box.checked);
+        c.hidden = !keep;
         if (hit) shown += 1;
+        else if (keep) keptSelected += 1;
       });
-      cfHint.textContent = searching ? (shown ? `${shown}件が一致` : "一致なし") : "";
+      // ⚠ 「一致なし」なのにチップが見えている状態は紛らわしいので、選択済みが残っている
+      //   ことを文言で明かす（C7・1.1）
+      cfHint.textContent = !searching ? emptyHint()
+        : shown ? `${shown}件が一致`
+        : keptSelected ? "一致なし（選択中のみ表示）"
+        : "一致なし";
     }
 
     if (opts.search && keys.length > SEARCH_MIN) {
@@ -247,12 +258,17 @@ window.GA_CARD_SEARCH = (() => {
       cfInput = document.createElement("input");
       cfInput.type = "search";
       cfInput.className = "cfinput";
-      // ⚠ 「カードを検索する欄」と誤解されないよう、群の内側に置き文言で用途を示す（C1）
-      cfInput.placeholder = `${keys.length}種から絞り込む… 例: ドラゴン / dragon`;
+      // ⚠ 「カードを検索する欄」と誤解されないよう、群の内側に置き破線の枠にする（C1）。
+      // ⚠ ⭐ 1.1 の訂正: 320pxの左ペインでは長い文言が見切れ、「英字でも一致する」手がかりが
+      //   消えていた。⭐ 日本語と英字を両方見せることを最優先にし、それ以外は削る。
+      //   選択肢の総数は .cfhint 側（emptyHint）が担う。⚠ title 属性は付けない
+      //   （マウスオーバー前提の情報はスマホで見えない）
+      cfInput.placeholder = "絞り込む… ドラゴン / dragon";
       // ⚠ aria-live は付けない。一致件数が打鍵ごとに読み上げられると邪魔になる（C5）
       cfInput.setAttribute("aria-label", `${opts.label || kind}の選択肢を絞り込む`);
       cfHint = document.createElement("span");
       cfHint.className = "cfhint";
+      cfHint.textContent = emptyHint();
       cfBox.append(cfInput, cfHint);
       summary.after(cfBox);
       cfInput.addEventListener("input", applyChipFilter);

@@ -90,12 +90,18 @@
    ⚠️ font-size はここで指定しない。ページ側の一括指定
       （style.css の .controls input … PC .875rem / スマホ 16px）に任せる。
       ここで小さくすると iOS がフォーカス時にズームする（C2）。 */
-.fgroup .cfilter { display: flex; align-items: center; gap: 8px; padding: 0 12px 9px; }
+.fgroup .cfilter { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 0 12px 9px; }
 .fgroup .cfilter[hidden] { display: none; }
 /* ⚠️ 破線の枠は「カードを検索する欄ではない」ことを見た目で示すため（C1）。
    font-family: inherit は共通CSSに入力を置くときの決まり（読み込む側の指定に依存しない） */
+/* ⚠️ flex-basis は「プレースホルダが見切れない最小幅」。⭐ PC左ペイン（320px）では
+   入力欄と件数を横に並べると入りきらないので、その幅では件数が下の行へ回る（上の flex-wrap）。
+   実測（2026-09-03・.875rem）: プレースホルダ「絞り込む… ドラゴン / dragon」の描画幅は
+   208px（input の value に入れて scrollWidth で測定）。padding+border 22px を足して 15rem=240px。
+   ⚠️ 縮めると 320px のペインで文言の末尾（英字の例）が黙って切れる——
+      canvas の measureText では気づけない（type=search の装飾ぶんが計算に入らない）。 */
 .fgroup .cfinput {
-  flex: 1 1 auto;
+  flex: 1 1 15rem;
   min-width: 0;
   background: var(--bg);
   color: var(--text);
