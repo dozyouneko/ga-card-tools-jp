@@ -31,7 +31,10 @@
   <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "79f367803da7466d9b8edd3476edb554"}'></script>
   <!-- End Cloudflare Web Analytics -->
 </head>
-<body>
+<!-- ⚠ page-top は「アプリシェル（PC左ペイン）を適用してよいページ」の目印。
+     style.css は 404.html も読むため、body を Grid にするルールをこのクラスで限定する。
+     付けないと 404 ページの本文が左320pxの空列の右へ押し込まれる（実測） -->
+<body class="page-top">
   <header class="site-header">
     <div class="brand">
       <span class="brand-mark">GA</span>
@@ -51,6 +54,15 @@
   </header>
 
   <section class="controls" id="controls">
+    <!-- 選択中の絞り込み条件（PC左ペインの最上部・設計書 §12-2 案A）。
+         アコーディオン（1つ開いたら他は閉じる）にすると、閉じたグループの中身が
+         数字バッジだけになるため、選んだ条件をここに集めて✕で外せるようにする。
+         ⚠ 中身は app.js の renderSelectedFilters() が組み立てる。
+         ⚠ 表示は style.css の min-width:1200px の中だけ（スマホ・タブレットは現状のまま） -->
+    <div id="selected-filters">
+      <h2 id="selected-filters-title">選択中の条件</h2>
+      <div id="selected-filters-list"></div>
+    </div>
     <div class="controls-row">
       <input type="search" id="q" placeholder="カード名で検索（英語）… 例: lorraine" autocomplete="off" />
       <input type="search" id="qtext" placeholder="効果テキストで部分検索（英語 / 日本語）… 例: draw, 追放" autocomplete="off" />
@@ -93,6 +105,12 @@
     </div>
   </section>
 
+  <!-- 結果側（件数・カード一覧・もっと見る・セットリンク・フッタ）をひとまとまりにする箱。
+       PC幅ではこれが「スクロールする唯一の領域」になり、ヘッダと左ペインは動かない（設計書 §11-2）。
+       ⚠ 1199px以下では style.css が display:contents にして箱を作らない（#filter-sheet と同じ手口）。
+          これを外すとスマホ・タブレットのブロック整形文脈が1段増え、余白の詰まり方が変わる。
+       ⚠ position:fixed の要素（FAB・ベール・印刷バー・印刷トレイ）はこの中に入れない（下に置く） -->
+  <div id="results">
   <p id="status" class="status" role="status" aria-live="polite">読み込み中…</p>
 
   <main id="grid" class="grid" aria-label="カード一覧"></main>
@@ -101,7 +119,38 @@
     <button id="load-more" type="button" hidden>もっと見る</button>
   </div>
 
-  <!-- カード詳細モーダルは shared/js/card-detail.js が #gacd-modal としてDOM注入する -->
+  <!-- SETLINKS:START この中は scripts/build-card-pages.mjs が生成する。手で編集しない -->
+  <details class="setlinks">
+    <summary>エキスパンション別に探す（全63セット）</summary>
+    <div class="sl-body">
+      <div class="sl-g"><h2 class="sl-g-name">.asphodel/paradise</h2><ul class="sl-list"><li><a href="/sets/prd/">.asphodel/paradise（PRD）</a></li><li><a href="/sets/prd-1st/">.asphodel/paradise 1st Ed.（PRD 1st）</a></li><li><a href="/sets/prdg/">.asphodel/paradise Grimoire（PRDG）</a></li><li><a href="/sets/prdp/">.asphodel/paradise: Pantheon（PRDP）</a></li><li><a href="/sets/prdsd/">.asphodel/paradise Starter（PRDSD）</a></li></ul></div>
+      <div class="sl-g"><h2 class="sl-g-name">Radiant Origins</h2><ul class="sl-list"><li><a href="/sets/rdo/">Radiant Origins（RDO）</a></li><li><a href="/sets/rdo-1st/">Radiant Origins 1st Ed.（RDO 1st）</a></li><li><a href="/sets/rdoa/">Radiant Origins: Armaments（RDOA）</a></li><li><a href="/sets/rdop/">Radiant Origins: Pantheon（RDOP）</a></li><li><a href="/sets/rdopd/">Radiant Origins Pantheon Decks（RDOPD）</a></li></ul></div>
+      <div class="sl-g"><h2 class="sl-g-name">Phantom Monarchs</h2><ul class="sl-list"><li><a href="/sets/ptm/">Phantom Monarchs（PTM）</a></li><li><a href="/sets/ptm-1st/">Phantom Monarchs 1st Ed.（PTM 1st）</a></li><li><a href="/sets/ptmlgs/">Phantom Monarchs: Looking Glass Sights（PTMLGS）</a></li><li><a href="/sets/rec-brv/">Re:Collection Brilliant Vestige（ReC-BRV）</a></li></ul></div>
+      <div class="sl-g"><h2 class="sl-g-name">Distorted Reflections</h2><ul class="sl-list"><li><a href="/sets/dtr/">Distorted Reflections（DTR）</a></li><li><a href="/sets/dtr-1st/">Distorted Reflections 1st Ed.（DTR 1st）</a></li><li><a href="/sets/dtrsd/">Distorted Reflections Starter（DTRSD）</a></li></ul></div>
+      <div class="sl-g"><h2 class="sl-g-name">Abyssal Heaven</h2><ul class="sl-list"><li><a href="/sets/hvn/">Abyssal Heaven（HVN）</a></li><li><a href="/sets/hvn-1st/">Abyssal Heaven 1st Ed.（HVN 1st）</a></li><li><a href="/sets/rec-idy/">Re:Collection Idyll Corsage（ReC-IDY）</a></li><li><a href="/sets/rec-hvf/">Re:Collection Heaven&#39;s Favored（ReC-HVF）</a></li></ul></div>
+      <div class="sl-g"><h2 class="sl-g-name">Mortal Ambition</h2><ul class="sl-list"><li><a href="/sets/amb-alter/">Mortal Ambition Alter Ed.（AMB Alter）</a></li><li><a href="/sets/amb/">Mortal Ambition（AMB）</a></li><li><a href="/sets/amb-1st/">Mortal Ambition 1st Ed.（AMB 1st）</a></li><li><a href="/sets/ambsd/">Mortal Ambition Starter（AMBSD）</a></li></ul></div>
+      <div class="sl-g"><h2 class="sl-g-name">Mercurial Heart</h2><ul class="sl-list"><li><a href="/sets/mrc-alter/">Mercurial Heart Alter Ed.（MRC Alter）</a></li><li><a href="/sets/mrc/">Mercurial Heart（MRC）</a></li><li><a href="/sets/mrc-1st/">Mercurial Heart 1st Ed.（MRC 1st）</a></li><li><a href="/sets/rec-slm/">Re:Collection Slime Sovereign（ReC-SLM）</a></li><li><a href="/sets/rec-shd/">Re:Collection Shadowdancer（ReC-SHD）</a></li></ul></div>
+      <div class="sl-g"><h2 class="sl-g-name">Alchemical Revolution</h2><ul class="sl-list"><li><a href="/sets/alc-alter/">Alchemical Revolution Alter Ed.（ALC Alter）</a></li><li><a href="/sets/alc/">Alchemical Revolution（ALC）</a></li><li><a href="/sets/alc-1st/">Alchemical Revolution 1st Ed.（ALC 1st）</a></li><li><a href="/sets/alcsd/">Alchemical Revolution Starter（ALCSD）</a></li></ul></div>
+      <div class="sl-g"><h2 class="sl-g-name">Fractured Crown</h2><ul class="sl-list"><li><a href="/sets/ftc/">Fractured Crown（FTC）</a></li><li><a href="/sets/ftca/">Fractured Crown: Armaments（FTCA）</a></li></ul></div>
+      <div class="sl-g"><h2 class="sl-g-name">Dawn of Ashes</h2><ul class="sl-list"><li><a href="/sets/doa-alter/">Dawn of Ashes Alter Ed.（DOA Alter）</a></li><li><a href="/sets/doasd/">Dawn of Ashes Starter（DOASD）</a></li><li><a href="/sets/doa-1st/">Dawn of Ashes 1st Ed.（DOA 1st）</a></li><li><a href="/sets/doap/">Dawn of Ashes Prelude（DOAp）</a></li></ul></div>
+      <div class="sl-g"><h2 class="sl-g-name">その他（プロモ・デモ・イベントパック等）</h2><ul class="sl-list"><li><a href="/sets/prddp/">.asphodel/paradise Draft Pack（PRDDP）</a></li><li><a href="/sets/prdevp/">.asphodel/paradise Event Pack（PRDEVP）</a></li><li><a href="/sets/sp4/">Supporter Pack 4（SP4）</a></li><li><a href="/sets/rdoevp/">Radiant Origins Event Pack（RDOEVP）</a></li><li><a href="/sets/rec-aur/">Re:Collection Aurelian Regent（ReC-AUR）</a></li><li><a href="/sets/p26/">Promotional 2026（P26）</a></li><li><a href="/sets/pp1/">Pantheon Pack 1（PP1）</a></li><li><a href="/sets/ptmevp/">Phantom Monarchs Event Pack（PTMEVP）</a></li><li><a href="/sets/sp3/">Supporter Pack 3（SP3）</a></li><li><a href="/sets/p25/">Promotional 2025（P25）</a></li><li><a href="/sets/ambdp/">Mortal Ambition Draft Pack（AMBDP）</a></li><li><a href="/sets/sp2/">Supporter Pack 2（SP2）</a></li><li><a href="/sets/slc/">SquareLive Collaboration（SLC）</a></li><li><a href="/sets/p24/">Promotional 2024（P24）</a></li><li><a href="/sets/demo23/">LGS Demo 2023（DEMO23）</a></li><li><a href="/sets/p23/">Promotional 2023（P23）</a></li><li><a href="/sets/sp1/">Supporter Pack 1（SP1）</a></li><li><a href="/sets/prxy/">Proxia&#39;s Vault（PRXY）</a></li><li><a href="/sets/evp/">Event Packs（EVP）</a></li><li><a href="/sets/gsc/">GenSeCha（GSC）</a></li><li><a href="/sets/ksp/">Kickstarter Promotional（KSP）</a></li><li><a href="/sets/p22/">Promotional 2022（P22）</a></li><li><a href="/sets/demo22/">LGS Demo 2022（DEMO22）</a></li></ul></div>
+      <p class="sl-more"><a href="/cards/">ロゴ・収録枚数つきの一覧を見る</a></p>
+    </div>
+  </details>
+  <!-- SETLINKS:END -->
+
+  <footer class="site-footer">
+    <p>
+      本サイトは非公式のファンプロジェクトです。カードデータ・画像は
+      <a href="https://api.gatcg.com" target="_blank" rel="noopener">公式API (api.gatcg.com)</a>
+      から取得しており、著作権は Weebs of the Shore に帰属します。日本語訳はコミュニティによる非公式訳です。
+    </p>
+  </footer>
+  </div><!-- /#results -->
+
+  <!-- ここから下は position:fixed の要素。⚠ #results の中に入れないこと
+       （#results は PC幅でスクロールコンテナになるため、fixed の包含ブロックの扱いが変わる）。
+       カード詳細モーダルは shared/js/card-detail.js が #gacd-modal として body にDOM注入する -->
 
   <!-- 絞り込みシートを開くFABとベール。
        ⚠ <body> 直下に置くこと。.controls の中に入れると backdrop-filter の包含ブロックと
@@ -137,34 +186,6 @@
       <p id="tray-status" class="tray-status" role="status" aria-live="polite"></p>
     </div>
   </div>
-
-  <!-- SETLINKS:START この中は scripts/build-card-pages.mjs が生成する。手で編集しない -->
-  <details class="setlinks">
-    <summary>エキスパンション別に探す（全63セット）</summary>
-    <div class="sl-body">
-      <div class="sl-g"><h2 class="sl-g-name">.asphodel/paradise</h2><ul class="sl-list"><li><a href="/sets/prd/">.asphodel/paradise（PRD）</a></li><li><a href="/sets/prd-1st/">.asphodel/paradise 1st Ed.（PRD 1st）</a></li><li><a href="/sets/prdg/">.asphodel/paradise Grimoire（PRDG）</a></li><li><a href="/sets/prdp/">.asphodel/paradise: Pantheon（PRDP）</a></li><li><a href="/sets/prdsd/">.asphodel/paradise Starter（PRDSD）</a></li></ul></div>
-      <div class="sl-g"><h2 class="sl-g-name">Radiant Origins</h2><ul class="sl-list"><li><a href="/sets/rdo/">Radiant Origins（RDO）</a></li><li><a href="/sets/rdo-1st/">Radiant Origins 1st Ed.（RDO 1st）</a></li><li><a href="/sets/rdoa/">Radiant Origins: Armaments（RDOA）</a></li><li><a href="/sets/rdop/">Radiant Origins: Pantheon（RDOP）</a></li><li><a href="/sets/rdopd/">Radiant Origins Pantheon Decks（RDOPD）</a></li></ul></div>
-      <div class="sl-g"><h2 class="sl-g-name">Phantom Monarchs</h2><ul class="sl-list"><li><a href="/sets/ptm/">Phantom Monarchs（PTM）</a></li><li><a href="/sets/ptm-1st/">Phantom Monarchs 1st Ed.（PTM 1st）</a></li><li><a href="/sets/ptmlgs/">Phantom Monarchs: Looking Glass Sights（PTMLGS）</a></li><li><a href="/sets/rec-brv/">Re:Collection Brilliant Vestige（ReC-BRV）</a></li></ul></div>
-      <div class="sl-g"><h2 class="sl-g-name">Distorted Reflections</h2><ul class="sl-list"><li><a href="/sets/dtr/">Distorted Reflections（DTR）</a></li><li><a href="/sets/dtr-1st/">Distorted Reflections 1st Ed.（DTR 1st）</a></li><li><a href="/sets/dtrsd/">Distorted Reflections Starter（DTRSD）</a></li></ul></div>
-      <div class="sl-g"><h2 class="sl-g-name">Abyssal Heaven</h2><ul class="sl-list"><li><a href="/sets/hvn/">Abyssal Heaven（HVN）</a></li><li><a href="/sets/hvn-1st/">Abyssal Heaven 1st Ed.（HVN 1st）</a></li><li><a href="/sets/rec-idy/">Re:Collection Idyll Corsage（ReC-IDY）</a></li><li><a href="/sets/rec-hvf/">Re:Collection Heaven&#39;s Favored（ReC-HVF）</a></li></ul></div>
-      <div class="sl-g"><h2 class="sl-g-name">Mortal Ambition</h2><ul class="sl-list"><li><a href="/sets/amb-alter/">Mortal Ambition Alter Ed.（AMB Alter）</a></li><li><a href="/sets/amb/">Mortal Ambition（AMB）</a></li><li><a href="/sets/amb-1st/">Mortal Ambition 1st Ed.（AMB 1st）</a></li><li><a href="/sets/ambsd/">Mortal Ambition Starter（AMBSD）</a></li></ul></div>
-      <div class="sl-g"><h2 class="sl-g-name">Mercurial Heart</h2><ul class="sl-list"><li><a href="/sets/mrc-alter/">Mercurial Heart Alter Ed.（MRC Alter）</a></li><li><a href="/sets/mrc/">Mercurial Heart（MRC）</a></li><li><a href="/sets/mrc-1st/">Mercurial Heart 1st Ed.（MRC 1st）</a></li><li><a href="/sets/rec-slm/">Re:Collection Slime Sovereign（ReC-SLM）</a></li><li><a href="/sets/rec-shd/">Re:Collection Shadowdancer（ReC-SHD）</a></li></ul></div>
-      <div class="sl-g"><h2 class="sl-g-name">Alchemical Revolution</h2><ul class="sl-list"><li><a href="/sets/alc-alter/">Alchemical Revolution Alter Ed.（ALC Alter）</a></li><li><a href="/sets/alc/">Alchemical Revolution（ALC）</a></li><li><a href="/sets/alc-1st/">Alchemical Revolution 1st Ed.（ALC 1st）</a></li><li><a href="/sets/alcsd/">Alchemical Revolution Starter（ALCSD）</a></li></ul></div>
-      <div class="sl-g"><h2 class="sl-g-name">Fractured Crown</h2><ul class="sl-list"><li><a href="/sets/ftc/">Fractured Crown（FTC）</a></li><li><a href="/sets/ftca/">Fractured Crown: Armaments（FTCA）</a></li></ul></div>
-      <div class="sl-g"><h2 class="sl-g-name">Dawn of Ashes</h2><ul class="sl-list"><li><a href="/sets/doa-alter/">Dawn of Ashes Alter Ed.（DOA Alter）</a></li><li><a href="/sets/doasd/">Dawn of Ashes Starter（DOASD）</a></li><li><a href="/sets/doa-1st/">Dawn of Ashes 1st Ed.（DOA 1st）</a></li><li><a href="/sets/doap/">Dawn of Ashes Prelude（DOAp）</a></li></ul></div>
-      <div class="sl-g"><h2 class="sl-g-name">その他（プロモ・デモ・イベントパック等）</h2><ul class="sl-list"><li><a href="/sets/prddp/">.asphodel/paradise Draft Pack（PRDDP）</a></li><li><a href="/sets/prdevp/">.asphodel/paradise Event Pack（PRDEVP）</a></li><li><a href="/sets/sp4/">Supporter Pack 4（SP4）</a></li><li><a href="/sets/rdoevp/">Radiant Origins Event Pack（RDOEVP）</a></li><li><a href="/sets/rec-aur/">Re:Collection Aurelian Regent（ReC-AUR）</a></li><li><a href="/sets/p26/">Promotional 2026（P26）</a></li><li><a href="/sets/pp1/">Pantheon Pack 1（PP1）</a></li><li><a href="/sets/ptmevp/">Phantom Monarchs Event Pack（PTMEVP）</a></li><li><a href="/sets/sp3/">Supporter Pack 3（SP3）</a></li><li><a href="/sets/p25/">Promotional 2025（P25）</a></li><li><a href="/sets/ambdp/">Mortal Ambition Draft Pack（AMBDP）</a></li><li><a href="/sets/sp2/">Supporter Pack 2（SP2）</a></li><li><a href="/sets/slc/">SquareLive Collaboration（SLC）</a></li><li><a href="/sets/p24/">Promotional 2024（P24）</a></li><li><a href="/sets/demo23/">LGS Demo 2023（DEMO23）</a></li><li><a href="/sets/p23/">Promotional 2023（P23）</a></li><li><a href="/sets/sp1/">Supporter Pack 1（SP1）</a></li><li><a href="/sets/prxy/">Proxia&#39;s Vault（PRXY）</a></li><li><a href="/sets/evp/">Event Packs（EVP）</a></li><li><a href="/sets/gsc/">GenSeCha（GSC）</a></li><li><a href="/sets/ksp/">Kickstarter Promotional（KSP）</a></li><li><a href="/sets/p22/">Promotional 2022（P22）</a></li><li><a href="/sets/demo22/">LGS Demo 2022（DEMO22）</a></li></ul></div>
-      <p class="sl-more"><a href="/cards/">ロゴ・収録枚数つきの一覧を見る</a></p>
-    </div>
-  </details>
-  <!-- SETLINKS:END -->
-
-  <footer class="site-footer">
-    <p>
-      本サイトは非公式のファンプロジェクトです。カードデータ・画像は
-      <a href="https://api.gatcg.com" target="_blank" rel="noopener">公式API (api.gatcg.com)</a>
-      から取得しており、著作権は Weebs of the Shore に帰属します。日本語訳はコミュニティによる非公式訳です。
-    </p>
-  </footer>
 
   <!-- jsPDF（356KB）は app.js が「PDFを生成」時に動的読み込みする（#22）。ここでは読まない -->
   <script defer src="shared/pdf/card-sheet.js"></script>

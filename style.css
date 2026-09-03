@@ -1,8 +1,13 @@
+/* ⚠️ この :root は 404.html も読む（本番で /style.css を読むのは index.html と 404.html の2枚だけ）。
+   HeroUI 案A-しっかり（設計書 §5・判断3/判断4）で --panel / --panel-2 / --border / --radius を
+   入れ替えたため、404ページの見た目も一緒に変わる（R8・意図した変更・検証項目 V9）。
+   ⚠️ 配色（金 --accent）は置き換えない。サイトの識別子であり、HeroUI の blue-500 に
+      替えるのは近代化ではなく別サイト化になる。 */
 :root {
   --bg: #0f1115;
-  --panel: #171a21;
-  --panel-2: #1f232c;
-  --border: #2a2f3a;
+  --panel: #1b1f28;      /* HeroUI 案A: 面を一段明るくして階層を作る（旧 #171a21） */
+  --panel-2: #232834;    /* 同上（旧 #1f232c） */
+  --border: rgba(255,255,255,.11);  /* 区切り線を半透明に（旧 #2a2f3a） */
   --text: #e7e9ee;
   --muted: #9aa2b1;
   --accent: #d9a441;
@@ -10,7 +15,7 @@
   --accent-3: #e07bd0;
   --yes: #2f9e6b;
   --no: #7a6320;
-  --radius: 12px;
+  --radius: 14px;       /* HeroUI の角丸スケール lg（旧 12px） */
 }
 
 * { box-sizing: border-box; }
@@ -318,6 +323,40 @@ a { color: var(--accent-2); }
 .btn-primary:disabled { opacity: .6; cursor: progress; }
 .tray-status { margin: 12px 0 0; color: var(--text); font-size: .9rem; min-height: 1.2em; }
 
+/* ---------- HeroUI 案A-しっかり（設計書 §5・判断3/判断4） ----------
+   ⚠️ React / Tailwind / ビルド工程は導入しない。借りるのは CSS の値と考え方だけ。
+   ⚠️ HeroUI の影スケール（黒 alpha .02〜.08）は暗色地では知覚できない（実測）。
+      暗色テーマの立体感は「面の明度差 ＋ 内側1pxのハイライト」に翻案している。
+   ⚠️ この節は下の @media (max-width: 640px) より前に置くこと。後ろに置くと
+      .controls input の font-size:16px（iOSのフォーカス時ズーム防止）を同詳細度で
+      上書きしてしまい、スマホでフォーカスするたびに画面が拡大する。
+   ⚠️ チップの寸法（.fgroup / .flabel / .fgroup .chip / .fgroup .chips / .fgroup summary）は
+      ここでは触らない。shared/css/filter-chips.css が style.css より後に読み込まれるため、
+      同じ詳細度でここに書いても効かない（設計モックでも効いていなかった）。
+      効かせるには共有CSS側を変えることになり、デッキ構築ツールへ波及する（R6・S1）。 */
+
+/* 角丸・余白・行高・文字サイズを HeroUI のスケール（sm 8 / md 12 / lg 14、.875rem/1.25rem）へ寄せる */
+.controls input, .controls select, .controls button {
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: .875rem;
+  line-height: 1.25rem;
+}
+/* フォーカスリングの間隔を 1px → 2px（HeroUI の focus ring と同じ） */
+.controls input:focus, .controls select:focus { outline-offset: 2px; }
+
+/* 影の代わりに面を分ける。⚠️ .card は background も上げる（--panel より一段明るい） */
+.card, .fgroup { box-shadow: inset 0 1px 0 rgba(255,255,255,.045); }
+.site-header { background: #191d25; }
+.controls { background: #161a22; }
+.card { background: #1b1f28; border-color: rgba(255,255,255,.09); }
+.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.grid { gap: 18px; }
+
+/* 選択中の絞り込み条件（設計書 §12-2 案A）。
+   ⚠️ 既定は非表示。左ペインが出る 1200px 以上でだけ表示する（スマホ・タブレットは現状のまま） */
+#selected-filters { display: none; }
+
 /* ---------- レスポンシブ（スマホ 〜640px） ---------- */
 @media (max-width: 640px) {
   /* 横方向のはみ出しを防ぐ（#21）。
@@ -499,6 +538,110 @@ a { color: var(--accent-2); }
     transition-duration: .01ms !important;
     transition-delay: 0s !important;
   }
+}
+
+/* ---------- PC幅（1200px以上）：検索条件を左ペインへ（設計書 §3・§11） ----------
+   ⭐ 狙いは2つだけ。
+      G1: 検索入力が画面幅に比例して間延びしない（2560px幅で #q が 1251px あった）
+      G2: 絞り込みを開閉してもカード一覧の開始位置が動かない（4グループ全開で 878px まで下がっていた）
+   ⭐ ヘッダと左ペインは固定し、スクロールするのは #results（結果側）だけ＝アプリシェル。
+   ⚠️ 追加するメディアクエリはこの2本だけ。641〜1199px は今までどおりの上部バーのまま
+      （1200px 未満で左ペインにすると結果側が3列まで落ち、割に合わない＝設計書 §3-3）。
+   ⚠️ スマホ幅（〜640px）の3つの対策（overflow-x:clip / .controls position:static /
+      backdrop-filter:none）はここでは一切触らない。触ると絞り込みFAB・ボトムシートが死ぬ。 */
+
+@media (max-width: 1199px) {
+  /* ⚠️ 1199px以下では #results の箱を作らない（#filter-sheet と同じ手口）。
+     これを外すとブロック整形文脈が1段増え、スマホ・タブレットの余白の詰まり方が変わる。 */
+  #results { display: contents; }
+}
+
+@media (min-width: 1200px) {
+  /* 2行 × 2列のアプリシェル。1行目＝ヘッダ（全幅）、2行目＝左ペインと結果側。
+     ⚠️ 2行目のトラックを minmax(0, 1fr) にすることでビューポート高に固定される。
+        そのため .controls の position: sticky は不要になる（そもそも動かない）。 */
+  /* ⚠️ 必ず body.page-top で限定する。style.css は 404.html も読むので、素の body に
+     掛けると 404 の本文が「左320pxの空列」の右へ押し込まれる（実測: 本文幅 820→542px）。 */
+  body.page-top {
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;   /* ⚠️ ページ自体はスクロールしない。スクロールするのは #results */
+  }
+  /* ⚠️ 既定を右列にしておく。要素ごとに列を指定すると、body直下に要素が増えた日に
+     その要素だけ左列へ落ちる（無言で壊れる） */
+  .page-top > * { grid-column: 2; }
+  .page-top .site-header { grid-column: 1 / -1; grid-row: 1; }
+  .page-top .controls {
+    grid-column: 1;
+    grid-row: 2;
+    position: static;       /* sticky は不要（トラックが動かないため） */
+    overflow-y: auto;       /* 4グループ全開のような最悪ケースはペイン内スクロールで届かせる */
+    gap: 12px;
+    padding: 14px 16px 24px;
+    border-bottom: none;
+    border-right: 1px solid var(--border);
+  }
+  .page-top #results { grid-column: 2; grid-row: 2; overflow-y: auto; }
+
+  /* ペインの中は縦1列。⭐ これで #q が画面幅に依存しない固定幅になる（G1） */
+  .controls-row { flex-direction: column; align-items: stretch; }
+  #q, #qtext { flex: 0 0 auto; width: 100%; min-width: 0; }
+  .filter-row { grid-template-columns: minmax(0, 1fr); }
+  .filter-rest { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .filter-rest select { grid-column: 1 / -1; }
+  /* ⚠️ チップ領域の丈の上限。サブタイプ157種を開くとペインに収まらないため。
+     ⚠️ セレクタを .controls で限定して style.css に書く。shared/css/filter-chips.css に
+        書くとデッキ構築ツールのチップまで200pxで切れる（R6・S1） */
+  .controls .fgroup .chips { max-height: 200px; overflow-y: auto; }
+  /* ⚠️ 上の max-height でチップ領域がスクロールコンテナになる。チェックボックスは
+     position:absolute（filter-chips.css）で、ここでは .controls が position:static のため
+     包含ブロックが初期包含ブロックになり、Tab でフォーカスしても
+     「チップ領域が自動スクロールしない」＝フォーカスリングが枠外に出たまま見えなくなる（実測）。
+     .chip を包含ブロックにすると、フォーカス時のスクロールが .chips まで届く。
+     ⚠️ input には top/left を書いていないので静的位置のまま＝見た目は1pxも動かない。 */
+  .controls .fgroup .chip { position: relative; }
+
+  /* 左ペインのぶん結果側の横余白を少し詰める */
+  .status, .grid, .load-more-wrap { padding-left: 20px; padding-right: 20px; }
+
+  /* 選択中の条件（設計書 §12-2 案A）。アコーディオンで閉じたグループの中身を補う。
+     ⚠️ 表示するのは選択が1つ以上あるときだけ（.has-selection は app.js が付ける） */
+  #selected-filters.has-selection {
+    display: block;
+    border: 1px solid var(--accent);
+    background: rgba(217,164,65,.08);
+    border-radius: 10px;
+    padding: 9px 11px;
+  }
+  #selected-filters-title {
+    margin: 0 0 7px;
+    font-size: .74rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    color: var(--muted);
+  }
+  #selected-filters-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  #selected-filters-list button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    font: inherit;
+    font-size: .79rem;
+    line-height: 1.4;
+    padding: 4px 9px;
+    cursor: pointer;
+  }
+  #selected-filters-list button:hover { background: rgba(217,164,65,.2); }
+  /* チップ本体と同じく、英字キーは小さく muted で添える（shared/css/filter-chips.css の .chip em と同じ扱い） */
+  #selected-filters-list em { font-style: normal; color: var(--muted); font-size: .72rem; }
+  #selected-filters-list .x { color: var(--muted); font-weight: 700; }
+  #selected-filters-list .clear-all { border-style: dashed; border-color: var(--border); color: var(--muted); }
 }
 
 /* ---------- 404ページ（404.html・#23） ----------
