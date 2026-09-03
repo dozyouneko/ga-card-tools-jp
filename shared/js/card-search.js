@@ -295,6 +295,12 @@ window.GA_CARD_SEARCH = (() => {
     ["rarity", "rarity", null],
   ];
 
+  // ⭐ 「メタ索引には見えない条件」の唯一の定義（設計書 §5 P4）。第3要素が null＝カード直下に
+  //    配列プロパティが無く、索引の列挙値にも入っていない項目のこと。
+  // ⚠ この判定を使う場所は3つある（metaMatches の読み飛ばし／D-1 の概算判定／D-2 の想定内除外）。
+  //    ⭐ 必ずこの関数から導くこと——別々にハードコードすると片方だけ直したときに静かにずれる。
+  const isIndexBlind = (entry) => entry[2] === null;
+
   // 絞り込みの照合に使う「カードが持っている値」の配列。
   // ⚠ field が null の項目はここで版から組み立てる。レアリティは版ごとに違うので重複を潰し、
   //   意味は「いずれかの版がそのレアリティ」とする（＝公式APIの rarity= の挙動と一致。
@@ -423,6 +429,8 @@ window.GA_CARD_SEARCH = (() => {
     let jpCand = null;  // 上記を索引で「取得前」に絞った候補(#27)。新規検索ごとに作り直す
     let jpApprox = false; // JPモードの件数が概算か(索引が使えず/未収録slugが混じるとき)
     let jpDropped = 0;         // JPモードで取得後に落ちた件数(めくったページまでの累計・#45)
+    let jpBlindDropped = 0;    // うち「索引が見られない条件だけが理由」の想定内の除外(D-2)。
+                               // ⚠ 画面には出さない —— 新しい注記は増やさない(設計書 §5 P4)
     let jpSeen = null;         // 取得できた表面slug(重複の検出用・#45)
     let jpSortUnknown = 0;     // JPモードで並び替えキーが不明だった件数(末尾へ回した数・#43)
     let jpSortDropped = false; // 索引が全く使えず並び替え自体を諦めたか(#43)
@@ -478,6 +486,13 @@ window.GA_CARD_SEARCH = (() => {
         || setPrefixes(val(els.set)).length > 0;
     }
 
+    // ⭐ D-1（§5 P4）: 索引が判定できない絞り込み（レアリティ）が有効か。
+    //    有効なら候補数は実数より多くなるので、総件数を「概算」として扱う。
+    // ⚠ els にその項目が無いページ（デッキ構築ツール）では valuesOf(null)=[] で常に false＝no-op。
+    function indexBlindActive() {
+      return MULTI.filter(isIndexBlind).some(([key]) => vals(key).length > 0);
+    }
+
     // ---------- JPモードの取得前フィルタ用メタ索引（#27）----------
     // data/card-meta-index.json を「JPモードに初めて入ったとき」だけ fetch し、Promiseを保持して再利用する
     // （card-cache.js の mem と同じ方式）。失敗・不正・未設定は null に倒す（fail-open）。
@@ -503,13 +518,13 @@ window.GA_CARD_SEARCH = (() => {
         classes: dec(entry[0]), elements: dec(entry[1]),
         types: dec(entry[2]), subtypes: dec(entry[3]),
       };
-      for (const [key, , field] of MULTI) {
-        // ⚠ 索引に列挙値が無い項目（field=null）でここを絞ってはいけない。レアリティは索引の
-        //   entry[7] が「prefix別の最小」しか持たないため、最小以外で刷られた版が候補から落ちる。
+      for (const m of MULTI) {
+        // ⚠ 索引に列挙値が無い項目でここを絞ってはいけない。レアリティは索引の entry[7] が
+        //   「prefix別の最小」しか持たないため、最小以外で刷られた版が候補から落ちる。
         //   ⭐ 落ちた候補はそもそも取得されず、取得後フィルタでは救えない（#27 の原則）。
-        //   代償はJPモードの取得件数が増えること——取りこぼし（静かに間違う）より良い。
-        if (field === null) continue;
-        if (!matchesMulti(pseudo, key, field)) return false;
+        //   代償（件数が概算になる・想定内の除外が出る）は D-1 / D-2 で受け止める（§5 P4）。
+        if (isIndexBlind(m)) continue;
+        if (!matchesMulti(pseudo, m[0], m[2])) return false;
       }
       if (val(els.format)) {
         const [fmt, state] = val(els.format).split(":");
@@ -690,9 +705,14 @@ window.GA_CARD_SEARCH = (() => {
 
     // class/element/type/subtype/rarity/set の絞り込みにカードが合致するか（JPモードの客側フィルタ用）
     // ⚠ JPモードのレアリティはここだけが判定する（metaMatches は候補を落とさない＝上の fail-open）
-    function matchesActiveFilters(card) {
-      for (const [key, , field] of MULTI) {
-        if (!matchesMulti(card, key, field)) return false;
+    // ⚠ skipIndexBlind: 索引が見られない条件（レアリティ）だけを外して判定し直すための旗（D-2）。
+    //   ⭐ 通常の呼び出しでは全条件を見る。旗を立てた判定と結果が食い違ったカードは
+    //     「索引の盲点だけが理由で落ちた＝想定内」であって、索引の腐りではない。
+    function matchesActiveFilters(card, o) {
+      const skipBlind = !!(o && o.skipIndexBlind);
+      for (const m of MULTI) {
+        if (skipBlind && isIndexBlind(m)) continue;
+        if (!matchesMulti(card, m[0], m[2])) return false;
       }
       if (val(els.format)) {
         // bannedFormats()=limit0判定はAPIのRESTRICTEDと同義。LEGAL=禁止でない／RESTRICTED=禁止
@@ -823,6 +843,7 @@ window.GA_CARD_SEARCH = (() => {
         jpSortDropped = false;
         jpBackHit = null;
         jpDropped = 0;
+        jpBlindDropped = 0;
         jpSeen = new Set();
       }
       try {
@@ -860,6 +881,11 @@ window.GA_CARD_SEARCH = (() => {
               base = folded;
               jpApprox = hasJpFilters();
             }
+            // ⭐ D-1（§5 P4）: 索引が判定できない絞り込み（レアリティ）が有効なら、候補には
+            //    条件に合わないカードが必ず残っている＝ jpCand.length は実数より多い。
+            //    ⚠ 目的は「誤った『全N件』を出さない」こと。正確な総数を数え直すのではない
+            //    （数えるには全候補を取得するしかなく、JPモードの構造上それは高くつく）。
+            if (indexBlindActive()) jpApprox = true;
             // 並び替えは絞り込みの「後」に行う（除外で件数が減ってからのほうが比較回数が少ない）
             const s = sortJpCand(idx, base);
             jpCand = s.list;
@@ -879,7 +905,15 @@ window.GA_CARD_SEARCH = (() => {
           for (const c of fetched) {
             if (!c) { jpDropped += 1; continue; }                       // 取得失敗
             if (jpSeen.has(c.slug)) { jpDropped += 1; continue; }       // 畳み漏れ（表面が重複）
-            if (!matchesActiveFilters(c)) { jpDropped += 1; continue; } // 索引が腐って過剰包含
+            if (!matchesActiveFilters(c)) {
+              // ⭐ D-2（§5 P4）: 索引が見られない条件（レアリティ）だけが理由なら「想定内」。
+              //   ⚠ jpDropped に混ぜない —— この注記は「出たら異常」の信号で、レアリティを
+              //     使うたびに点灯させると異常検出の経路が1本死ぬ。
+              //   取得失敗・畳み漏れ・索引の腐りは上と下のとおり従来どおり jpDropped に数える。
+              if (matchesActiveFilters(c, { skipIndexBlind: true })) jpBlindDropped += 1;
+              else jpDropped += 1;
+              continue;
+            }
             jpSeen.add(c.slug);
             cards.push(c);
           }
@@ -945,6 +979,9 @@ window.GA_CARD_SEARCH = (() => {
           // ⚠ jpMode は「JPモードか」でしかなく、日本語一致が0件でも true になる（#43 §7.3）
           jpMatched: jpSlugs ? jpSlugs.length : 0,
           jpDropped: jpSlugs ? jpDropped : 0,
+          // ⚠ 表示には使わない（新しい注記は増やさない・設計書 §5 P4）。D-2 が正しく効いているかを
+          //   検証・デバッグから観測できるようにするためだけの値
+          jpBlindDropped: jpSlugs ? jpBlindDropped : 0,
           // 裏面だけが一致したカードの {表面slug: 裏面slug}（#46）。
           // ⚠ カードオブジェクトに印を付けてはいけない（fetchCard の結果はキャッシュされるため、
           //   前回の検索の印が次の検索に残る）。必ずこの info 経由で渡す
