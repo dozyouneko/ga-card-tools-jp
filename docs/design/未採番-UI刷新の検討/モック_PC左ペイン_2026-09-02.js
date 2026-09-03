@@ -19,12 +19,17 @@ const sizeTag = document.getElementById("size-tag");
 const noteEl = document.getElementById("note");
 
 const state = {
-  layout: "pane1", pane: 320, skin: 0, vw: "full",
+  layout: "pane1", pane: 320, skin: 2, vw: "full",
   shell: "fixed",  /* scroll | fixed */
   acc: "on",       /* on | off  … 1つ開いたら他を閉じる */
   sel: "pane",     /* none | pane | count | summary | both */
   rarity: "on",
+  cfilter: "on",   /* on | off … 選択肢が多い群にチップ絞り込み欄を出す */
 };
+
+/* チップ絞り込み欄を出す下限（この数を超える選択肢を持つ群だけに出す）。
+   ⭐ 閾値方式にすると、将来サブタイプ以外が増えたときも自動で付く（設計書 §16-2） */
+const CFILTER_MIN = 30;
 let baseRuleCount = null;
 
 /* 参考: shared/js/card-i18n.js の RARITY_CODE と同じ並び */
@@ -98,6 +103,13 @@ function layoutCss(kind, w, bp, shell) {
     /* ⚠️ 320px のペインでは見出し行に入りきらず AND/OR が押し出される（実測）。
        ⭐ そこで項目名は「2行目」に回す（summary を折り返し可にして全幅を取る） */
     `.fgroup summary{ flex-wrap:wrap; }`,
+    /* ④ チップ絞り込み欄。⚠️ カード検索(#q)と間違えないよう、群の中に納めて見た目を変える */
+    `.mock-cfilter{ display:flex; align-items:center; gap:8px; padding:0 12px 9px; }`,
+    `.mock-cfilter input{ flex:1 1 auto; min-width:0; background:var(--bg); color:var(--text);
+       border:1px dashed var(--border); border-radius:8px; padding:6px 10px; font:inherit; font-size:.8rem; }`,
+    `.mock-cfilter input:focus{ outline:2px solid var(--accent-2); outline-offset:1px; border-style:solid; }`,
+    `.mock-cfilter .cfhint{ color:var(--muted); font-size:.72rem; white-space:nowrap; }`,
+    `.fgroup .chip[hidden]{ display:none; }`,
     `.fgroup .mock-sum{ flex:1 0 100%; color:var(--accent); font-size:.76rem;
        overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }`,
   );
@@ -225,6 +237,53 @@ function ensureRarity(on) {
   }
 }
 
+/* ④ チップ絞り込み欄（選択肢そのものを文字列で絞る）— 設計書 §16 */
+function ensureChipFilter(on) {
+  const d = doc();
+  if (!d) return;
+  d.querySelectorAll(".fgroup").forEach((g) => {
+    const chips = [...g.querySelectorAll(".chip")];
+    const has = g.querySelector(".mock-cfilter");
+    if (!on || chips.length < CFILTER_MIN) { has?.parentNode.remove(); return; }
+    if (has) return;
+
+    const box = d.createElement("div");
+    box.className = "mock-cfilter";
+    const inp = d.createElement("input");
+    inp.type = "search";
+    inp.placeholder = `${chips.length}種から絞り込む… 例: ドラゴン / dragon`;
+    inp.setAttribute("aria-label", "この項目の選択肢を絞り込む");
+    const hint = d.createElement("span");
+    hint.className = "cfhint";
+    box.append(inp, hint);
+    g.querySelector("summary").after(box);
+
+    const rest = g.querySelector(".chips-rest");
+    const more = g.querySelector(".more");
+    inp.addEventListener("input", () => {
+      const q = inp.value.trim().toLowerCase();
+      /* ⚠️ 検索中は「よく使う20種」の外も対象にする（隠れたままだと取りこぼす） */
+      if (rest) rest.hidden = q ? false : true;
+      if (more) more.hidden = !!q;
+      let shown = 0;
+      for (const c of chips) {
+        const hit = !q || c.textContent.toLowerCase().includes(q);
+        /* ⭐ 選択済みは一致しなくても残す（見えないと外せなくなる） */
+        const keep = hit || c.querySelector("input").checked;
+        c.hidden = !keep;
+        if (hit) shown += 1;
+      }
+      hint.textContent = q ? (shown ? `${shown}件が一致` : "一致なし") : "";
+    });
+    /* ⚠️ Esc でクリア（シートの Esc と混ざらないよう止める） */
+    inp.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && inp.value) {
+        e.stopPropagation(); inp.value = ""; inp.dispatchEvent(new d.defaultView.Event("input"));
+      }
+    });
+  });
+}
+
 /* ② アコーディオン：1つ開いたら他を閉じる */
 let accBound = false;
 function bindAccordion() {
@@ -343,6 +402,7 @@ function apply() {
   ensureResultsWrap(pane && state.shell === "fixed");
   moveSearch(state.layout === "pane2");
   ensureRarity(state.rarity === "on");
+  ensureChipFilter(state.cfilter === "on");
   bindAccordion();
 
   for (const r of [...layoutCss(state.layout, state.pane, 1200, state.shell), ...skinCss(state.skin)]) {
@@ -393,6 +453,7 @@ function renderNote() {
     s += "<br>" + SHELL[state.shell];
     s += "<br>絞り込み: " + (state.acc === "on" ? "<b>アコーディオン（1つだけ開く）</b>" : "複数同時に開ける（現状）") + " ／ " + SEL[state.sel];
     if (state.rarity === "on") s += "<br>⚠️ <b>レアリティ群はモックでは見た目のみ</b>（選択しても結果は絞られない）。実装可能なことは実測ずみ＝設計書 §13。";
+    if (state.cfilter === "on") s += "<br>⭐ <b>チップ絞り込み欄</b>：選択肢が" + CFILTER_MIN + "種を超える群（いまはサブタイプ157種だけ）に出る。⚠️ <b class='warn'>絞るのは選択肢であってカードではない</b>（設計書 §16）。";
     if (state.skin) s += "<br>" + ["", "<b>案A-最小</b>：区切り線を半透明に、面の明度差で階層を作る。⚠️ HeroUIの影は<b class='warn'>暗色地では見えない</b>ため翻案（設計書 §5）。", "<b>案A-しっかり</b>：余白・行高・文字サイズもHeroUIのスケールに揃える。"][state.skin];
     s += `<br>ペイン幅 <b>${state.pane}px</b>／左ペインに切り替わるのは <b>1200px以上</b>。`;
   }

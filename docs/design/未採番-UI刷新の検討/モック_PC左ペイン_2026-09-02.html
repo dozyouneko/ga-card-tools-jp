@@ -8,7 +8,8 @@
 
      ⭐ 実物（/ ＝ index.html）を iframe で読み込み、候補CSSを CSSOM で注入する方式。
         コピーを持たないので、本体が変わってもモックが陳腐化しない。
-     ⚠️ ローカルサーバー（例: PORT=3400 npm run dev）から
+     ⚠️ ローカルサーバー（⭐ PORT=3000 npm run dev。3000 以外は devcontainer の forwardPorts に無く
+        ブラウザから届かない＝設計書 §10）から
         /docs/design/未採番-UI刷新の検討/モック_PC左ペイン_2026-09-02.html で開くこと。
         file:// で開くと同一オリジンにならず注入できない。 -->
 <title>モック：PC左ペイン＋HeroUI案A</title>
@@ -66,6 +67,14 @@
     </div>
 
     <div class="grp">
+      <span class="lbl">チップ絞込</span>
+      <div class="seg" data-g="cfilter">
+        <button data-v="off">出さない</button>
+        <button data-v="on" class="on">出す（30種超の群）</button>
+      </div>
+    </div>
+
+    <div class="grp">
       <span class="lbl">ペイン幅</span>
       <div class="seg" data-g="pane">
         <button data-v="280">280</button>
@@ -77,9 +86,9 @@
     <div class="grp">
       <span class="lbl">見た目</span>
       <div class="seg" data-g="skin">
-        <button data-v="0" class="on">現状</button>
+        <button data-v="0">現状</button>
         <button data-v="1">案A-最小</button>
-        <button data-v="2">案A-しっかり</button>
+        <button data-v="2" class="on">案A-しっかり</button>
       </div>
     </div>
 
