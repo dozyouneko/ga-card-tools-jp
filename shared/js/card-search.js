@@ -278,7 +278,13 @@ window.GA_CARD_SEARCH = (() => {
         //   （スマホのボトムシートを Esc で閉じたいため・C4）
         if (!cfInput.value) return;
         e.stopPropagation();
-        clearChipFilter();
+        // ⚠ ⭐ ここで clearChipFilter() を呼んではいけない（2026-09-03 のレビュー M1-1）。
+        //   同関数は restBeforeSearch を null に戻すため、続く applyChipFilter() の
+        //   復元条件（restBeforeSearch !== null）が成立せず、⚠ Esc のときだけ
+        //   「検索前の展開状態に戻す」（S-1）が効かなくなる。
+        //   ⭐ Backspace / ネイティブの ✕ と同じ経路（値を空にして input 相当の再判定）に揃える。
+        //   ⚠ clearChipFilter() は reset()/setValues() 専用（あちらは復元してはいけない）。
+        cfInput.value = "";
         applyChipFilter();
       });
     }
