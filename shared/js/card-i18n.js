@@ -143,7 +143,11 @@ window.GA_CARD_I18N = (() => {
       const num = ed.collector_number ? ` #${ed.collector_number}` : "";
       const bo = ed.other_orientations && ed.other_orientations[0];
       const backUrl = bo && bo.edition && bo.edition.image ? IMG_BASE + bo.edition.image : null;
-      out.push({ url: IMG_BASE + ed.image, prefix: set || "?", label: (set + num).trim() || "版", back: backUrl });
+      // ⚠ rarity は「版レベルの絞り込みに追従して絵柄を選ぶ」ために足した（設計書 §5 P5 の D-3）。
+      //   ⭐ 追加だけなので既存の消費側は無視して従来どおり動く。
+      //   ⚠ result_editions を根拠にしない —— card-search.js の全件取得経路が delete するため、
+      //     並び替えの種類で絵柄が変わるという再現条件の分かりにくい不整合になる（#44）。
+      out.push({ url: IMG_BASE + ed.image, prefix: set || "?", label: (set + num).trim() || "版", back: backUrl, rarity: ed.rarity });
     });
     return out;
   }

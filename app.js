@@ -73,10 +73,20 @@ const seasonalReady = window.GA_CARD_I18N.loadSeasonalBanlist(SEASONAL_URL);
 
 // エキスパンション（版）で絞り込み検索している場合、その版のイラストを初期表示にする。
 // 絞り込みが無い、または一致する版が無い場合は先頭（imgs[0]）にフォールバック。
+// ⚠ 「版レベルの絞り込み」（エキスパンション・レアリティ）に一致する版を選ぶ（設計書 §5 P5 の D-4）。
+// ⭐ タイルの初期表示・🎨バッジの版表示・印刷リストに入る版は、すべてこの戻り値から決まる。
+// ⚠ 両方が有効なときは AND —— 片方だけ一致する版を選ばない。一致が無ければ従来どおり先頭へ。
+// ⚠ 署名は (imgs) のまま。shared/js/card-detail.js（詳細モーダル）が同じ関数を受け取るので、
+//   ここを直すとモーダル側も改造なしで追従する。
+// ⚠ 根拠は editions（cardImages 経由）だけにする。result_editions は全件取得経路で
+//   delete されるため、並び替えを変えると絵柄が変わることになる（#44・設計書 §5 P5）。
 function preferredArtIndex(imgs) {
   const pre = setPrefixes(el.fSet.value);
-  if (!pre.length) return 0;
-  const idx = imgs.findIndex((im) => pre.includes(im.prefix));
+  const rar = el.gRarity ? el.gRarity.getValues().map(String) : [];
+  if (!pre.length && !rar.length) return 0;
+  const idx = imgs.findIndex((im) =>
+    (!pre.length || pre.includes(im.prefix)) &&
+    (!rar.length || (im.rarity != null && rar.includes(String(im.rarity)))));
   return idx >= 0 ? idx : 0;
 }
 
