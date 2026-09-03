@@ -17,7 +17,7 @@
 // 続いて docs/design/** の起票案の状態行と、索引（待ち行列と復旧手順.md）の整合を検査する（収録漏れと件数一致）。
 // 最後に、生成済みカードページの日本語効果文に「ハイライトされていない用語」が残っていないかを
 // 検査する（用語ハイライトの語形ずれ・片方向）。⚠ この検査だけ非同期（並列読み込み）。
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -227,6 +227,66 @@ if (loaded) {
     bad.forEach((m) => console.error(`  - ${m}`));
     console.error(`  → data/translations.js の meta.subtypes に CODE: "訳語" をアルファベット順の位置へ追記し、`);
     console.error(`    npm run build:cards を実行してコミットしてください（サブタイプ行が素の英字のまま出ています）`);
+  }
+}
+
+// レアリティ辞書の網羅性チェック（#40・meta.subtypes と同型）
+// レアリティ絞り込み（#g-rarity）の選択肢は data/translations.js の meta.rarities を手で書く。
+// 新しいレアリティ番号が公式APIに現れても、チップが1つ足りないだけで画面は壊れず更新の号令も無い。
+// ⚠ 正にできるのはスナップショットだけ。メタ索引はレアリティを「prefix別の最小」しか持たないため
+//   （設計書 §5 P2）、索引から全値を観測することは原理的にできない。
+// ⚠ スナップショットは tmp/ 配下（gitignore）なので存在しないことがある。そのときは検査を
+//   スキップするが、⭐ 黙って緑にしない——スキップしたことを成功行に明記する。
+// ⚠ 片方向にする。辞書にあるが実データに無い番号は報告しない（先回りの登録は正当な運用）。
+if (loaded) {
+  const bad = [];
+  const SNAP = path.join(root, "tmp", "api-cache", "cards-snapshot.json");
+  const registered = (loaded.meta && loaded.meta.rarities) || {};
+  if (!existsSync(SNAP)) {
+    console.log(`meta.rarities check skipped — スナップショットがありません（${path.relative(root, SNAP)}）`);
+  } else {
+    try {
+      const snap = JSON.parse(readFileSync(SNAP, "utf8"));
+      const cards = Array.isArray(snap) ? snap : (snap.cards || []);
+      const used = new Set();
+      for (const c of cards) {
+        for (const e of (c.editions || [])) {
+          if (e && e.rarity != null) used.add(String(e.rarity));
+        }
+      }
+      // ⚠ 抽出に失敗したときに「一致」へ倒さない。0件はスナップショットの破損であって網羅ではない
+      if (used.size === 0) {
+        bad.push("スナップショットからレアリティを1件も取り出せません（破損か形式変更の疑い）");
+      } else {
+        const missing = [...used].filter((r) => !registered[r]).sort();
+        if (missing.length) {
+          bad.push(`実データにあるが data/translations.js の meta.rarities に無い: ${missing.join(" ")}`);
+        } else {
+          console.log(
+            `meta.rarities covers all rarities — ${used.size}種（スナップショット ${cards.length}枚から観測）`
+          );
+        }
+      }
+    } catch (e) {
+      bad.push(`読み込みに失敗: ${e.message}`);
+    }
+  }
+  // ⚠ 設計書 §5 P3。fillChips() は Object.keys(map).sort()（辞書順）で並べるため、キーが2桁に
+  //   なると 1,10,2,… と並んで壊れる。9種までは1桁なので辞書順＝数値順で無害。
+  //   ⭐ 辞書に10種目を足して上の検査を黙らせても、ここで必ず止まる。
+  const regCount = Object.keys(registered).length;
+  if (regCount >= 10) {
+    bad.push(
+      `meta.rarities が${regCount}種あります。fillChips() の .sort() は辞書順なので ` +
+      `1,10,2,… と並びます（設計書 §5 P3。並び順の手当てが要ります）`
+    );
+  }
+  if (bad.length) {
+    problems++;
+    console.error(`\nUNREGISTERED RARITIES (meta.rarities):`);
+    bad.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → data/translations.js の meta.rarities に "番号": "訳語（略号）" を追記してください`);
+    console.error(`    （略号は shared/js/card-i18n.js の RARITY_CODE と揃える）`);
   }
 }
 

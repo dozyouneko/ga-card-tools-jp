@@ -127,6 +127,17 @@ window.GA_I18N = {
       ULTIMATE: "アルティメット", UNICORN: "ユニコーン", VEHICLE: "車両", VELTECH: "ヴェルテック", WAND: "ワンド", WARRIOR: "ウォリアー", WEASEL: "イタチ",
       WHIP: "鞭", WOLF: "狼",
     },
+
+    // レアリティ（editions[].rarity の 1〜9）。略号は shared/js/card-i18n.js の RARITY_CODE と揃える。
+    // ⚠ meta.sets / meta.subtypes と同じ「手で足す辞書」。新しい番号が公式APIに現れたら追記が要る
+    //   （検出経路: scripts/validate.mjs の meta.rarities 検査が exit 1 で人を止める）。
+    // ⚠ キーは API の値と一致させる必要があるのでゼロ埋めしない。10種目が増えると fillChips() の
+    //   .sort()（辞書順）が 1,10,2,… と並べて壊れるため、そのときは並び順も同時に手当てする。
+    rarities: {
+      "1": "コモン（C）", "2": "アンコモン（U）", "3": "レア（R）",
+      "4": "スーパーレア（SR）", "5": "ウルトラレア（UR）", "6": "プロモ（PR）",
+      "7": "コレクターSR（CSR）", "8": "コレクターUR（CUR）", "9": "コレクターPR（CPR）",
+    },
   },
 
   // --- ゲーム用語辞書（効果文中に出現したら詳細画面で解説を表示） ---

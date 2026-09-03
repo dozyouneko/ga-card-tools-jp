@@ -12,12 +12,14 @@ const I18N = window.GA_I18N || { meta: {}, terms: {}, cards: {} };
 const el = {
   q: document.getElementById("q"),
   qtext: document.getElementById("qtext"),
-  // クラス/エレメント/タイプ/サブタイプは複数選択（AND/OR）のチップ群。
+  // クラス/エレメント/タイプ/サブタイプ/レアリティは複数選択（AND/OR）のチップ群。
   // 中身は GA_CARD_SEARCH.fillChips() が構築し、getValues()/getMode()/setValues()/setMode()/reset() を持つ
   gClass: document.getElementById("g-class"),
   gElement: document.getElementById("g-element"),
   gType: document.getElementById("g-type"),
   gSubtype: document.getElementById("g-subtype"),
+  // レアリティは editions[].rarity（card 直下に無い）。値の取り出しは card-search.js の haveOf() が担う
+  gRarity: document.getElementById("g-rarity"),
   fFormat: document.getElementById("f-format"),
   fSet: document.getElementById("f-set"),
   sort: document.getElementById("f-sort"),
@@ -94,6 +96,7 @@ const searchCtl = GA_CARD_SEARCH.create({
   els: {
     name: el.q, text: el.qtext,
     cls: el.gClass, element: el.gElement, type: el.gType, subtype: el.gSubtype,
+    rarity: el.gRarity,
     format: el.fFormat, set: el.fSet, sort: el.sort, order: el.order,
   },
   pageSize: 50,
@@ -567,6 +570,10 @@ function setOrder(dir) {
 // URLのクエリ名 ⇔ 絞り込みグループ
 const urlGroups = () => [
   ["element", el.gElement], ["class", el.gClass], ["type", el.gType], ["subtype", el.gSubtype],
+  // ⚠ ここに足すとバッジ集計・リセット・「選択中の条件」・アコーディオン・URL共有の
+  //    5経路が同時に対応する（filterGroups() が urlGroups() から作られるため）。足し忘れると
+  //    スマホのバッジが数え落とし、リセットで選択が残る
+  ["rarity", el.gRarity],
 ];
 const filterGroups = () => urlGroups().map(([, g]) => g);
 
@@ -860,6 +867,7 @@ function init() {
   GA_CARD_SEARCH.fillChips(el.gClass, "classes", { label: "クラス" });
   GA_CARD_SEARCH.fillChips(el.gType, "types", { label: "タイプ" });
   GA_CARD_SEARCH.fillChips(el.gSubtype, "subtypes", { label: "サブタイプ", top: GA_CARD_SEARCH.SUBTYPE_TOP });
+  GA_CARD_SEARCH.fillChips(el.gRarity, "rarities", { label: "レアリティ" });
   GA_CARD_SEARCH.fillFormatSelect(el.fFormat);
   GA_CARD_SEARCH.fillSetSelect(el.fSet);
   resetControls(); // 起動時は必ず「全て」から開始（前回選択の復元を打ち消す）

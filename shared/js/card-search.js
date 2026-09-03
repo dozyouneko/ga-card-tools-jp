@@ -21,7 +21,9 @@
  *
  * els.set の value は I18N.meta.sets のインデックス。els.order は dataset.dir に "ASC"/"DESC" を持つボタン。
  *
- * cls/element/type/subtype は fillChips() が作るチップ群(複数選択+AND/OR)を渡す。
+ * cls/element/type/subtype/rarity は fillChips() が作るチップ群(複数選択+AND/OR)を渡す。
+ * ⚠ rarity はトップページだけが渡す。デッキ構築ツールは渡さないが、valuesOf(null)=[] /
+ *   modeOf(null)="OR" のため完全な no-op になる(#S1・出したくなったら els に足すだけ)。
  * カードDB・デッキ構築ツールとも同じ(#31 で統一)。
  * ⚠ modeOf()/valuesOf() は getMode()/getValues() を持たない素の <select> にも
  *   フォールバックするが、そのような呼び出し元は現在無い(#32 で fillSelect も削除済み)。
@@ -282,12 +284,29 @@ window.GA_CARD_SEARCH = (() => {
   }
 
   // 複数選択できる絞り込み項目（els のキー / APIのクエリ名 / カードの配列プロパティ）
+  // ⚠ 第3要素が null の項目は「カード直下に配列プロパティが無い」＝ haveOf() が版から組み立てる。
+  //   同時に「メタ索引に列挙値が無い」印でもあり、metaMatches() は候補を落とさない（fail-open）。
   const MULTI = [
     ["cls", "class", "classes"],
     ["element", "element", "elements"],
     ["type", "type", "types"],
     ["subtype", "subtype", "subtypes"],
+    // レアリティは card 直下に無く editions[].rarity にある（card.rarities は存在しない）
+    ["rarity", "rarity", null],
   ];
+
+  // 絞り込みの照合に使う「カードが持っている値」の配列。
+  // ⚠ field が null の項目はここで版から組み立てる。レアリティは版ごとに違うので重複を潰し、
+  //   意味は「いずれかの版がそのレアリティ」とする（＝公式APIの rarity= の挙動と一致。
+  //   スナップショット2,495枚での実測が API の total_cards と全値一致することを確認済み）。
+  function haveOf(card, field, key) {
+    if (field) return card[field] || [];
+    if (key === "rarity") {
+      const eds = card.editions || card.result_editions || [];
+      return [...new Set(eds.map((e) => String(e.rarity)))];
+    }
+    return [];
+  }
 
   // ---------- 数値項目の並び替え（#39 → #44 で全件取得に変更）----------
 
@@ -439,7 +458,7 @@ window.GA_CARD_SEARCH = (() => {
     function matchesMulti(card, key, field) {
       const list = vals(key);
       if (!list.length) return true;
-      const have = card[field] || [];
+      const have = haveOf(card, field, key);
       return modeOf(els[key]) === "AND"
         ? list.every((v) => have.includes(v))
         : list.some((v) => have.includes(v));
@@ -451,7 +470,7 @@ window.GA_CARD_SEARCH = (() => {
       return MULTI.every(([key, , field]) => !isAnd(key) || matchesMulti(card, key, field));
     }
 
-    // JPモードで class/element/type/subtype/format/set のいずれかを絞り込んでいるか。
+    // JPモードで class/element/type/subtype/rarity/format/set のいずれかを絞り込んでいるか。
     // 総件数が概算になるか(jpApprox)の判定に使う。非JPモードの概算判定は anyAnd()。
     function hasJpFilters() {
       return MULTI.some(([key]) => vals(key).length > 0)
@@ -485,6 +504,11 @@ window.GA_CARD_SEARCH = (() => {
         types: dec(entry[2]), subtypes: dec(entry[3]),
       };
       for (const [key, , field] of MULTI) {
+        // ⚠ 索引に列挙値が無い項目（field=null）でここを絞ってはいけない。レアリティは索引の
+        //   entry[7] が「prefix別の最小」しか持たないため、最小以外で刷られた版が候補から落ちる。
+        //   ⭐ 落ちた候補はそもそも取得されず、取得後フィルタでは救えない（#27 の原則）。
+        //   代償はJPモードの取得件数が増えること——取りこぼし（静かに間違う）より良い。
+        if (field === null) continue;
         if (!matchesMulti(pseudo, key, field)) return false;
       }
       if (val(els.format)) {
@@ -664,7 +688,8 @@ window.GA_CARD_SEARCH = (() => {
       return { list: known.concat(unknown), unknown: unknown.length };
     }
 
-    // class/element/type/subtype/set の絞り込みにカードが合致するか（JPモードの客側フィルタ用）
+    // class/element/type/subtype/rarity/set の絞り込みにカードが合致するか（JPモードの客側フィルタ用）
+    // ⚠ JPモードのレアリティはここだけが判定する（metaMatches は候補を落とさない＝上の fail-open）
     function matchesActiveFilters(card) {
       for (const [key, , field] of MULTI) {
         if (!matchesMulti(card, key, field)) return false;
