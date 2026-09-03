@@ -24,9 +24,44 @@
     <div class="grp">
       <span class="lbl">レイアウト</span>
       <div class="seg" data-g="layout">
-        <button data-v="none" class="on">現状</button>
-        <button data-v="pane1">案1：全部ペイン</button>
+        <button data-v="none">現状</button>
+        <button data-v="pane1" class="on">案1：全部ペイン</button>
         <button data-v="pane2">案2：検索は上部</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <span class="lbl">ヘッダ</span>
+      <div class="seg" data-g="shell">
+        <button data-v="scroll">流れる（現状）</button>
+        <button data-v="fixed" class="on">固定（結果だけスクロール）</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <span class="lbl">絞り込み</span>
+      <div class="seg" data-g="acc">
+        <button data-v="off">複数開ける（現状）</button>
+        <button data-v="on" class="on">1つだけ開く</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <span class="lbl">選択中の表示</span>
+      <div class="seg" data-g="sel">
+        <button data-v="none">なし</button>
+        <button data-v="pane" class="on">案A：ペイン上部</button>
+        <button data-v="count">案B：件数の横</button>
+        <button data-v="summary">案C：見出しに</button>
+        <button data-v="both">案D：A＋C</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <span class="lbl">レアリティ</span>
+      <div class="seg" data-g="rarity">
+        <button data-v="off">出さない</button>
+        <button data-v="on" class="on">出す（見た目のみ）</button>
       </div>
     </div>
 
