@@ -17,7 +17,7 @@
 // 続いて docs/design/** の起票案の状態行と、索引（待ち行列と復旧手順.md）の整合を検査する（収録漏れと件数一致）。
 // 最後に、生成済みカードページの日本語効果文に「ハイライトされていない用語」が残っていないかを
 // 検査する（用語ハイライトの語形ずれ・片方向）。⚠ この検査だけ非同期（並列読み込み）。
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -577,6 +577,82 @@ const DRAFT_ROOT = "docs/design";
     console.log(
       `issue drafts in sync — 起票案${drafts.length}件（生きている${counted["生きている"]} / 完了${counted["完了"]} / 取り下げ${counted["取り下げ"]}）`,
     );
+  }
+}
+
+// --- コード内の「<file>.js:<行番号>」参照の検査（腐った行番号参照の是正・2026-09-04） -------
+// コメントに書いた行番号は、指し先の行が動いた瞬間に無関係な場所を指す。実測した4件は
+// 「3件が腐り ＋ 1件は導入コミット（9e835e56）の時点で既に19行ずれ」で、この書き方が
+// 正しく保たれた例が1つも無かった。誰も気づかない（fail-open）ので、ここで人を止める。
+// ⚠ docs/ は対象外にする。設計書・実測メモ・レビュー判定は「その時点の実測値」を記録する
+//   文書なので、行番号が残るのはむしろ正常（2026-09-04 実測で278件ある）。ここへ広げると
+//   即座に赤くなるだけで、コード側の腐りは1件も防げない。「docs も見たほうがよいのでは」で
+//   広げないこと。
+// ⚠ shared/vendor/ も対象外。配布物にソースマップ由来の記述が入りうるうえ、自分では直せない。
+//   今のルート（shared/js）からは届かないが、ルートを shared/ へ広げても穴が開かないよう
+//   除外を明示しておく。
+// ⚠ 抽出に失敗したときに「合格」へ倒さないこと（#40・#70 と同じ方針）。ルートが読めない・
+//   走査対象が0ファイル のいずれも exit 1 にする（改名や移動で黙って空回りするのが最悪の失敗）。
+const LINEREF_ROOTS = ["scripts", "shared/js", "functions", "app.js", "tools"];
+const LINEREF_EXCLUDE = ["shared/vendor"];
+{
+  const bad = [];
+  const hits = [];
+  // ⚠ 実装報告 T2 の grep と同じ形にする: [A-Za-z0-9_.-]+\.(js|mjs):[0-9]+(-[0-9]+)?
+  const REF_RE = /[A-Za-z0-9_.-]+\.(?:js|mjs):\d+(?:-\d+)?/g;
+  const excluded = (rel) => LINEREF_EXCLUDE.some((p) => rel === p || rel.startsWith(`${p}/`));
+  const targets = [];
+  const walk = (rel) => {
+    if (excluded(rel)) return;
+    const abs = path.join(root, rel);
+    let st;
+    try {
+      st = statSync(abs);
+    } catch (e) {
+      bad.push(`${rel} を読めません: ${e.message} — 走査対象の指定が陳腐化しています`);
+      return;
+    }
+    if (st.isDirectory()) {
+      // 表示を決定的にするため名前順に降りる
+      for (const d of readdirSync(abs, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+        walk(`${rel}/${d.name}`);
+      }
+    } else if (/\.(?:js|mjs)$/.test(rel)) {
+      targets.push(rel);
+    }
+  };
+  for (const r of LINEREF_ROOTS) walk(r);
+
+  if (!targets.length) bad.push("走査対象の .js / .mjs が1つもありません — 走査対象の指定が陳腐化しています");
+  for (const rel of targets) {
+    let text;
+    try {
+      text = readFileSync(path.join(root, rel), "utf8");
+    } catch (e) {
+      bad.push(`${rel} の読み込みに失敗: ${e.message}`);
+      continue;
+    }
+    text.split(/\r?\n/).forEach((line, i) => {
+      for (const m of line.match(REF_RE) || []) hits.push(`${rel}:${i + 1} — ${m}`);
+    });
+  }
+
+  if (hits.length) {
+    bad.push(`行番号参照: ${hits.length}件`);
+    // 件数が多いときも先頭20件だけ出す（全部出すと本来のエラーが流れる）
+    hits.slice(0, 20).forEach((h) => bad.push(`  ${h}`));
+    if (hits.length > 20) bad.push(`  …ほか ${hits.length - 20}件`);
+  }
+
+  if (bad.length) {
+    problems++;
+    console.error(`\nSTALE LINE REFS (${LINEREF_ROOTS.join(" / ")}):`);
+    bad.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → 行番号は腐ります。関数名で参照してください（例: card-i18n.js の bannedFormats()）`);
+    console.error(`    「新しい行番号に直す」で済ませないこと。次のコミットでまた腐ります`);
+    console.error(`    docs/ と shared/vendor/ は対象外です（設計書はその時点の実測値を記録する文書・配布物は直せない）`);
+  } else {
+    console.log(`no line-number refs in code comments — 0件（${targets.length}ファイル走査）`);
   }
 }
 
