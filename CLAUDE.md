@@ -1127,6 +1127,17 @@ CONFIRM=publish npm run deploy:prod     # ⚠️ 本番公開。ユーザーの�
 
 - devcontainer(node:20-bookworm)で動作。メモリー(`/home/node/.claude/`)は
   コンテナ再構築で消えるため、恒久的な運用ルールは本ファイルに書く
+- ⚠️ ⭐ **VS Codeで開いたままのファイルは上書きに失敗する**(2026-09-04に実際に踏んだ)。
+  `/workspaces` は9pマウントのため、**エディタが開いているファイルを truncate して開き直すと
+  `OSError: [Errno 22] Invalid argument`** になる(⚠️ **読み込みと新規作成は成功するので原因が分かりにくい**)。
+  ⭐ **一時ファイルに書いてから `os.replace()` で置き換える**(原子的なので開いていても通る):
+
+  ```python
+  tmp = path + ".tmp"; img.save(tmp, format="PNG"); os.replace(tmp, path)
+  ```
+
+  ⚠️ **PILは拡張子から形式を決める**ので、`.tmp` に書くときは `format=` を明示する。
+  ⭐ 置き換え後は**エディタのプレビューを開き直す**まで古い内容が表示され続けることがある
 - ⚠️ **Claude Code の hooks はこのリポジトリでは使っていない**(`.claude/settings.json` は**存在しないのが正**)。
   2026-08-16に4セッションかけて実測済み——**同じことを再実測しないこと**。記録は
   `docs/design/70-cron列挙のドリフト防止/実測メモ_hook.md`(発火が確認できた設定の全文つき)
