@@ -42,7 +42,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = path.join(ROOT, "data", "card-meta-index.json");
 const API = "https://api.gatcg.com";
 
-// bannedFormats() = limit0判定（card-i18n.js:110 と同義）をビルド時に評価する
+// bannedFormats() = limit0判定（shared/js/card-i18n.js の bannedFormats() と同義）をビルド時に評価する
 const ALL_FORMATS = ["STANDARD", "DRAFT", "PANTHEON"];
 
 const log = (s) => process.stderr.write(s + "\n");
@@ -115,8 +115,8 @@ async function main() {
   //   ここで落とすと、日次cronは continue-on-error のため job が緑のまま索引だけが
   //   更新されなくなり、「索引が黙って腐る」状態に誰も気づけない。綴りミスや公式の
   //   slug変更で恒久的に失敗すると永久に回復しない（#29 のレビュー指摘1）。
-  //   索引から漏れたslugは消費側が fail-open するので安全（card-search.js:396 の
-  //   `if (!entry) return true;` により候補に残り、取得後フィルタで正しく判定される）。
+  //   索引から漏れたslugは消費側が fail-open するので安全（shared/js/card-search.js の
+  //   metaMatches() の `if (!entry) return true;` により候補に残り、取得後フィルタで正しく判定される）。
   if (missing.length) {
     log(`スナップショット未収録slug: ${missing.length}件 → /cards/:slug で個別取得`);
     const failed = [];

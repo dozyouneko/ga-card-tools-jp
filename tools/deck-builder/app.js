@@ -1423,7 +1423,7 @@ function renderAddRow(item, card) {
 
 // エキスパンション(版)で絞り込み検索している場合、その版のイラストを初期表示にする(#41)。
 // 絞り込みが無い、または一致する版が無い場合は先頭(imgs[0])にフォールバック。
-// トップページの app.js:64 と同じ規則。参照する <select> だけが違う(トップは el.fSet)。
+// トップページの app.js の preferredArtIndex() と同じ規則。参照する <select> だけが違う(トップは el.fSet)。
 function preferredArtIndex(imgs) {
   const pre = GA_CARD_SEARCH.setPrefixes(el.sSet.value);
   if (!pre.length) return 0;

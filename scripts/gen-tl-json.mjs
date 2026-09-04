@@ -11,7 +11,7 @@
 // ⚠️ 訳を追記したら再生成が要る。忘れても `npm run validate` が検出して落とす。
 //
 // tl-effects.json が {e,f} の入れ子なのは、詳細ダイアログが日本語フレーバー(t.flavor)も
-// 使うため(card-detail.js:200)。フレーバーも効果と同じく「詳細を開いたときだけ」必要なので
+// 使うため(shared/js/card-detail.js の render() のフレーバー描画)。フレーバーも効果と同じく「詳細を開いたときだけ」必要なので
 // 効果側に同梱する。設計書は tl-effects.json を { slug: 効果 } としていたが、
 // フレーバーの置き場が無くなるためこの形にした(issue #22 のコメントで報告済み)。
 import { writeFileSync } from "node:fs";
