@@ -170,6 +170,14 @@ function updateSearchStatus(info) {
     // AND条件は取得済みのページに対して適用するため、このページに1件も残らないことがある。
     // 続きのページに該当が残っている場合は「もっと見る」を残す
     if (info.hasMore) {
+      // 日本語には一致していて、絞り込みで落ちている場合は「あと何件確認すれば終わるか」を出す。
+      // ⚠ 候補を自動で追い掛けない（0件の間だけ次ページを取る案は明示的に不採用）。
+      //   良かれと思って自動追従を足すと、操作なしで外部APIへの待ちが発生する
+      if (info.jpMode && info.jpMatched > 0 && info.jpFiltered) {
+        el.status.textContent = `候補 ${info.total} 件のうち ${info.jpChecked} 件を確認しましたが、絞り込み条件に合うカードはまだありません。「もっと見る」で続きを確認できます。`;
+        el.loadMore.hidden = false;
+        return;
+      }
       el.status.textContent = "このページには該当がありませんでした。「もっと見る」で続きを検索できます。";
       el.loadMore.hidden = false;
       return;
@@ -179,6 +187,20 @@ function updateSearchStatus(info) {
     if (info.jpMode && info.numericSort && info.jpMatched > 0) {
       const label = GA_CARD_SEARCH.numericSortLabel?.(info.numericSort) || "";
       el.status.textContent = `日本語テキストには一致しましたが、${label}を持つカードはありませんでした（並び替えを「名前順」に戻すと表示できます）。`;
+      el.loadMore.hidden = true;
+      return;
+    }
+    // 日本語には一致したのに、絞り込み条件で全部落ちた場合。従来の文言だと「一致しなかった」と
+    // 嘘になり、「英語で検索し直す」という的外れな行動に誘導してしまう
+    if (info.jpMode && info.jpMatched > 0 && info.jpFiltered) {
+      el.status.textContent = "日本語テキストには一致しましたが、絞り込み条件に合うカードはありませんでした（絞り込みを外すと表示できます）。";
+      el.loadMore.hidden = true;
+      return;
+    }
+    // 日本語に一致し、絞り込みも1つも無いのに0件＝候補を1件も取得できなかったときだけ。
+    // ⚠ ここで上の「絞り込みを外すと表示できます」を出すと、外す絞り込みが無いので新しい嘘になる
+    if (info.jpMode && info.jpMatched > 0) {
+      el.status.textContent = "日本語テキストには一致しましたが、カード情報を取得できませんでした（時間をおいて再度お試しください）。";
       el.loadMore.hidden = true;
       return;
     }

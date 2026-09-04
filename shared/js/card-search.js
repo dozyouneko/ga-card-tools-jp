@@ -987,6 +987,9 @@ window.GA_CARD_SEARCH = (() => {
       try {
         let cards, total, hasMore;
         let fetchGap = null; // 全件取得と total_cards の食い違い（#44 §5・fail-open の注記用）
+        // JPモードで「候補のうち確認し終えた件数」（0件文言の出し分け用・読み取り専用）。
+        // ⚠ 非JPモードでは 0 のまま返す（jpMatched 等と同じ扱い）
+        let jpChecked = 0;
         if (elementAndBlocked()) {
           // 検索するまでもなく0件が確定する組み合わせ。APIを叩かずに結果なしとして返す
           pager.total = 0;
@@ -1059,6 +1062,10 @@ window.GA_CARD_SEARCH = (() => {
           //   スクロールのたびに総数が減るという、より分かりにくい表示になる
           total = jpCand.length;
           hasMore = from + JP_PAGE_SIZE < jpCand.length;
+          // 「候補 N 件のうち M 件を確認しましたが…」の M（0件文言の出し分け用）。
+          // ⚠ 候補の件数は概算にならない。approxTotal が立つのは *結果* 件数が概算という意味で、
+          //   ここで数えているのは jpCand（候補）そのものなので言い切ってよい
+          jpChecked = Math.min(from + JP_PAGE_SIZE, jpCand.length);
         } else if (isNumericSort()) {
           // 安定キーで絞り込み結果を全件取り、除外・並び替え・ページングはローカルで行う（#44）。
           // ⚠ APIの数値ソートは同点行でページングが壊れるため使わない
@@ -1116,6 +1123,12 @@ window.GA_CARD_SEARCH = (() => {
           // 日本語テキストに一致した件数（絞り込み・除外の前）。0件メッセージの出し分けに使う。
           // ⚠ jpMode は「JPモードか」でしかなく、日本語一致が0件でも true になる（#43 §7.3）
           jpMatched: jpSlugs ? jpSlugs.length : 0,
+          // 0件文言の出し分け用の読み取り専用の2値（絞り込みの結果は1件も変えない）。
+          // ⚠ jpFiltered をページ側で数え直さないこと —— 絞り込みが1つ増えた日に足し忘れると、
+          //   「日本語に一致しなかった」という嘘の文言に無言で戻る。hasJpFilters() は
+          //   概算判定(jpApprox)も使う単一の出所なので、ここに乗せれば増えたときに一緒に効く
+          jpFiltered: jpSlugs ? hasJpFilters() : false,
+          jpChecked,
           jpDropped: jpSlugs ? jpDropped : 0,
           // ⚠ 表示には使わない（新しい注記は増やさない・設計書 §5 P4）。D-2 が正しく効いているかを
           //   検証・デバッグから観測できるようにするためだけの値
