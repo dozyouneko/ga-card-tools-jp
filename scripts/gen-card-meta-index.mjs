@@ -48,11 +48,13 @@ const ALL_FORMATS = ["STANDARD", "DRAFT", "PANTHEON"];
 const log = (s) => process.stderr.write(s + "\n");
 
 // カード（スナップショット or /cards/:slug の応答）から絞り込みに使うメタ情報を取り出す。
-// matchesActiveFilters（card-search.js:432）が参照するフィールドと同じものだけを拾う。
+// matchesActiveFilters()（shared/js/card-search.js）が参照するフィールドと同じものだけを拾う。
 //
 // 各配列はソートして返す（#29）。公式APIが classes / elements / editions を返す順序に
 // 保証がなく、順序が変わるだけで辞書のトークンID採番がずれて全ファイル差分になるため。
-// 読み手（card-search.js:403-415）は includes() の集合判定なので順序は意味を持たない。
+// 読み手（shared/js/card-search.js の metaMatches() → matchesMulti()）は includes() の
+// 集合判定なので順序は意味を持たない。
+// ⚠ 参照先は行番号ではなく関数名で書く（行番号は無関係なコミットで黙って腐る）。
 const sorted = (a) => [...a].sort();
 
 // #43: JPモードの並び替えキー。0 と null を混同しないこと
