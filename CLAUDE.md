@@ -558,18 +558,23 @@ CONFIRM=publish npm run deploy:prod     # ⚠️ 本番公開。ユーザーの�
 - `npm run pages:dev` — Cloudflare Pages Functions込みのローカル実行(wrangler、ポート8788)
 - `npm run validate` — データ検証
   - ⚠️ ⭐ **コードのコメントに `<file>.js:<行番号>` の形を書くと exit 1 になる**(2026-09-04〜)。
-    対象は **`scripts/` `shared/js/` `functions/` `app.js` `tools/` の `.js`/`.mjs`**
+    対象は **`scripts/` `shared/` `functions/` `app.js` `tools/` の `.js`/`.mjs`**
     (`shared/vendor/` は除外。⭐ **`docs/` は対象外**——設計書は「その時点の実測値」を書く文書なので**正常**)。
+    ⚠️ ⭐ **正は `scripts/validate.mjs` の `LINEREF_ROOTS` / `LINEREF_EXCLUDE`**——
+    **食い違ったらコード側が勝つ**(⚠️ **この食い違いを止める自動検査は無い**。⭐ **2026-09-05 に実際にずれた**——
+    走査範囲を `shared/js` から `shared` へ広げたのにこの記述が追随せず、レビュー担当が拾った)。
     ⭐ **行番号ではなく関数名で参照する**(例: `card-i18n.js の bannedFormats()`)。
     ⚠️ **「新しい行番号に直す」で済ませない**——実測した4件は**3件が腐り＋1件は導入時点で既に19行ずれ**で、
     **この書き方が正しく保たれた例が1つも無かった**
     - ⭐ **ルートが読めない・走査対象が0ファイルでも exit 1**(fail-closed)。
       ⚠️ **ディレクトリを改名・移動したら `scripts/validate.mjs` の `LINEREF_ROOTS` も直す**
-      (⭐ **黙って空回りはしない**。成功行 `no line-number refs in code comments — 0件（N ファイル走査）` の **N が動く**)
+      (⭐ **黙って空回りはしない**。成功行 `no line-number refs in code comments — 0件（N ファイル走査）` の **N が動く**)。
+      ⚠️ ⭐ **`LINEREF_ROOTS` を直したら、上の「対象は…」の記述も同時に直す**——**ずれるのはいつもドキュメント側**
     - ⚠️ **コメント判定はしていない**(行単位の素の文字列一致)。⭐ **これは意図的**——
       生成物(`cards/cards.js` 等)は**生成元のテンプレートリテラル内**を見ることで被覆しており、
       **コメントだけを見る実装にすると、その唯一の経路を失う**
-    - 記録は `docs/design/未採番-UI刷新の検討/承認_行番号参照の検査_2026-09-04.md`
+    - 記録は `docs/design/未採番-UI刷新の検討/承認_行番号参照の検査_2026-09-04.md` と
+      `承認_行番号参照の検査の仕上げ_2026-09-05.md`(同フォルダ。⭐ **走査範囲を `shared` へ広げた回**)
 - `npm run dashboard` — **運営ダッシュボード**(#56・2026-08-09〜)。登録者数・デッキ・閲覧数・運用ヘルスを
   1枚のHTMLにして**ローカルの3200番**で表示する。`--no-fetch` で取得せず再生成(オフライン可)・`--no-serve` で生成のみ
   - ⚠️ **出力は `tmp/dashboard/` 配下のみ。絶対にコミットしない**(このリポジトリは公開されており、
