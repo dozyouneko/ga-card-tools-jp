@@ -10,6 +10,8 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <!-- 任意のパスで配信されるため、リンク・CSSはすべて絶対パスで書く（相対パスだと /cards/xxx/ 等で壊れる）。
      JSは読み込まない（#22・CSPのため案内リンクはHTMLだけで完結させる） -->
+<!-- ⚠️ 任意のパスで配信されるため必ず絶対パス（#23）。⚠️ style.css より前に読む -->
+<link rel="stylesheet" href="/shared/css/tokens.css">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>

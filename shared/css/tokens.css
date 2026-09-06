@@ -1,0 +1,49 @@
+/* サイト共通のデザイントークン（左ペイン化_設計 §3・Q1）
+ *
+ * ⚠️ このファイルには :root を1つだけ置く。セレクタを増やさないこと（トークン専用ファイル）。
+ *    増やすと「トークンを1本に集約する」という目的が崩れ、読み込み順の事故が戻ってくる。
+ * ⚠️ 各ページのCSSより前に読み込むこと（後ろだとページ側の値を上書きしてしまう）。
+ *    読むのは index.html / 404.html / tools/deck-builder/index.html / tools/glossary/index.html の4枚。
+ * ⚠️ cards/cards.css・tournaments/tournaments.css・tools/print/style.css は別系統の配色なので
+ *    ここには集約しない（生成ページ・印刷ツール。触ると別タスクになる）。
+ *
+ * ⭐ 集約した理由: 2a057112 で style.css の :root だけが動き、--panel / --panel-2 / --border /
+ *    --radius の4つがデッキ構築とズレた。その結果、同じ shared/css/filter-chips.css が
+ *    2ページで違う色を出していた（本番で生きていた乖離）。
+ * ✅ この状態は scripts/validate.mjs の2本の検査が見張る:
+ *      (i) shared/css/**.css が参照する var(--…) がすべてここに定義されているか
+ *     (ii) :root を持つCSSファイルの集合が許可リストと一致するか
+ */
+:root {
+  /* ---------- 配色 ---------- */
+  --bg: #0f1115;
+  --panel: #1b1f28;      /* HeroUI 案A: 面を一段明るくして階層を作る（旧 #171a21） */
+  --panel-2: #232834;    /* 同上（旧 #1f232c） */
+  --border: rgba(255,255,255,.11);  /* 区切り線を半透明に（旧 #2a2f3a） */
+  --text: #e7e9ee;
+  --muted: #9aa2b1;
+  /* ⚠️ 金（--accent）は置き換えない。サイトの識別子であり、HeroUI の blue-500 に
+     替えるのは近代化ではなく別サイト化になる */
+  --accent: #d9a441;
+  --accent-2: #6ea8fe;
+  --accent-3: #e07bd0;
+  --yes: #2f9e6b;
+  --no: #7a6320;
+  --danger: #fca5a5;
+  --discord: #5865f2;
+
+  /* ---------- 形 ---------- */
+  --radius: 14px;        /* HeroUI の角丸スケール lg（旧 12px） */
+
+  /* ---------- HeroUI 案A-しっかり（値だけを借りる） ----------
+     ⚠️ 共有できるのは「値」だけで「ルール」は共有できない。トップは .controls input, …、
+        デッキ構築は .search-top input, … とセレクタが違うため、各ページの側で当てる */
+  --radius-control: 10px;      /* 入力・セレクト・ボタンの角丸 */
+  --control-pad: 10px 14px;
+  --control-fs: .875rem;
+  --control-lh: 1.25rem;
+  --ring-offset: 2px;          /* フォーカスリングの間隔（HeroUI の focus ring と同じ） */
+  /* 暗色地では HeroUI の影スケール（黒 alpha .02〜.08）が知覚できないため、
+     立体感は「面の明度差 ＋ 内側1pxのハイライト」に翻案している */
+  --panel-hi: inset 0 1px 0 rgba(255,255,255,.045);
+}

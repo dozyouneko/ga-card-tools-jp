@@ -1,13 +1,6 @@
-:root {
-  --bg: #0f1115;
-  --panel: #171a21;
-  --panel-2: #1f232c;
-  --border: #2a2f3a;
-  --text: #e7e9ee;
-  --muted: #9aa2b1;
-  --accent: #d9a441;
-  --accent-2: #6ea8fe;
-}
+/* 用語集ツール。
+   ⚠️ 配色トークンは /shared/css/tokens.css に集約した（左ペイン化_設計 §3・Q1）。
+   ここに :root を書き戻さないこと——scripts/validate.mjs の「:root owners」検査が exit 1 にする。 */
 
 * { box-sizing: border-box; }
 

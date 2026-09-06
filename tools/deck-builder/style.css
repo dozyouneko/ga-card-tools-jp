@@ -1,18 +1,6 @@
-/* デッキ構築ツール — 既存サイト(style.css)のトークン・見た目を踏襲した専用スタイル */
-:root {
-  --bg: #0f1115;
-  --panel: #171a21;
-  --panel-2: #1f232c;
-  --border: #2a2f3a;
-  --text: #e7e9ee;
-  --muted: #9aa2b1;
-  --accent: #d9a441;
-  --accent-2: #6ea8fe;
-  --yes: #2f9e6b;
-  --danger: #fca5a5;
-  --discord: #5865f2;
-  --radius: 12px;
-}
+/* デッキ構築ツール — 既存サイト(style.css)のトークン・見た目を踏襲した専用スタイル
+   ⚠️ 配色・角丸などのトークンは /shared/css/tokens.css に集約した（左ペイン化_設計 §3・Q1）。
+   ここに :root を書き戻さないこと——scripts/validate.mjs の「:root owners」検査が exit 1 にする。 */
 
 * { box-sizing: border-box; }
 
@@ -182,10 +170,14 @@ img.champ-thumb-img { display: block; }
   border-bottom: 1px solid var(--border);
 }
 .search-top .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+/* ⭐ 入力・セレクトの寸法はトップ（style.css の .controls input, …）と同じ共有トークンを当てる。
+   ⚠️ 直値（旧: 角丸8px / padding 9px 12px / font-size .9rem）へ戻さないこと——
+      同じ検索条件なのにページごとに見た目が違う状態に戻る（左ペイン化_設計 §3-2 の下部）。
+   ⚠️ セレクタが違うので「ルール」は共有できない。共有できるのは値だけ。 */
 .search-top input, .search-top select {
   background: var(--panel); color: var(--text);
-  border: 1px solid var(--border); border-radius: 8px;
-  padding: 9px 12px; font-size: .9rem;
+  border: 1px solid var(--border); border-radius: var(--radius-control);
+  padding: var(--control-pad); font-size: var(--control-fs); line-height: var(--control-lh);
 }
 .search-top input { flex: 1 1 240px; min-width: 180px; }
 .search-top input:focus, .search-top select:focus { outline: 2px solid var(--accent-2); outline-offset: 1px; }

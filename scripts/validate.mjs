@@ -18,6 +18,7 @@
 // 加えて cronワークフローの git add 対象と README.md / CLAUDE.md の列挙が一致するかを検査する（#70）。
 // 続いて docs/design/** の起票案の状態行と、索引（待ち行列と復旧手順.md）の整合を検査する（収録漏れと件数一致）。
 // 続いてコード内に「<file>.js:<行番号>」の形の参照が残っていないかを検査する（行番号は腐るため）。
+// 続いて共有トークン shared/css/tokens.css の集約状態を検査する（未定義参照と :root の持ち主）。
 // 最後に、生成済みカードページの日本語効果文に「ハイライトされていない用語」が残っていないかを
 // 検査する（用語ハイライトの語形ずれ・片方向）。⚠ この検査だけ非同期（並列読み込み）。
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
@@ -656,6 +657,121 @@ const LINEREF_EXCLUDE = ["shared/vendor"];
     console.error(`    docs/ と shared/vendor/ は対象外です（設計書はその時点の実測値を記録する文書・配布物は直せない）`);
   } else {
     console.log(`no line-number refs in code comments — 0件（${targets.length}ファイル走査）`);
+  }
+}
+
+// --- 共有トークン shared/css/tokens.css の検査2本（左ペイン化_設計 §3-5・Q1） -------------
+// 2a057112 で style.css の :root だけが動き、--panel / --panel-2 / --border / --radius の4つが
+// デッキ構築とズレた。その結果、同じ shared/css/filter-chips.css が2ページで違う色を出していた
+// （本番で生きていた乖離）。トークンを1本に集約しただけでは同じことがまた起きるので、
+// 「集約された状態」そのものをここで見張る。
+//   (i)  shared/css/**.css が参照する var(--…) が、すべて tokens.css に定義されているか
+//   (ii) :root を持つCSSファイルの集合が、許可リストと一致するか（増えても減っても落とす）
+// ⚠ (ii) は「減った」でも落とす。許可リスト側の消し忘れ（別系統のCSSを消したのに残っている）を
+//   検出するため。片方向にすると、許可リストだけが腐って何も守らなくなる。
+// ⚠ 走査するのは配信されるCSSだけ。docs/ は対象外にする——設計モックの
+//   モック_PC左ペイン_2026-09-02.css / モック_左ペイン化_2026-09-05.css が :root を持っており、
+//   含めるとモックを1枚増やすたびに validate が落ちる（モックは配信されないので実害が無い）。
+// ⚠ shared/vendor/ も対象外（配布物。自分では直せない）。
+// ⚠ ⭐ :root も var(--…) も「コメントの中」に現れる。実測（2026-09-06）: shared/css/card-detail.css と
+//   shared/css/filter-chips.css は、どちらも本文に :root ルールを持たないのに注意書きの文中に
+//   :root と書いてある。素の文字列一致で数えると、この2枚が「持っている」側に混ざって (ii) が
+//   常に落ちる。→ 両方の検査とも /* … */ を除去してから走査すること。
+// ⚠ 抽出に失敗したときに「合格」へ倒さないこと（#40・#70・行番号参照の検査と同じ方針）。
+//   走査対象が0ファイル・tokens.css が読めない のいずれも exit 1 にする。
+// ⚠ cron は validate を実行しない。この2本が守るのは人が編集するときだけ（#40 と同じ制約）。
+const TOKENS_FILE = "shared/css/tokens.css";
+const TOKENS_SCOPE = "shared/css"; // (i) の走査範囲（tokens.css を参照する共有CSS）
+const CSS_SKIP_DIRS = ["node_modules", ".git", "tmp", "docs", ".wrangler", "shared/vendor"];
+// ⚠ ここを増やすときは「そのCSSがどのページから読まれ、なぜ別パレットなのか」を必ず書く。
+const ROOT_OWNERS = [
+  "shared/css/tokens.css",      // ⭐ 集約先。サイト本体3枚＋404が読む
+  "cards/cards.css",            // 生成カードページ（別系統の配色）
+  "tournaments/tournaments.css",// 生成大会ページ（別系統の配色）
+  "tools/print/style.css",      // 印刷ツール（別系統の配色）
+];
+{
+  const bad = [];
+  // CSS のコメントは /* … */ だけ（// は無い）。文字列リテラル内の /* は実質使われないので考慮しない
+  const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, " ");
+  const cssFiles = [];
+  const skipped = (rel) => CSS_SKIP_DIRS.some((p) => rel === p || rel.startsWith(`${p}/`));
+  const walk = (rel) => {
+    if (skipped(rel)) return;
+    const abs = path.join(root, rel);
+    let st;
+    try {
+      st = statSync(abs);
+    } catch {
+      return;
+    }
+    if (st.isDirectory()) {
+      for (const d of readdirSync(abs, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+        walk(rel ? `${rel}/${d.name}` : d.name);
+      }
+    } else if (rel.endsWith(".css")) {
+      cssFiles.push(rel);
+    }
+  };
+  walk("");
+
+  if (!cssFiles.length) bad.push("走査対象の .css が1つもありません — 走査範囲の指定が陳腐化しています");
+
+  // --- (i) shared/css/**.css の var(--…) がすべて tokens.css に定義されているか ---
+  let defined = null;
+  try {
+    const src = stripComments(readFileSync(path.join(root, TOKENS_FILE), "utf8"));
+    defined = new Set([...src.matchAll(/(--[A-Za-z0-9_-]+)\s*:/g)].map((m) => m[1]));
+    if (!defined.size) bad.push(`${TOKENS_FILE} にトークンの定義が1つもありません`);
+  } catch (e) {
+    bad.push(`${TOKENS_FILE} を読めません: ${e.message}`);
+  }
+  let refCount = 0;
+  const undef = [];
+  const scoped = cssFiles.filter((rel) => rel === TOKENS_SCOPE || rel.startsWith(`${TOKENS_SCOPE}/`));
+  if (!scoped.length) bad.push(`${TOKENS_SCOPE} の .css が1つもありません — 走査範囲の指定が陳腐化しています`);
+  if (defined) {
+    for (const rel of scoped) {
+      const src = stripComments(readFileSync(path.join(root, rel), "utf8"));
+      for (const m of src.matchAll(/var\(\s*(--[A-Za-z0-9_-]+)/g)) {
+        refCount++;
+        if (!defined.has(m[1])) undef.push(`${rel} — ${m[1]}`);
+      }
+    }
+  }
+  if (undef.length) {
+    bad.push(`${TOKENS_FILE} に定義が無いトークン参照: ${undef.length}件`);
+    [...new Set(undef)].sort().forEach((u) => bad.push(`  ${u}`));
+  }
+
+  // --- (ii) :root を持つCSSファイルの集合が許可リストと一致するか ---
+  // ⚠ `:root {` だけでなく `:root, html {` のようなセレクタリストも数える。
+  //   [^{};]* は宣言をまたがないための歯止め（`--x: 1px` のような並びで誤爆させない）。
+  const ROOT_RE = /:root\b[^{};]*\{/;
+  const owners = cssFiles.filter((rel) => ROOT_RE.test(stripComments(readFileSync(path.join(root, rel), "utf8"))));
+  const expect = [...ROOT_OWNERS].sort();
+  const actual = [...owners].sort();
+  const extra = actual.filter((f) => !expect.includes(f));
+  const missing = expect.filter((f) => !actual.includes(f));
+  if (extra.length) {
+    bad.push(`許可リストに無いのに :root を持つCSS: ${extra.length}件`);
+    extra.forEach((f) => bad.push(`  ${f}`));
+  }
+  if (missing.length) {
+    bad.push(`許可リストにあるのに :root を持たないCSS: ${missing.length}件`);
+    missing.forEach((f) => bad.push(`  ${f}`));
+  }
+
+  if (bad.length) {
+    problems++;
+    console.error(`\nSHARED CSS TOKENS (${TOKENS_FILE}):`);
+    bad.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → 共有CSSが使う変数は ${TOKENS_FILE} に定義してください（ページ側の :root に戻さないこと）`);
+    console.error(`    :root を新しいCSSへ足す/消す場合は、scripts/validate.mjs の ROOT_OWNERS も同時に直してください`);
+    console.error(`    docs/ と shared/vendor/ は対象外です（設計モックは配信されない・配布物は直せない）`);
+  } else {
+    console.log(`shared css tokens in sync — ${refCount} トークン参照 / 未定義 0`);
+    console.log(`:root owners in sync — ${ROOT_OWNERS.length}ファイル`);
   }
 }
 

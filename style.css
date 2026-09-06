@@ -1,22 +1,8 @@
-/* ⚠️ この :root は 404.html も読む（本番で /style.css を読むのは index.html と 404.html の2枚だけ）。
+/* ⚠️ 配色・角丸などのトークンは /shared/css/tokens.css に集約した（左ペイン化_設計 §3・Q1）。
+   ここに :root を書き戻さないこと——scripts/validate.mjs の「:root owners」検査が exit 1 にする。
+   ⚠️ この CSS は 404.html も読む（本番で /style.css を読むのは index.html と 404.html の2枚だけ）。
    HeroUI 案A-しっかり（設計書 §5・判断3/判断4）で --panel / --panel-2 / --border / --radius を
-   入れ替えたため、404ページの見た目も一緒に変わる（R8・意図した変更・検証項目 V9）。
-   ⚠️ 配色（金 --accent）は置き換えない。サイトの識別子であり、HeroUI の blue-500 に
-      替えるのは近代化ではなく別サイト化になる。 */
-:root {
-  --bg: #0f1115;
-  --panel: #1b1f28;      /* HeroUI 案A: 面を一段明るくして階層を作る（旧 #171a21） */
-  --panel-2: #232834;    /* 同上（旧 #1f232c） */
-  --border: rgba(255,255,255,.11);  /* 区切り線を半透明に（旧 #2a2f3a） */
-  --text: #e7e9ee;
-  --muted: #9aa2b1;
-  --accent: #d9a441;
-  --accent-2: #6ea8fe;
-  --accent-3: #e07bd0;
-  --yes: #2f9e6b;
-  --no: #7a6320;
-  --radius: 14px;       /* HeroUI の角丸スケール lg（旧 12px） */
-}
+   入れ替えたため、404ページの見た目も一緒に変わる（R8・意図した変更）。 */
 
 * { box-sizing: border-box; }
 
@@ -336,17 +322,19 @@ a { color: var(--accent-2); }
       効かせるには共有CSS側を変えることになり、デッキ構築ツールへ波及する（R6・S1）。 */
 
 /* 角丸・余白・行高・文字サイズを HeroUI のスケール（sm 8 / md 12 / lg 14、.875rem/1.25rem）へ寄せる */
+/* ⚠️ 値は /shared/css/tokens.css の共有トークン。直値へ戻さないこと
+   （デッキ構築の .search-top input と同じ値を当てて「見た目が揃う」状態を保っている） */
 .controls input, .controls select, .controls button {
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: .875rem;
-  line-height: 1.25rem;
+  border-radius: var(--radius-control);
+  padding: var(--control-pad);
+  font-size: var(--control-fs);
+  line-height: var(--control-lh);
 }
 /* フォーカスリングの間隔を 1px → 2px（HeroUI の focus ring と同じ） */
-.controls input:focus, .controls select:focus { outline-offset: 2px; }
+.controls input:focus, .controls select:focus { outline-offset: var(--ring-offset); }
 
 /* 影の代わりに面を分ける。⚠️ .card は background も上げる（--panel より一段明るい） */
-.card, .fgroup { box-shadow: inset 0 1px 0 rgba(255,255,255,.045); }
+.card, .fgroup { box-shadow: var(--panel-hi); }
 .site-header { background: #191d25; }
 .controls { background: #161a22; }
 .card { background: #1b1f28; border-color: rgba(255,255,255,.09); }
