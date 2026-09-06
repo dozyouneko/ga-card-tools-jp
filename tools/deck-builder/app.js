@@ -650,6 +650,27 @@ async function openEditor(id) {
   }
 }
 
+// .editor-bar の実測高さを CSS 変数 --editor-bar-h に入れる（左ペイン化_設計 §4-2）。
+// ⚠️ 固定値で書かない。デッキ名の長さ・フォーマットバッジ・画面幅で 52〜102px の間で変わり、
+//    1280px以上のレイアウトでは sticky の top と左ペインの max-height の両方が同じ値に依存する
+//    （スマホ絞り込み導線の --printbar-h と同じ流儀）。
+// ⚠️ CSP style-src 'self' のため <style> 注入は使えない。CSSOM／style プロパティ経由で書く。
+// ⚠️ 高さ0（#view-editor が hidden のとき）は書かない。書くと sticky の top が 0 に潰れる。
+function updateEditorBarH() {
+  const bar = document.querySelector("#view-editor .editor-bar");
+  if (!bar) return;
+  const h = Math.round(bar.getBoundingClientRect().height);
+  if (h > 0) document.documentElement.style.setProperty("--editor-bar-h", `${h}px`);
+}
+
+// resize でバーの折り返し行数が変わる（デッキ名が長いと 1280px 前後で 1行↔2行）。
+// rAF で1フレームに1回へ間引く。
+let editorBarRaf = 0;
+window.addEventListener("resize", () => {
+  if (editorBarRaf) return;
+  editorBarRaf = requestAnimationFrame(() => { editorBarRaf = 0; updateEditorBarH(); });
+});
+
 function renderEditorBar() {
   const d = deckData.deck;
   el.edTitle.textContent = d.name;
@@ -660,6 +681,9 @@ function renderEditorBar() {
   el.edFormat.hidden = false;
   el.edFormat.textContent = FORMAT_INFO[fmt].badge;
   el.edFormat.className = FORMAT_INFO[fmt].cls;
+  // ⚠️ 呼び出し側ではなくここで測る。renderEditorBar() を呼ぶ経路（openEditor／デッキ名変更／
+  //    公開切替／フォーマット変更）が増えても、--editor-bar-h の更新漏れが起きないようにする。
+  updateEditorBarH();
 }
 
 // ゾーン内の並び順: 属性順 → 英名アルファベット順。
@@ -1613,15 +1637,16 @@ el.sSearch.addEventListener("click", () => runSearch(true));
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") runSearch(true); });
 });
 el.resultMore.addEventListener("click", () => searchCtl.loadMore());
-// 並び替え(名前順など)は結果ダイアログ内にあるため、変更されたら即再検索する
-el.sSort.addEventListener("change", () => {
-  if (!el.resultModal.hidden) runSearch(true);
-});
+// 並び替え(名前順など)は検索パネル(#search-top)の中にあり、常に触れる。
+// ⚠️ if (!el.resultModal.hidden) のガードを戻さないこと。結果ダイアログが閉じているときに
+//    「並び替えを変えても何も起きない」＝無言の劣化になる（左ペイン化_設計 §5-2）。
+//    トップページと同じく、まだ一度も検索していない状態で触ると空条件の検索が走る（許容）。
+el.sSort.addEventListener("change", () => runSearch(true));
 el.sOrder.addEventListener("click", () => {
   const next = (el.sOrder.dataset.dir || "ASC") === "ASC" ? "DESC" : "ASC";
   el.sOrder.dataset.dir = next;
   el.sOrder.textContent = next === "ASC" ? "▲ 昇順" : "▼ 降順";
-  if (!el.resultModal.hidden) runSearch(true); // ダイアログ表示中なら即再検索
+  runSearch(true);
 });
 // スマホでは絞り込みを折りたたむ(トップページの検索ツールと同じ挙動)。
 // 文言はラベル用の子要素に書く — ボタン直下には選択件数バッジも入るため textContent では消えてしまう

@@ -180,7 +180,18 @@ img.champ-thumb-img { display: block; }
   padding: var(--control-pad); font-size: var(--control-fs); line-height: var(--control-lh);
 }
 .search-top input { flex: 1 1 240px; min-width: 180px; }
-.search-top input:focus, .search-top select:focus { outline: 2px solid var(--accent-2); outline-offset: 1px; }
+/* ⚠️ フォーカスリングの間隔は共有トークン。直値 1px へ戻さないこと
+   （トップの .controls input:focus と同じ 2px にそろえている・左ペイン化_設計 §4-5） */
+.search-top input:focus, .search-top select:focus { outline: 2px solid var(--accent-2); outline-offset: var(--ring-offset); }
+/* ⭐ 検索パネル内のボタン（リセット／検索／昇降順）も入力欄と同じ寸法にする。
+   ⚠️ この節は下の @media (max-width: 860px) より前に置くこと。後ろに置くと
+      .search-top .btn の font-size:16px（iOSのフォーカス時ズーム防止）を同詳細度で上書きする。 */
+.search-top .btn {
+  border-radius: var(--radius-control);
+  padding: var(--control-pad);
+  font-size: var(--control-fs);
+  line-height: var(--control-lh);
+}
 .search-top .filter-toggle { display: none; } /* 絞り込みの折りたたみトグルはスマホのみ */
 
 /* 絞り込みグループ（#31）。チップUIの見た目は shared/css/filter-chips.css にあり、
@@ -308,7 +319,8 @@ img.champ-thumb-img { display: block; }
 .modal-close:hover { color: var(--text); }
 .modal-body h2 { margin: 0 0 4px; font-size: 1.05rem; }
 .result-count { margin: 0 0 14px; font-size: .8rem; color: var(--muted); }
-/* 結果ダイアログ内の並び替え(名前順/昇順) */
+/* 並び替え(名前順/昇順)。⚠️ 置き場は結果ダイアログではなく検索パネル(#search-top)の中
+   （左ペイン化_設計 §5）。1280px以上のペイン内での並べ方は末尾のメディアクエリにある。 */
 .result-sort { display: flex; align-items: center; gap: 8px; margin: 6px 0 8px; }
 .result-sort label { font-size: .78rem; color: var(--muted); }
 .result-sort select {
@@ -713,4 +725,46 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
   .statrow { flex-wrap: wrap; }
   .sr-label { width: 100%; text-align: left; }
   .sr-note--multi { display: none; } /* 第7版⑯: 重複計上注記はスマホで非表示(Boon注記は素の.sr-noteなので表示継続) */
+}
+
+/* ---------- 左ペイン化（PC 1280px以上・左ペイン化_設計 §4-1 / §5-1） ----------
+   #view-editor の内側だけを2カラムGridにする。⭐ JS のレイアウト分岐はゼロ。
+   ⚠️ body にクラスを付け外ししない（route() の付け忘れが無言で他3ビューを壊す）。
+   ⚠️ :has() で2カラム化そのものを切り替えない（無視されると壊れる用途には使わない＝既存方針）。
+   ⚠️ 1279px以下は現状の1カラムのまま（このブロックの外側は一切変更していない）。
+   ブレークポイント 1280px の根拠は設計 §4-4（.stats-pane の 880px が損益分岐）。 */
+@media (min-width: 1280px) {
+  #view-editor { display: grid; grid-template-columns: 320px minmax(0, 1fr); align-items: start; }
+  /* ⚠️ display 指定が UA の [hidden] を上書きしないように（.btn[hidden] と同じ理由）。
+     これが無いと #view-editor が他3ビュー（ログイン／一覧／共有閲覧）でも表示されたままになり、
+     ⚠️ 1280px以上でだけ #view-deck が 730px 下へ押し出される（V10 で実測）。 */
+  #view-editor[hidden] { display: none; }
+  /* ⚠️ 既定を右列にしておく。要素が増えた日にその要素だけ左列へ落ちるのを防ぐ */
+  #view-editor > * { grid-column: 2; }
+  #view-editor .editor-bar { grid-column: 1 / -1; grid-row: 1; position: sticky; top: 0; z-index: 6; }
+  #view-editor #search-top {
+    grid-column: 1; grid-row: 2 / span 50; align-self: start;
+    position: sticky; top: var(--editor-bar-h, 57px);
+    max-height: calc(100vh - var(--editor-bar-h, 57px)); overflow-y: auto;
+    padding: 14px 16px 24px; gap: 12px;
+    border-bottom: none; border-right: 1px solid var(--border);
+  }
+  /* ペインの中は縦1列 */
+  #search-top .row { flex-direction: column; align-items: stretch; }
+  /* ⚠️ flex-basis 240px が「高さ240px」として効く。無いと閉じたペインが 579px → 987px になる */
+  #s-name, #s-text { flex: 0 0 auto; width: 100%; min-width: 0; }
+  #search-top .filter-row { grid-template-columns: minmax(0, 1fr); }
+  /* リセット/検索の行だけ横並びに戻す。⚠️ :last-of-type では書かない（設計 §4-3） */
+  #search-top > .row-actions { flex-direction: row; }
+  #search-top > .row-actions .btn { flex: 1 1 0; text-align: center; }
+  /* 並び替え（設計 §5-1）。ラベルを1行目に置き、セレクトと昇降順ボタンを2行目に並べる */
+  #search-top .result-sort { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+  #search-top .result-sort label { grid-column: 1 / -1; font-size: .74rem; color: var(--muted); }
+  #search-top .result-sort select { width: 100%; min-width: 0; }
+  /* ⚠️ サブタイプ157種はペインに収まらない。⚠️ shared/css/filter-chips.css には書かない（R1: トップにも波及する） */
+  #search-top .fgroup .chips { max-height: 200px; overflow-y: auto; }
+  /* 「すべて表示」中は上限を外す（無視されても1つ前の見た目に戻るだけ＝fail-open なので :has() 可） */
+  #search-top .fgroup:has(.chips-rest:not([hidden])) .chips { max-height: none; overflow-y: visible; }
+  /* ⚠️ チップ領域がスクロールコンテナになると Tab のフォーカスリングが枠外に出る */
+  #search-top .fgroup .chip { position: relative; }
 }

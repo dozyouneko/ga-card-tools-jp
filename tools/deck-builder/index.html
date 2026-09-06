@@ -118,7 +118,25 @@
       <select id="s-format"><option value="">フォーマット（全て）</option></select>
       <select id="s-set"><option value="">エキスパンション（全て）</option></select>
     </div>
-    <div class="row">
+    <!-- 並び替え・昇降順（左ペイン化_設計 §5）。⚠️ 結果ダイアログの中ではなくここに置く。
+         トップページの .filter-rest（#f-sort / #order）と同じ位置づけで、
+         変更したら結果ダイアログが閉じていても再検索する（app.js のハンドラ・§5-2）。 -->
+    <div class="result-sort">
+      <label for="s-sort">並び替え</label>
+      <select id="s-sort" aria-label="並び替え">
+        <option value="name">名前順</option>
+        <option value="cost_memory">コスト順</option>
+        <option value="level">レベル順</option>
+        <option value="power">パワー順</option>
+        <option value="life">ライフ順</option>
+        <option value="rarity">レアリティ順</option>
+      </select>
+      <button id="s-order" class="btn btn-sm" type="button" data-dir="ASC" aria-label="昇順・降順を切替">▲ 昇順</button>
+    </div>
+    <!-- ⚠️ row-actions クラスは必須。1280px以上でこの行だけ横並びに戻すために使う。
+         ⚠️ #search-top > .row:last-of-type では書かないこと（末尾に div を1つ足した瞬間に
+            当たらなくなり、リセット/検索が縦積みに戻る）。左ペイン化_設計 §4-3 -->
+    <div class="row row-actions">
       <button id="s-reset" class="btn" type="button">リセット</button>
       <button class="btn btn-primary" id="s-search">🔍 検索</button>
     </div>
@@ -208,18 +226,6 @@
   <div class="modal-body" role="dialog" aria-modal="true" aria-label="検索結果">
     <button class="modal-close" type="button" data-close aria-label="閉じる">×</button>
     <h2 id="result-title">検索結果</h2>
-    <div class="result-sort">
-      <label for="s-sort">並び替え</label>
-      <select id="s-sort" aria-label="並び替え">
-        <option value="name">名前順</option>
-        <option value="cost_memory">コスト順</option>
-        <option value="level">レベル順</option>
-        <option value="power">パワー順</option>
-        <option value="life">ライフ順</option>
-        <option value="rarity">レアリティ順</option>
-      </select>
-      <button id="s-order" class="btn btn-sm" type="button" data-dir="ASC" aria-label="昇順・降順を切替">▲ 昇順</button>
-    </div>
     <p class="result-count" id="result-count"></p>
     <div class="resultgrid" id="result-grid"></div>
     <div class="result-more-wrap"><button class="btn" id="result-more" hidden>もっと見る</button></div>
