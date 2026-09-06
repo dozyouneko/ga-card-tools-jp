@@ -90,6 +90,7 @@ const el = {
   sGElement: $("s-g-element"),
   sGType: $("s-g-type"),
   sGSubtype: $("s-g-subtype"),
+  sGRarity: $("s-g-rarity"),
   sFormat: $("s-format"),
   sSet: $("s-set"),
   sSort: $("s-sort"),
@@ -584,7 +585,9 @@ function endSave() {
 }
 
 // 複数選択(AND/OR)の絞り込みグループ。中身は init() の fillChips() が構築する(#31)
-const filterGroups = () => [el.sGElement, el.sGClass, el.sGType, el.sGSubtype];
+// ⚠️ ここに足すとバッジ集計・リセット・「選択中の条件」・アコーディオンが同時に対応する。
+// 足し忘れると畳んだときのバッジが数え落とし、リセットで選択が残る（左ペイン化_設計 §7-1）
+const filterGroups = () => [el.sGElement, el.sGClass, el.sGType, el.sGSubtype, el.sGRarity];
 
 // スマホでは絞り込み全体が畳まれるため、畳んだ状態でも選択件数が分かるようトグルへバッジを出す
 function updateFilterBadge() {
@@ -1323,7 +1326,7 @@ function openDetail(slug) {
 const searchCtl = GA_CARD_SEARCH.create({
   els: {
     name: el.sName, text: el.sText,
-    cls: el.sGClass, element: el.sGElement, type: el.sGType, subtype: el.sGSubtype,
+    cls: el.sGClass, element: el.sGElement, type: el.sGType, subtype: el.sGSubtype, rarity: el.sGRarity,
     format: el.sFormat, set: el.sSet, sort: el.sSort, order: el.sOrder,
   },
   pageSize: 24,
@@ -1462,13 +1465,19 @@ function renderAddRow(item, card) {
   }).join("");
 }
 
-// エキスパンション(版)で絞り込み検索している場合、その版のイラストを初期表示にする(#41)。
+// エキスパンション(版)・レアリティで絞り込み検索している場合、その版のイラストを初期表示にする(#41)。
 // 絞り込みが無い、または一致する版が無い場合は先頭(imgs[0])にフォールバック。
-// トップページの app.js の preferredArtIndex() と同じ規則。参照する <select> だけが違う(トップは el.fSet)。
+// トップページの app.js の preferredArtIndex() と同じ規則。参照する要素だけが違う。
+// ⚠️ レアリティを見ないと「レアリティで絞ってもタイルの絵柄が追従しない」（2026-09-03 に
+//    ユーザーが実物を触って見つけた不具合 P5 と同じものが、ここで再発する）。
+// ⚠️ この関数はトップと二重定義。片方だけ直すと画面によって別の絵柄が出る（左ペイン化_設計 §10-1）
 function preferredArtIndex(imgs) {
   const pre = GA_CARD_SEARCH.setPrefixes(el.sSet.value);
-  if (!pre.length) return 0;
-  const idx = imgs.findIndex((im) => pre.includes(im.prefix));
+  const rar = el.sGRarity ? el.sGRarity.getValues().map(String) : [];
+  if (!pre.length && !rar.length) return 0;
+  const idx = imgs.findIndex((im) =>
+    (!pre.length || pre.includes(im.prefix)) &&
+    (!rar.length || (im.rarity != null && rar.includes(String(im.rarity)))));
   return idx >= 0 ? idx : 0;
 }
 
@@ -2784,10 +2793,14 @@ window.addEventListener("hashchange", route);
   });
   // 複数選択(AND/OR)の絞り込みグループ。既定は閉じた状態(開くとチップが50個以上並ぶため)。
   // サブタイプは146種あるため上位のみ既定表示にする(#31)
-  GA_CARD_SEARCH.fillChips(el.sGElement, "elements", { label: "エレメント", orbs: true });
-  GA_CARD_SEARCH.fillChips(el.sGClass, "classes", { label: "クラス" });
-  GA_CARD_SEARCH.fillChips(el.sGType, "types", { label: "タイプ" });
-  GA_CARD_SEARCH.fillChips(el.sGSubtype, "subtypes", { label: "サブタイプ", top: GA_CARD_SEARCH.SUBTYPE_TOP });
+  // ⚠️ search: true は「選択肢を絞り込む欄」のオプトイン。⭐ 全群に渡し、実際にどれへ出すかは
+  //    fillChips() 側の閾値（SEARCH_MIN=30種）が決める。ここで群を名指ししない——
+  //    将来ほかの群が閾値を超えた日に、何もしなくても欄が現れるようにするため（左ペイン化_設計 §7-2）
+  GA_CARD_SEARCH.fillChips(el.sGElement, "elements", { label: "エレメント", orbs: true, search: true });
+  GA_CARD_SEARCH.fillChips(el.sGClass, "classes", { label: "クラス", search: true });
+  GA_CARD_SEARCH.fillChips(el.sGType, "types", { label: "タイプ", search: true });
+  GA_CARD_SEARCH.fillChips(el.sGSubtype, "subtypes", { label: "サブタイプ", top: GA_CARD_SEARCH.SUBTYPE_TOP, search: true });
+  GA_CARD_SEARCH.fillChips(el.sGRarity, "rarities", { label: "レアリティ", search: true });
   GA_CARD_SEARCH.fillFormatSelect(el.sFormat);
   GA_CARD_SEARCH.fillSetSelect(el.sSet);
   // 絞り込みは「🔍 検索」ボタン(とEnter)で走らせる既存挙動を保つ。
