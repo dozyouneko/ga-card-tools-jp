@@ -557,6 +557,18 @@ CONFIRM=publish npm run deploy:prod     # ⚠️ 本番公開。ユーザーの�
 - `npm run dev` — 静的プレビュー(scripts/serve.mjs、ポート3000)
 - `npm run pages:dev` — Cloudflare Pages Functions込みのローカル実行(wrangler、ポート8788)
 - `npm run validate` — データ検証
+  - ⚠️ ⭐ **CSSのトークンは `shared/css/tokens.css` の `:root` 1本だけ**(2026-09-06〜。
+    ⚠️ **未pushなので本番にはまだ出ていない**)。**検査は2本**——
+    **(i) `shared/css/**.css` が使う `var(--…)` が全部 tokens.css にあるか**
+    (成功行 `shared css tokens in sync — N トークン参照 / 未定義 0`)／
+    **(ii) `:root {` を持つCSSの集合が許可リストと一致するか**
+    (成功行 `:root owners in sync — 4ファイル`＝tokens.css + `cards/cards.css` + `tournaments/tournaments.css` + `tools/print/style.css`)
+    - ⚠️ ⭐ **新しいページCSSに `:root` を書くと exit 1**(減らしても exit 1)。⭐ **`docs/` は走査対象外**
+      (設計モックのCSSが `:root` を持つため)
+    - ⚠️ ⭐ **検査(ii)には限界がある**——**`:root` ではなく `body { --panel: red }` と書くと緑のまま画面だけ変わる**
+      (`html {` なら詳細度で `:root` が勝つので起きない)。⭐ **承知のうえで許容している**
+      (任意セレクタまで見るとページ固有のローカル変数を誤検出する)。**緑を「1本化の証明」と読まないこと**
+    - 記録は `docs/design/未採番-デッキ構築ツールUI刷新/左ペイン化_設計.md` §3
   - ⚠️ ⭐ **コードのコメントに `<file>.js:<行番号>` の形を書くと exit 1 になる**(2026-09-04〜)。
     対象は **`scripts/` `shared/` `functions/` `app.js` `tools/` の `.js`/`.mjs`**
     (`shared/vendor/` は除外。⭐ **`docs/` は対象外**——設計書は「その時点の実測値」を書く文書なので**正常**)。
@@ -1224,6 +1236,22 @@ CONFIRM=publish npm run deploy:prod     # ⚠️ 本番公開。ユーザーの�
   - ⚠️ **この手順で担保できるのは「デッキの中身に依存しない描画」まで。**
     適合判定バッジ・所持枚数などデッキ内容を読む表示は**未検証として報告する**
     (合成した状態で「通った」と書くと、実ログイン時の不具合を見落とす)
+  - ⭐ **デッキの中身が要るなら srcdoc 方式を使う**(2026-09-06 確立・設計モックで実証)。
+    `/tools/deck-builder/` のHTMLを `fetch` し、**`<base href="/tools/deck-builder/">` と
+    自前のスタブ `<script src>` を差し込んで `iframe.srcdoc` に入れる**と、
+    **`/api/me` と `/api/decks/<id>` だけを差し替えて「ログイン済み・デッキを開いた状態」**を作れる
+    (カード・絵柄・チップ157種・`renderZones()` は**本物のまま**)。
+    ⭐ 手順とスタブの実体は `docs/design/未採番-デッキ構築ツールUI刷新/モック説明_左ペイン化_2026-09-06.md` §2
+    - ⭐ **`<base>` が要るのは、srcdoc の基準URLが親ドキュメントになるため**(無いと相対パスが全部壊れる)
+    - ⭐ **スタブを `<script src>` で足せるのは同一オリジン＝CSP `script-src 'self'` を満たすから**。
+      ⚠️ **`<style>` 注入は `style-src 'self'` に阻まれて無言で無視される**(候補CSSは CSSOM の `insertRule` で足す)
+    - ⚠️ ⭐ **`srcdoc` を差し替えたら `load` を待ってから中を触る**。待たずに触ると**前のドキュメント**に当たり、
+      **新しい方には何も適用されない**(実際に踏んだ)
+  - ⚠️ ⭐ **before/after を2つのサーバーで並走させるとき、`scripts/serve.mjs` は配信ルートを
+    `import.meta.url` から決めるので `cd` では切り替わらない**(2026-09-06にレビュー担当が踏んだ)。
+    **旧版のツリーを別ディレクトリへ展開して、そこの `serve.mjs` を起動する**こと。
+    ⚠️ ⭐ **切り替わっていないと before と after が同一になり、「全項目に差なし」の偽の緑**になる
+    → ⭐ **本測定の前に「既知の差」で検算する**
 - 宣伝画像などの生成に使う `python3-pil`・`fonts-noto-cjk` はaptパッケージのため**コンテナ再構築で消える**
   (`sudo apt-get install -y python3-pil fonts-noto-cjk` で再導入)
 - **Cloudflare Pagesは `/foo.html` を `/foo` へ308リダイレクトする**(拡張子トリム)。
