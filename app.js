@@ -693,72 +693,21 @@ function updateFilterBadge() {
 }
 
 // ---------- 選択中の絞り込み条件（設計書 §12-2 案A）----------
-// ⚠ アコーディオン（1つ開いたら他は閉じる）にすると、閉じたグループの選択内容が
-//   数字バッジだけになる。左ペインの最上部に全条件を集め、✕で個別に外せるようにする。
+// ⚠ 実装は shared/js/card-search.js の createSelectedFilters()（左ペイン化_設計 §7-3 で移設）。
+//   デッキ構築ツールも同じものを呼ぶ。⚠ ここへ書き戻さないこと（二重定義になる）。
 // ⚠ 出す・出さないは style.css（#selected-filters は既定 display:none、1200px以上でだけ表示）が
-//   決める。ここで幅を見ない——幅の行き来のたびに作り直すと状態がずれるため。
-function selectedFilterItems() {
-  const out = [];
-  urlGroups().forEach(([, g]) => {
-    const flabel = g.querySelector(".flabel");
-    const group = flabel ? flabel.textContent : "";
-    g.querySelectorAll('.chip input[type="checkbox"]').forEach((input) => {
-      if (!input.checked) return;
-      // ⚠ チップは <input><i.orb><span>日本語</span><em>キー</em> の並び（fillChips）。
-      //   textContent をそのまま使うと「ノームNORM」と繋がるので、面ごとに取り出す
-      const chip = input.closest(".chip");
-      const jp = chip && chip.querySelector("span") ? chip.querySelector("span").textContent.trim() : "";
-      const code = chip && chip.querySelector("em") ? chip.querySelector("em").textContent.trim() : "";
-      const name = jp || code || String(input.value || "");
-      out.push({ group, name, code: code === name ? "" : code, input });
-    });
-  });
-  return out;
-}
-
-function selectedFilterChip(item) {
-  const b = document.createElement("button");
-  b.type = "button";
-  const desc = `${item.group}: ${item.name}${item.code ? `（${item.code}）` : ""}`;
-  b.title = desc;
-  b.setAttribute("aria-label", `${desc} を外す`);
-  b.append(document.createTextNode(item.name + " "));
-  if (item.code) {
-    const em = document.createElement("em");
-    em.textContent = item.code;
-    b.appendChild(em);
-  }
-  const x = document.createElement("span");
-  x.className = "x";
-  x.setAttribute("aria-hidden", "true");
-  x.textContent = "✕";
-  b.appendChild(x);
-  // ⚠ チェックボックスを click() して外す。change を経由するので、グループ側の
-  //   sync()（バッジ・チップの on）と onChange（再検索）が両方そのまま走る
-  b.addEventListener("click", () => item.input.click());
-  return b;
-}
+//   決める。幅を見ない——幅の行き来のたびに作り直すと状態がずれるため。
+const selectedFilters = GA_CARD_SEARCH.createSelectedFilters({
+  container: el.selectedFilters,
+  list: el.selectedFiltersList,
+  groups: filterGroups,
+  // 「すべて解除」で全群を空にしたあとの1回。⚠ 個別の✕は input.click() 経由なので
+  //   グループ側の onChange（updateFilterBadge + runSearch）がそのまま走る＝ここは通らない
+  onChange: () => { updateFilterBadge(); runSearch(true); },
+});
 
 function renderSelectedFilters() {
-  if (!el.selectedFilters || !el.selectedFiltersList) return;
-  const items = selectedFilterItems();
-  el.selectedFilters.classList.toggle("has-selection", items.length > 0);
-  el.selectedFiltersList.textContent = "";
-  items.forEach((it) => el.selectedFiltersList.appendChild(selectedFilterChip(it)));
-  if (items.length > 1) {
-    const clear = document.createElement("button");
-    clear.type = "button";
-    clear.className = "clear-all";
-    clear.textContent = "すべて解除";
-    // ⚠ 1件ずつ click() すると解除のたびに検索が走る（最大で選択件数ぶんのAPIリクエスト）。
-    //   setValues([]) は onChange を発火させないので、まとめて外してから1回だけ検索する
-    clear.addEventListener("click", () => {
-      filterGroups().forEach((g) => g.setValues([]));
-      updateFilterBadge();
-      runSearch(true);
-    });
-    el.selectedFiltersList.appendChild(clear);
-  }
+  selectedFilters.render();
 }
 
 // ---------- 絞り込みボトムシート（スマホ）----------
@@ -876,22 +825,13 @@ function initFilterSheet() {
 }
 
 // ---------- 絞り込みグループのアコーディオン（設計書 §12-1）----------
-// 1つ開いたら他は閉じる。
-// ⚠ 実装をここ（トップページ専用の app.js）に置くこと。shared/js/card-search.js に書くと
-//   デッキ構築ツールの絞り込みも勝手にアコーディオンになる。
+// 1つ開いたら他は閉じる。⚠ 実装は shared/js/card-search.js の initAccordion()
+// （左ペイン化_設計 §7-4 で移設。デッキ構築ツールも同じものを 1280px で呼ぶ）。
 // ⚠ 効かせるのは左ペインが出る 1200px 以上だけ。狭い幅では今までどおり複数開ける——
 //   閉じたグループの中身を補う「選択中の条件」（案A）が PC幅にしか出ないため、
 //   スマホで畳むと何を選んだのか分からなくなる（設計書 §3-3「1200px未満は現状のまま」）。
-const PANE_MQ = window.matchMedia("(min-width: 1200px)");
-
-function initAccordion() {
-  filterGroups().forEach((g) => {
-    g.addEventListener("toggle", () => {
-      if (!g.open || !PANE_MQ.matches) return;
-      filterGroups().forEach((other) => { if (other !== g) other.open = false; });
-    });
-  });
-}
+// ⚠ 閾値 1200 は style.css の #selected-filters の閾値と必ず揃える
+const PANE_MIN_WIDTH = 1200;
 
 function init() {
   // 複数選択（AND/OR）の絞り込みグループ。既定は閉じた状態（開くとチップが50個以上並ぶため）
@@ -925,7 +865,7 @@ function init() {
   });
 
   // 絞り込みグループのアコーディオン（PC幅のみ。1つ開いたら他は閉じる）
-  initAccordion();
+  GA_CARD_SEARCH.initAccordion({ groups: filterGroups, minWidth: PANE_MIN_WIDTH });
 
   // 絞り込み・並び替えパネルの開閉（スマホのみ。PCでは常時表示）。
   // インラインのトグル・FAB・×・ベール・Esc をまとめて配線する

@@ -109,6 +109,13 @@
       <input type="search" id="s-text" placeholder="効果テキストで部分検索（英語 / 日本語）" autocomplete="off">
     </div>
     <button id="s-toggle" class="filter-toggle" type="button" aria-expanded="false" aria-controls="s-filter-row"><span id="s-toggle-label">絞り込み ▾</span><span id="s-filter-badge" class="fbadge" hidden></span></button>
+    <!-- 選択中の絞り込み条件（左ペイン化_設計 §7-3）。アコーディオンで閉じたグループの
+         中身を補う。⚠️ 中身は shared/js/card-search.js の createSelectedFilters() が組み立てる。
+         ⚠️ 表示は style.css の min-width:1280px の中だけ（1279px以下は現状のまま） -->
+    <div id="s-selected-filters">
+      <h2 id="s-selected-filters-title">選択中の条件</h2>
+      <div id="s-selected-filters-list"></div>
+    </div>
     <div class="row filter-row" id="s-filter-row">
       <!-- 複数選択（AND/OR）の絞り込み。中身は shared/js/card-search.js の fillChips() が構築する（#31） -->
       <details class="fgroup" id="s-g-element"></details>

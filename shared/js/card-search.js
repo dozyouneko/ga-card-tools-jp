@@ -19,11 +19,16 @@
  *   ctl.run(true);       // 新規検索
  *   ctl.loadMore();      // 次ページ追記
  *
+ * このほかに、左ペインの部品を2つ提供する(どちらもオプトイン・左ペイン化_設計 §7-3 / §7-4):
+ *   GA_CARD_SEARCH.createSelectedFilters({ container, list, groups, onChange }) → { render }
+ *   GA_CARD_SEARCH.initAccordion({ groups, minWidth })
+ *
  * els.set の value は I18N.meta.sets のインデックス。els.order は dataset.dir に "ASC"/"DESC" を持つボタン。
  *
  * cls/element/type/subtype/rarity は fillChips() が作るチップ群(複数選択+AND/OR)を渡す。
- * ⚠ rarity はトップページだけが渡す。デッキ構築ツールは渡さないが、valuesOf(null)=[] /
- *   modeOf(null)="OR" のため完全な no-op になる(#S1・出したくなったら els に足すだけ)。
+ * ⭐ rarity はトップ・デッキ構築の両方が渡す(左ペイン化_設計 §7-1 でデッキ構築にも足した)。
+ * ⚠ 渡さないページがあっても valuesOf(null)=[] / modeOf(null)="OR" で完全な no-op になる
+ *   (#S1・出したくなったら els に足すだけ)。
  * カードDB・デッキ構築ツールとも同じ(#31 で統一)。
  * ⚠ modeOf()/valuesOf() は getMode()/getValues() を持たない素の <select> にも
  *   フォールバックするが、そのような呼び出し元は現在無い(#32 で fillSelect も削除済み)。
@@ -592,7 +597,8 @@ window.GA_CARD_SEARCH = (() => {
     // E の中でレアリティ条件が成立するか。
     //   OR  … ∃e∈E: rarity(e) ∈ R  （＝公式APIの prefix + rarity と完全一致）
     //   AND … ∀r∈R: ∃e∈E: rarity(e) = r（「その版群の中で両方刷られている」）
-    // ⚠ els.rarity を持たないページ（デッキ構築ツール）では valuesOf(null)=[] で常に true＝no-op。
+    // ⚠ els.rarity を持たないページでは valuesOf(null)=[] で常に true＝no-op
+    //   （2026-09-06 以降、トップ・デッキ構築のどちらも渡している）。
     function rarityMatchesIn(eds) {
       const list = vals("rarity");
       if (!list.length) return true;
@@ -1154,8 +1160,118 @@ window.GA_CARD_SEARCH = (() => {
     return { run, loadMore, pager, isJpTextMode };
   }
 
+  // ---------- 選択中の絞り込み条件（左ペイン化_設計 §7-3・元はトップの app.js）----------
+  // ⚠ アコーディオン（1つ開いたら他は閉じる）にすると、閉じたグループの選択内容が
+  //   数字バッジだけになる。左ペインの最上部に全条件を集め、✕で個別に外せるようにする。
+  // ⚠ 出す・出さないは各ページのCSS（既定 display:none、左ペインが出る幅でだけ表示）が決める。
+  //   ここで幅を見ない——幅の行き来のたびに作り直すと状態がずれるため。
+  // ⚠ トップとデッキ構築で違うのは「対象の群」と「解除したあと何をするか」の2つだけ。
+  //   コピーせずこの1か所に置く（card-badges.css・用語ハイライト・0件文言に続く二重定義を増やさない）。
+  //
+  //   GA_CARD_SEARCH.createSelectedFilters({
+  //     container,        // .has-selection を付け外しする器
+  //     list,             // チップを並べる箱
+  //     groups: () => [...],  // 対象の <details>（fillChips が作ったもの）
+  //     onChange,         // 「すべて解除」で全群を空にしたあとに1回だけ呼ぶ
+  //   }) → { render }
+  function createSelectedFilters(opts) {
+    const container = opts.container;
+    const list = opts.list;
+    const groups = opts.groups || (() => []);
+    const onChange = opts.onChange || (() => {});
+
+    function items() {
+      const out = [];
+      groups().forEach((g) => {
+        if (!g) return;
+        const flabel = g.querySelector(".flabel");
+        const group = flabel ? flabel.textContent : "";
+        g.querySelectorAll('.chip input[type="checkbox"]').forEach((input) => {
+          if (!input.checked) return;
+          // ⚠ チップは <input><i.orb><span>日本語</span><em>キー</em> の並び（fillChips）。
+          //   textContent をそのまま使うと「ノームNORM」と繋がるので、面ごとに取り出す
+          const chip = input.closest(".chip");
+          const jp = chip && chip.querySelector("span") ? chip.querySelector("span").textContent.trim() : "";
+          const code = chip && chip.querySelector("em") ? chip.querySelector("em").textContent.trim() : "";
+          const name = jp || code || String(input.value || "");
+          out.push({ group, name, code: code === name ? "" : code, input });
+        });
+      });
+      return out;
+    }
+
+    function chipFor(item) {
+      const b = document.createElement("button");
+      b.type = "button";
+      const desc = `${item.group}: ${item.name}${item.code ? `（${item.code}）` : ""}`;
+      b.title = desc;
+      b.setAttribute("aria-label", `${desc} を外す`);
+      b.append(document.createTextNode(item.name + " "));
+      if (item.code) {
+        const em = document.createElement("em");
+        em.textContent = item.code;
+        b.appendChild(em);
+      }
+      const x = document.createElement("span");
+      x.className = "x";
+      x.setAttribute("aria-hidden", "true");
+      x.textContent = "✕";
+      b.appendChild(x);
+      // ⚠ チェックボックスを click() して外す。change を経由するので、グループ側の
+      //   sync()（バッジ・チップの on）と onChange（ページ側の再検索やバッジ更新）が両方そのまま走る
+      b.addEventListener("click", () => item.input.click());
+      return b;
+    }
+
+    function render() {
+      if (!container || !list) return;
+      const cur = items();
+      container.classList.toggle("has-selection", cur.length > 0);
+      list.textContent = "";
+      cur.forEach((it) => list.appendChild(chipFor(it)));
+      if (cur.length > 1) {
+        const clear = document.createElement("button");
+        clear.type = "button";
+        clear.className = "clear-all";
+        clear.textContent = "すべて解除";
+        // ⚠ 1件ずつ click() すると解除のたびにページ側の onChange が走る（トップでは
+        //   選択件数ぶんのAPIリクエストになる）。setValues([]) は onChange を発火させないので、
+        //   まとめて外してからページ側の onChange を1回だけ呼ぶ
+        clear.addEventListener("click", () => {
+          groups().forEach((g) => { if (g) g.setValues([]); });
+          onChange();
+        });
+        list.appendChild(clear);
+      }
+    }
+
+    return { render };
+  }
+
+  // ---------- 絞り込みグループのアコーディオン（左ペイン化_設計 §7-4・元はトップの app.js）----------
+  // 1つ開いたら他は閉じる。
+  // ⚠ 効かせるのは左ペインが出る幅だけ。狭い幅では今までどおり複数開ける——
+  //   閉じたグループの中身を補う「選択中の条件」が左ペインの幅にしか出ないため、
+  //   狭い幅で畳むと何を選んだのか分からなくなる。
+  // ⚠ ⭐ minWidth を必ず引数で受ける。ハードコードするとページごとの左ペインの閾値
+  //   （トップ 1200px / デッキ構築 1280px）とずれ、「左ペインが無いのにアコーディオンだけ効く」
+  //   帯ができる（＝選んだ条件が画面のどこにも見えなくなる無言の劣化）。
+  function initAccordion(opts) {
+    const groups = opts.groups || (() => []);
+    const mq = window.matchMedia(`(min-width: ${Number(opts.minWidth)}px)`);
+    groups().forEach((g) => {
+      if (!g) return;
+      g.addEventListener("toggle", () => {
+        if (!g.open || !mq.matches) return;
+        groups().forEach((other) => { if (other && other !== g) other.open = false; });
+      });
+    });
+    return { mq };
+  }
+
   return {
     create, fillChips, fillSetSelect, fillFormatSelect,
+    createSelectedFilters, initAccordion,
     setPrefixes, setKeyOf, setIndexOf, numericSortNote, numericSortLabel, jpSortNote, jpDropNote,
     fetchGapNote,
     SUBTYPE_TOP, ELEMENT_AND_MESSAGE,

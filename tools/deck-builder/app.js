@@ -101,6 +101,8 @@ const el = {
   sToggle: $("s-toggle"),
   sToggleLabel: $("s-toggle-label"),
   sFilterBadge: $("s-filter-badge"),
+  sSelectedFilters: $("s-selected-filters"),
+  sSelectedFiltersList: $("s-selected-filters-list"),
   resultModal: $("result-modal"),
   resultTitle: $("result-title"),
   resultCount: $("result-count"),
@@ -584,16 +586,34 @@ function endSave() {
   }
 }
 
+// 左ペイン（2カラム化）が出る画面幅。⚠️ style.css の @media (min-width: 1280px) と必ず揃える
+const PANE_MIN_WIDTH = 1280;
+
 // 複数選択(AND/OR)の絞り込みグループ。中身は init() の fillChips() が構築する(#31)
 // ⚠️ ここに足すとバッジ集計・リセット・「選択中の条件」・アコーディオンが同時に対応する。
 // 足し忘れると畳んだときのバッジが数え落とし、リセットで選択が残る（左ペイン化_設計 §7-1）
 const filterGroups = () => [el.sGElement, el.sGClass, el.sGType, el.sGSubtype, el.sGRarity];
 
-// スマホでは絞り込み全体が畳まれるため、畳んだ状態でも選択件数が分かるようトグルへバッジを出す
+// 選択中の絞り込み条件（左ペイン化_設計 §7-3）。実装はトップと共用の
+// shared/js/card-search.js（createSelectedFilters）。⚠️ ここへコピーしないこと（二重定義になる）。
+// ⚠️ 出す・出さないは style.css（既定 display:none、1280px以上でだけ表示）が決める。
+const selectedFilters = GA_CARD_SEARCH.createSelectedFilters({
+  container: el.sSelectedFilters,
+  list: el.sSelectedFiltersList,
+  groups: filterGroups,
+  // ⚠️ トップと違い再検索しない。このページの絞り込みは「🔍 検索」ボタン方式で、
+  //    チップを変えても検索を走らせない既存挙動と揃える（バッジと表示だけ更新する）
+  onChange: () => updateFilterBadge(),
+});
+
+// スマホでは絞り込み全体が畳まれるため、畳んだ状態でも選択件数が分かるようトグルへバッジを出す。
+// ⚠️ 選択件数が変わる経路はここに集まっている（チップ変更・リセット・デッキ切替）。
+//    「選択中の条件」の描き直しを各所に散らさず、この1か所から呼ぶ
 function updateFilterBadge() {
   const n = filterGroups().reduce((sum, g) => sum + g.getValues().length, 0);
   el.sFilterBadge.hidden = n === 0;
   el.sFilterBadge.textContent = String(n);
+  selectedFilters.render();
 }
 
 // 検索フォームを初期状態に戻す(リセットボタンとデッキ切替時の両方から使う)
@@ -2806,6 +2826,11 @@ window.addEventListener("hashchange", route);
   // 絞り込みは「🔍 検索」ボタン(とEnter)で走らせる既存挙動を保つ。
   // チップの変更では再検索せず、畳んだときに見えるバッジだけ更新する
   filterGroups().forEach((g) => g.onChange(updateFilterBadge));
+  // 絞り込みグループのアコーディオン（左ペインが出る 1280px 以上のみ。1つ開いたら他は閉じる）。
+  // ⚠️ 閾値は style.css の左ペイン化のメディアクエリと必ず揃える。1200px（トップの値）を
+  //    そのまま使うと「左ペインが無いのにアコーディオンだけ効く」帯ができ、閉じた群の中身を
+  //    補う「選択中の条件」も出ないため、選んだ条件が画面のどこにも見えなくなる（設計 §7-4）
+  GA_CARD_SEARCH.initAccordion({ groups: filterGroups, minWidth: PANE_MIN_WIDTH });
   updateFilterBadge();
   // 画面(デッキ一覧・ゾーン)を描く前にカード名の訳を入れる。失敗しても resolve する
   // （fail-open＝英語名で描画されるだけ・#22 R3）
