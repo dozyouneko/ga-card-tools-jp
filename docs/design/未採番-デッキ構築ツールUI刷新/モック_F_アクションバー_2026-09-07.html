@@ -24,31 +24,32 @@
         無くブラウザから届かない）から
         /docs/design/未採番-デッキ構築ツールUI刷新/モック_F_アクションバー_2026-09-07.html で開くこと。
         file:// で開くと同一オリジンにならず、CSSOM に触れない。 -->
-<title>モック：リセット・検索ボタンの固定（F）</title>
+<title>モック：表示モードの二値化（1.5案）とペイン下部のアクションバー</title>
 <link rel="stylesheet" href="モック_F_アクションバー_2026-09-07.css">
 </head>
 <body>
 
 <div class="panel">
-  <h1><span class="tag">モック</span>F：リセット・検索ボタンをスクロールに影響されない位置へ — <b>決めたいのは「中間幅の案」</b><button id="panel-toggle" class="mini" type="button">▲ 操作パネルを畳む</button></h1>
+  <h1><span class="tag">モック</span>1.5案：見え方を「左ペイン表示」と「スマホ表示」の2つだけにする ＋ F（ペイン下部のアクションバー）<button id="panel-toggle" class="mini" type="button">▲ 操作パネルを畳む</button></h1>
   <p class="lead">
     下の枠は<b>実物</b>（トップ＝ログイン不要のまま／デッキ構築＝ログイン済みのデッキを開いた状態にしてある）。
+    ⭐ <b>見たいのは2つ</b>：
+    ① <b>1199px以下を「スマホ表示」に統一</b>したときの見え方（⭐ <b>900 / 768 / 1199</b> で見る）
+    ② <b>1200〜1279px で左ペインが成立するか</b>（⭐ <b>ページを「デッキ構築」にして 1240 / 1200</b> で見る）。
     ⭐ <b>まず「サブタイプ157種を開く」を押してから</b>、枠の中を上下にスクロールしてください。
-    ⭐ <b>決めたいのは「中間幅の案」の3択</b>。ペイン幅（トップ1200px以上・デッキ構築1280px以上）の形は決定済みです。
   </p>
 
   <div class="rows">
     <div class="grp prime">
-      <span class="lbl">⭐ 中間幅の案</span>
-      <div class="seg" data-g="mid">
-        <button data-v="an1">案1：画面下端に固定</button>
-        <button data-v="an2" class="on">案2：パネル末尾で貼り付く</button>
-        <button data-v="an3">案3：据え置き（何もしない）</button>
+      <span class="lbl">⭐ 表示モード</span>
+      <div class="seg" data-g="mode">
+        <button data-v="now">現状（トップ1200 / デッキ構築1280・中間幅は上部パネル）</button>
+        <button data-v="v15" class="on">1.5案（境界1200に統一＋1199px以下はスマホ表示）</button>
       </div>
     </div>
 
     <div class="grp">
-      <span class="lbl">F</span>
+      <span class="lbl">F（ペイン下部）</span>
       <div class="seg" data-g="f">
         <button data-v="off">現状（変更なし）</button>
         <button data-v="on" class="on">適用</button>
@@ -66,15 +67,15 @@
     <div class="grp">
       <span class="lbl">画面幅</span>
       <div class="seg" data-g="vw">
-        <button data-v="1440x900" class="on">1440（ペイン）</button>
+        <button data-v="1440x900">1440</button>
         <button data-v="1280x900">1280</button>
-        <button data-v="1279x900">1279</button>
-        <button data-v="1200x900">1200</button>
-        <button data-v="1199x800">1199</button>
-        <button data-v="900x800">900（中間）</button>
-        <button data-v="768x800">768（中間）</button>
-        <button data-v="641x800">641（中間の下端）</button>
-        <button data-v="640x800">640（スマホ・触らない）</button>
+        <button data-v="1240x900" class="on">⭐ 1240（新しい帯）</button>
+        <button data-v="1200x900">⭐ 1200（境界）</button>
+        <button data-v="1199x800">⭐ 1199（境界直下）</button>
+        <button data-v="900x800">900</button>
+        <button data-v="768x800">768</button>
+        <button data-v="641x800">641</button>
+        <button data-v="640x800">640</button>
         <button data-v="375x812">375</button>
       </div>
     </div>

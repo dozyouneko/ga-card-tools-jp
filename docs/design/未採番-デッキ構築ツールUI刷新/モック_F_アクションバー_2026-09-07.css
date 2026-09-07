@@ -41,6 +41,14 @@ button.on { background: var(--accent); color: #221a05; border-color: var(--accen
 }
 .measure { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; font-family: ui-monospace, monospace; color: var(--text); }
 
+/* ⚠️ ⭐ 畳むのは class で行う。`hidden` 属性だと .rows の display:flex（作者スタイル）が
+   UAスタイルの [hidden]{display:none} に勝ってしまい、**.lead しか畳まれない**
+   （2026-09-07 にユーザーが指摘。旧モック モック_左ペイン化_2026-09-05.css と同じ方式に揃えた） */
+body.panel-min .lead,
+body.panel-min .rows,
+body.panel-min .note,
+body.panel-min .measure { display: none; }
+
 .stage { padding: 14px 16px 40px; }
 .frame-wrap { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: #000; }
 .col-tag { display: inline-block; font-size: .74rem; color: var(--muted); margin: 0 0 4px 2px; }
