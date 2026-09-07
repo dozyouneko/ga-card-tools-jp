@@ -601,10 +601,25 @@ const selectedFilters = GA_CARD_SEARCH.createSelectedFilters({
   container: el.sSelectedFilters,
   list: el.sSelectedFiltersList,
   groups: filterGroups,
-  // ⚠️ トップと違い再検索しない。このページの絞り込みは「🔍 検索」ボタン方式で、
-  //    チップを変えても検索を走らせない既存挙動と揃える（バッジと表示だけ更新する）
-  onChange: () => updateFilterBadge(),
+  // 「すべて解除」で全群を空にしたあとの1回（左ペイン化_設計 §11-4）。
+  // ⚠️ チップ本体を押したときは通らない——そちらは群側の onChange（updateFilterBadge のみ）で、
+  //    「チップを変えても検索しない」既存挙動（Q5）を据え置いている
+  onChange: () => { updateFilterBadge(); rerunIfResultOpen(); },
+  // 個別の✕（左ペイン化_設計 §11）。群側の onChange は updateFilterBadge しかしないので、
+  // 再検索はここで足す。⚠️ トップは群側が既に再検索するため onRemoveOne を渡していない
+  onRemoveOne: () => rerunIfResultOpen(),
 });
+
+// 「選択中の条件」から条件を外したときの再検索（左ペイン化_設計 §11-6）。
+// ⚠️ 結果ダイアログが閉じているときに runSearch(true) を呼ぶと、searchCtl の onStart が
+//    openModal(el.resultModal) を呼ぶ＝「✕を押すたびに結果モーダルが開く」。
+//    それは設計で意図的に外した劣化そのものなので、開いているときだけ更新する。
+// ⚠️ これは並び替え（sSort/sOrder）で外したガードを戻すものではない。並び替えは触っても
+//    画面が何も変わらない＝無言なのでガードが劣化だったが、✕はチップが消えてバッジが減る
+//    という視覚的フィードバックがその場にあるため無言にならない。
+function rerunIfResultOpen() {
+  if (!el.resultModal.hidden) runSearch(true);
+}
 
 // スマホでは絞り込み全体が畳まれるため、畳んだ状態でも選択件数が分かるようトグルへバッジを出す。
 // ⚠️ 選択件数が変わる経路はここに集まっている（チップ変更・リセット・デッキ切替）。

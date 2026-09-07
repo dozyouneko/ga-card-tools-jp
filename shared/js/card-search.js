@@ -20,7 +20,7 @@
  *   ctl.loadMore();      // 次ページ追記
  *
  * このほかに、左ペインの部品を2つ提供する(どちらもオプトイン・左ペイン化_設計 §7-3 / §7-4):
- *   GA_CARD_SEARCH.createSelectedFilters({ container, list, groups, onChange }) → { render }
+ *   GA_CARD_SEARCH.createSelectedFilters({ container, list, groups, onChange, onRemoveOne }) → { render }
  *   GA_CARD_SEARCH.initAccordion({ groups, minWidth })
  *
  * els.set の value は I18N.meta.sets のインデックス。els.order は dataset.dir に "ASC"/"DESC" を持つボタン。
@@ -1173,12 +1173,19 @@ window.GA_CARD_SEARCH = (() => {
   //     list,             // チップを並べる箱
   //     groups: () => [...],  // 対象の <details>（fillChips が作ったもの）
   //     onChange,         // 「すべて解除」で全群を空にしたあとに1回だけ呼ぶ
+  //     onRemoveOne,      // 個別の✕を押した「後」に1回だけ呼ぶ（省略可・左ペイン化_設計 §11-4）
   //   }) → { render }
+  // ⚠ ⭐ onRemoveOne をトップ（app.js）に渡さないこと。個別の✕は input.click() 経由で
+  //   グループ側の onChange（updateFilterBadge + runSearch）が既に再検索している。
+  //   渡すと ✕1回でAPI検索が2回走る（＝リクエストが倍になる）。
+  //   ⭐ 「デッキ構築に渡したのだから対称にしよう」と足したくなる形なので、必ずここを読むこと。
   function createSelectedFilters(opts) {
     const container = opts.container;
     const list = opts.list;
     const groups = opts.groups || (() => []);
     const onChange = opts.onChange || (() => {});
+    // 個別✕の後始末。渡さないページ（トップ）では完全な no-op になる
+    const onRemoveOne = opts.onRemoveOne || (() => {});
 
     function items() {
       const out = [];
@@ -1219,7 +1226,9 @@ window.GA_CARD_SEARCH = (() => {
       b.appendChild(x);
       // ⚠ チェックボックスを click() して外す。change を経由するので、グループ側の
       //   sync()（バッジ・チップの on）と onChange（ページ側の再検索やバッジ更新）が両方そのまま走る
-      b.addEventListener("click", () => item.input.click());
+      // ⚠ onRemoveOne はその「後」に1回だけ呼ぶ。群側の onChange が再検索しないページ
+      //   （デッキ構築）だけが渡す——トップに渡すと1回の✕で2回検索する（上の注意書き）
+      b.addEventListener("click", () => { item.input.click(); onRemoveOne(); });
       return b;
     }
 
