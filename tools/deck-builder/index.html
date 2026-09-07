@@ -111,7 +111,8 @@
     <button id="s-toggle" class="filter-toggle" type="button" aria-expanded="false" aria-controls="s-filter-row"><span id="s-toggle-label">絞り込み ▾</span><span id="s-filter-badge" class="fbadge" hidden></span></button>
     <!-- 選択中の絞り込み条件（左ペイン化_設計 §7-3）。アコーディオンで閉じたグループの
          中身を補う。⚠️ 中身は shared/js/card-search.js の createSelectedFilters() が組み立てる。
-         ⚠️ 表示は style.css の min-width:1280px の中だけ（1279px以下は現状のまま） -->
+         ⚠️ 表示は style.css の min-width:1200px の中だけ（1199px以下は現状のまま）。
+         ⚠️ ⭐ その閾値は app.js の PANE_MIN_WIDTH と必ず同時に動かす（設計 §14-3・V53） -->
     <div id="s-selected-filters">
       <h2 id="s-selected-filters-title">選択中の条件</h2>
       <div id="s-selected-filters-list"></div>
@@ -142,7 +143,7 @@
       </select>
       <button id="s-order" class="btn btn-sm" type="button" data-dir="ASC" aria-label="昇順・降順を切替">▲ 昇順</button>
     </div>
-    <!-- ⚠️ row-actions クラスは必須。1280px以上でこの行だけ横並びに戻すために使う。
+    <!-- ⚠️ row-actions クラスは必須。1200px以上でこの行だけ横並びに戻すために使う。
          ⚠️ #search-top > .row:last-of-type では書かないこと（末尾に div を1つ足した瞬間に
             当たらなくなり、リセット/検索が縦積みに戻る）。左ペイン化_設計 §4-3 -->
     <div class="row row-actions">

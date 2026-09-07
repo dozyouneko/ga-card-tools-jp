@@ -194,7 +194,10 @@ img.champ-thumb-img { display: block; }
 }
 .search-top .filter-toggle { display: none; } /* 絞り込みの折りたたみトグルはスマホのみ */
 /* 選択中の絞り込み条件（左ペイン化_設計 §7-3）。
-   ⚠️ 既定は非表示。左ペインが出る 1280px 以上でだけ表示する（1279px以下は現状のまま） */
+   ⚠️ 既定は非表示。左ペインが出る 1200px 以上でだけ表示する（1199px以下は現状のまま）。
+   ⚠️ ⭐ この閾値は app.js の PANE_MIN_WIDTH と必ず同時に動かす（左ペイン化_設計 §14-3・V53）。
+      片方だけ動かすと「左ペインは出るのに選択中の条件だけ出ない帯」ができ、
+      その帯で E（✕・すべて解除での再検索）が無言で効かなくなる。 */
 #s-selected-filters { display: none; }
 
 /* 絞り込みグループ（#31）。チップUIの見た目は shared/css/filter-chips.css にあり、
@@ -323,7 +326,7 @@ img.champ-thumb-img { display: block; }
 .modal-body h2 { margin: 0 0 4px; font-size: 1.05rem; }
 .result-count { margin: 0 0 14px; font-size: .8rem; color: var(--muted); }
 /* 並び替え(名前順/昇順)。⚠️ 置き場は結果ダイアログではなく検索パネル(#search-top)の中
-   （左ペイン化_設計 §5）。1280px以上のペイン内での並べ方は末尾のメディアクエリにある。 */
+   （左ペイン化_設計 §5）。1200px以上のペイン内での並べ方は末尾のメディアクエリにある。 */
 .result-sort { display: flex; align-items: center; gap: 8px; margin: 6px 0 8px; }
 .result-sort label { font-size: .78rem; color: var(--muted); }
 /* ⭐ 寸法・地色は隣の #s-format / #s-set（.search-top select）と同じ共有トークンにそろえる
@@ -736,17 +739,20 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
   .sr-note--multi { display: none; } /* 第7版⑯: 重複計上注記はスマホで非表示(Boon注記は素の.sr-noteなので表示継続) */
 }
 
-/* ---------- 左ペイン化（PC 1280px以上・左ペイン化_設計 §4-1 / §5-1） ----------
+/* ---------- 左ペイン化（PC 1200px以上・左ペイン化_設計 §4-1 / §5-1 / §14-2） ----------
    #view-editor の内側だけを2カラムGridにする。⭐ JS のレイアウト分岐はゼロ。
    ⚠️ body にクラスを付け外ししない（route() の付け忘れが無言で他3ビューを壊す）。
    ⚠️ :has() で2カラム化そのものを切り替えない（無視されると壊れる用途には使わない＝既存方針）。
-   ⚠️ 1279px以下は現状の1カラムのまま（このブロックの外側は一切変更していない）。
-   ブレークポイント 1280px の根拠は設計 §4-4（.stats-pane の 880px が損益分岐）。 */
-@media (min-width: 1280px) {
+   ⚠️ 1199px以下は現状の1カラムのまま（このブロックの外側は一切変更していない）。
+   ⭐ ブレークポイント 1200px の根拠は設計 §14-2 の実測（左ペイン320 + 右列880 = 1200 で
+      .stats-pane がちょうど収まり横あふれ0・メインデッキは6列を保つ）。トップと同じ値。
+   ⚠️ 設計 §4-4 の 1280px は 1.5 のユーザー判断で 1200px に上書きされた（§14-1 G-2）。
+   ⚠️ ⭐ この数値は app.js の PANE_MIN_WIDTH と必ず同時に動かす（§14-3・V51 / V53）。 */
+@media (min-width: 1200px) {
   #view-editor { display: grid; grid-template-columns: 320px minmax(0, 1fr); align-items: start; }
   /* ⚠️ display 指定が UA の [hidden] を上書きしないように（.btn[hidden] と同じ理由）。
      これが無いと #view-editor が他3ビュー（ログイン／一覧／共有閲覧）でも表示されたままになり、
-     ⚠️ 1280px以上でだけ #view-deck が 730px 下へ押し出される（V10 で実測）。 */
+     ⚠️ 1200px以上でだけ #view-deck が 730px 下へ押し出される（V10 で実測）。 */
   #view-editor[hidden] { display: none; }
   /* ⚠️ 既定を右列にしておく。要素が増えた日にその要素だけ左列へ落ちるのを防ぐ */
   #view-editor > * { grid-column: 2; }
@@ -821,7 +827,7 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
         （elementFromPoint が #s-sort の位置で modal-backdrop を返す＝機能の後退）。
      ⭐ .modal は position:fixed; inset:0 なので、left をペイン幅だけ寄せれば
         ベールも本体もまとめて右へ動く（追加のJSは要らない。ガードは §5-2 で外してある）。
-     ⚠️ 1279px以下は現状のまま（スマホの全画面シート化と噛み合わせない）。
+     ⚠️ 1199px以下は現状のまま（スマホの全画面シート化と噛み合わせない）。
      ⚠️ 320px は #view-editor の grid-template-columns の左列と同じ値。片方だけ変えないこと。 */
   #result-modal { left: 320px; }
 }
