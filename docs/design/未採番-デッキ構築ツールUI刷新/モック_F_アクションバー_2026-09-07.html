@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- ⚠️ 設計検討用のモック。本番の配信対象ではない（docs/ 配下は functions/docs/[[path]].js が404を返す）。
+     設計書: 左ペイン化_設計.md §11（F：リセット・検索ボタンをスクロールに影響されない位置へ）
+
+     ⭐ 目的は F-3（641〜1279px / 641〜1199px の「中間幅」をどうするか）の3案を見比べて決めること。
+        ペイン幅（トップ 1200px以上 / デッキ構築 1280px以上）の形は既に決まっているので、
+        そちらは「現状 / 適用」の2択で効き目だけ確認する。
+
+     ⭐ 実物（http://localhost:3000/ と /tools/deck-builder/）を iframe で動かす方式。
+        コピーを持たないので本体から陳腐化しない。
+        ⚠️ デッキ構築ツールは Discord ログインが前提なので、<base> とスタブ
+           （モック_左ペイン化_2026-09-05.stub.js）を差し込んだ srcdoc として読み込む。
+        ⚠️ トップ（/）はログイン不要なので素の src= で読み込む。
+
+     ⚠️ ⭐ A〜D は既に実装済みなので、このモックは「左ペイン化そのもの」を注入しない
+        （注入すると二重適用になる）。注入するのは F の候補CSSと、トップ側の
+        `.pane-actions`（リセットの複製）だけ。
+
+     ⚠️ ローカルサーバー（⭐ PORT=3000 npm run dev。3000 以外は devcontainer の forwardPorts に
+        無くブラウザから届かない）から
+        /docs/design/未採番-デッキ構築ツールUI刷新/モック_F_アクションバー_2026-09-07.html で開くこと。
+        file:// で開くと同一オリジンにならず、CSSOM に触れない。 -->
+<title>モック：リセット・検索ボタンの固定（F）</title>
+<link rel="stylesheet" href="モック_F_アクションバー_2026-09-07.css">
+</head>
+<body>
+
+<div class="panel">
+  <h1><span class="tag">モック</span>F：リセット・検索ボタンをスクロールに影響されない位置へ — <b>決めたいのは「中間幅の案」</b><button id="panel-toggle" class="mini" type="button">▲ 操作パネルを畳む</button></h1>
+  <p class="lead">
+    下の枠は<b>実物</b>（トップ＝ログイン不要のまま／デッキ構築＝ログイン済みのデッキを開いた状態にしてある）。
+    ⭐ <b>まず「サブタイプ157種を開く」を押してから</b>、枠の中を上下にスクロールしてください。
+    ⭐ <b>決めたいのは「中間幅の案」の3択</b>。ペイン幅（トップ1200px以上・デッキ構築1280px以上）の形は決定済みです。
+  </p>
+
+  <div class="rows">
+    <div class="grp prime">
+      <span class="lbl">⭐ 中間幅の案</span>
+      <div class="seg" data-g="mid">
+        <button data-v="an1">案1：画面下端に固定</button>
+        <button data-v="an2" class="on">案2：パネル末尾で貼り付く</button>
+        <button data-v="an3">案3：据え置き（何もしない）</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <span class="lbl">F</span>
+      <div class="seg" data-g="f">
+        <button data-v="off">現状（変更なし）</button>
+        <button data-v="on" class="on">適用</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <span class="lbl">ページ</span>
+      <div class="seg" data-g="page">
+        <button data-v="top" class="on">トップ（/）</button>
+        <button data-v="deck">デッキ構築</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <span class="lbl">画面幅</span>
+      <div class="seg" data-g="vw">
+        <button data-v="1440x900" class="on">1440（ペイン）</button>
+        <button data-v="1280x900">1280</button>
+        <button data-v="1279x900">1279</button>
+        <button data-v="1200x900">1200</button>
+        <button data-v="1199x800">1199</button>
+        <button data-v="900x800">900（中間）</button>
+        <button data-v="768x800">768（中間）</button>
+        <button data-v="641x800">641（中間の下端）</button>
+        <button data-v="640x800">640（スマホ・触らない）</button>
+        <button data-v="375x812">375</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <span class="lbl">最悪ケース</span>
+      <div class="seg">
+        <button id="worst" type="button">サブタイプ157種を開く</button>
+        <button id="measure" type="button">🔎 実測する</button>
+        <button id="reload" type="button">再読込</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="note" id="note"></p>
+  <p class="measure" id="measure-out" hidden></p>
+</div>
+
+<div class="stage" id="stage">
+  <span class="col-tag" id="tag">—</span>
+  <div class="frame-wrap" id="wrap"><iframe id="frame" title="実物（モック）"></iframe></div>
+</div>
+
+<script src="モック_F_アクションバー_2026-09-07.js"></script>
+</body>
+</html>
