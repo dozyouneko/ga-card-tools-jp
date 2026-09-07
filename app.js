@@ -710,10 +710,17 @@ function renderSelectedFilters() {
   selectedFilters.render();
 }
 
-// ---------- 絞り込みボトムシート（スマホ）----------
+// ---------- 絞り込みボトムシート（スマホ表示）----------
 // ⚠ 状態は .controls の filters-open クラス1つだけ。FAB とインラインのトグルの
 // どちらから開いても同じ関数を通す（入口ごとに状態を持つと2つのバッジ・aria が食い違う）
-const MOBILE_MQ = window.matchMedia("(max-width: 640px)");
+// ⚠️ ⭐ 閾値は style.css の「レスポンシブ①（〜1199px）」と必ず揃える（設計書 §14-3）。
+//    ここが 640 のままだと updateFabVisibility() が is-hidden を付け続け、
+//    CSS を直しても 641〜1199px で FAB が永久に出ない（CSS 上は display: inline-flex
+//    のままなので、CSS を読むかぎり「直っている」ように見える無言の失敗になる）。
+// ⚠️ 使用箇所は5つ（openFilterSheet / updateFabVisibility / Tab のフォーカストラップ /
+//    change ハンドラ / Escape ハンドラ）。片方だけ動かさないこと。
+// ⭐ PANE_MIN_WIDTH（左ペインのアコーディオン・1200px）とは別物。あちらは変えない。
+const MOBILE_MQ = window.matchMedia("(max-width: 1199px)");
 const SHEET_FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
 let filterOpener = null; // 閉じたときフォーカスを戻す先（開いた側のボタンを覚えておく）

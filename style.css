@@ -350,37 +350,22 @@ a { color: var(--accent-2); }
    ⚠️ 既定は非表示。左ペインが出る 1200px 以上でだけ表示する（スマホ・タブレットは現状のまま） */
 #selected-filters { display: none; }
 
-/* ---------- レスポンシブ（スマホ 〜640px） ---------- */
-@media (max-width: 640px) {
+/* ---------- レスポンシブ①：絞り込みの導線（〜1199px・設計書 §14-3） ----------
+   ⭐ G-3a。641〜1199px（タブレット〜小型PC）も 640px以下と同じ「スマホ表示」に統一する。
+      左ペインが出るのは 1200px 以上だけなので、それ未満は全部スマホ側の導線へ寄せる。
+   ⚠️ ⭐ ここに入れてよいのは「絞り込みの出し方」だけ。寸法（カード一覧の列数・入力欄の
+      font-size・.controls の padding・印刷トレイの全画面シート化など）は下の 640px の
+      ブロックに残す。帯ごと広げるとカード一覧が 4列 → 2列に落ちる（実測・設計書 §14-3）。
+   ⚠️ ⭐ CSS だけでは足りない。app.js の MOBILE_MQ も (max-width: 1199px) にしないと
+      updateFabVisibility() が is-hidden を付け続け、FAB が永久に出ない
+      （CSS 上は display: inline-flex のままなので、CSS を読む限り「直っている」ように見える）。 */
+@media (max-width: 1199px) {
   /* 横方向のはみ出しを防ぐ（#21）。
      ⚠ ここを hidden に戻さないこと。hidden は要素をスクロールコンテナ化するため、
      スマホ幅でだけ子孫の position: sticky を無差別に無効化する（追従UIが全部死ぬ）。
      clip は同じくはみ出しを切るがスクロールコンテナを作らないので sticky を壊さない */
   html, body { overflow-x: clip; }
 
-  /* 横余白を圧縮して有効幅を確保 */
-  .site-header { padding: 14px 12px; flex-wrap: nowrap; gap: 10px; }
-
-  /* ヘッダの縦占有を減らす(#21)。タグラインは省き、サイト名は1行で省略する */
-  .tagline { display: none; }
-  .site-header h1 { font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .brand-mark { width: 34px; height: 34px; border-radius: 8px; font-size: .82rem; }
-
-  /* ツールリンクは折りたたみ(絞り込みパネルと同じ開閉パターン)。
-     開いたときは縦積みで各リンクを全幅に(タップしやすさ優先)。
-     ⚠ ボタン自体はブランドと同じ行に置く(全幅にすると単独で1行=45px 使う)。
-     ⚠ min-height:44px を省くとタップ領域が36pxになる(#21 §6.2)。代償はヘッダ+8pxだけ */
-  .tools-toggle {
-    display: block; width: auto; flex: 0 0 auto; text-align: left; cursor: pointer;
-    font-size: .82rem; padding: 8px 10px; min-height: 44px; border-radius: 8px;
-    background: var(--panel); color: var(--text); border: 1px solid var(--border);
-  }
-  .header-actions { display: none; }
-  /* ⚠ ヘッダを nowrap にした(#21)ため、開いたときだけ wrap に戻す。
-     戻さないと .header-actions がブランドと同じ行に押し込まれ、リンクが幅136pxに潰れる */
-  .site-header.tools-open { flex-wrap: wrap; }
-  .site-header.tools-open .header-actions { display: flex; flex-direction: column; align-items: stretch; gap: 8px; width: 100%; }
-  .site-header.tools-open .tool-link { text-align: center; }
   /* ⚠ 上の clip 化で .controls の sticky が「復活する」。スマホでは絞り込みシートと FAB を
      戻り導線にしたので、条件バーは従来どおり画面外へ流す。
      ⚠ ここを sticky のままにすると
@@ -393,16 +378,7 @@ a { color: var(--accent-2); }
      ⭐ position:static とあわせて .controls がスタッキングコンテキストも作らなくなる
         ＝シート（z-index:18）が印刷バー（15）より前に出られるようになる */
   .controls { -webkit-backdrop-filter: none; backdrop-filter: none; }
-  .controls { padding: 12px; }
-  .status { padding: 10px 12px 0; }
-  .site-footer { padding: 16px 12px 32px; }
-  .setlinks { margin: 20px 12px 0; } /* 横余白を他ブロックに合わせる（#37） */
 
-  /* iOS のフォーカス時ズーム防止（16px 以上）＋タップしやすさ */
-  .controls input, .controls select, .controls button { font-size: 16px; padding: 11px 12px; }
-
-  /* 検索入力は全幅で縦積み */
-  #q, #qtext { flex: 1 1 100%; min-width: 0; }
   /* 絞り込み・並び替えはトグルで開閉し、sticky ヘッダーをコンパクトに保つ。
      開いたときはセレクトを全幅（長い日本語ラベルの見切れ防止）、ボタンは 2 列に */
   .filter-toggle {
@@ -417,30 +393,6 @@ a { color: var(--accent-2); }
   .filter-rest { margin-top: 10px; }
   .controls.filters-open .filter-rest { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .controls.filters-open .filter-rest select { grid-column: 1 / -1; }
-  #order, #reset { min-width: 0; }
-  /* チップ側のスマホ調整（上の一括指定を戻す）は shared/css/filter-chips.css にある・#31 */
-
-  /* タップ領域を広げる（44px 目安）。.badges-tr / .season-badge / .art-badge の
-     スマホ調整は shared/css/card-badges.css に同居させてある（#35） */
-  .card-add { padding: 8px 10px; font-size: .9rem; }
-  .qty button { width: 36px; height: 36px; font-size: 1.15rem; }
-  .qty-input { width: 44px; padding: 8px 4px; font-size: 16px; }
-  .tray-remove { font-size: 1.6rem; padding: 4px 8px; }
-  .tray-item { gap: 8px; }
-  .tray-actions button { padding: 12px 16px; }
-
-  /* カード一覧：2 列固定（一覧性重視） */
-  .grid { padding: 12px; gap: 10px; grid-template-columns: repeat(2, 1fr); }
-  .card-name { font-size: .92rem; }
-  .card-name-en { font-size: .72rem; }
-  .card-add { opacity: 1; }
-
-  /* 印刷トレイ：全画面シート＋縦積み */
-  .modal-body { margin: 0; max-width: none; min-height: 100%; max-height: 100vh; border-radius: 0; padding: 16px; }
-  .modal-close { top: 8px; right: 10px; font-size: 2rem; padding: 2px 6px; }
-
-  /* 印刷トレイのオプションは縦積み */
-  .tray-options { flex-direction: column; gap: 10px; }
 
   /* ---------- 絞り込みボトムシート ---------- */
   /* ⚠ .controls の中に置いたままだが、上で position:static ＋ backdrop-filter:none に
@@ -524,6 +476,69 @@ a { color: var(--accent-2); }
   #filter-fab-badge[hidden] { display: none; }
 }
 
+/* ---------- レスポンシブ②：スマホの寸法（〜640px） ----------
+   ⚠️ ⭐ 絞り込みの導線は上の 1199px のブロックにある。ここへ戻すと 641〜1199px で
+      FAB もボトムシートも出なくなる（＝G-3a が無言で失われる）。 */
+@media (max-width: 640px) {
+  /* 横余白を圧縮して有効幅を確保 */
+  .site-header { padding: 14px 12px; flex-wrap: nowrap; gap: 10px; }
+
+  /* ヘッダの縦占有を減らす(#21)。タグラインは省き、サイト名は1行で省略する */
+  .tagline { display: none; }
+  .site-header h1 { font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .brand-mark { width: 34px; height: 34px; border-radius: 8px; font-size: .82rem; }
+
+  /* ツールリンクは折りたたみ(絞り込みパネルと同じ開閉パターン)。
+     開いたときは縦積みで各リンクを全幅に(タップしやすさ優先)。
+     ⚠ ボタン自体はブランドと同じ行に置く(全幅にすると単独で1行=45px 使う)。
+     ⚠ min-height:44px を省くとタップ領域が36pxになる(#21 §6.2)。代償はヘッダ+8pxだけ */
+  .tools-toggle {
+    display: block; width: auto; flex: 0 0 auto; text-align: left; cursor: pointer;
+    font-size: .82rem; padding: 8px 10px; min-height: 44px; border-radius: 8px;
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+  }
+  .header-actions { display: none; }
+  /* ⚠ ヘッダを nowrap にした(#21)ため、開いたときだけ wrap に戻す。
+     戻さないと .header-actions がブランドと同じ行に押し込まれ、リンクが幅136pxに潰れる */
+  .site-header.tools-open { flex-wrap: wrap; }
+  .site-header.tools-open .header-actions { display: flex; flex-direction: column; align-items: stretch; gap: 8px; width: 100%; }
+  .site-header.tools-open .tool-link { text-align: center; }
+  .controls { padding: 12px; }
+  .status { padding: 10px 12px 0; }
+  .site-footer { padding: 16px 12px 32px; }
+  .setlinks { margin: 20px 12px 0; } /* 横余白を他ブロックに合わせる（#37） */
+
+  /* iOS のフォーカス時ズーム防止（16px 以上）＋タップしやすさ */
+  .controls input, .controls select, .controls button { font-size: 16px; padding: 11px 12px; }
+
+  /* 検索入力は全幅で縦積み */
+  #q, #qtext { flex: 1 1 100%; min-width: 0; }
+  #order, #reset { min-width: 0; }
+  /* チップ側のスマホ調整（上の一括指定を戻す）は shared/css/filter-chips.css にある・#31 */
+
+  /* タップ領域を広げる（44px 目安）。.badges-tr / .season-badge / .art-badge の
+     スマホ調整は shared/css/card-badges.css に同居させてある（#35） */
+  .card-add { padding: 8px 10px; font-size: .9rem; }
+  .qty button { width: 36px; height: 36px; font-size: 1.15rem; }
+  .qty-input { width: 44px; padding: 8px 4px; font-size: 16px; }
+  .tray-remove { font-size: 1.6rem; padding: 4px 8px; }
+  .tray-item { gap: 8px; }
+  .tray-actions button { padding: 12px 16px; }
+
+  /* カード一覧：2 列固定（一覧性重視） */
+  .grid { padding: 12px; gap: 10px; grid-template-columns: repeat(2, 1fr); }
+  .card-name { font-size: .92rem; }
+  .card-name-en { font-size: .72rem; }
+  .card-add { opacity: 1; }
+
+  /* 印刷トレイ：全画面シート＋縦積み */
+  .modal-body { margin: 0; max-width: none; min-height: 100%; max-height: 100vh; border-radius: 0; padding: 16px; }
+  .modal-close { top: 8px; right: 10px; font-size: 2rem; padding: 2px 6px; }
+
+  /* 印刷トレイのオプションは縦積み */
+  .tray-options { flex-direction: column; gap: 10px; }
+}
+
 /* ⚠ せり上がりのアニメーションを一切出さない（§6-6）。
    遅延も0にしないと、visibility の遅延解除だけが残って「閉じたのに見える」時間ができる */
 @media (prefers-reduced-motion: reduce) {
@@ -538,13 +553,18 @@ a { color: var(--accent-2); }
       G1: 検索入力が画面幅に比例して間延びしない（2560px幅で #q が 1251px あった）
       G2: 絞り込みを開閉してもカード一覧の開始位置が動かない（4グループ全開で 878px まで下がっていた）
    ⭐ ヘッダと左ペインは固定し、スクロールするのは #results（結果側）だけ＝アプリシェル。
-   ⚠️ 追加するメディアクエリはこの2本だけ。641〜1199px は今までどおりの上部バーのまま
-      （1200px 未満で左ペインにすると結果側が3列まで落ち、割に合わない＝設計書 §3-3）。
-   ⚠️ スマホ幅（〜640px）の3つの対策（overflow-x:clip / .controls position:static /
-      backdrop-filter:none）はここでは一切触らない。触ると絞り込みFAB・ボトムシートが死ぬ。 */
+   ⚠️ 1200px 未満で左ペインにすると結果側が3列まで落ち、割に合わない（設計書 §3-3）。
+      ⭐ 2026-09-07（G-3a）から、641〜1199px は「上部バー」ではなく
+      640px以下と同じスマホ表示（FAB＋ボトムシート）になった＝上の「レスポンシブ①」。
+   ⚠️ 3つの対策（overflow-x:clip / .controls position:static / backdrop-filter:none）は
+      ここでは一切触らない。触ると絞り込みFAB・ボトムシートが死ぬ。
+      ⭐ この3つは「レスポンシブ①（〜1199px）」にあり、1200px 以上では効かない
+      （左ペインでは .controls が position: static のグリッド項目になるので不要）。 */
 
 @media (max-width: 1199px) {
-  /* 1199px以下では #results の箱を作らない（#filter-sheet と同じ手口）。
+  /* ⚠️ このブロックは「レスポンシブ①（〜1199px）」とは別建てで、意図的に分けてある。
+     ①は絞り込みの導線（スマホ表示への統一）、こちらは左ペイン化の裏返し（#results の箱）。
+     1199px以下では #results の箱を作らない（#filter-sheet と同じ手口）。
      ⚠️ ⭐ これは「保険」であって、いま外しても幾何は動かない。
         2026-09-03 の破壊試験（実装側が 375px、レビュー側が 375 / 768 / 1024 / 1199px）では、
         この行を外しても一覧開始 y も余白も 1px も変わらなかった
