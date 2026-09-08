@@ -959,7 +959,7 @@ const MOBILE_BAND_MARKER = "MOBILE-BAND:START";
       );
       continue;
     }
-    bandLog.push(`${page.css} ${bandMax[0]}px`);
+    bandLog.push(`${page.css} ${bandMax[0]}px ↔ ${page.js} MOBILE_MQ ${mqVals[0]}px`);
   }
 
   // ③ 迷子のマーカー（UI_PAGES の外のCSSに置かれた／要求されていないページに残った）
