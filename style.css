@@ -359,6 +359,8 @@ a { color: var(--accent-2); }
    ⚠️ ⭐ CSS だけでは足りない。app.js の MOBILE_MQ も (max-width: 1199px) にしないと
       updateFabVisibility() が is-hidden を付け続け、FAB が永久に出ない
       （CSS 上は display: inline-flex のままなので、CSS を読む限り「直っている」ように見える）。 */
+/* MOBILE-BAND:START (max-width) — ⚠️ app.js の MOBILE_MQ と同じ値にすること。
+   ⚠️ このマーカーは validate が読む。消さない・2組にしない・行を分けない。 */
 @media (max-width: 1199px) {
   /* 横方向のはみ出しを防ぐ（#21）。
      ⚠ ここを hidden に戻さないこと。hidden は要素をスクロールコンテナ化するため、

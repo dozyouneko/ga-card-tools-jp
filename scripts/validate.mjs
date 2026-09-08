@@ -19,6 +19,7 @@
 // 続いて docs/design/** の起票案の状態行と、索引（待ち行列と復旧手順.md）の整合を検査する（収録漏れと件数一致）。
 // 続いてコード内に「<file>.js:<行番号>」の形の参照が残っていないかを検査する（行番号は腐るため）。
 // 続いて共有トークン shared/css/tokens.css の集約状態を検査する（未定義参照と :root の持ち主）。
+// 続いてUI規約の自動検査3本（onRemoveOne の配線・左ペインの閾値・スマホ表示の帯）を行う。
 // 最後に、生成済みカードページの日本語効果文に「ハイライトされていない用語」が残っていないかを
 // 検査する（用語ハイライトの語形ずれ・片方向）。⚠ この検査だけ非同期（並列読み込み）。
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
@@ -772,6 +773,238 @@ const ROOT_OWNERS = [
   } else {
     console.log(`shared css tokens in sync — ${refCount} トークン参照 / 未定義 0`);
     console.log(`:root owners in sync — ${ROOT_OWNERS.length}ファイル`);
+  }
+}
+
+// --- UI規約の自動検査3本（左ペイン化_設計 §11-9・E-add-1） -------------------
+// 左ペイン化で「守っているのはコメントだけ」の規約が3つできた。どれも踏んでも画面は壊れず、
+// 人の目では気づけない（fail-open）ので、ここで人を止める。
+//   ① onRemoveOne の誤配線 … トップに渡すと1回の✕で検索が2回走る（APIリクエストが倍になるだけ）
+//   ② 左ペインの閾値のずれ … CSS の @media と JS の PANE_MIN_WIDTH がずれると、
+//      「左ペインは出るのにアコーディオンだけ効く（またはその逆）」帯ができ、
+//      選んだ条件が画面のどこにも見えなくなる（G-2 のレビューが破壊試験で実在を示した）
+//   ③ スマホ表示の帯のずれ … CSS の絞り込み導線の帯と JS の matchMedia がずれると、
+//      FAB が永久に出ない。⚠ CSS を読むかぎり「直っている」ように見える（display は変わらない）
+//
+// ⚠ 3本とも「両辺が別の出所」であること（設計書 §11-9 の表）。片側だけを見て自分自身と
+//   比べる検査は書かない——「書いても常に通る検査」を混ぜると緑が意味を失う。
+//     ① コードの実態（渡しているか） ↔ ここの許可リスト（人が2か所を意識して初めて通る）
+//     ② ページCSSの @media の値       ↔ ページJSの PANE_MIN_WIDTH（CSSとJSで別ファイル・別言語）
+//     ③ ページCSSのマーカー直後の帯   ↔ ページJSの matchMedia(max-width)
+// ⚠ fail-closed。走査対象が0件・目印が無い・形が想定と違う は、いずれも exit 1 にする。
+// ⚠ ③の走査は「トップとデッキ構築の2ページ」に絞る。tournaments.js も
+//   matchMedia("(max-width:640px)") を持つが、あれは表の列を畳むためのもので絞り込み導線とは
+//   別の規約（マーカーを要求する筋合いが無い）。⭐ 一方でデッキ構築は走査対象に含めてあるので、
+//   将来デッキ構築に JS 側の帯を足したら、覚えていなくてもマーカーが要求される。
+// ⚠ タブ化で ①の非対称が消えたら、検査①も一緒に消す（動いていない規約を残さない・設計書 §13）。
+const UI_PAGES = [
+  { name: "トップ", js: "app.js", css: "style.css" },
+  { name: "デッキ構築", js: "tools/deck-builder/app.js", css: "tools/deck-builder/style.css" },
+];
+// ①の走査範囲（ブラウザに配られるページコード）。⚠ scripts/ は入れない——ビルドスクリプトは
+//   絞り込みUIを組み立てないうえ、この検査自身が識別子を文字列で持つため自己検出になる。
+const REMOVEONE_ROOTS = ["app.js", "shared/js", "tools", "functions"];
+const REMOVEONE_EXCLUDE = ["shared/vendor"];
+// ⚠ 増やすときは「そのページの群側 onChange が再検索しないこと」を実測してから足す。
+const REMOVEONE_ALLOW = ["tools/deck-builder/app.js"];
+// ③のマーカー。⚠ この文字列は style.css 側にも同じ形で書いてある（片方だけ変えると exit 1）。
+const MOBILE_BAND_MARKER = "MOBILE-BAND:START";
+{
+  const bad = [];
+  // JS も CSS もコメントを剥いでから見る。コメントの中に規約の説明として同じ字面が書いてある
+  // （実測: 両ページの style.css は注意書きの中に @media (max-width: 640px) と書いている）。
+  const stripJs = (s) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+  const stripCss = (s) => s.replace(/\/\*[\s\S]*?\*\//g, " ");
+  const read = (rel) => readFileSync(path.join(root, rel), "utf8");
+
+  // ---- ① onRemoveOne を渡している呼び出しが許可リストと一致するか（双方向） ----
+  const jsTargets = [];
+  const excluded = (rel) => REMOVEONE_EXCLUDE.some((p) => rel === p || rel.startsWith(`${p}/`));
+  const walkJs = (rel) => {
+    if (excluded(rel)) return;
+    let st;
+    try {
+      st = statSync(path.join(root, rel));
+    } catch (e) {
+      bad.push(`${rel} を読めません: ${e.message} — 走査対象の指定が陳腐化しています`);
+      return;
+    }
+    if (st.isDirectory()) {
+      for (const d of readdirSync(path.join(root, rel), { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+        walkJs(`${rel}/${d.name}`);
+      }
+    } else if (/\.(?:js|mjs)$/.test(rel)) {
+      jsTargets.push(rel);
+    }
+  };
+  for (const r of REMOVEONE_ROOTS) walkJs(r);
+  if (!jsTargets.length) bad.push("①の走査対象の .js が1つもありません — REMOVEONE_ROOTS が陳腐化しています");
+
+  // オプションとして渡している形（プロパティ名）だけを拾う。呼び出し・受け取りは対象外。
+  const PASS_RE = /\bonRemoveOne\s*:/;
+  const passers = jsTargets.filter((rel) => PASS_RE.test(stripJs(read(rel))));
+  const allowSorted = [...REMOVEONE_ALLOW].sort();
+  const passSorted = [...passers].sort();
+  const passExtra = passSorted.filter((f) => !allowSorted.includes(f));
+  const passMissing = allowSorted.filter((f) => !passSorted.includes(f));
+  if (passExtra.length) {
+    bad.push(`許可リストに無いのに onRemoveOne を渡しているページ: ${passExtra.length}件`);
+    passExtra.forEach((f) => bad.push(`  ${f}`));
+  }
+  if (passMissing.length) {
+    // ⚠ 片方向にしない。デッキ構築側から消えたら「✕を押しても結果が更新されない」に戻るので落とす。
+    bad.push(`許可リストにあるのに onRemoveOne を渡していないページ: ${passMissing.length}件`);
+    passMissing.forEach((f) => bad.push(`  ${f}`));
+  }
+
+  // ---- ②③ ページごとの閾値 ----
+  const paneLog = [];
+  const bandLog = [];
+  const markerOwners = [];
+  for (const page of UI_PAGES) {
+    let js, css;
+    try {
+      js = stripJs(read(page.js));
+    } catch (e) {
+      bad.push(`${page.js} を読めません: ${e.message} — UI_PAGES が陳腐化しています`);
+      continue;
+    }
+    try {
+      css = read(page.css);
+    } catch (e) {
+      bad.push(`${page.css} を読めません: ${e.message} — UI_PAGES が陳腐化しています`);
+      continue;
+    }
+    const cssNoComment = stripCss(css);
+
+    // ② JS 側の PANE_MIN_WIDTH（定義はちょうど1つであること）
+    const paneDefs = [...js.matchAll(/\bPANE_MIN_WIDTH\s*=\s*(\d+)\b/g)].map((m) => Number(m[1]));
+    const paneUniq = [...new Set(paneDefs)];
+    if (paneUniq.length !== 1) {
+      bad.push(
+        `${page.js} の PANE_MIN_WIDTH の定義が ${paneDefs.length}件（値 ${paneUniq.join(" / ") || "なし"}）です — ちょうど1つでなければ CSS と突き合わせられません`
+      );
+      continue;
+    }
+    const pane = paneUniq[0];
+
+    // ② CSS 側の @media の prelude から min-width / max-width を集める
+    const preludes = [...cssNoComment.matchAll(/@media\b([^{]*)\{/g)].map((m) => m[1]);
+    const mins = [];
+    const maxs = [];
+    for (const p of preludes) {
+      for (const m of p.matchAll(/\bmin-width\s*:\s*(\d+)px/g)) mins.push(Number(m[1]));
+      for (const m of p.matchAll(/\bmax-width\s*:\s*(\d+)px/g)) maxs.push(Number(m[1]));
+    }
+    const minUniq = [...new Set(mins)].sort((a, b) => a - b);
+    if (minUniq.length !== 1 || minUniq[0] !== pane) {
+      bad.push(
+        `${page.name}: ${page.css} の @media の min-width が [${minUniq.join(", ") || "なし"}] で、${page.js} の PANE_MIN_WIDTH（${pane}）ただ1つと一致しません`
+      );
+    }
+    const overlap = [...new Set(maxs)].filter((v) => v >= pane).sort((a, b) => a - b);
+    if (overlap.length) {
+      bad.push(
+        `${page.name}: ${page.css} の @media の max-width [${overlap.join(", ")}] が PANE_MIN_WIDTH（${pane}）以上です — スマホ表示の帯と左ペインの帯が重なります`
+      );
+    }
+    paneLog.push(`${page.name} ${pane}px`);
+
+    // ③ JS 側の matchMedia(max-width) → マーカー直後の @media と一致するか
+    const mqVals = [
+      ...new Set([...js.matchAll(/matchMedia\(\s*["'`]\s*\(\s*max-width\s*:\s*(\d+)px\s*\)\s*["'`]\s*\)/g)].map((m) => Number(m[1]))),
+    ];
+    const markerCount = css.split(MOBILE_BAND_MARKER).length - 1;
+    if (mqVals.length > 1) {
+      bad.push(
+        `${page.name}: ${page.js} の matchMedia(max-width) の値が [${mqVals.join(", ")}] と複数あります — どの帯をマーカーと突き合わせるか決められません`
+      );
+      continue;
+    }
+    if (!mqVals.length) {
+      // JS 側に帯が無いページにマーカーだけ残っているのは、規約が宙に浮いた状態。
+      if (markerCount) bad.push(`${page.name}: ${page.js} に matchMedia(max-width) が無いのに ${page.css} にマーカーが ${markerCount}組あります`);
+      continue;
+    }
+    markerOwners.push(page.css);
+    if (markerCount !== 1) {
+      bad.push(
+        `${page.name}: ${page.css} のマーカー ${MOBILE_BAND_MARKER} が ${markerCount}組です — ちょうど1組でなければ、どの @media が絞り込み導線の帯なのか決められません`
+      );
+      continue;
+    }
+    const at = css.indexOf(MOBILE_BAND_MARKER);
+    const open = css.lastIndexOf("/*", at);
+    const close = css.indexOf("*/", at);
+    if (open < 0 || close < 0 || css.slice(open, at).includes("*/")) {
+      bad.push(`${page.name}: ${page.css} のマーカーが CSS コメント（/* … */）の中にありません`);
+      continue;
+    }
+    const after = css.slice(close + 2);
+    const m = after.match(/^\s*@media\b([^{]*)\{/);
+    if (!m) {
+      bad.push(
+        `${page.name}: ${page.css} のマーカーの直後が @media ではありません — マーカーは帯の @media の直前の行にだけ置いてください（間に別の宣言やコメントを挟まない）`
+      );
+      continue;
+    }
+    const bandMax = [...new Set([...m[1].matchAll(/\bmax-width\s*:\s*(\d+)px/g)].map((v) => Number(v[1])))];
+    if (bandMax.length !== 1) {
+      bad.push(`${page.name}: ${page.css} のマーカー直後の @media の max-width が ${bandMax.length}個です（prelude: ${m[1].trim()}）`);
+      continue;
+    }
+    if (bandMax[0] !== mqVals[0]) {
+      bad.push(
+        `${page.name}: ${page.css} のマーカー直後の帯は max-width ${bandMax[0]}px ですが、${page.js} の matchMedia は ${mqVals[0]}px です`
+      );
+      continue;
+    }
+    bandLog.push(`${page.css} ${bandMax[0]}px`);
+  }
+
+  // ③ 迷子のマーカー（UI_PAGES の外のCSSに置かれた／要求されていないページに残った）
+  {
+    const skip = ["node_modules", ".git", "tmp", "docs", ".wrangler", "shared/vendor"];
+    const strayed = [];
+    const walkCss = (rel) => {
+      if (skip.some((p) => rel === p || rel.startsWith(`${p}/`))) return;
+      let st;
+      try {
+        st = statSync(path.join(root, rel || "."));
+      } catch {
+        return;
+      }
+      if (st.isDirectory()) {
+        for (const d of readdirSync(path.join(root, rel || "."), { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+          walkCss(rel ? `${rel}/${d.name}` : d.name);
+        }
+      } else if (rel.endsWith(".css") && read(rel).includes(MOBILE_BAND_MARKER) && !markerOwners.includes(rel)) {
+        strayed.push(rel);
+      }
+    };
+    walkCss("");
+    if (strayed.length) {
+      bad.push(`マーカー ${MOBILE_BAND_MARKER} が要求されていないCSSにあります: ${strayed.length}件`);
+      strayed.forEach((f) => bad.push(`  ${f}`));
+    }
+  }
+
+  if (bad.length) {
+    problems++;
+    console.error(`\nUI CONTRACTS (左ペイン化_設計 §11-9):`);
+    bad.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → ① onRemoveOne を渡してよいのは「群側の onChange が再検索しないページ」だけです`);
+    console.error(`       （トップは群側が再検索するので、渡すと1回の✕で検索が2回走ります。画面は何も変わりません）`);
+    console.error(`    ② 左ペインの閾値は CSS の @media と JS の PANE_MIN_WIDTH の2か所にあり、必ず同じ値でなければなりません`);
+    console.error(`       （ずれると「左ペインは出るのにアコーディオンだけ効く」帯ができ、選んだ条件が画面のどこにも見えなくなります）`);
+    console.error(`    ③ 絞り込み導線の帯は CSS のマーカー直後の @media と JS の matchMedia の2か所にあり、必ず同じ値でなければなりません`);
+    console.error(`       （ずれても CSS 上は display が変わらないため、CSS を読むかぎり「直っている」ように見えます）`);
+    console.error(`    検査を消して通さないこと。将来2つ目の min-width が本当に必要になったら、`);
+    console.error(`    scripts/validate.mjs の UI_PAGES / REMOVEONE_ALLOW に「なぜ要るのか」を書いて足してください`);
+  } else {
+    console.log(`onRemoveOne wiring in sync — 渡しているのは ${passers.length}ファイル（${passers.join(" / ")}）／${jsTargets.length}ファイル走査`);
+    console.log(`pane threshold in sync — ${paneLog.length}ページ（${paneLog.join(" / ")}）`);
+    console.log(`mobile band marker in sync — ${bandLog.length}組（${bandLog.join(" / ")}）`);
   }
 }
 
