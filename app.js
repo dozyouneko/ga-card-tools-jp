@@ -25,6 +25,9 @@ const el = {
   sort: document.getElementById("f-sort"),
   order: document.getElementById("order"),
   reset: document.getElementById("reset"),
+  // 1200px以上でペイン下端に貼るリセット（#reset の複製・左ペイン化_設計 §12-4 F-b）。
+  // ⚠ #reset と幅で出し分ける同じ機能。ハンドラは必ず両方に配ること
+  resetPane: document.getElementById("reset-pane"),
   status: document.getElementById("status"),
   grid: document.getElementById("grid"),
   loadMore: document.getElementById("load-more"),
@@ -865,11 +868,13 @@ function init() {
     runSearch(true);
   });
   el.loadMore.addEventListener("click", () => searchCtl.loadMore());
-  el.reset.addEventListener("click", () => {
+  // ⚠ #reset と #reset-pane は幅で出し分ける同じ機能。片方だけに配らないこと
+  //    （配り漏れた幅でだけリセットが無反応になり、しかも無言・左ペイン化_設計 §12-4）
+  [el.reset, el.resetPane].forEach((b) => b && b.addEventListener("click", () => {
     resetControls();
     updateFilterBadge();
     runSearch(true);
-  });
+  }));
 
   // 絞り込みグループのアコーディオン（PC幅のみ。1つ開いたら他は閉じる）
   GA_CARD_SEARCH.initAccordion({ groups: filterGroups, minWidth: PANE_MIN_WIDTH });

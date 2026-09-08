@@ -788,8 +788,9 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
   /* ⚠️ flex-basis 240px が「高さ240px」として効く。無いと閉じたペインが 579px → 987px になる */
   #s-name, #s-text { flex: 0 0 auto; width: 100%; min-width: 0; }
   #search-top .filter-row { grid-template-columns: minmax(0, 1fr); }
-  /* リセット/検索の行だけ横並びに戻す。⚠️ :last-of-type では書かない（設計 §4-3） */
-  #search-top > .row-actions { flex-direction: row; }
+  /* リセット/検索の行だけ横並びに戻す。⚠️ :last-of-type では書かない（設計 §4-3）。
+     ⚠️ flex-direction: row は下の下部固定バーのブロックに統合してある
+        （同じ @media の中に #search-top > .row-actions を2回書かない・左ペイン化_設計 §12-4 S-2）。 */
   #search-top > .row-actions .btn { flex: 1 1 0; text-align: center; }
   /* ⭐ リセット／🔍検索をペインの下端に貼り付ける（左ペイン化_設計 §12-3 F-a）。
      ⚠️ 何が問題だったか: サブタイプ157種を「すべて表示」で開くと、ペインを約3,700px
@@ -805,6 +806,7 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
      ⚠️ margin の -16px はペインの横 padding と同じ値。片方だけ変えるとバーが端まで伸びない。
      ⚠️ 1199px以下はスマホ表示（絞り込みはトグルの中）なので、このブロックの外には書かない（§12-6）。 */
   #search-top > .row-actions {
+    flex-direction: row;
     position: sticky; bottom: 0; z-index: 3;
     margin: 0 -16px;
     padding: 12px 16px;

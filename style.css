@@ -350,6 +350,12 @@ a { color: var(--accent-2); }
    ⚠️ 既定は非表示。左ペインが出る 1200px 以上でだけ表示する（スマホ・タブレットは現状のまま） */
 #selected-filters { display: none; }
 
+/* ペイン下端に貼るリセット（左ペイン化_設計 §12-4 F-b）。
+   ⚠️ 既定は器ごと非表示。1200px 以上でだけ出す（1199px以下は #filter-sheet の中の #reset が担当）。
+   ⭐ これが「リセットが2つ見えることは無い」の片側（V35）。外すと 1199px以下で2つ並ぶ。
+   ⚠️ この行はメディアクエリの外に置くこと（帯を1つ足すと validate の検査② が落ちる）。 */
+.controls > .pane-actions { display: none; }
+
 /* ---------- レスポンシブ①：絞り込みの導線（〜1199px・設計書 §14-3） ----------
    ⭐ G-3a。641〜1199px（タブレット〜小型PC）も 640px以下と同じ「スマホ表示」に統一する。
       左ペインが出るのは 1200px 以上だけなので、それ未満は全部スマホ側の導線へ寄せる。
@@ -603,7 +609,14 @@ a { color: var(--accent-2); }
     position: static;       /* sticky は不要（トラックが動かないため） */
     overflow-y: auto;       /* 4グループ全開のような最悪ケースはペイン内スクロールで届かせる */
     gap: 12px;
-    padding: 14px 16px 24px;
+    /* ⚠️ 下padding は 0（左ペイン化_設計 §12-4 F-b）。24px を残すと、ペインを最下端まで
+       送ったときに下部固定バーが 24px 浮き、V32 の「3点で top が一致」が崩れる。
+       下の余白は .pane-actions 側の padding が持つ。 */
+    padding: 14px 16px 0;
+    /* ⚠️ Tab でチップを辿るとブラウザが scrollIntoView するが、無いと下部固定バーの
+       裏に隠れた位置で止まる（§12-7 の4）。⭐ ここは実測値にしない——ずれても
+       「少し余分にスクロールする」だけで壊れない。 */
+    scroll-padding-bottom: 5rem;
     border-bottom: none;
     border-right: 1px solid var(--border);
   }
@@ -615,6 +628,11 @@ a { color: var(--accent-2); }
   .filter-row { grid-template-columns: minmax(0, 1fr); }
   .filter-rest { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .filter-rest select { grid-column: 1 / -1; }
+  /* ⭐ リセットはペイン下端の #reset-pane に出す（左ペイン化_設計 §12-4 F-b）。
+     ⚠️ #reset は消さずに隠すだけ。DOM から動かすと 1199px以下のボトムシートから消える。 */
+  .page-top .filter-rest #reset { display: none; }
+  /* ⚠️ #reset を隠すと ▲昇順 が半分幅で取り残される（.filter-rest は 1fr 1fr の grid） */
+  .page-top .filter-rest #order { grid-column: 1 / -1; }
   /* ⚠️ チップ領域の丈の上限。サブタイプ157種を開くとペインに収まらないため。
      ⚠️ セレクタを .controls で限定して style.css に書く。shared/css/filter-chips.css に
         書くとデッキ構築ツールのチップまで200pxで切れる（R6・S1） */
@@ -643,6 +661,30 @@ a { color: var(--accent-2); }
      .chip を包含ブロックにすると、フォーカス時のスクロールが .chips まで届く。
      ⚠️ input には top/left を書いていないので静的位置のまま＝見た目は1pxも動かない。 */
   .controls .fgroup .chip { position: relative; }
+
+  /* ⭐ リセットをペインの下端に貼り付ける（左ペイン化_設計 §12-4 F-b）。
+     ⚠️ 何が問題だったか: サブタイプ157種を「すべて表示」で開くと、ペインを約3,700px
+        スクロールしないとリセットに届かなかった（§12-2 の実測）。
+     ⭐ 仕組み: スクロールコンテナ（overflow-y:auto の .controls）の「最後の子」に bottom:0 の
+        sticky を置くと、自然位置がスクロールポートの下端より下にある間だけ下端へ引き上げられる。
+        最下端まで送ると自然位置と一致するので、全スクロール位置で位置が一定になる（V32）。
+     ⚠️ .pane-actions が .controls の最後の子であることが前提。要素を足すときはこのバーより
+        後ろに置かないこと（＝バーが途中で流れて消える）。
+     ⚠️ 背景は不透明（var(--panel)）であること。半透明だと下のチップが透けて読めない（§12-7 の1）。
+     ⚠️ z-index は 3。チップは position:relative（フォーカスリング対策）なので、
+        後ろに回るとボタンが押せなくなる（§12-7 の2）。
+     ⚠️ margin の -16px は .controls の横 padding と同じ値。片方だけ変えるとバーが端まで伸びない。
+     ⚠️ 1199px以下はスマホ表示（リセットはボトムシートの中の #reset）なので、
+        このブロックの外には書かない（§12-6）。 */
+  .page-top .controls > .pane-actions {
+    display: flex; gap: 8px;
+    position: sticky; bottom: 0; z-index: 3;
+    margin: 0 -16px;
+    padding: 12px 16px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+  }
+  .page-top .controls > .pane-actions > button { flex: 1 1 0; }
 
   /* 左ペインのぶん結果側の横余白を少し詰める */
   .status, .grid, .load-more-wrap { padding-left: 20px; padding-right: 20px; }

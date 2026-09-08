@@ -101,10 +101,21 @@
     <button id="reset" type="button">リセット</button>
     </div>
     </div>
-    <!-- ⚠ リセットは上の #reset を使う（シート内に同じ機能を2つ置かない） -->
+    <!-- ⚠ リセットは上の #reset を使う。1200px以上では下の #reset-pane と入れ替わるが、
+         同時に見えることは無い（幅で出し分ける・左ペイン化_設計 §12-4）。
+         ⚠ シートの中に3つ目のリセットを作らないこと -->
     <div id="filter-sheet-foot">
       <button id="filter-apply" type="button">この条件で見る</button>
     </div>
+    </div>
+    <!-- ⚠ #reset の複製（左ペイン化_設計 §12-4 F-b）。1200px以上で左ペインの下端に貼り付ける。
+         ⭐ 同時に見えることは無い（style.css が幅で片方を display:none にする）。
+         ⚠ 動かして1つにしないこと——#reset は #filter-sheet の中にあり、動かすと
+            1199px以下のボトムシートからリセットが消える。
+         ⚠ .controls の「最後の子」であること（sticky bottom がペイン下端に貼る前提）。
+            .controls に要素を足すときはこれより前に置く -->
+    <div class="pane-actions">
+      <button id="reset-pane" type="button">リセット</button>
     </div>
   </section>
 
