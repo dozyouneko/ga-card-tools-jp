@@ -63,7 +63,7 @@
     "id": 61956,
     "firstSeenAt": "2026-08-31",
     "category": "store-championships",
-    "startAt": "2026-09-26T17:00:00.000Z"
+    "startAt": "2026-10-03T17:30:00.000Z"
   },
   {
     "id": 61965,
@@ -196,5 +196,449 @@
     "firstSeenAt": "2026-08-31",
     "category": "store-championships",
     "startAt": "2026-10-10T06:00:00.000Z"
+  },
+  {
+    "id": 62264,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-18T03:00:00.000Z"
+  },
+  {
+    "id": 62270,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-11-15T17:00:00.000Z"
+  },
+  {
+    "id": 62285,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-04T15:00:00.000Z"
+  },
+  {
+    "id": 62286,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-10T16:00:00.000Z"
+  },
+  {
+    "id": 62290,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-11-22T17:00:00.000Z"
+  },
+  {
+    "id": 62297,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-17T21:00:00.000Z"
+  },
+  {
+    "id": 62307,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-11-02T06:30:00.000Z"
+  },
+  {
+    "id": 62343,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-11-01T05:00:00.000Z"
+  },
+  {
+    "id": 62359,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-09-27T03:00:00.000Z"
+  },
+  {
+    "id": 62403,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-18T16:00:00.000Z"
+  },
+  {
+    "id": 62444,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-25T03:00:00.000Z"
+  },
+  {
+    "id": 62445,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-03T09:00:00.000Z"
+  },
+  {
+    "id": 62446,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-11-21T10:00:00.000Z"
+  },
+  {
+    "id": 62472,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-11-08T06:00:00.000Z"
+  },
+  {
+    "id": 62483,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-09-20T18:00:00.000Z"
+  },
+  {
+    "id": 62486,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-11T16:30:00.000Z"
+  },
+  {
+    "id": 62487,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-11T16:00:00.000Z"
+  },
+  {
+    "id": 62494,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-03T19:00:00.000Z"
+  },
+  {
+    "id": 62506,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-09-26T23:00:00.000Z"
+  },
+  {
+    "id": 62529,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-11-21T16:30:00.000Z"
+  },
+  {
+    "id": 62559,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-10T20:00:00.000Z"
+  },
+  {
+    "id": 62561,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-17T18:00:00.000Z"
+  },
+  {
+    "id": 62566,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-10T01:30:00.000Z"
+  },
+  {
+    "id": 62585,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-04T03:00:00.000Z"
+  },
+  {
+    "id": 62599,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-09-27T03:00:00.000Z"
+  },
+  {
+    "id": 62601,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-11-01T07:00:00.000Z"
+  },
+  {
+    "id": 62606,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-11T04:00:00.000Z"
+  },
+  {
+    "id": 62611,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-11-07T11:00:00.000Z"
+  },
+  {
+    "id": 62616,
+    "firstSeenAt": "2026-09-10",
+    "category": "ascent",
+    "startAt": "2026-09-11T23:00:00.000Z"
+  },
+  {
+    "id": 62618,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-25T02:00:00.000Z"
+  },
+  {
+    "id": 62635,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-11-07T18:00:00.000Z"
+  },
+  {
+    "id": 62641,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-09-22T11:00:00.000Z"
+  },
+  {
+    "id": 62665,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-17T00:00:00.000Z"
+  },
+  {
+    "id": 62683,
+    "firstSeenAt": "2026-09-10",
+    "category": "regionals",
+    "startAt": "2026-10-17T16:00:00.000Z"
+  },
+  {
+    "id": 62692,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-23T16:00:00.000Z"
+  },
+  {
+    "id": 62733,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-18T06:00:00.000Z"
+  },
+  {
+    "id": 62735,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-10T03:00:00.000Z"
+  },
+  {
+    "id": 62740,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-17T08:00:00.000Z"
+  },
+  {
+    "id": 62742,
+    "firstSeenAt": "2026-09-10",
+    "category": "regionals",
+    "startAt": "2026-11-14T09:00:00.000Z"
+  },
+  {
+    "id": 62758,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-17T04:00:00.000Z"
+  },
+  {
+    "id": 62775,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-23T22:00:00.000Z"
+  },
+  {
+    "id": 62830,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-09-26T20:30:00.000Z"
+  },
+  {
+    "id": 62832,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-03T02:30:00.000Z"
+  },
+  {
+    "id": 62833,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-11-08T01:30:00.000Z"
+  },
+  {
+    "id": 62842,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-09-26T01:00:00.000Z"
+  },
+  {
+    "id": 62847,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-04T03:00:00.000Z"
+  },
+  {
+    "id": 62858,
+    "firstSeenAt": "2026-09-10",
+    "category": "regionals",
+    "startAt": "2026-11-20T22:00:00.000Z"
+  },
+  {
+    "id": 62868,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-09-27T04:00:00.000Z"
+  },
+  {
+    "id": 62896,
+    "firstSeenAt": "2026-09-10",
+    "category": "regionals",
+    "startAt": "2026-10-03T17:00:00.000Z"
+  },
+  {
+    "id": 62918,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-11-21T22:00:00.000Z"
+  },
+  {
+    "id": 62950,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-11-08T00:00:00.000Z"
+  },
+  {
+    "id": 62972,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-25T09:00:00.000Z"
+  },
+  {
+    "id": 62982,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-03T10:30:00.000Z"
+  },
+  {
+    "id": 62988,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-18T16:00:00.000Z"
+  },
+  {
+    "id": 63040,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-03T04:00:00.000Z"
+  },
+  {
+    "id": 63051,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-11-07T09:30:00.000Z"
+  },
+  {
+    "id": 63053,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-25T02:00:00.000Z"
+  },
+  {
+    "id": 63069,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-18T05:00:00.000Z"
+  },
+  {
+    "id": 63073,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-11-08T21:00:00.000Z"
+  },
+  {
+    "id": 63077,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-09-27T10:00:00.000Z"
+  },
+  {
+    "id": 63089,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-03T22:00:00.000Z"
+  },
+  {
+    "id": 63090,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-10T01:15:00.000Z"
+  },
+  {
+    "id": 63130,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-09T22:00:00.000Z"
+  },
+  {
+    "id": 63151,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-11-22T03:00:00.000Z"
+  },
+  {
+    "id": 63152,
+    "firstSeenAt": "2026-09-10",
+    "category": "regionals",
+    "startAt": "2026-10-18T02:30:00.000Z"
+  },
+  {
+    "id": 63164,
+    "firstSeenAt": "2026-09-10",
+    "category": "regionals",
+    "startAt": "2026-09-26T17:00:00.000Z"
+  },
+  {
+    "id": 63165,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-04T17:00:00.000Z"
+  },
+  {
+    "id": 63166,
+    "firstSeenAt": "2026-09-10",
+    "category": "regionals",
+    "startAt": "2026-09-26T20:30:00.000Z"
+  },
+  {
+    "id": 63192,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-10-31T01:00:00.000Z"
+  },
+  {
+    "id": 63201,
+    "firstSeenAt": "2026-09-10",
+    "category": "regionals",
+    "startAt": "2026-11-07T02:00:00.000Z"
+  },
+  {
+    "id": 63236,
+    "firstSeenAt": "2026-09-10",
+    "category": "regionals",
+    "startAt": "2026-11-22T17:00:00.000Z"
+  },
+  {
+    "id": 63237,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-09-26T19:00:00.000Z"
+  },
+  {
+    "id": 63240,
+    "firstSeenAt": "2026-09-10",
+    "category": "store-championships",
+    "startAt": "2026-09-29T01:00:00.000Z"
+  },
+  {
+    "id": 63245,
+    "firstSeenAt": "2026-09-10",
+    "category": "regionals",
+    "startAt": "2026-10-04T09:00:00.000Z"
   }
 ]
