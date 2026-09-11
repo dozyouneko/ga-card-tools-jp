@@ -16,7 +16,7 @@
 // 同型で meta.rarities（レアリティ絞り込みの選択肢）が実データの全レアリティを覆っているかも検査する。
 // さらに data/card-meta-index.json の並び替えキー（8要素・数値4項目・フリップ面）の内部整合を検査する。
 // 加えて cronワークフローの git add 対象と README.md / CLAUDE.md の列挙が一致するかを検査する（#70）。
-// 続いて docs/design/** の起票案の状態行と、索引（待ち行列と復旧手順.md）の整合を検査する（収録漏れと件数一致）。
+// 続いて docs/design/** の起票案の1行目から索引（待ち行列と復旧手順.md）§1 の生成部を作り直し、書かれているものと一致するかを検査する。
 // 続いてコード内に「<file>.js:<行番号>」の形の参照が残っていないかを検査する（行番号は腐るため）。
 // 続いて共有トークン shared/css/tokens.css の集約状態を検査する（未定義参照と :root の持ち主）。
 // 続いてUI規約の自動検査3本（onRemoveOne の配線・左ペインの閾値・スマホ表示の帯）を行う。
@@ -28,6 +28,17 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadI18n } from "./lib/load-i18n.mjs";
 import { buildTlJson, serialize, NAMES_FILE, EFFECTS_FILE } from "./gen-tl-json.mjs";
+import {
+  QUEUE_INDEX,
+  STATES,
+  readDrafts,
+  countByState,
+  buildSection,
+  inspectIndex,
+  headingProblems,
+  firstDiff,
+  driftMessage as queueDriftMessage,
+} from "./gen-queue-index.mjs";
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 
@@ -447,140 +458,61 @@ const CRON_WORKFLOW = ".github/workflows/build-tournaments.yml";
   }
 }
 
-// --- 起票案の状態行と索引の整合検査（未採番・起票案の整合検査） ---------------
-// docs/design/** の起票案（起票案*.md / 派生起票案*.md）の状態は「各ファイルの1行目」が正で、
-// docs/design/待ち行列/待ち行列と復旧手順.md がその一覧（索引）を持つ。索引は人が手で書き写す
-// ので必ずドリフトする（#70 の git add 列挙と同型）。ここで人を止める。見るのは2点だけ:
-//   A 収録漏れ … 起票案が索引にリンクされているか
-//   B 件数一致 … 索引の見出し（**N件**）と、状態行から数えた実数
-// ⚠ 照合は「パスの完全一致」。基名の部分一致は採らない（誤検知1件・見逃し1件を実測）。
-//   基名 起票案_2026-08-26.md は2ファイルあり、さらに 派生起票案_2026-08-26.md の部分文字列。
-//   索引のリンクは索引の位置から解決して正規化する（同フォルダのスラッシュ無しリンクも通す）。
-// ⚠ 索引の表構造・列は見ない（索引を整形しただけで落ちる検査にしない）。
-// ⚠ 抽出に失敗したときに「一致」へ倒さないこと（#40 の教訓）。索引が読めない・見出しが取れない・
-//   見出しが複数ある・起票案が0件 のすべてを exit 1 にする（fail-open は1つも無い）。
+// --- 索引の生成部の検査（未採番・索引の転記ドリフト防止 単位1） -------------------
+// docs/design/** の起票案（起票案*.md / 派生起票案*.md）の状態の正は「各ファイルの1行目」だけで、
+// 索引 docs/design/待ち行列/待ち行列と復旧手順.md の §1 はそこから生成する（マーカー
+// QUEUE-INDEX の間。作るのは scripts/gen-queue-index.mjs）。旧検査（収録漏れと件数一致の2点）は
+// これに置き換えた——一覧・件数は「生成部が最新か」に含まれる。手で書き写す索引は、状態行と
+// 整合したまま両方古い形でも改版履歴で7回ずれた（設計書 §1）。
+// ⭐ 生成と検査で同じ関数を使う（gen-tl-json.mjs の buildTlJson と同じ型）。両辺は「索引に書かれて
+//   いる文字列」と「起票案から今作った文字列」＝別の出所なので空回りしない。
+// ⚠ 抽出に失敗したときに「一致」へ倒さないこと（#40 の教訓）。索引が読めない・マーカーが1組でない・
+//   順序が逆・起票案が0件 のすべてを exit 1 にする（fail-open は1つも無い）。
+// ⚠ 起票案に問題があるときは比較しない（1つの原因で2種類のエラーを出さない）。
+// ⚠ 生成部の外の見出しに件数（N件）を書くと exit 1（件数の複製を許さない。散文は検査できない）。
 // ⚠ この検査のため「起票案」で始まる名前の .md は起票案以外の目的で置けない。除外リストで逃げると
-//   本物を取りこぼす穴が増えるので、名前のほうを直す（設計書自身がこれを踏んで改名した）。
-const DRAFT_INDEX = "docs/design/待ち行列/待ち行列と復旧手順.md";
-const DRAFT_ROOT = "docs/design";
+//   本物を取りこぼす穴が増えるので、名前のほうを直す。
 {
-  const bad = [];
-  // 1行目の状態行。⚠ 日付は形式だけ見る（値の妥当性も「最終確認からN日」の鮮度も見ない
-  //   ＝その日の変更と無関係に時計だけで赤くなる検査にしない）
-  const STATUS_RE = /^\*\*状態: (生きている|完了|取り下げ)\*\*（最終確認 (\d{4}-\d{2}-\d{2})）/;
-  const IS_DRAFT = /^(派生)?起票案/; // ⚠ 前方一致。「含む」だと無関係な文書まで拾う
-  const LINK_RE = /\]\(([^)\s#]+\.md)[)#]/g; // ](path.md) と ](path.md#anchor) の両方
-  const toRel = (p) => path.relative(root, p).split(path.sep).join("/");
+  const draftBad = [];
+  const indexBad = [];
+  // ⚠ 分割代入で problems と書かないこと（外側の problems カウンタを隠して problems++ が壊れる）
+  const { drafts, problems: draftProblems } = readDrafts(root);
+  draftBad.push(...draftProblems);
 
-  // --- 起票案を集める（再帰・リポジトリ相対パスに正規化して昇順） ---
-  const drafts = [];
-  const walk = (dir) => {
-    let entries;
-    try {
-      entries = readdirSync(dir, { withFileTypes: true });
-    } catch (e) {
-      bad.push(`走査に失敗: ${toRel(dir)}（${e.message}）`);
-      return;
-    }
-    for (const ent of entries) {
-      const full = path.join(dir, ent.name);
-      if (ent.isDirectory()) walk(full);
-      else if (ent.isFile() && ent.name.endsWith(".md") && IS_DRAFT.test(ent.name)) drafts.push(toRel(full));
-    }
-  };
-  walk(path.join(root, DRAFT_ROOT));
-  drafts.sort(); // 出力を決定的にする
-  // ⚠ 0件を「全部一致」に倒さない。走査の壊れ（パス定数の誤り・実行位置違い）が黙って緑になる
-  if (!drafts.length) bad.push(`起票案が1件も見つかりません: ${DRAFT_ROOT}`);
-
-  // --- 状態行を読む ---
-  const counted = { 生きている: 0, 完了: 0, 取り下げ: 0 };
-  let unreadable = 0;
-  for (const rel of drafts) {
-    let first;
-    try {
-      // ⚠ BOM 付きで保存されると「1行目が無い」に見えて原因が分かりにくい。先に除去する
-      first = readFileSync(path.join(root, rel), "utf8").replace(/^\uFEFF/, "").split(/\r?\n/)[0] || "";
-    } catch (e) {
-      bad.push(`起票案の読み込みに失敗: ${rel}（${e.message}）`);
-      unreadable++;
-      continue;
-    }
-    const m = STATUS_RE.exec(first);
-    if (!m) {
-      // ⭐ この検査のいちばんの効き目＝状態行なしの起票案を新規に作れなくなる
-      bad.push(`起票案の1行目に状態行がありません: ${rel}`);
-      unreadable++;
-      continue;
-    }
-    counted[m[1]]++;
-  }
-
-  // --- 索引を読む ---
-  let idx = null;
+  let idxText = null;
   try {
-    idx = readFileSync(path.join(root, DRAFT_INDEX), "utf8");
+    idxText = readFileSync(path.join(root, QUEUE_INDEX), "utf8");
   } catch {
-    bad.push(`索引が見つかりません: ${DRAFT_INDEX}`);
+    indexBad.push(`索引が見つかりません: ${QUEUE_INDEX}`);
   }
-  // ⚠ 見出しの語は索引側が「完了済み」、状態行側が「完了」。ラベルは状態行側に寄せる。
-  // ⚠ 閉じ括弧まで要求しないこと（全件見出しは ** の直後が「）」ではなく「・」で 0回一致になる）。
-  // ⚠ 逆に緩めると索引の別の見出し2本（「#### ②-A 完了済みタスク **5件**」と
-  //   「### ② issueを起票する（**完了済み5件 …**）」）を拾って壊れる。緩めた瞬間に
-  //   「見出しが N個 あります」で赤くなる。
-  const HEAD_RES = [
-    ["全件", /^#{2,3} .*起票案の一覧（\*\*全(\d+)件\*\*/gm],
-    ["生きている", /^#{2,3} .*生きている（\*\*(\d+)件\*\*/gm],
-    ["完了", /^#{2,3} .*完了済み（\*\*(\d+)件\*\*/gm],
-    ["取り下げ", /^#{2,3} .*取り下げ（\*\*(\d+)件\*\*/gm],
-  ];
-  let idxCounts = idx === null ? null : {};
-  if (idx !== null) {
-    for (const [label, re] of HEAD_RES) {
-      const hits = [...idx.matchAll(re)];
-      if (hits.length === 0) {
-        bad.push(`索引に「${label}」の件数見出しが見つかりません`);
-        idxCounts = null;
-      } else if (hits.length > 1) {
-        bad.push(`索引に「${label}」の件数見出しが ${hits.length}個 あります（1個だけにしてください）`);
-        idxCounts = null;
-      } else if (idxCounts) {
-        idxCounts[label] = Number(hits[0][1]);
-      }
-    }
-  }
-
-  // ⚠ 索引が読めない／見出しが取れないときは A・B とも実行しない（「一致」に倒さないため）
-  if (idxCounts) {
-    const base = path.posix.dirname(DRAFT_INDEX);
-    const linked = new Set(
-      [...idx.matchAll(LINK_RE)].map((m) => path.posix.normalize(path.posix.join(base, m[1]))),
-    );
-    // A 収録漏れ（⚠ 基名ではなくパスを出す。基名は重複するのでどちらの話か判別できない）
-    for (const rel of drafts) if (!linked.has(rel)) bad.push(`索引に載っていない起票案: ${rel}`);
-    // B 件数一致（⚠ 実数が確定しないまま比較すると1つの原因で2種類のエラーが出る）
-    if (unreadable) {
-      bad.push(`件数の比較を省略しました（状態行を読めない起票案が ${unreadable}件 あるため）`);
+  if (idxText !== null) {
+    const idx = inspectIndex(idxText);
+    // ⚠ マーカーが1組でない・順序が逆なら、生成部の範囲が決まらないので後続は全部省略する
+    if (idx.problems.length) {
+      indexBad.push(...idx.problems);
     } else {
-      const actual = { 全件: drafts.length, ...counted };
-      for (const [label] of HEAD_RES) {
-        if (idxCounts[label] !== actual[label]) {
-          bad.push(`索引の件数が実数と一致しません: ${label} 索引${idxCounts[label]} / 実数${actual[label]}`);
-        }
+      indexBad.push(...headingProblems(idx.lines, idx.start, idx.end));
+      if (draftBad.length) {
+        indexBad.push(`生成部の比較を省略しました（起票案の問題が ${draftBad.length}件 あるため）`);
+      } else {
+        const k = firstDiff(idx.lines.slice(idx.start + 1, idx.end), buildSection(drafts));
+        if (k) indexBad.push(queueDriftMessage(k));
       }
     }
   }
 
+  const bad = [...draftBad, ...indexBad];
   if (bad.length) {
     problems++;
-    console.error(`\nISSUE DRAFT DRIFT (${DRAFT_INDEX}):`);
+    console.error(`\nQUEUE INDEX DRIFT (${QUEUE_INDEX}):`);
     bad.forEach((m) => console.error(`  - ${m}`));
-    console.error(`  → 状態の正は各起票案の1行目です。索引 §1 の一覧と見出しの件数を合わせてください`);
-    console.error(`    （手順は ${DRAFT_INDEX} §4）`);
+    console.error(`  → 状態の正は各起票案の1行目です。起票案を直し、node scripts/gen-queue-index.mjs で生成部を作り直してください`);
     console.error(`  → 「起票案」で始まる名前の .md はすべて起票案として扱われます。設計書・解説文書には別の名前を付けてください`);
+    console.error(`  → 書式と手順は ${QUEUE_INDEX} §4`);
   } else {
+    const c = countByState(drafts);
     console.log(
-      `issue drafts in sync — 起票案${drafts.length}件（生きている${counted["生きている"]} / 完了${counted["完了"]} / 取り下げ${counted["取り下げ"]}）`,
+      `queue index up to date — 起票案${drafts.length}件（${STATES.map((s) => `${s}${c[s]}`).join(" / ")}）`,
     );
   }
 }
