@@ -3,6 +3,7 @@
 //
 // 索引 docs/design/待ち行列/待ち行列と復旧手順.md の §1（起票案の一覧）を、各起票案の1行目から生成する
 // （未採番「索引の転記ドリフト防止」単位1。設計書 docs/design/未採番-索引の転記ドリフト防止/ §3・§5）。
+// 単位2でここに「工程記録の読み取りと突き合わせ」（設計書 §4・§6）も足した。validate.mjs が使う。
 //
 // ⭐ 状態の正は各起票案（docs/design/**/起票案*.md・派生起票案*.md）の1行目だけ:
 //      **状態: <状態>**（最終確認 YYYY-MM-DD）— 呼び名「<呼び名>」<自由記述>
@@ -193,7 +194,12 @@ export function inspectIndex(text) {
   });
   const problems = [];
   if (starts.length !== 1 || ends.length !== 1) {
-    problems.push(`索引の生成部のマーカーが1組ではありません（START ${starts.length}個 / END ${ends.length}個）`);
+    // ⭐ CRLF の索引はマーカー行の末尾に CR が残り、完全一致しないので「0個」になる（設計書 E3）。
+    //   画面上はマーカーが見えているのに0個＝原因の分からない赤になるので、CR があるときだけ一言足す。
+    // ⚠ 無条件に足さないこと。CR が0個のときの文面は 1.0 版のまま（V7〜V9 の期待値が動く）
+    const cr = (text.match(/\r/g) || []).length;
+    const note = cr ? `。\u26A0\uFE0F 索引に CR が ${cr}個あります\u2014\u2014改行コードが CRLF になっていませんか` : "";
+    problems.push(`索引の生成部のマーカーが1組ではありません（START ${starts.length}個 / END ${ends.length}個${note}）`);
   } else if (ends[0] < starts[0]) {
     problems.push("索引の生成部のマーカーの順序が逆です（END が START より前にあります）");
   }
@@ -225,6 +231,227 @@ export function firstDiff(actual, expected) {
 
 /** 生成部の比較に失敗したときの1行 */
 export const driftMessage = (k) => `索引の生成部が起票案と一致しません（最初の差: 生成部の${k}行目）`;
+
+// ===== 工程記録の読み取りと突き合わせ（単位2・設計書 §4・§6） =====================
+// ⭐ 完了の根拠は「出来事が起きたときに書くファイル（＝工程記録）」の1行目に置く。状態を直し忘れる
+//    人は、状態の側に置いた宣言も書き忘れるので、宣言と状態を別々の出所から突き合わせる。
+// ⚠ 呼び名で結ぶ（パスで結ばない）。復旧時にフォルダを <番号>- へリネームすると、パスで持った
+//   宣言は全部壊れる（設計書 D4）。
+// ⚠ フォルダでタスクを判定しない。1フォルダに6タスクが同居している実例がある（設計書 M5）。
+
+/** 工程記録を探す docs/design 直下のフォルダ（名前が「未採番-」で始まるものと「待ち行列」・再帰） */
+const isRecordDir = (name) => name.startsWith("未採番-") || name === "待ち行列";
+/** 記録の種類。⚠ 基名の前方一致で決める（一致した接頭辞＝種類）。この9つで始まる .md は工程記録 */
+export const KINDS = [
+  "モック説明",
+  "設計完了",
+  "追加指示",
+  "実装報告",
+  "レビュー判定",
+  "再判定",
+  "承認",
+  "実物確認結果",
+  "取り下げ",
+];
+// 1行目の書式。呼び名に使える文字は起票案と同じ（「」|`* と空白は使えない）
+const REC_RE = /^\*\*対象: 「([^「」|`*\s]+)」\*\*(?:（→ (完了|継続|取り下げ)）)?(?: — .*)?$/;
+/** 状態の段階（進み具合）。⚠ `取り下げ` はこの尺度に乗らない（T4/T6 で先に決着する） */
+const STAGES = ["生きている", "設計中", "実装中", "完了"];
+/** 種類ごとの最低段階（その記録があるなら状態はここ以上のはず）。取り下げ_ は何も要求しない */
+const MIN_STAGE = {
+  モック説明: "設計中",
+  設計完了: "実装中",
+  追加指示: "実装中",
+  実装報告: "実装中",
+  レビュー判定: "実装中",
+  再判定: "実装中",
+  承認: "実装中",
+  実物確認結果: "実装中",
+};
+/** 終端（または継続）の宣言が必須の種類と、そこで選べる語 */
+const REQUIRED_DECL = { 承認: ["完了", "継続"], 実物確認結果: ["完了", "継続"], 取り下げ: ["取り下げ"] };
+/** 状態を進める根拠になる種類（状態が「実装中」であるために要る） */
+const DESIGN_DONE_KINDS = ["設計完了", "追加指示"];
+
+/** 基名から種類を返す（前方一致・無ければ null） */
+export const kindOf = (base) => KINDS.find((k) => base.startsWith(k)) ?? null;
+
+/**
+ * 工程記録を集めて1行目を読む（設計書 §4）。
+ * 問題は「1ファイルにつき高々1行」（§4-3 の順に判定）。
+ * @param {Set<string>|string[]} draftNames 起票案の呼び名（問題の無い起票案のもの）
+ * @param {string} [root]
+ * @returns {{ records: {path:string, kind:string, name:string, decl:string|null}[], count:number, problems:string[] }}
+ *   records は問題の無い記録だけ（リポジトリ相対パスの昇順）。count は見つけたファイル数
+ */
+export function readRecords(draftNames, root = ROOT) {
+  const names = draftNames instanceof Set ? draftNames : new Set(draftNames);
+  const problems = [];
+  const toRel = (p) => path.relative(root, p).split(path.sep).join("/");
+
+  // --- 走査。⚠ 読めないディレクトリを黙って飛ばさない（起票案の走査と同じ fail-closed） ---
+  // ⚠ 実際には readDrafts が docs/design 全体を先に歩くので、読めないフォルダはそちらが先に赤くする
+  //   （validate は起票案に問題があると突き合わせを飛ばす）。ここの「走査に失敗」は実測で発火させら
+  //   れなかった後詰めだが、消すと記録だけが黙って0件になる経路ができるので残す。
+  const found = [];
+  const walk = (dir) => {
+    let entries;
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch (e) {
+      problems.push(`工程記録の走査に失敗: ${toRel(dir)}（${e.message}）`);
+      return;
+    }
+    for (const ent of entries) {
+      const full = path.join(dir, ent.name);
+      if (ent.isDirectory()) walk(full);
+      else if (ent.isFile() && ent.name.endsWith(".md") && kindOf(ent.name)) found.push(toRel(full));
+    }
+  };
+  let roots;
+  try {
+    roots = readdirSync(path.join(root, DRAFT_ROOT), { withFileTypes: true });
+  } catch (e) {
+    problems.push(`工程記録の走査に失敗: ${DRAFT_ROOT}（${e.message}）`);
+    roots = [];
+  }
+  for (const ent of roots) {
+    if (ent.isDirectory() && isRecordDir(ent.name)) walk(path.join(root, DRAFT_ROOT, ent.name));
+  }
+  found.sort();
+
+  // --- 1行目を読む（1ファイルにつき高々1行） ---
+  const records = [];
+  for (const rel of found) {
+    const kind = kindOf(path.posix.basename(rel));
+    let first;
+    try {
+      first = readFileSync(path.join(root, rel), "utf8").replace(/^\uFEFF/, "").split(/\r?\n/)[0] || "";
+    } catch (e) {
+      problems.push(`工程記録の読み込みに失敗: ${rel}（${e.message}）`);
+      continue;
+    }
+    if (!first.startsWith("**対象: ")) {
+      problems.push(`工程記録の1行目に対象の宣言がありません: ${rel}`);
+      continue;
+    }
+    const m = REC_RE.exec(first);
+    if (!m) {
+      problems.push(`工程記録の1行目の書式が違います: ${rel}`);
+      continue;
+    }
+    const [, name, decl = null] = m;
+    if (!names.has(name)) {
+      problems.push(`工程記録の対象に一致する起票案がありません: ${rel}（「${name}」）`);
+      continue;
+    }
+    const allowed = REQUIRED_DECL[kind];
+    if (allowed) {
+      // ⚠ 1記録から2行出さない。承認_ に（→ 取り下げ）と書いたら「完了か継続を」の1行だけ
+      if (!allowed.includes(decl)) {
+        problems.push(
+          kind === "取り下げ"
+            ? `取り下げ_ の記録は（→ 取り下げ）を宣言してください: ${rel}`
+            : `承認_ と 実物確認結果_ の記録は（→ 完了）か（→ 継続）を宣言してください: ${rel}`,
+        );
+        continue;
+      }
+    } else if (decl) {
+      problems.push(`（→ ${decl}）を宣言できない種類の記録です: ${rel}（${kind}）`);
+      continue;
+    }
+    records.push({ path: rel, kind, name, decl: decl ?? null });
+  }
+
+  return { records, count: found.length, problems };
+}
+
+/** 宣言の内訳（成功行に出す） */
+export function countDecls(records) {
+  const c = { 完了: 0, 継続: 0, 取り下げ: 0 };
+  for (const r of records) if (r.decl) c[r.decl]++;
+  return c;
+}
+
+/**
+ * タスクごとの突き合わせ（設計書 §6-2）。
+ * ⭐ 1タスクにつき高々1行・上から順（T1→T8）。起票案のパスの昇順に並べる。
+ * @param {{path:string, state:string, name:string}[]} drafts 問題の無い起票案（パス昇順）
+ * @param {{path:string, kind:string, name:string, decl:string|null}[]} records 問題の無い記録
+ * @returns {string[]}
+ */
+export function matchRecords(drafts, records) {
+  const byName = new Map(drafts.map((d) => [d.name, []]));
+  for (const r of records) byName.get(r.name)?.push(r);
+
+  const out = [];
+  for (const d of drafts) {
+    const rs = [...(byName.get(d.name) ?? [])].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+    const done = rs.filter((r) => r.decl === "完了");
+    const dropped = rs.filter((r) => r.decl === "取り下げ");
+    const list = (arr) => arr.map((r) => r.path).join(" / ");
+
+    if (done.length && dropped.length) {
+      out.push(
+        `完了と取り下げの両方が宣言されています: 「${d.name}」（${list(
+          [...done, ...dropped].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0)),
+        )}）`,
+      );
+      continue;
+    }
+    if (done.length > 1) {
+      out.push(`完了の宣言が複数あります: 「${d.name}」（${list(done)}）`);
+      continue;
+    }
+    if (dropped.length > 1) {
+      out.push(`取り下げの宣言が複数あります: 「${d.name}」（${list(dropped)}）`);
+      continue;
+    }
+    // 終端の宣言はここで高々1件
+    const terminal = done[0] ?? dropped[0] ?? null;
+    if (terminal) {
+      const word = terminal.decl; // 完了 / 取り下げ
+      if (d.state === word) continue; // ⭐ 根拠と状態が一致（このタスクはこれ以上見ない）
+      out.push(
+        `状態行が工程記録と食い違っています: 「${d.name}」は ${terminal.path} で${word}したのに、起票案の状態が「${d.state}」です（${d.path}）`,
+      );
+      continue;
+    }
+    if (d.state === "完了") {
+      out.push(`完了の根拠がありません: 「${d.name}」の状態は完了ですが、（→ 完了）を宣言した記録がありません（${d.path}）`);
+      continue;
+    }
+    if (d.state === "取り下げ") {
+      out.push(
+        `取り下げの根拠がありません: 「${d.name}」の状態は取り下げですが、（→ 取り下げ）を宣言した記録がありません（${d.path}）`,
+      );
+      continue;
+    }
+    // ⚠ ここから先の状態は 生きている / 設計中 / 実装中 だけ（完了・取り下げは上で決着済み）
+    const now = STAGES.indexOf(d.state);
+    // 最も高い最低段階を要求する記録（同じならパス昇順で先）。rs はパス昇順なので先頭が勝つ
+    let worst = null;
+    for (const r of rs) {
+      const need = STAGES.indexOf(MIN_STAGE[r.kind] ?? "");
+      if (need > now && (worst === null || need > STAGES.indexOf(MIN_STAGE[worst.kind]))) worst = r;
+    }
+    if (worst) {
+      out.push(
+        `状態が工程記録より遅れています: 「${d.name}」の状態は「${d.state}」ですが、${worst.path}（${worst.kind}）があります（${MIN_STAGE[worst.kind]} 以上にしてください）`,
+      );
+      continue;
+    }
+    if (d.state === "実装中" && !rs.some((r) => DESIGN_DONE_KINDS.includes(r.kind))) {
+      out.push(`実装中の根拠がありません: 「${d.name}」は実装中ですが、設計完了_ か 追加指示_ の記録がありません（${d.path}）`);
+    }
+  }
+  return out;
+}
+
+/** 起票案が読めないときに突き合わせを飛ばす1行（1つの原因で2種類のエラーを出さない） */
+export const SKIP_BY_DRAFTS = "起票案との照合を省略しました（起票案を読めないため。先に QUEUE INDEX DRIFT を直してください）";
+/** 記録に問題があるときに突き合わせを飛ばす1行 */
+export const skipByRecords = (n) => `起票案との照合を省略しました（工程記録の問題が ${n}件 あるため）`;
 
 function usage() {
   console.error("使い方: node scripts/gen-queue-index.mjs [--check]");
