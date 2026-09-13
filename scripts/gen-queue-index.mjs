@@ -473,18 +473,14 @@ export const skipByRecords = (n) => `起票案との照合を省略しました�
 //    同じ日に複数の単位が交互に進むと工程が崩れる（設計書 M6）。
 // ⚠ git log は1回だけ打つ（--follow を1ファイルずつ打つと95件で120秒を超えた＝設計書 M7）。
 
-/** 同時刻のときの種類の順。⭐ 締めの記録（承認・実物確認結果・取り下げ）を先にする（設計書 M9） */
-const PLAN_KIND_ORDER = [
-  "承認",
-  "実物確認結果",
-  "取り下げ",
-  "モック説明",
-  "設計完了",
-  "追加指示",
-  "実装報告",
-  "レビュー判定",
-  "再判定",
-];
+/** 締めの記録（同時刻ならこの順で先に出す・設計書 M9） */
+const PLAN_CLOSING_KINDS = ["承認", "実物確認結果", "取り下げ"];
+// ⚠ 3語は KINDS からの転記なので、綴りが合わなくなったら落とす（fail-closed）。
+for (const k of PLAN_CLOSING_KINDS) {
+  if (!KINDS.includes(k)) throw new Error(`PLAN_CLOSING_KINDS に KINDS に無い種類があります: ${k}`);
+}
+/** 同時刻のときの種類の順。⭐ 残りは KINDS の並びのまま後ろに続く＝10種目を足しても -1 にならない */
+const PLAN_KIND_ORDER = [...PLAN_CLOSING_KINDS, ...KINDS.filter((k) => !PLAN_CLOSING_KINDS.includes(k))];
 
 /** epoch 秒 → `YYYY-MM-DD HH:MM`（UTC 固定。実行環境の時間帯で出力が変わらないようにする） */
 function utcStamp(sec) {
@@ -585,7 +581,15 @@ function postingPlan() {
     recProblems.forEach((p) => console.error(p));
     process.exit(1);
   }
-  const { lines, missing } = buildPostingPlan(drafts, records, firstAdditions(ROOT));
+  let adds;
+  try {
+    adds = firstAdditions(ROOT);
+  } catch (e) {
+    // ⚠ execFileSync の message はコマンド行と stderr を含む複数行。1行目だけ出す
+    console.error(`git を実行できませんでした（投稿順は git の追加時刻から作ります）: ${String(e.message).split("\n")[0]}`);
+    process.exit(1);
+  }
+  const { lines, missing } = buildPostingPlan(drafts, records, adds);
   if (missing.length) {
     missing.forEach((p) => console.error(uncommittedMessage(p)));
     process.exit(1);
