@@ -1,9 +1,11 @@
-// 使い方: node scripts/gen-queue-index.mjs            # 索引 §1 の生成部を作り直す（同じなら書かない）
-//        node scripts/gen-queue-index.mjs --check    # 書かずに比べる（古ければ exit 1）
+// 使い方: node scripts/gen-queue-index.mjs                  # 索引 §1 の生成部を作り直す（同じなら書かない）
+//        node scripts/gen-queue-index.mjs --check          # 書かずに比べる（古ければ exit 1）
+//        node scripts/gen-queue-index.mjs --posting-plan   # 復旧後にissueへ投函する順を git から作る（何も書かない）
 //
 // 索引 docs/design/待ち行列/待ち行列と復旧手順.md の §1（起票案の一覧）を、各起票案の1行目から生成する
 // （未採番「索引の転記ドリフト防止」単位1。設計書 docs/design/未採番-索引の転記ドリフト防止/ §3・§5）。
 // 単位2でここに「工程記録の読み取りと突き合わせ」（設計書 §4・§6）も足した。validate.mjs が使う。
+// 単位3で --posting-plan（設計書 §7）を足した。⭐ 投稿順は索引に書き写さず、git の追加時刻から作る。
 //
 // ⭐ 状態の正は各起票案（docs/design/**/起票案*.md・派生起票案*.md）の1行目だけ:
 //      **状態: <状態>**（最終確認 YYYY-MM-DD）— 呼び名「<呼び名>」<自由記述>
@@ -18,6 +20,7 @@
 // ⚠ 書き込みは <索引>.tmp に書いてから renameSync で置き換える。/workspaces は 9p マウントで、
 //   VS Code が開いているファイルを直接上書きすると EINVAL で失敗する（CLAUDE.md「環境の注意」）。
 import { readFileSync, readdirSync, writeFileSync, renameSync, rmSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -320,6 +323,14 @@ export function readRecords(draftNames, root = ROOT) {
   }
   found.sort();
 
+  // ⚠ 0件を「全部一致」に倒さない（起票案側の「起票案が1件も見つかりません」と対称・単位3の S-1）。
+  // ⭐ これが無いと、走査が壊れたときに赤くなるのは「完了・取り下げ・実装中のタスクが実在するから
+  //    T5・T6・T8 が出る」という偶然に依存する。全タスクが 生きている・設計中 だけになった日に
+  //    走査が壊れると、黙って緑になる。
+  // ⚠ problems に積むこと（count を見て validate 側で判定しない）。記録の問題として積むと §6-1 の
+  //    省略が働き、T5〜T8 の行が「原因を名指しする1行」に置き換わる。
+  if (!found.length) problems.push(`工程記録が1件も見つかりません: ${DRAFT_ROOT}/未採番-* と ${DRAFT_ROOT}/待ち行列`);
+
   // --- 1行目を読む（1ファイルにつき高々1行） ---
   const records = [];
   for (const rel of found) {
@@ -453,16 +464,147 @@ export const SKIP_BY_DRAFTS = "起票案との照合を省略しました（起�
 /** 記録に問題があるときに突き合わせを飛ばす1行 */
 export const skipByRecords = (n) => `起票案との照合を省略しました（工程記録の問題が ${n}件 あるため）`;
 
+// ===== 投稿計画（単位3・設計書 §7） ==============================================
+// ⭐ GitHub が復旧したとき、モードBで書き溜めた工程記録を issue へどの順に投函するかを出す。
+// ⚠ 索引に書き写さない（旧 §2-④ は手書きで、2026-09-11 の実測で3件ずれていた＝設計書 M1）。
+//    並べるには git が要るので、索引に置くと validate が git に依存し、記録を書いてから
+//    コミットするまでの間は順番が決まらない（設計書 D8）。
+// ⭐ 並びは「その記録を最初に追加したコミットの時刻」。ファイル名の日付では並べられない——
+//    同じ日に複数の単位が交互に進むと工程が崩れる（設計書 M6）。
+// ⚠ git log は1回だけ打つ（--follow を1ファイルずつ打つと95件で120秒を超えた＝設計書 M7）。
+
+/** 同時刻のときの種類の順。⭐ 締めの記録（承認・実物確認結果・取り下げ）を先にする（設計書 M9） */
+const PLAN_KIND_ORDER = [
+  "承認",
+  "実物確認結果",
+  "取り下げ",
+  "モック説明",
+  "設計完了",
+  "追加指示",
+  "実装報告",
+  "レビュー判定",
+  "再判定",
+];
+
+/** epoch 秒 → `YYYY-MM-DD HH:MM`（UTC 固定。実行環境の時間帯で出力が変わらないようにする） */
+function utcStamp(sec) {
+  const d = new Date(sec * 1000);
+  const p2 = (n) => String(n).padStart(2, "0");
+  return `${d.getUTCFullYear()}-${p2(d.getUTCMonth() + 1)}-${p2(d.getUTCDate())} ${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}`;
+}
+
+/**
+ * docs/design 配下の各パスについて「最初に追加したコミット」を1回の git log から引く。
+ * ⚠ core.quotepath=false を付ける。git は非ASCIIのパスを "…" とクォートして出すので、
+ *   このリポジトリ（設計書のパスが日本語）では付け忘れると全件が一致しなくなる。
+ * @returns {Map<string, {hash:string, time:number}>} リポジトリ相対パス → 追加コミット
+ */
+export function firstAdditions(root = ROOT) {
+  const SEP = "\u0001"; // ⚠ パスに現れない1文字を目印にする（コミット行とファイル名行の区別）
+  const out = execFileSync(
+    "git",
+    ["-c", "core.quotepath=false", "log", "--diff-filter=A", "--name-only", `--format=${SEP}%H %ct`, "--", DRAFT_ROOT],
+    { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 },
+  );
+  const map = new Map();
+  let cur = null;
+  for (const line of out.split("\n")) {
+    if (!line) continue;
+    if (line.startsWith(SEP)) {
+      const [hash, ct] = line.slice(SEP.length).split(" ");
+      cur = { hash, time: Number(ct) };
+      continue;
+    }
+    // ⭐ git log は新しい順に出すので、後から来たものほど古い＝上書きすれば「最初の追加」が残る
+    if (cur) map.set(line, cur);
+  }
+  return map;
+}
+
+/**
+ * 投稿計画の行を作る（設計書 §7-1）。
+ * @param {{path:string, state:string, name:string}[]} drafts 問題の無い起票案（パス昇順）
+ * @param {{path:string, kind:string, name:string}[]} records 問題の無い記録
+ * @param {Map<string, {hash:string, time:number}>} adds firstAdditions() の結果
+ * @returns {{ lines: string[], missing: string[] }} missing は未コミットの記録（パス昇順）
+ */
+export function buildPostingPlan(drafts, records, adds) {
+  // ⚠ 取り下げたタスクは出さない（issue を起こさないため）
+  const tasks = drafts.filter((d) => d.state !== "取り下げ");
+  const dropped = drafts.length - tasks.length;
+  const live = new Set(tasks.map((d) => d.name));
+
+  const missing = records
+    .filter((r) => live.has(r.name) && !adds.has(r.path))
+    .map((r) => r.path)
+    .sort();
+  if (missing.length) return { lines: [], missing };
+
+  const byName = new Map(tasks.map((d) => [d.name, []]));
+  for (const r of records) byName.get(r.name)?.push(r);
+  for (const rs of byName.values()) {
+    rs.sort((a, b) => {
+      const ta = adds.get(a.path).time;
+      const tb = adds.get(b.path).time;
+      if (ta !== tb) return ta - tb;
+      const ka = PLAN_KIND_ORDER.indexOf(a.kind);
+      const kb = PLAN_KIND_ORDER.indexOf(b.kind);
+      if (ka !== kb) return ka - kb;
+      return a.path < b.path ? -1 : a.path > b.path ? 1 : 0;
+    });
+  }
+
+  const total = tasks.reduce((n, d) => n + byName.get(d.name).length, 0);
+  const lines = [`# 投稿計画 — 起票案${tasks.length}件（取り下げ${dropped}件を除く）・工程記録${total}件`, ""];
+  for (const d of tasks) {
+    const rs = byName.get(d.name);
+    lines.push(`## 「${d.name}」— ${d.state}（工程記録${rs.length}件）`, `本文: ${d.path}`);
+    if (!rs.length) lines.push("（工程記録なし）");
+    rs.forEach((r, i) => {
+      const a = adds.get(r.path);
+      lines.push(`  ${i + 1}. ${r.path}（${r.kind}・${a.hash.slice(0, 8)} ${utcStamp(a.time)} UTC）`);
+    });
+    lines.push("");
+  }
+  return { lines, missing: [] };
+}
+
+/** 未コミットの記録の1行（投稿順が決まらないので exit 1 にする＝fail-closed） */
+export const uncommittedMessage = (p) => `未コミットの工程記録があります（投稿順が決まらない）: ${p}`;
+
+/** --posting-plan の本体。⚠ ファイルを1つも書かない */
+function postingPlan() {
+  const { drafts, problems } = readDrafts(ROOT);
+  if (problems.length) {
+    problems.forEach((p) => console.error(p));
+    process.exit(1);
+  }
+  const names = new Set(drafts.map((d) => d.name));
+  const { records, problems: recProblems } = readRecords(names, ROOT);
+  if (recProblems.length) {
+    recProblems.forEach((p) => console.error(p));
+    process.exit(1);
+  }
+  const { lines, missing } = buildPostingPlan(drafts, records, firstAdditions(ROOT));
+  if (missing.length) {
+    missing.forEach((p) => console.error(uncommittedMessage(p)));
+    process.exit(1);
+  }
+  console.log(lines.join("\n"));
+}
+
 function usage() {
-  console.error("使い方: node scripts/gen-queue-index.mjs [--check]");
-  console.error("  （引数なし）… 索引 §1 の生成部を起票案の1行目から作り直す（同じなら書かない）");
-  console.error("  --check      … 書かずに比べる（古ければ exit 1）");
+  console.error("使い方: node scripts/gen-queue-index.mjs [--check|--posting-plan]");
+  console.error("  （引数なし）…… 索引 §1 の生成部を起票案の1行目から作り直す（同じなら書かない）");
+  console.error("  --check ……… 書かずに比べる（古ければ exit 1）");
+  console.error("  --posting-plan … 復旧後にissueへ投函する順を git の追加時刻から作る（何も書かない）");
   process.exit(2);
 }
 
 function main() {
   const args = process.argv.slice(2);
-  if (args.length > 1 || (args.length === 1 && args[0] !== "--check")) usage();
+  if (args.length > 1 || (args.length === 1 && !["--check", "--posting-plan"].includes(args[0]))) usage();
+  if (args[0] === "--posting-plan") return postingPlan();
   const check = args[0] === "--check";
 
   const { drafts, problems } = readDrafts(ROOT);
