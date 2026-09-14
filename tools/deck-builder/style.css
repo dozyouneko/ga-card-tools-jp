@@ -803,6 +803,15 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
        チップの高さの半分＋フォーカスリング（1行のチップ 34px なら約 20px）。2rem=32px は2行に折り返した
        チップ（約 58px）まで覆う。 */
     scroll-padding-bottom: 2rem;
+    /* ⭐ F2（操作不具合2件_設計 §8）: 不透明な背景を塗って「合成スクロール」にする。
+       ⚠️ F1 でスクロール領域を sticky の子へ移したら、Chrome はこの箱を合成しなくなった
+          （背景が透明なスクロール領域は devicePixelRatio 1.5 未満で合成されない）。
+          合成されないとスクロールのたびに描き直しになり、スクロールバーを速く動かすと
+          群カードの背景だけが古い位置に残る崩れが実機で出た（修正前の #search-top は sticky 自身が
+          スクロール領域だったので合成されていた）。
+       ⭐ 色は見た目を変えない値: 親 #search-top の rgba(15,17,21,.92) を body の var(--bg)（#0f1115）に
+          重ねた結果と同じ。⚠️ 半透明にしたり消したりすると合成スクロールが外れる（§8 の V26）。 */
+    background: var(--bg);
   }
   /* ペインの中は縦1列 */
   #search-top .row { flex-direction: column; align-items: stretch; }
