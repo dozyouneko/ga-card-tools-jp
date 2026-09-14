@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- ⚠️ 設計検討用のモック。本番の配信対象ではない（docs/ 配下は functions/docs/[[path]].js が404を返す）。
+     説明: モック説明_検索結果のタブ化_2026-09-15.md
+
+     ⭐ 実物（/tools/deck-builder/）を iframe で動かす方式（コピーを持たないので本体から陳腐化しない）。
+        <base> とスタブ（../未採番-デッキ構築ツールUI刷新/モック_左ペイン化_2026-09-05.stub.js）、
+        候補実装（モック_検索結果のタブ化_2026-09-15.inject.js）を差し込んだ srcdoc として読み込む。
+
+     ⚠️ PORT=3000 npm run dev で上げ、
+        http://localhost:3000/docs/design/未採番-検索結果のタブ化/モック_検索結果のタブ化_2026-09-15.html で開く
+        （3000 以外は devcontainer の forwardPorts に無く、コンテナ外のブラウザから届かない）。 -->
+<title>モック：検索結果のタブ化</title>
+<link rel="stylesheet" href="モック_検索結果のタブ化_2026-09-15.css">
+</head>
+<body>
+
+<div class="panel">
+  <h1><span class="tag">モック</span>検索結果のタブ化 — 結果モーダルをやめて「検索1」「検索2」…のタブにする</h1>
+  <p class="lead">
+    枠の中は<b>実物</b>（ログイン済みでデッキを開いた状態・カードは公式APIから取得）。<b>変更後</b>の枠だけにタブ化の候補を足しています。
+    ⭐ まず<b>左ペインで何か検索</b>してください（下の「操作」ボタンでも可）。
+    ⚠️ タブは<b>このブラウザに保存</b>されます（「⟳ 再読込」でリロード後の復元を試せます）。
+  </p>
+
+  <div class="rows">
+    <div class="grp">
+      <span class="lbl">並べ方</span>
+      <div class="seg" data-g="cmp">
+        <button data-v="one" class="on">変更後だけ</button>
+        <button data-v="both">現状と並べる</button>
+      </div>
+    </div>
+    <div class="grp">
+      <span class="lbl">画面サイズ</span>
+      <div class="seg" data-g="vw">
+        <button data-v="1440x900" class="on">1440×900</button>
+        <button data-v="1200x800">1200×800（左ペインの境界）</button>
+        <button data-v="1199x800">1199×800（スマホ表示）</button>
+        <button data-v="375x812">375×812</button>
+      </div>
+    </div>
+    <div class="grp">
+      <span class="lbl">表示倍率</span>
+      <div class="seg" data-g="zoom">
+        <button data-v="0.5">50%</button>
+        <button data-v="0.75" class="on">75%</button>
+        <button data-v="1">100%</button>
+      </div>
+    </div>
+    <div class="grp">
+      <span class="lbl">デッキ</span>
+      <div class="seg" data-g="deck">
+        <button data-v="std" class="on">スタンダード</button>
+        <button data-v="pan">パンテオン（別のデッキとして扱う）</button>
+      </div>
+    </div>
+  </div>
+
+  <h2>⭐ ユーザーに決めてほしいこと（切り替えると変更後の枠を読み直します・保存したタブは残ります）</h2>
+  <div class="rows">
+    <div class="grp q">
+      <span class="lbl">U1 左ペインとタブ</span>
+      <div class="seg" data-g="link">
+        <button data-v="b" class="on">連動：タブを開くと左ペインがその条件に戻る（推奨）</button>
+        <button data-v="a">独立：左ペインは次の検索の下書き</button>
+      </div>
+    </div>
+    <div class="grp q">
+      <span class="lbl">U2 タブの持ち方</span>
+      <div class="seg" data-g="scope">
+        <button data-v="deck" class="on">デッキごと（推奨）</button>
+        <button data-v="global">全デッキ共通</button>
+      </div>
+    </div>
+    <div class="grp q">
+      <span class="lbl">U3 全部閉じたら連番</span>
+      <div class="seg" data-g="num">
+        <button data-v="reset" class="on">「検索1」に戻す（推奨）</button>
+        <button data-v="keep">戻さない（続きの番号）</button>
+      </div>
+    </div>
+    <div class="grp q">
+      <span class="lbl">U4 リロード後</span>
+      <div class="seg" data-g="reload">
+        <button data-v="last" class="on">最後に見ていたタブを開く＝そのタブだけ再検索（推奨）</button>
+        <button data-v="deck">デッキタブで開く＝押すまで検索しない</button>
+      </div>
+    </div>
+    <div class="grp q">
+      <span class="lbl">U5 新しい検索</span>
+      <div class="seg" data-g="switch">
+        <button data-v="on" class="on">そのタブへ切り替える（推奨）</button>
+        <button data-v="off">切り替えない（裏で開く）</button>
+      </div>
+    </div>
+    <div class="grp q">
+      <span class="lbl">U6 チップを押したとき</span>
+      <div class="seg" data-g="chip">
+        <button data-v="off" class="on">何もしない＝🔍検索で反映（現状どおり・推奨）</button>
+        <button data-v="on">表示中の検索タブをその場で更新（U1 が「連動」のときだけ効く）</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="rows">
+    <div class="grp">
+      <span class="lbl">操作（変更後の枠へ）</span>
+      <div class="seg">
+        <button data-act="fire" type="button">🔍「fire」で検索</button>
+        <button data-act="six" type="button">⭐ 6回つづけて検索（上限5の確認）</button>
+        <button data-act="worst" type="button">最悪ケースの条件で検索（長い条件）</button>
+        <button data-act="sort" type="button">並び替えをコスト順に</button>
+        <button data-act="deck" type="button">🃏 デッキタブへ</button>
+        <button data-act="measure" type="button">🔎 実測する</button>
+        <button data-act="reload" type="button">⟳ 再読込（リロード後の復元）</button>
+        <button data-act="clear" type="button">🗑 保存を消して再読込</button>
+      </div>
+    </div>
+  </div>
+  <p class="note" id="note"></p>
+  <pre class="measure" id="measure-out" hidden></pre>
+</div>
+
+<div class="stage">
+  <div class="col" id="col-cur" hidden>
+    <span class="col-tag">現状（結果はモーダル）</span>
+    <div class="frame-box" id="box-cur"><iframe id="frame-cur" title="現状"></iframe></div>
+  </div>
+  <div class="col">
+    <span class="col-tag new">変更後（検索結果タブ）</span>
+    <div class="frame-box" id="box-new"><iframe id="frame-new" title="変更後（案）"></iframe></div>
+  </div>
+</div>
+
+<script src="モック_検索結果のタブ化_2026-09-15.js"></script>
+</body>
+</html>
