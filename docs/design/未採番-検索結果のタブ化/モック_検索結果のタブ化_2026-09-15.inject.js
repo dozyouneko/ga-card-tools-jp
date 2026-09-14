@@ -24,6 +24,7 @@
  *   data-switch on=新しい検索のタブへ切り替える（推奨）/ off=切り替えない
  *   data-reload last=リロード後は最後に見ていたタブ（推奨）/ deck=デッキタブ
  *   data-chip   off=チップを押しても検索しない（現状どおり・推奨）/ on=表示中の検索タブを更新
+ *   data-icons  off=スマホ幅でもデッキ・統計タブは文字つき（推奨）/ on=620px以下で絵文字だけにする
  */
 (function () {
   const cfg = (window.frameElement && window.frameElement.dataset) || {};
@@ -34,6 +35,7 @@
     switchTo: cfg.switch !== "off",
     reload: cfg.reload === "deck" ? "deck" : "last",
     chip: cfg.chip === "on",
+    icons: cfg.icons === "on",
   };
   const MAX_TABS = 5; // ⭐ ユーザー決定（2026-09-15）: PC・スマホとも5
   // ⚠️ 実装ではキー名を設計書で決める。モックは実物と衝突しないよう mock- を付ける
@@ -87,12 +89,36 @@
     css(`.mk-cond-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 0 0 7px; }`);
     css(`.mk-cond-title { margin: 0; font-size: .74rem; font-weight: 700; letter-spacing: .04em; color: var(--muted); }`);
     css(`.mk-cond-load { margin-left: auto; font: inherit; font-size: .74rem; color: var(--accent); background: transparent; border: 1px dashed var(--border); border-radius: 999px; padding: 2px 9px; cursor: pointer; }`);
-    css(`.mk-cond-list { display: flex; flex-wrap: wrap; gap: 6px; }`);
-    css(`.mk-cond-list > span { display: inline-flex; align-items: baseline; gap: 5px; background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 999px; font-size: .79rem; line-height: 1.4; padding: 3px 9px; max-width: 100%; overflow-wrap: anywhere; }`);
-    css(`.mk-cond-list > span b { font-weight: 400; color: var(--muted); font-size: .72rem; white-space: nowrap; }`);
-    css(`.mk-cond-list > span em { font-style: normal; color: var(--muted); font-size: .72rem; }`);
-    css(`.mk-cond-list > .mk-none { color: var(--muted); border-style: dashed; }`);
+    // ⭐ 条件は「項目名｜値」の2列の表にする（丸ピルは長い値で折り返すと読みにくい＝375px の最悪ケースで 470px になった）
+    css(`.mk-cond-list { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 3px 12px; margin: 0; font-size: .8rem; line-height: 1.45; }`);
+    css(`.mk-cond-list dt { color: var(--muted); font-size: .74rem; white-space: nowrap; }`);
+    css(`.mk-cond-list dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }`);
+    css(`.mk-cond-list dd em { font-style: normal; color: var(--muted); font-size: .72rem; }`);
+    css(`.mk-cond-list .mk-none { color: var(--muted); }`);
+    css(`.mk-cond.is-folded .mk-cond-list > :nth-child(n+7) { display: none; }`);
+    css(`.mk-cond-more { margin-top: 6px; font: inherit; font-size: .76rem; color: var(--accent); background: transparent; border: none; padding: 2px 0; cursor: pointer; }`);
+    // ⭐ 検索タブが画面外に続いているとき、その側の端をぼかして「まだある」ことを示す
+    css(`.mk-stabs[data-more-l="1"] { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 22px); mask-image: linear-gradient(to right, transparent 0, #000 22px); }`);
+    css(`.mk-stabs[data-more-r="1"] { -webkit-mask-image: linear-gradient(to left, transparent 0, #000 22px); mask-image: linear-gradient(to left, transparent 0, #000 22px); }`);
+    css(`.mk-stabs[data-more-l="1"][data-more-r="1"] { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%); }`);
     css(`@media (max-width: 620px) { #ed-pane-search { padding: 12px 16px 48px; } }`);
+    // ⭐ 検索中にパネルが空でもページを送れるよう高さを確保する（無いと、スマホ表示で結果の位置まで送れない＝2026-09-15 実測）
+    css(`#ed-pane-search { min-height: 100vh; }`);
+    // スマホ幅では検索タブを詰める（99px → 約84px）
+    css(`@media (max-width: 620px) { .deck-tabs .mk-stab > button[role="tab"] { padding: 8px 2px 8px 10px; } .deck-tabs .mk-stab > .mk-x { width: 24px; height: 24px; margin-right: 2px; } .mk-stabs { padding-left: 6px; gap: 4px; } }`);
+    if (OPT.icons) {
+      // U7: 620px以下でデッキ・統計タブを絵文字だけにする（文字は aria-label に残す）
+      css(`@media (max-width: 620px) { #view-editor .deck-tabs > button[role="tab"] { padding: 8px 12px; } #view-editor .deck-tabs > button[role="tab"] .mk-tx { display: none; } }`);
+      ["ed-tab-deck", "ed-tab-stats"].forEach((id) => {
+        const b = $(id);
+        const [ic, ...rest] = b.textContent.trim().split(" ");
+        b.setAttribute("aria-label", rest.join(" "));
+        b.textContent = "";
+        const a = doc.createElement("span"); a.textContent = ic;
+        const t = doc.createElement("span"); t.className = "mk-tx"; t.textContent = " " + rest.join(" ");
+        b.append(a, t);
+      });
+    }
 
     // ---------- DOM ----------
     const strip = doc.querySelector("#view-editor .deck-tabs");
@@ -248,7 +274,15 @@
       if (activeTab()) { deckTab.setAttribute("aria-selected", "false"); statsTab.setAttribute("aria-selected", "false"); }
       scrollStripTo(flashId || activeId);
     }
+    function syncStripEdges() {
+      const max = stabs.scrollWidth - stabs.clientWidth;
+      stabs.dataset.moreL = stabs.scrollLeft > 2 ? "1" : "0";
+      stabs.dataset.moreR = stabs.scrollLeft < max - 2 ? "1" : "0";
+    }
+    stabs.addEventListener("scroll", syncStripEdges, { passive: true });
+    window.addEventListener("resize", syncStripEdges);
     function scrollStripTo(id) {
+      requestAnimationFrame(syncStripEdges);
       if (!id) return;
       const btn = $(`ed-tab-${id}`);
       if (!btn) return;
@@ -277,13 +311,29 @@
         head.appendChild(load);
       }
       cond.appendChild(head);
-      const list = doc.createElement("div");
+      const list = doc.createElement("dl");
       list.className = "mk-cond-list";
-      const items = condItems(t.cond);
-      if (!items.length) { const s = doc.createElement("span"); s.className = "mk-none"; s.textContent = "絞り込みなし（全カード）"; list.appendChild(s); }
-      items.forEach(([k, v]) => { const s = doc.createElement("span"); const b = doc.createElement("b"); b.textContent = k; s.append(b, doc.createTextNode(v)); list.appendChild(s); });
-      const s = doc.createElement("span"); const b = doc.createElement("b"); b.textContent = "並び"; s.append(b, doc.createTextNode(sortText(t.cond))); list.appendChild(s);
+      const rows = condItems(t.cond);
+      if (!rows.length) rows.push(["絞り込み", "なし（全カード）"]);
+      rows.push(["並び", sortText(t.cond)]);
+      rows.forEach(([k, v]) => {
+        const dt = doc.createElement("dt"); dt.textContent = k;
+        const dd = doc.createElement("dd"); dd.textContent = v;
+        list.append(dt, dd);
+      });
       cond.appendChild(list);
+      // ⭐ 4項目を超えたら3項目だけ見せて畳む（「すべて表示」で開く。開閉はタブごとに覚える）
+      const FOLD_AT = 4;
+      cond.classList.toggle("is-folded", rows.length > FOLD_AT && !t.condOpen);
+      if (rows.length > FOLD_AT) {
+        const more = doc.createElement("button");
+        more.type = "button";
+        more.className = "mk-cond-more";
+        more.setAttribute("aria-expanded", String(!!t.condOpen));
+        more.textContent = t.condOpen ? "▴ 畳む" : `▾ すべて表示（ほか ${rows.length - 3} 項目）`;
+        more.addEventListener("click", () => { t.condOpen = !t.condOpen; renderPane(); });
+        cond.appendChild(more);
+      }
       paintCount(t);
     }
     function paintCount(t) {
@@ -329,6 +379,7 @@
           withTabGrid(t, () => { appendResults(cards, info); t.count = searchStatusText(info); });
           t.more = info.hasMore; t.moreDisabled = false; t.loaded = true;
           if (t.id === activeId) updateElementWarn(info);
+          if (info.reset && t.id === activeId && t.scrollOnResult) { t.scrollOnResult = false; scrollToStrip(); }
           paintCount(t);
         },
         onError: (err) => { if (!live()) return; t.count = `検索に失敗しました(${err.message})`; t.moreDisabled = false; paintCount(t); },
@@ -383,7 +434,7 @@
       renderPane();
       if (!t.loaded) runTab(t);
       else refreshBadges();
-      if (opts.scroll) scrollToStrip();
+      if (opts.scroll) { scrollToStrip(); t.scrollOnResult = true; }
       save();
     }
     function leaveSearch() {

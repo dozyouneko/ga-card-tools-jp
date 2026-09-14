@@ -12,7 +12,7 @@ const STUB_URL = "/docs/design/未採番-デッキ構築ツールUI刷新/モッ
 const INJECT_URL = "/docs/design/未採番-検索結果のタブ化/モック_検索結果のタブ化_2026-09-15.inject.js";
 const STUB_CARDS_URL = "/docs/design/未採番-検索結果のタブ化/モック_検索結果のタブ化_2026-09-15.stub-cards.js";
 
-const state = { cmp: "one", vw: "1440x900", zoom: "0.75", deck: "std", link: "b", scope: "deck", num: "reset", reload: "last", switch: "on", chip: "off" };
+const state = { cmp: "one", vw: "1440x900", zoom: "0.75", deck: "std", link: "b", scope: "deck", num: "reset", reload: "last", switch: "on", chip: "off", icons: "off" };
 const frames = { cur: document.getElementById("frame-cur"), new: document.getElementById("frame-new") };
 const boxes = { cur: document.getElementById("box-cur"), new: document.getElementById("box-new") };
 const colCur = document.getElementById("col-cur");
@@ -48,7 +48,7 @@ async function load(k) {
   const f = frames[k];
   f.dataset.deck = state.deck;
   f.dataset.name = "normal";
-  if (k === "new") ["link", "scope", "num", "reload", "switch", "chip"].forEach((x) => { f.dataset[x] = state[x]; });
+  if (k === "new") ["link", "scope", "num", "reload", "switch", "chip", "icons"].forEach((x) => { f.dataset[x] = state[x]; });
   const loaded = new Promise((res) => f.addEventListener("load", res, { once: true }));
   f.srcdoc = await deckSource(k === "new");
   await loaded; // ⚠️ load を待たずに触ると前のドキュメントに当たる
@@ -116,6 +116,7 @@ const ACT = {
     g("s-g-rarity").setValues(pick("s-g-rarity", 5));
     const fmt = d.getElementById("s-format"); if (fmt.options.length > 1) fmt.value = fmt.options[1].value;
     const set = d.getElementById("s-set"); if (set.options.length > 1) set.value = set.options[1].value;
+    if (typeof c.w.updateFilterBadge === "function") c.w.updateFilterBadge(); // 左ペインの「選択中の条件」も描き直す
     d.getElementById("s-search").click();
   }),
   sort: () => targets().forEach((k) => {
@@ -158,7 +159,7 @@ document.querySelectorAll(".seg[data-g]").forEach((seg) => {
     const g = seg.dataset.g;
     state[g] = b.dataset.v;
     if (g === "zoom") { layout(); return; }
-    if (["link", "scope", "num", "reload", "switch", "chip"].includes(g)) { reloadAll("new"); return; }
+    if (["link", "scope", "num", "reload", "switch", "chip", "icons"].includes(g)) { reloadAll("new"); return; }
     reloadAll();
   });
 });
