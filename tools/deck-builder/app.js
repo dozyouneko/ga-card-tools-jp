@@ -805,9 +805,18 @@ async function renderZones() {
     const zoneEl = pane.querySelector(`.zone[data-zone="${zone}"]`);
     zoneEl.hidden = !order.includes(zone);
   });
+  // ⚠️ ゾーンの並べ直しは「表示するゾーンの並びが order と違うとき」だけ行う（操作不具合2件_設計 §3）。
+  //    ＋/−で毎回全ゾーンを抜き差しすると、Chrome のスクロールアンカリングが
+  //    フォーカス中の＋ボタンを基準にページを上へ送ってしまう（メインで −474px を実測）。
+  //    ⚠️ hidden のゾーン（標準デッキの pantheon 等）は比較から外す。混ぜると毎回「違う」と判定して元に戻る。
+  //    ⚠️ 描画ループの中へ戻さないこと（戻すと空振りの抜き差しが毎回走り、不具合が再発する）。
+  const shown = [...pane.querySelectorAll(":scope > .zone")].map((z) => z.dataset.zone).filter((z) => order.includes(z));
+  if (shown.join() !== order.join()) {
+    // 上から order の順に並べ直す(メモは常に最後)
+    order.forEach((zone) => pane.insertBefore(pane.querySelector(`.zone[data-zone="${zone}"]`), memoBlock));
+  }
   order.forEach((zone) => {
     const zoneEl = pane.querySelector(`.zone[data-zone="${zone}"]`);
-    pane.insertBefore(zoneEl, memoBlock); // 上から order の順に並べ直す(メモは常に最後)
     const isActive = active.includes(zone);
     const grid = zoneEl.querySelector(".zone-grid");
     const rows = cards
