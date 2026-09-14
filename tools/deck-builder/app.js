@@ -705,13 +705,35 @@ function updateEditorBarH() {
   if (h > 0) document.documentElement.style.setProperty("--editor-bar-h", `${h}px`);
 }
 
+// 左ペインの実際の上端を --pane-top に入れる（操作不具合2件_設計 §4-7 案1）。
+// ⚠️ 値は「sticky の top（編集バーの高さ）」と「実際の上端」の大きい方。ページ最上部ではヘッダの下にある。
+// ⚠️ 1200px未満（スマホ表示）とエディタ非表示のときは何もしない（CSS 側も min-width の中でしか読まない）。
+// ⚠️ Math.ceil で切り上げる。四捨五入だとペインの下端が画面から 1px 未満はみ出すことがある。
+function updatePaneTop() {
+  const pane = el.searchTop;
+  if (!pane || !pane.getClientRects().length) return;
+  if (!matchMedia(`(min-width: ${PANE_MIN_WIDTH}px)`).matches) return;
+  const bar = document.querySelector("#view-editor .editor-bar");
+  const barH = bar ? Math.round(bar.getBoundingClientRect().height) : 0;
+  const top = Math.max(barH, Math.ceil(pane.getBoundingClientRect().top));
+  document.documentElement.style.setProperty("--pane-top", `${top}px`);
+}
+
 // resize でバーの折り返し行数が変わる（デッキ名が長いと 1200px 前後で 1行↔2行）。
 // rAF で1フレームに1回へ間引く。
 let editorBarRaf = 0;
 window.addEventListener("resize", () => {
   if (editorBarRaf) return;
-  editorBarRaf = requestAnimationFrame(() => { editorBarRaf = 0; updateEditorBarH(); });
+  editorBarRaf = requestAnimationFrame(() => { editorBarRaf = 0; updateEditorBarH(); updatePaneTop(); });
 });
+
+// ページのスクロールでペインの実際の上端が変わる（ヘッダが見えている間だけ）。
+// resize と同じく rAF で1フレームに1回へ間引く（操作不具合2件_設計 §4-7 案1）。
+let paneTopRaf = 0;
+window.addEventListener("scroll", () => {
+  if (paneTopRaf) return;
+  paneTopRaf = requestAnimationFrame(() => { paneTopRaf = 0; updatePaneTop(); });
+}, { passive: true });
 
 function renderEditorBar() {
   const d = deckData.deck;
@@ -726,6 +748,8 @@ function renderEditorBar() {
   // ⚠️ 呼び出し側ではなくここで測る。renderEditorBar() を呼ぶ経路（openEditor／デッキ名変更／
   //    公開切替／フォーマット変更）が増えても、--editor-bar-h の更新漏れが起きないようにする。
   updateEditorBarH();
+  // バーの高さが変わると sticky の上端（＝ペインの実際の上端）も変わる（操作不具合2件_設計 §4-7 案1）
+  updatePaneTop();
 }
 
 // ゾーン内の並び順: 属性順 → 英名アルファベット順。
