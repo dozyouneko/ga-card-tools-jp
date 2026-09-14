@@ -790,14 +790,19 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
     border-bottom: none; border-right: 1px solid var(--border);
   }
   /* ⭐ F1: 絞り込み一式だけがスクロールする。padding/gap は旧 #search-top の値をここへ移した
-     （下 12px は旧 .row-actions の上の gap のぶん）。
-     ⭐ scroll-padding-bottom は要らない——ボタン行はスクロール領域に重ならないので、
-        Tab で辿ったチップがボタン行の裏に隠れる余地が無い（操作不具合2件_設計 §4-7）。 */
+     （下 12px は旧 .row-actions の上の gap のぶん）。 */
   #search-top > .pane-scroll {
     display: flex; flex-direction: column; gap: 12px;
     flex: 1 1 auto; min-height: 0;
     overflow-y: auto;
     padding: 14px 16px 12px;
+    /* ⚠️ 0.3 で追加（D5 を覆した）。チップのフォーカスは中の 0×0 の <input> に当たるので、
+       ブラウザは「その点」だけを画面内に入れ、チップの下半分がこの箱の下端で切れる
+       （実測: 157種を Tab で辿ると ANIMAL の下 9px が切れた）。下端から 2rem を「見えていない」扱いにして
+       チップ全体が入るまで送らせる。⭐ 値の根拠: <input> はチップの縦中央にあるので、切れる量は最大で
+       チップの高さの半分＋フォーカスリング（1行のチップ 34px なら約 20px）。2rem=32px は2行に折り返した
+       チップ（約 58px）まで覆う。 */
+    scroll-padding-bottom: 2rem;
   }
   /* ペインの中は縦1列 */
   #search-top .row { flex-direction: column; align-items: stretch; }
