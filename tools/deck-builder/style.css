@@ -328,6 +328,40 @@ img.champ-thumb-img { display: block; }
 .modal-close:hover { color: var(--text); }
 .modal-body h2 { margin: 0 0 4px; font-size: 1.05rem; }
 .result-count { margin: 0 0 14px; font-size: .8rem; color: var(--muted); }
+
+/* ---------- 検索タブの条件の箱（検索結果のタブ化_設計 §6・T3） ----------
+   ⚠️ ⭐ 丸ピル（「選択中の条件」と同じ見た目）にしないこと。375px の最悪ケース（8項目）で
+      箱だけが 470px になり、結果のタイルが 583px まで押し下がった（モック説明 §4-2 の実測）。
+      ⭐ 2列の表（項目名｜値）＋4項目超で畳む形が、その実測でユーザーが選んだ形。
+   ⚠️ 新しい @media を足さないこと（min-width を足すと npm run validate の検査② が exit 1）。
+      寸法は 375px でも成り立つ値だけを使い、既存の @media (max-width: 620px) に相乗りする。 */
+.cond-box {
+  margin: 0 0 12px; padding: 9px 11px;
+  border: 1px solid var(--accent); border-radius: 10px;
+  background: rgba(217, 164, 65, .08);
+}
+.cond-box[hidden] { display: none; } /* ⚠️ UA の [hidden] が効かなくなる将来の display 指定への保険 */
+.cond-title { margin: 0 0 7px; font-size: .74rem; font-weight: 700; letter-spacing: .04em; color: var(--muted); }
+/* 1列目は項目名（折り返さない）、2列目が値。⚠️ minmax(0,1fr) が無いと長い値で横あふれする */
+.cond-list {
+  display: grid; grid-template-columns: max-content minmax(0, 1fr);
+  gap: 3px 12px; margin: 0; font-size: .8rem; line-height: 1.45;
+}
+.cond-list dt { color: var(--muted); font-size: .74rem; white-space: nowrap; }
+.cond-list dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
+.cond-list .cond-none { color: var(--muted); }
+/* 畳んだ状態＝先頭3項目だけ見せる。1項目が <dt>+<dd> の2要素なので 3*2+1 = 7 番目から隠す。
+   ⚠️ ⭐ この 7 は app.js の COND_FOLD_SHOW(=3) と必ず同時に動かす（片方だけ変えると
+      「▾ すべて表示（ほか N 項目）」の N と実際に隠れている行数がずれる＝無言の食い違い）。 */
+.cond-box.is-folded .cond-list > :nth-child(n+7) { display: none; }
+.cond-more {
+  margin-top: 6px; padding: 2px 0;
+  font: inherit; font-size: .76rem; color: var(--accent);
+  background: transparent; border: none; cursor: pointer;
+}
+.cond-more[hidden] { display: none; }
+.cond-more:hover { text-decoration: underline; }
+.cond-more:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; border-radius: 4px; }
 /* 並び替え(名前順/昇順)。⚠️ 置き場は結果ダイアログではなく検索パネル(#search-top)の中
    （左ペイン化_設計 §5）。1200px以上のペイン内での並べ方は末尾のメディアクエリにある。 */
 .result-sort { display: flex; align-items: center; gap: 8px; margin: 6px 0 8px; }

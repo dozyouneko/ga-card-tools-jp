@@ -108,6 +108,11 @@ const el = {
   edTabsScroll: $("ed-tabs-scroll"),
   resultModal: $("result-modal"),
   resultTitle: $("result-title"),
+  // そのタブの検索条件の箱（設計 §6・T3）。中身は renderCondBox() が作る
+  resultCond: $("result-cond"),
+  resultCondTitle: $("result-cond-title"),
+  resultCondList: $("result-cond-list"),
+  resultCondMore: $("result-cond-more"),
   resultCount: $("result-count"),
   resultGrid: $("result-grid"),
   resultMore: $("result-more"),
@@ -656,10 +661,13 @@ function resetSearchForm() {
 // 昇順・降順ボタンの状態。⚠️ dataset.dir と表示文言を必ず一緒に書く（片方だけ書くと
 // 「▲ 昇順と出ているのに DESC で検索する」という無言のずれになる）。
 // リセット・タブの条件復元（applyCondToForm）・ボタン自身のクリックの3か所から呼ぶ
+// ⚠️ 文言はここ1か所。条件の箱の「並び」の行（condSortText）も同じ関数を通す
+//    （別々に書くと「ボタンは▲昇順・箱は▼降順」という食い違いが無言で入る）
+const orderLabel = (dir) => (dir === "DESC" ? "▼ 降順" : "▲ 昇順");
 function setSearchOrder(dir) {
   const next = dir === "DESC" ? "DESC" : "ASC";
   el.sOrder.dataset.dir = next;
-  el.sOrder.textContent = next === "ASC" ? "▲ 昇順" : "▼ 降順";
+  el.sOrder.textContent = orderLabel(next);
 }
 
 // 読み込み中に前回開いていたデッキの内容が見えないよう、編集ビューを空にする
@@ -1499,6 +1507,104 @@ function condEls(cond) {
   };
 }
 
+// ---------- 条件の箱（設計 §6・T3） ----------
+// ⭐ 「検索N の条件」＋2列の表（項目名｜値）。⚠️ 丸ピルにはしない（375px で結果が 583px まで
+//    押し下がった＝モック説明 §4-2 の実測）。畳みの閾値は style.css の :nth-child(n+7) と対。
+const COND_FOLD_AT = 4;   // ⭐ これを「超えたら」畳む（＝4項目までは畳まない・設計 §6）
+const COND_FOLD_SHOW = 3; // 畳んだときに見せる項目数。⚠️ style.css の n+7 は 3*2+1（dt+dd で1項目）
+
+// チップの日本語名を引く。⚠️ 辞書を持たない——チップ自身（fillChips が作った
+// <input value=KEY><span>日本語</span><em>KEY</em>）から読むので、meta の追加に自動で追従する。
+// ⚠️ 未知の値（保存が古い・選択肢が消えた）はキーのまま出す（fail-open）。
+function chipJpLabel(groupEl, value) {
+  if (!groupEl) return String(value);
+  const chips = Array.from(groupEl.querySelectorAll('.chip input[type="checkbox"]'));
+  const input = chips.find((i) => String(i.value).toUpperCase() === String(value).toUpperCase());
+  const chip = input && input.closest(".chip");
+  const jp = chip && chip.querySelector("span") ? chip.querySelector("span").textContent.trim() : "";
+  return jp || String(value);
+}
+const optionText = (select, value) => {
+  const opt = Array.from(select.options).find((o) => o.value === value);
+  return opt ? opt.textContent.trim() : "";
+};
+
+// 「並び」の行。⚠️ 並び替えの表示名も辞書を持たず <select> の選択肢から引く（選択肢を足した日に
+//    ここだけ英字のまま残るのを防ぐ）。昇降順の文言は orderLabel() と共通。
+function condSortText(cond) {
+  const p = new URLSearchParams(cond || "");
+  const sort = p.get("sort") || "name";
+  return `${optionText(el.sSort, sort) || sort} ${orderLabel(p.get("order"))}`;
+}
+
+// 条件を [項目名, 値] の並びにする。⭐ 「並び」は常に最後の行（設計 §6）。
+// ⚠️ 絞り込みが1つも無いときだけ「絞り込み｜なし（全カード）」を先頭に置く。
+function condRows(cond) {
+  const p = new URLSearchParams(cond || "");
+  const rows = [];
+  if (p.get("q")) rows.push(["カード名", `「${p.get("q")}」`]);
+  if (p.get("qtext")) rows.push(["効果", `「${p.get("qtext")}」`]);
+  condGroups().forEach(([name, g]) => {
+    const list = p.getAll(name);
+    if (!list.length) return;
+    const and = p.get(name + "_op") === "AND";
+    const flabel = g.querySelector(".flabel");
+    const label = (flabel ? flabel.textContent.trim() : name)
+      // ⭐ 2つ以上のときだけ「（いずれか）／（すべて）」を添える（1つなら AND/OR に差が無い）
+      + (list.length > 1 ? (and ? "（すべて）" : "（いずれか）") : "");
+    rows.push([label, list.map((v) => chipJpLabel(g, v)).join(and ? " かつ " : "・")]);
+  });
+  // フォーマット・エキスパンションは <select> の選択肢の表示名（設計 §6）。
+  // ⚠️ エキスパンションの保存は prefix なので、添字へ引き直してから選択肢を探す（§5-2）
+  if (p.get("format")) rows.push(["フォーマット", optionText(el.sFormat, p.get("format")) || p.get("format")]);
+  if (p.get("set")) {
+    const idx = GA_CARD_SEARCH.setIndexOf(p.get("set"));
+    rows.push(["エキスパンション", (idx && optionText(el.sSet, idx)) || p.get("set")]);
+  }
+  if (!rows.length) rows.push(["絞り込み", "なし（全カード）"]);
+  rows.push(["並び", condSortText(cond)]);
+  return rows;
+}
+
+// タブの title（マウスオーバーの説明）に入れる1行要約（設計 §6）
+const condSummary = (cond) => condRows(cond).map(([k, v]) => `${k}: ${v}`).join(" / ");
+
+// 結果パネルの先頭に、いまパネルを持っているタブ（activeSearchTab）の条件を描く。
+// ⚠️ 持ち主がいなければ箱ごと隠す（固定タブを見ている間・全部閉じた後）。
+// ⚠️ ⭐ 呼び出しは syncSearchTabSelection() の1か所に集約している（そこを通らずに
+//    条件・持ち主が変わる経路を作らないこと）。
+function renderCondBox() {
+  const tab = activeSearchTab;
+  el.resultCond.hidden = !tab;
+  if (!tab) return;
+  el.resultCondTitle.textContent = `検索${tab.n} の条件`;
+  const rows = condRows(tab.cond);
+  el.resultCondList.textContent = "";
+  rows.forEach(([k, v]) => {
+    const dt = document.createElement("dt");
+    dt.textContent = k;
+    const dd = document.createElement("dd");
+    dd.textContent = v;
+    if (k === "絞り込み") dd.className = "cond-none";
+    el.resultCondList.append(dt, dd);
+  });
+  const foldable = rows.length > COND_FOLD_AT;
+  // ⭐ 開閉はタブごとに覚える（tab.open。localStorage にも入る＝T2 が枠を作ってある・§5-1）
+  el.resultCond.classList.toggle("is-folded", foldable && !tab.open);
+  el.resultCondMore.hidden = !foldable;
+  el.resultCondMore.setAttribute("aria-expanded", String(foldable && !!tab.open));
+  el.resultCondMore.textContent = tab.open
+    ? "▴ 畳む"
+    : `▾ すべて表示（ほか ${rows.length - COND_FOLD_SHOW} 項目）`;
+}
+
+el.resultCondMore.addEventListener("click", () => {
+  if (!activeSearchTab) return;
+  activeSearchTab.open = !activeSearchTab.open;
+  renderCondBox();
+  saveSearchTabs(); // ⭐ 開閉も保存する（リロードで戻る・§5-1）
+});
+
 // タブ1つ分の検索コントローラ。⚠️ els は作った時点の条件で固定される（それが目的）。
 // 条件が変わったとき（並び替えのその場更新）は作り直す＝ tab.ctl を差し替える。
 // ⚠️ 差し替え前のコントローラの結果が後から届くことがあるので、必ず tab.ctl === ctl を見る。
@@ -1597,11 +1703,18 @@ function syncSearchTabSelection() {
     const on = tab === selectedSearchTab;
     if (tab.btn) tab.btn.setAttribute("aria-selected", String(on));
     if (tab.item) tab.item.classList.toggle("on", on);
+    // タブの title は条件の1行要約（設計 §6）。⚠️ 作るときではなくここで書く——
+    //    並び替えのその場更新（updateActiveSearchTab）で cond が変わってもタブは作り直さないため
+    if (tab.btn) tab.btn.title = condSummary(tab.cond);
   });
   if (editorTabs) {
     if (selectedSearchTab) editorTabs.deselect();
     else editorTabs.syncFixed();
   }
+  // ⭐ 条件の箱もここで描き直す（設計 §6・T3）。⚠️ この関数は タブの増減（renderSearchTabs）・
+  //    タブの切り替え（selectSearchTab）・並び替えのその場更新（updateActiveSearchTab）の
+  //    すべてが通る唯一の合流点なので、箱の描き直しを各所に散らさない。
+  renderCondBox();
 }
 
 // 続きがある側の端をぼかす（設計 §4-3）

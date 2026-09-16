@@ -253,6 +253,15 @@
   <div class="modal-body" role="dialog" aria-modal="true" aria-label="検索結果">
     <button class="modal-close" type="button" data-close aria-label="閉じる">×</button>
     <h2 id="result-title">検索結果</h2>
+    <!-- ⭐ そのタブの検索条件（検索結果のタブ化_設計 §6・T3）。
+         ⚠️ 置き場は「結果パネルの先頭（件数の上）」。T4 で結果パネルごと右列へ移すので、
+            ここに置いておけばパネルの中身の並びは変えずに移設できる。
+         ⚠️ 中身は app.js の renderCondBox() が組み立てる（丸ピルにはしない＝設計 §6）。 -->
+    <div class="cond-box" id="result-cond" hidden>
+      <p class="cond-title" id="result-cond-title"></p>
+      <dl class="cond-list" id="result-cond-list"></dl>
+      <button class="cond-more" type="button" id="result-cond-more" aria-expanded="false" hidden></button>
+    </div>
     <p class="result-count" id="result-count"></p>
     <div class="resultgrid" id="result-grid"></div>
     <div class="result-more-wrap"><button class="btn" id="result-more" hidden>もっと見る</button></div>
