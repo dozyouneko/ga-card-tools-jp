@@ -518,9 +518,12 @@
       newSearch();
     };
     // 「選択中の条件」の✕・すべて解除（左ペイン化の単位E）。
-    // ⭐ 連動(b)なら表示中の検索タブを更新する（今のモーダルを開いているときと同じ）。独立(a)なら左ペインの下書きを直すだけ
+    // ⭐ ユーザー決定（2026-09-16）: 連動(b)でも【再検索しない】。✕は「左ペインの編集」の一種で、
+    //    検索を走らせるのは 🔍検索 / Enter だけ（例外は並び替え・昇降順＝表示中タブをその場で更新）。
+    //    ⭐ チップを押したとき（U6=しない）と同じ扱いになり、規則が1本になる。
+    //    ⚠️ その結果、左ペインと「表示中タブの条件の箱」は食い違ったまま残る（＝注記は出さない。同決定）。
     // eslint-disable-next-line no-global-assign
-    rerunIfResultOpen = function mockRerun() { if (OPT.link === "b" && activeTab()) rerunActive(readForm()); };
+    rerunIfResultOpen = function mockRerun() { /* 何もしない（上記の決定） */ };
     // ⚠️ 結果モーダルはもう開かない（念のため）
     const origOpenModal = openModal;
     openModal = function mockOpenModal(m) { if (m === el.resultModal) return; origOpenModal(m); };
