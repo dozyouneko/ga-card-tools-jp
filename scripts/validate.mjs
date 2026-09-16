@@ -779,7 +779,11 @@ const ROOT_OWNERS = [
 //   matchMedia("(max-width:640px)") を持つが、あれは表の列を畳むためのもので絞り込み導線とは
 //   別の規約（マーカーを要求する筋合いが無い）。⭐ 一方でデッキ構築は走査対象に含めてあるので、
 //   将来デッキ構築に JS 側の帯を足したら、覚えていなくてもマーカーが要求される。
-// ⚠ タブ化で ①の非対称が消えたら、検査①も一緒に消す（動いていない規約を残さない・設計書 §13）。
+// ⚠ ⭐ 2026-09-16 に①の期待値が「0ファイル（どのページも渡さない）」に変わった
+//   （検索結果のタブ化_設計 §8-5・§8-5-1・§8-6）。デッキ構築の✕は再検索しなくなったので、
+//   渡してよいページが無くなった＝非対称そのものが消えた。
+//   ⚠️ ⭐ それでも検査は消さない——消すと後から誰かが渡したときに止まらなくなる
+//   （＝1回の✕でAPI検索が2回走る状態に無言で戻る）。⭐ 許可リストが空でも検査の目的は変わらない。
 const UI_PAGES = [
   { name: "トップ", js: "app.js", css: "style.css" },
   { name: "デッキ構築", js: "tools/deck-builder/app.js", css: "tools/deck-builder/style.css" },
@@ -789,7 +793,9 @@ const UI_PAGES = [
 const REMOVEONE_ROOTS = ["app.js", "shared/js", "tools", "functions"];
 const REMOVEONE_EXCLUDE = ["shared/vendor"];
 // ⚠ 増やすときは「そのページの群側 onChange が再検索しないこと」を実測してから足す。
-const REMOVEONE_ALLOW = ["tools/deck-builder/app.js"];
+// ⭐ 2026-09-16〜 空（どのページも渡さない）。デッキ構築の✕は「何も起きない」が正になったため
+//   （検索結果のタブ化_設計 §2-3 のユーザー決定 → §8-5・§8-6）。
+const REMOVEONE_ALLOW = [];
 // ③のマーカー。⚠ この文字列は style.css 側にも同じ形で書いてある（片方だけ変えると exit 1）。
 const MOBILE_BAND_MARKER = "MOBILE-BAND:START";
 {
@@ -985,7 +991,7 @@ const MOBILE_BAND_MARKER = "MOBILE-BAND:START";
     console.error(`    検査を消して通さないこと。将来2つ目の min-width が本当に必要になったら、`);
     console.error(`    scripts/validate.mjs の UI_PAGES / REMOVEONE_ALLOW に「なぜ要るのか」を書いて足してください`);
   } else {
-    console.log(`onRemoveOne wiring in sync — 渡しているのは ${passers.length}ファイル（${passers.join(" / ")}）／${jsTargets.length}ファイル走査`);
+    console.log(`onRemoveOne wiring in sync — 渡しているのは ${passers.length}ファイル（${passers.join(" / ") || "なし"}）／${jsTargets.length}ファイル走査`);
     console.log(`pane threshold in sync — ${paneLog.length}ページ（${paneLog.join(" / ")}）`);
     console.log(`mobile band marker in sync — ${bandLog.length}組（${bandLog.join(" / ")}）`);
   }

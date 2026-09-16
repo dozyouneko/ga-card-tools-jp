@@ -613,34 +613,23 @@ const hasOption = (sel, v) => Array.from(sel.options).some((o) => o.value === v)
 // 選択中の絞り込み条件（左ペイン化_設計 §7-3）。実装はトップと共用の
 // shared/js/card-search.js（createSelectedFilters）。⚠️ ここへコピーしないこと（二重定義になる）。
 // ⚠️ 出す・出さないは style.css（既定 display:none、1200px以上でだけ表示）が決める。
+// ⚠️ ⭐ 「選択中の条件」の✕・すべて解除では**何も起きない**（再検索しない）。
+//    2026-09-16 のユーザー決定（検索結果のタブ化_設計 §2-3）で、タブを増やすのは
+//    🔍検索 と Enter だけ・並び替えだけが表示中のタブをその場で更新する、と1本に決まった。
+// ⚠️ ⭐ 「無言の劣化になる」という旧コメントの懸念はここでは当たらない——
+//    ✕を押すとチップが消えてバッジが減るという視覚的フィードバックがその場にある（§8-5）。
+// ⚠️ ⭐ `onRemoveOne` は渡さない（§8-5・§8-6）。渡すページが 0 になったので、
+//    scripts/validate.mjs の検査①の許可リストも空にしてある（⚠️ **同じコミットで直す**。
+//    片方だけだと npm run validate が exit 1）。⚠️ 検査そのものは消さないこと。
 const selectedFilters = GA_CARD_SEARCH.createSelectedFilters({
   container: el.sSelectedFilters,
   list: el.sSelectedFiltersList,
   groups: filterGroups,
   // 「すべて解除」で全群を空にしたあとの1回（左ペイン化_設計 §11-4）。
   // ⚠️ チップ本体を押したときは通らない——そちらは群側の onChange（updateFilterBadge のみ）で、
-  //    「チップを変えても検索しない」既存挙動（Q5）を据え置いている
-  onChange: () => { updateFilterBadge(); rerunIfResultOpen(); },
-  // 個別の✕（左ペイン化_設計 §11）。群側の onChange は updateFilterBadge しかしないので、
-  // 再検索はここで足す。⚠️ トップは群側が既に再検索するため onRemoveOne を渡していない
-  onRemoveOne: () => rerunIfResultOpen(),
+  //    「チップを変えても検索しない」既存挙動（Q5・U6）を据え置いている
+  onChange: () => { updateFilterBadge(); },
 });
-
-// 「選択中の条件」から条件を外したときの再検索（左ペイン化_設計 §11-6）。
-// ⚠️ 結果ダイアログが閉じているときに runSearch(true) を呼ぶと、searchCtl の onStart が
-//    openModal(el.resultModal) を呼ぶ＝「✕を押すたびに結果モーダルが開く」。
-//    それは設計で意図的に外した劣化そのものなので、開いているときだけ更新する。
-// ⚠️ これは並び替え（sSort/sOrder）で外したガードを戻すものではない。並び替えは触っても
-//    画面が何も変わらない＝無言なのでガードが劣化だったが、✕はチップが消えてバッジが減る
-//    という視覚的フィードバックがその場にあるため無言にならない。
-// ⚠️ ⭐ この関数は T5（設計 §8-5）で関数ごと削除される。2026-09-16 のユーザー決定で
-//    「選択中の条件」の✕・すべて解除では再検索しないことになったため。
-//    ⭐ T1・T2 の周では既存挙動（開いている結果を作り直す）を据え置く。ただし
-//    「✕を押すたびに新しいタブが増える」のは明らかな劣化なので、タブは増やさず
-//    表示中のタブをその場で更新する（並び替えと同じ経路）。
-function rerunIfResultOpen() {
-  if (!el.resultModal.hidden) updateActiveSearchTab();
-}
 
 // スマホでは絞り込み全体が畳まれるため、畳んだ状態でも選択件数が分かるようトグルへバッジを出す。
 // ⚠️ 選択件数が変わる経路はここに集まっている（チップ変更・リセット・デッキ切替）。
@@ -1660,6 +1649,28 @@ function addSearchTab(cond) {
   return tab;
 }
 
+// ⭐ タイルの「n枚」バッジと追加行を、いまのデッキの中身で描き直す（設計 §5-1-1・V7）。
+// ⚠️ ⭐ 描き直すのは **バッジと追加行の2つだけ**。画像・🎨（版）・🔄（表裏）・dataset.artUrl は
+//    触らない——タイルを作り直すと、ユーザーが 🎨 で選んだ版が勝手に戻る（別の無言の劣化・V7-c）。
+// ⚠️ ⭐ ネットワークを発生させない。`getCard()` ではなくキャッシュを直接見て、
+//    未取得の slug はそのタイルだけ飛ばす（fail-open。1枚の失敗で帯ごと壊さない）。
+// ⚠️ ⭐ 呼ぶのは selectSearchTab() から「毎回」。⚠️ restoreTiles() の直後だけに置くと、
+//    「検索1 → 🃏デッキでゾーンの − → 検索1」の経路（activeSearchTab が変わらない）で
+//    古い枚数が残る（設計 §5-1-1 の「2つ目の経路」・V7-b）。
+function refreshResultTiles() {
+  if (!deckData || !Array.isArray(deckData.cards)) return;
+  Array.from(el.resultGrid.querySelectorAll(".result")).forEach((item) => {
+    const slug = item.dataset.slug;
+    if (!slug) return;
+    updateResultBadge(item, slug); // 「n枚」バッジ（deckData だけで決まる）
+    if (!cardCache.has(slug)) return; // ⚠️ ここで取得しない（キャッシュに無ければ追加行は据え置く）
+    cardCache.get(slug).then((card) => {
+      // ⚠️ 解決を待つ間にタブが切り替わっていたら触らない（退避した holder の中身は次回描き直す）
+      if (card && item.isConnected) renderAddRow(item, card);
+    }).catch(() => { /* fail-open: その1枚だけ描き直さない */ });
+  });
+}
+
 // 表示していないタブのタイルはDOM外の holder に退避する（切り替えで再検索しないため・§5-1）
 function stashTiles(tab) {
   if (!tab || !tab.holder) return;
@@ -1683,6 +1694,10 @@ function selectSearchTab(tab) {
   selectedSearchTab = tab;
   syncSearchTabSelection();
   applyCondToForm(tab.cond); // U1（連動）
+  // ⭐ タブを表示するたびに、タイルの「n枚」バッジと追加行をいまのデッキの中身で描き直す
+  //    （設計 §5-1-1・V7 / V7-b）。⚠️ 上の restoreTiles() の中でも if の外でもなく、
+  //    「毎回ここを通る」位置に置くこと（同じタブを開き直す経路を落とさないため）。
+  refreshResultTiles();
   el.resultCount.textContent = tab.statusText || "";
   el.resultMore.hidden = !tab.hasMore;
   el.resultMore.disabled = false;
@@ -1692,18 +1707,26 @@ function selectSearchTab(tab) {
   if (!tab.loaded) tab.ctl.run(true);
 }
 
-// × で閉じる。表示中のタブを閉じたら 右隣 → 無ければ左隣 → 無ければデッキタブ（設計 §4-2）
+// × で閉じる。⭐ **「表示中のタブ」＝帯で aria-selected="true" のタブ**（`selectedSearchTab`。設計 §4-2-1）。
+//   - 表示中の検索タブを × … 右隣 → 無ければ左隣 → 無ければデッキタブ（§4-2）
+//   - ⚠️ ⭐ 固定タブ（🃏/📊）を見ている間に裏の検索タブを × … **見ている面を変えない**
+//     （結果パネルを開かない・ほかの検索タブへ移らない・**最後の1つでもデッキタブへ飛ばさない**）。
+//     ⭐ 裏のタブを閉じる操作が、見ている面を奪ってはいけない（ブラウザのタブと同じ原則）。
+//     ⚠️ T4 で結果パネルが右列へ移ると、ここを間違えていると「デッキを見ていたのに
+//        検索結果の面へ飛ばされる」になる（レビュー S1・V3-b）。
 function closeSearchTab(tab) {
   const i = searchTabs.indexOf(tab);
   if (i < 0) return;
-  const wasActive = tab === activeSearchTab;
+  const wasSelected = tab === selectedSearchTab; // ⭐ これが「表示中」の定義（§4-2-1）
+  const wasActive = tab === activeSearchTab;     // 結果パネルの持ち主か（見ている面とは別）
   searchTabs.splice(i, 1);
+  // 持ち主だったタブのタイルは捨てる。⚠️ 見ている面が固定タブなら、それ以上は何もしない
   if (wasActive) { activeSearchTab = null; el.resultGrid.textContent = ""; }
-  if (tab === selectedSearchTab) selectedSearchTab = null;
+  if (wasSelected) selectedSearchTab = null;
   if (!searchTabs.length) nextSearchN = 1; // U3: 全部閉じたら「検索1」に戻す
-  const next = wasActive ? (searchTabs[i] || searchTabs[i - 1] || null) : null;
+  const next = wasSelected ? (searchTabs[i] || searchTabs[i - 1] || null) : null;
   renderSearchTabs();
-  if (wasActive) {
+  if (wasSelected) {
     if (next) { selectSearchTab(next); return; }
     closeModal(el.resultModal);
     if (editorTabs) editorTabs.reset(); // 行き先が無ければデッキタブ
