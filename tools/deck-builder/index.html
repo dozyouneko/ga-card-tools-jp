@@ -163,9 +163,18 @@
   <!-- フォーマット逸脱の警告(#4)。タブ帯の直上に置き、デッキ/統計どちらのタブでも見えるようにする -->
   <div class="deck-warn" id="deck-warn" role="status" aria-live="polite" hidden></div>
 
+  <!-- タブ帯（検索結果のタブ化_設計 §4-1）。
+       🃏 デッキ / 📊 統計 は固定（× なし）で、その右に区切り線と「検索N」タブの箱が並ぶ。
+       ⚠️ 横に送るのは .tabs-scroll だけ（固定2つは動かさない・設計 §4-3）。
+       ⚠️ 中身は app.js の renderSearchTabs() が組み立てる。ここに静的なタブを書かない。
+       ⚠️ ⭐ 閲覧専用画面（#view-deck）の帯には足さない——検索が無いので検索タブが増えない。
+          .tabs-sep / .tabs-scroll は要素が無ければ何も描かないため、
+          .deck-tabs の既存CSSを分岐させずに済む（設計 §4-4）。 -->
   <div class="deck-tabs" role="tablist" aria-label="デッキ表示切替">
     <button role="tab" id="ed-tab-deck" aria-selected="true" aria-controls="ed-pane-deck">🃏 デッキ</button>
     <button role="tab" id="ed-tab-stats" aria-selected="false" aria-controls="ed-pane-stats">📊 統計</button>
+    <span class="tabs-sep" id="ed-tabs-sep" aria-hidden="true" hidden></span>
+    <div class="tabs-scroll" id="ed-tabs-scroll"></div>
   </div>
 
   <!-- ゾーンの並び順はデッキのフォーマットに応じて app.js が組み替える(#4) -->

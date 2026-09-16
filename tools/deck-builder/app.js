@@ -103,6 +103,9 @@ const el = {
   sFilterBadge: $("s-filter-badge"),
   sSelectedFilters: $("s-selected-filters"),
   sSelectedFiltersList: $("s-selected-filters-list"),
+  // 検索結果のタブ帯（検索結果のタブ化_設計 §4-1）。中身は renderSearchTabs() が作る
+  edTabsSep: $("ed-tabs-sep"),
+  edTabsScroll: $("ed-tabs-scroll"),
   resultModal: $("result-modal"),
   resultTitle: $("result-title"),
   resultCount: $("result-count"),
@@ -594,9 +597,18 @@ function endSave() {
 const PANE_MIN_WIDTH = 1200;
 
 // 複数選択(AND/OR)の絞り込みグループ。中身は init() の fillChips() が構築する(#31)
-// ⚠️ ここに足すとバッジ集計・リセット・「選択中の条件」・アコーディオンが同時に対応する。
-// 足し忘れると畳んだときのバッジが数え落とし、リセットで選択が残る（左ペイン化_設計 §7-1）
-const filterGroups = () => [el.sGElement, el.sGClass, el.sGType, el.sGSubtype, el.sGRarity];
+// ⚠️ ここに足すとバッジ集計・リセット・「選択中の条件」・アコーディオン・⭐ タブの条件の
+//    スナップショット（condFromForm / applyCondToForm / condEls）が同時に対応する。
+//    足し忘れると畳んだときのバッジが数え落とし、リセットで選択が残る（左ペイン化_設計 §7-1）。
+// ⚠️ ⭐ 名前つきの1つの表から両方を作る（トップの urlGroups / filterGroups と同じ形）。
+//    2つの配列に分けて書くと、片方だけに足した日に「絞り込めるのに条件が保存されない」ずれになる。
+//    名前はトップの共有URL（#20）と同じ綴りにする＝保存したクエリ文字列の互換を保つため。
+const condGroups = () => [
+  ["element", el.sGElement], ["class", el.sGClass], ["type", el.sGType],
+  ["subtype", el.sGSubtype], ["rarity", el.sGRarity],
+];
+const filterGroups = () => condGroups().map(([, g]) => g);
+const hasOption = (sel, v) => Array.from(sel.options).some((o) => o.value === v);
 
 // 選択中の絞り込み条件（左ペイン化_設計 §7-3）。実装はトップと共用の
 // shared/js/card-search.js（createSelectedFilters）。⚠️ ここへコピーしないこと（二重定義になる）。
@@ -621,8 +633,13 @@ const selectedFilters = GA_CARD_SEARCH.createSelectedFilters({
 // ⚠️ これは並び替え（sSort/sOrder）で外したガードを戻すものではない。並び替えは触っても
 //    画面が何も変わらない＝無言なのでガードが劣化だったが、✕はチップが消えてバッジが減る
 //    という視覚的フィードバックがその場にあるため無言にならない。
+// ⚠️ ⭐ この関数は T5（設計 §8-5）で関数ごと削除される。2026-09-16 のユーザー決定で
+//    「選択中の条件」の✕・すべて解除では再検索しないことになったため。
+//    ⭐ T1・T2 の周では既存挙動（開いている結果を作り直す）を据え置く。ただし
+//    「✕を押すたびに新しいタブが増える」のは明らかな劣化なので、タブは増やさず
+//    表示中のタブをその場で更新する（並び替えと同じ経路）。
 function rerunIfResultOpen() {
-  if (!el.resultModal.hidden) runSearch(true);
+  if (!el.resultModal.hidden) updateActiveSearchTab();
 }
 
 // スマホでは絞り込み全体が畳まれるため、畳んだ状態でも選択件数が分かるようトグルへバッジを出す。
@@ -643,9 +660,17 @@ function resetSearchForm() {
   filterGroups().forEach((g) => g.reset());
   [el.sFormat, el.sSet].forEach((s) => { s.value = ""; });
   el.sSort.value = "name";
-  el.sOrder.dataset.dir = "ASC";
-  el.sOrder.textContent = "▲ 昇順";
+  setSearchOrder("ASC");
   updateFilterBadge();
+}
+
+// 昇順・降順ボタンの状態。⚠️ dataset.dir と表示文言を必ず一緒に書く（片方だけ書くと
+// 「▲ 昇順と出ているのに DESC で検索する」という無言のずれになる）。
+// リセット・タブの条件復元（applyCondToForm）・ボタン自身のクリックの3か所から呼ぶ
+function setSearchOrder(dir) {
+  const next = dir === "DESC" ? "DESC" : "ASC";
+  el.sOrder.dataset.dir = next;
+  el.sOrder.textContent = next === "ASC" ? "▲ 昇順" : "▼ 降順";
 }
 
 // 読み込み中に前回開いていたデッキの内容が見えないよう、編集ビューを空にする
@@ -653,6 +678,7 @@ function resetSearchForm() {
 function clearEditor() {
   clearTimeout(memoTimer); // 前のデッキのメモ自動保存が新しいデッキに書かれるのを防ぐ
   resetSearchForm(); // 前のデッキで入力した検索条件を持ち越さない
+  clearSearchTabs(); // 検索タブもデッキごと(U2)。⚠️ 保存は書かない(前のデッキの保存が消える)
   el.edTitle.textContent = "";
   el.edPub.hidden = true;
   el.edFormat.hidden = true;
@@ -686,6 +712,9 @@ async function openEditor(id) {
     if (editorTabs) editorTabs.reset(); // デッキ切替時は常にデッキタブから
     renderEditorBar();
     renderZones();
+    // 保存してある検索タブを復元する（①B・U4）。⚠️ renderZones の後に呼ぶ——
+    // 復元した最後のタブは再検索するので、結果タイルが deckData（枚数バッジ）を読む
+    loadSearchTabs(id);
   } catch (err) {
     if (seq !== deckSeq) return;
     setStatus(err.status === 404 ? "デッキが見つかりません。" : `読み込みに失敗しました(${err.message})`);
@@ -1392,48 +1421,399 @@ function openDetail(slug) {
 }
 
 // ---------- カード検索(編集画面) ----------
-
 // クエリ構築・日本語ローカル検索・ページングは shared/js/card-search.js に共通化。
-// カード取得はこのページのキャッシュ(getCard)を使い、結果はダイアログに描画する。
-const searchCtl = GA_CARD_SEARCH.create({
-  els: {
-    name: el.sName, text: el.sText,
-    cls: el.sGClass, element: el.sGElement, type: el.sGType, subtype: el.sGSubtype, rarity: el.sGRarity,
-    format: el.sFormat, set: el.sSet, sort: el.sSort, order: el.sOrder,
-  },
-  pageSize: 24,
-  jpPageSize: 24,
-  metaIndexUrl: "../../data/card-meta-index.json", // JP検索の取得前フィルタ用メタ索引(#27)
-  effectsUrl: TL_EFFECTS_URL, // 効果欄に日本語が入ったときだけ取得する訳データ(#22)
-  fetchCard: getCard,
-  onStart: (reset) => {
-    if (reset) {
-      el.resultGrid.innerHTML = "";
-      openModal(el.resultModal);
-    }
-    el.resultCount.textContent = "検索中…";
-    el.resultMore.disabled = true;
-  },
-  // 数値ソートは絞り込み結果を全件取ってからローカルで並べる(#44)。絞り込みなしだと
-  // 45リクエスト＝約18秒かかるため、無言で待たせず取得済みページ数を出す
-  onProgress: ({ done, total }) => {
-    el.resultCount.textContent = `読み込み中 ${done}/${total} ページ…`;
-  },
-  onResults: (cards, info) => {
-    cards.forEach((card) => { cardCache.set(card.slug, Promise.resolve(card)); });
-    appendResults(cards, info);
-    updateElementWarn(info);
-    el.resultCount.textContent = searchStatusText(info);
-    el.resultMore.hidden = !info.hasMore;
-    el.resultMore.disabled = false;
-  },
-  onError: (err) => {
-    el.resultCount.textContent = `検索に失敗しました(${err.message})`;
-    el.resultMore.disabled = false;
-  },
-});
+// カード取得はこのページのキャッシュ(getCard)を使う。
+//
+// ⭐ 検索結果は「検索タブ」ごとに持つ（検索結果のタブ化_設計 §5・§7）。タブ1つにつき
+//    GA_CARD_SEARCH.create() を1つ作り、els には左ペインの実DOMではなく
+//    「そのタブの条件を返すだけの物」（condEls）を渡す。
+// ⚠️ ⭐ els を実DOMに戻さないこと。それが P1（結果を開いたまま左ペインを書き換えて
+//    「もっと見る」を押すと、前の検索の結果に新しい条件の続きが混ざる）の原因そのもので、
+//    この差し替えだけが直し方（設計 §7・検証 V11）。
 
-function runSearch(reset) { searchCtl.run(reset); }
+const SEARCH_TAB_MAX = 5;                                       // ② 上限5（PC・スマホとも）
+const SEARCH_TABS_KEY = "ga-deckbuilder-search-tabs:v1:";       // + deckId（U2＝デッキごと）
+const SEARCH_TABS_KEEP_DECKS = 10;                              // 保存を残す最近のデッキ数（§5-2）
+
+let searchTabs = [];          // 作った順。先頭がいちばん古い（上限超えで閉じる対象）
+let activeSearchTab = null;   // 結果パネル（#result-grid・件数・もっと見る）を今持っているタブ
+let selectedSearchTab = null; // タブ帯で aria-selected="true" の検索タブ（固定タブ選択中は null）
+let nextSearchN = 1;          // 「検索N」の N。② 上限を超えても続き、U3 全部閉じたら 1 に戻す
+let searchTabSeq = 0;         // DOM id 用の通し番号（n とは別。n は閉じても再利用しうる）
+let searchTabsDeckId = null;  // 保存キーのデッキ。⚠️ null の間は保存しない（デッキ未読込）
+
+// 条件のスナップショット（§5-2）。⭐ 形式はトップの共有URL（#20・queryString()）と同じ
+// クエリ文字列にする。⚠️ ⭐ エキスパンションは <select> の添字ではなく prefix で持つ
+// （setKeyOf）——meta.sets の並びが変わっても別の版を指さないため（#20 と同じ理由）。
+// ⚠️ 絞り込みグループの表（condGroups）は「デッキ編集」節の filterGroups と同じ1つの出所。
+function condFromForm() {
+  const p = new URLSearchParams();
+  if (el.sName.value.trim()) p.set("q", el.sName.value.trim());
+  if (el.sText.value.trim()) p.set("qtext", el.sText.value.trim());
+  condGroups().forEach(([name, g]) => {
+    const list = g.getValues();
+    if (!list.length) return;
+    list.forEach((v) => p.append(name, v)); // 同名パラメータの繰り返し（buildQuery と同じ規約）
+    if (g.getMode() === "AND") p.set(name + "_op", "AND"); // ORは既定なので書かない
+  });
+  if (el.sFormat.value) p.set("format", el.sFormat.value);
+  const setKey = GA_CARD_SEARCH.setKeyOf(el.sSet.value);
+  if (setKey) p.set("set", setKey);
+  if (el.sSort.value && el.sSort.value !== "name") p.set("sort", el.sSort.value);
+  if ((el.sOrder.dataset.dir || "ASC") === "DESC") p.set("order", "DESC");
+  return p.toString();
+}
+
+// U1（連動）: タブを開いたら左ペインをそのタブの条件に戻す。
+// ⚠️ 選択肢に無い値・未知のパラメータは黙って無視する（applyUrlQuery と同じ方針）。
+function applyCondToForm(cond) {
+  const p = new URLSearchParams(cond || "");
+  resetSearchForm(); // 前のタブの条件を残さない（updateFilterBadge もここで走る）
+  el.sName.value = p.get("q") || "";
+  el.sText.value = p.get("qtext") || "";
+  condGroups().forEach(([name, g]) => {
+    const list = p.getAll(name);
+    if (list.length) g.setValues(list);
+    g.setMode(p.get(name + "_op") || "OR");
+    if (g.getValues().length) g.open = true; // 何で絞られているか一目で分かるよう開く
+  });
+  const format = p.get("format");
+  if (format && hasOption(el.sFormat, format)) el.sFormat.value = format;
+  const setIdx = GA_CARD_SEARCH.setIndexOf(p.get("set"));
+  if (setIdx) el.sSet.value = setIdx;
+  const sort = (p.get("sort") || "").toLowerCase();
+  if (sort && hasOption(el.sSort, sort)) el.sSort.value = sort;
+  setSearchOrder((p.get("order") || "").toUpperCase());
+  updateFilterBadge();
+}
+
+// 条件のスナップショットを card-search.js の els の形にする（設計 §7）。
+// ⚠️ 共有モジュールが els に求めるのは value / dataset.dir / getValues() / getMode() だけ。
+//    ⭐ 値の読み出しにしか使われていないので shared/js/card-search.js は無改修で足りる。
+// ⚠️ els.set.value は meta.sets の「添字」（setPrefixes が添字を期待する）。保存は prefix なので
+//    ここで setIndexOf() で引き直す。
+function condEls(cond) {
+  const p = new URLSearchParams(cond || "");
+  const group = (name) => ({
+    getValues: () => p.getAll(name),
+    getMode: () => (p.get(name + "_op") === "AND" ? "AND" : "OR"),
+  });
+  return {
+    name: { value: p.get("q") || "" },
+    text: { value: p.get("qtext") || "" },
+    cls: group("class"), element: group("element"), type: group("type"),
+    subtype: group("subtype"), rarity: group("rarity"),
+    format: { value: p.get("format") || "" },
+    set: { value: GA_CARD_SEARCH.setIndexOf(p.get("set")) },
+    sort: { value: p.get("sort") || "name" },
+    order: { dataset: { dir: p.get("order") === "DESC" ? "DESC" : "ASC" } },
+  };
+}
+
+// タブ1つ分の検索コントローラ。⚠️ els は作った時点の条件で固定される（それが目的）。
+// 条件が変わったとき（並び替えのその場更新）は作り直す＝ tab.ctl を差し替える。
+// ⚠️ 差し替え前のコントローラの結果が後から届くことがあるので、必ず tab.ctl === ctl を見る。
+function makeSearchCtl(tab) {
+  let ctl = null;
+  // 結果パネルは1組しかないので、描画してよいのは「今パネルを持っているタブ」だけ。
+  // ⚠️ 表示中でなくなっていたら破棄して loaded を落とす（次に開いたときに取り直す）。
+  //    ⭐ こうしておくと searchStatusText()/appendResults() の描画先を引数化しなくて済む
+  //       （＝設計 §8-2・§8-3 は T5 のまま触らない）。
+  const mine = () => tab.ctl === ctl && tab === activeSearchTab;
+  ctl = GA_CARD_SEARCH.create({
+    els: condEls(tab.cond),
+    pageSize: 24,
+    jpPageSize: 24,
+    metaIndexUrl: "../../data/card-meta-index.json", // JP検索の取得前フィルタ用メタ索引(#27)
+    effectsUrl: TL_EFFECTS_URL, // 効果欄に日本語が入ったときだけ取得する訳データ(#22)
+    fetchCard: getCard,
+    onStart: (reset) => {
+      if (!mine()) return;
+      if (reset) {
+        el.resultGrid.innerHTML = "";
+        openModal(el.resultModal);
+      }
+      tab.statusText = "検索中…";
+      el.resultCount.textContent = tab.statusText;
+      el.resultMore.disabled = true;
+    },
+    // 数値ソートは絞り込み結果を全件取ってからローカルで並べる(#44)。絞り込みなしだと
+    // 45リクエスト＝約18秒かかるため、無言で待たせず取得済みページ数を出す
+    onProgress: ({ done, total }) => {
+      if (!mine()) return;
+      tab.statusText = `読み込み中 ${done}/${total} ページ…`;
+      el.resultCount.textContent = tab.statusText;
+    },
+    onResults: (cards, info) => {
+      cards.forEach((card) => { cardCache.set(card.slug, Promise.resolve(card)); });
+      if (!mine()) { tab.loaded = false; return; }
+      appendResults(cards, info);
+      updateElementWarn(info); // 表示中のタブの結果のときだけ（設計 §8-3）
+      tab.statusText = searchStatusText(info);
+      tab.hasMore = !!info.hasMore;
+      tab.loaded = true;
+      el.resultCount.textContent = tab.statusText;
+      el.resultMore.hidden = !tab.hasMore;
+      el.resultMore.disabled = false;
+    },
+    onError: (err) => {
+      if (!mine()) { tab.loaded = false; return; }
+      tab.statusText = `検索に失敗しました(${err.message})`;
+      el.resultCount.textContent = tab.statusText;
+      el.resultMore.disabled = false;
+    },
+  });
+  return ctl;
+}
+
+// ---------- タブ帯（設計 §4） ----------
+
+// 検索タブは「ラベルのボタン（role=tab）＋ ×」の組。⚠️ ボタンの中にボタンは置けないので兄弟にする。
+// ⚠️ 作り直すのはタブが増減したときだけ（選択の切り替えでは作り直さない＝キーボードの
+//    フォーカスが飛ばないようにするため）。
+function renderSearchTabs() {
+  if (!el.edTabsScroll) return;
+  el.edTabsScroll.textContent = "";
+  searchTabs.forEach((tab) => {
+    const item = document.createElement("div");
+    item.className = "tab-item";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = `ed-tab-search-${tab.id}`;
+    btn.setAttribute("role", "tab");
+    btn.setAttribute("aria-controls", "result-grid");
+    btn.setAttribute("aria-selected", "false");
+    btn.textContent = `検索${tab.n}`;
+    btn.addEventListener("click", () => selectSearchTab(tab));
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "tab-close";
+    close.setAttribute("aria-label", `「検索${tab.n}」を閉じる`);
+    close.textContent = "×";
+    close.addEventListener("click", (e) => { e.stopPropagation(); closeSearchTab(tab); });
+    item.append(btn, close);
+    tab.btn = btn;
+    tab.item = item;
+    el.edTabsScroll.appendChild(item);
+  });
+  el.edTabsSep.hidden = searchTabs.length === 0; // 検索タブが無ければ区切り線も出さない
+  syncSearchTabSelection();
+  updateTabsFade();
+}
+
+// aria-selected と見た目（.on）を1か所で書く。⚠️ 帯の中で true は常にちょうど1つ
+// （固定2つのどちらか、または検索タブ1つ）。
+function syncSearchTabSelection() {
+  searchTabs.forEach((tab) => {
+    const on = tab === selectedSearchTab;
+    if (tab.btn) tab.btn.setAttribute("aria-selected", String(on));
+    if (tab.item) tab.item.classList.toggle("on", on);
+  });
+  if (editorTabs) {
+    if (selectedSearchTab) editorTabs.deselect();
+    else editorTabs.syncFixed();
+  }
+}
+
+// 続きがある側の端をぼかす（設計 §4-3）
+function updateTabsFade() {
+  const box = el.edTabsScroll;
+  if (!box) return;
+  const max = box.scrollWidth - box.clientWidth;
+  box.classList.toggle("fade-l", box.scrollLeft > 1);
+  box.classList.toggle("fade-r", max > 1 && box.scrollLeft < max - 1);
+}
+
+// 新しいタブの位置は右端。⚠️ 帯を横に送って見える位置へ（ページは縦に動かさない）
+function scrollTabIntoView(tab) {
+  if (!tab || !tab.btn || !el.edTabsScroll) return;
+  const box = el.edTabsScroll;
+  const left = tab.item.offsetLeft;
+  const right = left + tab.item.offsetWidth;
+  if (left < box.scrollLeft) box.scrollLeft = left;
+  else if (right > box.scrollLeft + box.clientWidth) box.scrollLeft = right - box.clientWidth;
+  updateTabsFade();
+}
+
+// タブを1つ作る。⭐ 6個目を作ったら「作った順でいちばん古いタブ」を閉じる（②・設計 §4-2）
+function addSearchTab(cond) {
+  const tab = {
+    id: ++searchTabSeq,
+    n: nextSearchN++,      // ⭐ 上限を超えても続ける（検索3〜検索7 のようになる）
+    cond,
+    open: false,           // 条件の箱の開閉（T3 で使う。保存の形をここで確定させておく）
+    statusText: "",
+    hasMore: false,
+    loaded: false,
+  };
+  tab.ctl = makeSearchCtl(tab);
+  tab.holder = document.createElement("div"); // 表示していない間のタイルの置き場（DOM外）
+  searchTabs.push(tab);
+  let evicted = null;
+  if (searchTabs.length > SEARCH_TAB_MAX) {
+    evicted = searchTabs.shift();
+    if (evicted === activeSearchTab) activeSearchTab = null;
+    if (evicted === selectedSearchTab) selectedSearchTab = null;
+  }
+  renderSearchTabs();
+  if (evicted) showToast(`タブは5つまでです — いちばん古い「検索${evicted.n}」を閉じました`);
+  return tab;
+}
+
+// 表示していないタブのタイルはDOM外の holder に退避する（切り替えで再検索しないため・§5-1）
+function stashTiles(tab) {
+  if (!tab || !tab.holder) return;
+  while (el.resultGrid.firstChild) tab.holder.appendChild(el.resultGrid.firstChild);
+}
+function restoreTiles(tab) {
+  el.resultGrid.textContent = "";
+  if (!tab || !tab.holder) return;
+  while (tab.holder.firstChild) el.resultGrid.appendChild(tab.holder.firstChild);
+}
+
+// タブを開く。⭐ 同じページを開いている間は取得済みのタイルを出し入れするだけで再検索しない（§5-1）。
+// ⚠️ 復元直後など、まだ結果を持たないタブ（loaded=false）はここで初めて検索する（§5-3）。
+function selectSearchTab(tab) {
+  if (!tab || searchTabs.indexOf(tab) < 0) return;
+  if (activeSearchTab !== tab) {
+    stashTiles(activeSearchTab);
+    activeSearchTab = tab;
+    restoreTiles(tab);
+  }
+  selectedSearchTab = tab;
+  syncSearchTabSelection();
+  applyCondToForm(tab.cond); // U1（連動）
+  el.resultCount.textContent = tab.statusText || "";
+  el.resultMore.hidden = !tab.hasMore;
+  el.resultMore.disabled = false;
+  openModal(el.resultModal); // ⚠️ 結果パネルはまだモーダルの中にある（移設は T4）
+  scrollTabIntoView(tab);
+  saveSearchTabs();
+  if (!tab.loaded) tab.ctl.run(true);
+}
+
+// × で閉じる。表示中のタブを閉じたら 右隣 → 無ければ左隣 → 無ければデッキタブ（設計 §4-2）
+function closeSearchTab(tab) {
+  const i = searchTabs.indexOf(tab);
+  if (i < 0) return;
+  const wasActive = tab === activeSearchTab;
+  searchTabs.splice(i, 1);
+  if (wasActive) { activeSearchTab = null; el.resultGrid.textContent = ""; }
+  if (tab === selectedSearchTab) selectedSearchTab = null;
+  if (!searchTabs.length) nextSearchN = 1; // U3: 全部閉じたら「検索1」に戻す
+  const next = wasActive ? (searchTabs[i] || searchTabs[i - 1] || null) : null;
+  renderSearchTabs();
+  if (wasActive) {
+    if (next) { selectSearchTab(next); return; }
+    closeModal(el.resultModal);
+    if (editorTabs) editorTabs.reset(); // 行き先が無ければデッキタブ
+  }
+  saveSearchTabs();
+}
+
+// 🔍検索 / Enter。⭐ タブを増やすのはこれだけ（設計 §2-3）
+function runNewSearchTab() {
+  const tab = addSearchTab(condFromForm());
+  selectSearchTab(tab); // U5: そのタブへ切り替える。loaded=false なので検索が走る
+}
+
+// 並び替え・昇降順。⭐ 表示中の検索タブをその場で更新する（タブは増やさない・設計 §2-3）。
+// ⚠️ 検索タブが1つも無い状態では新しいタブができる（＝今までの「空条件の検索が走る」を踏襲・V9）
+function updateActiveSearchTab() {
+  const tab = activeSearchTab;
+  if (!tab) { runNewSearchTab(); return; }
+  tab.cond = condFromForm();
+  tab.ctl = makeSearchCtl(tab); // ⚠️ 条件が変わったので作り直す（els は作成時に固定される）
+  tab.loaded = false;
+  selectedSearchTab = tab;
+  syncSearchTabSelection();
+  el.resultGrid.textContent = "";
+  openModal(el.resultModal);
+  saveSearchTabs();
+  tab.ctl.run(true);
+}
+
+// ---------- タブの保存（①B・localStorage。設計 §5-2） ----------
+// ⚠️ ⭐ 保存できない環境（プライベートウィンドウ等）では、その場限りのタブとして動く
+//    （fail-open。例外は握りつぶして続行する）。
+
+function searchTabsKeyOf(deckId) { return SEARCH_TABS_KEY + deckId; }
+
+// デッキを消しても保存が残るので、最近の N デッキ分だけ残す（§5-2）
+function pruneSearchTabsStore() {
+  const rows = [];
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const k = localStorage.key(i);
+    if (!k || !k.startsWith(SEARCH_TABS_KEY)) continue;
+    let at = 0;
+    try { at = Number(JSON.parse(localStorage.getItem(k) || "{}").at) || 0; } catch { at = 0; }
+    rows.push({ k, at });
+  }
+  if (rows.length <= SEARCH_TABS_KEEP_DECKS) return;
+  rows.sort((a, b) => b.at - a.at);
+  rows.slice(SEARCH_TABS_KEEP_DECKS).forEach((r) => localStorage.removeItem(r.k));
+}
+
+function saveSearchTabs() {
+  if (!searchTabsDeckId) return;
+  try {
+    const key = searchTabsKeyOf(searchTabsDeckId);
+    if (!searchTabs.length) { localStorage.removeItem(key); return; }
+    // ⭐ 保存するのは「条件」と「連番」と「最後に見ていたタブ」だけ。カードの配列は保存しない
+    //    （禁止改定・新セットで古くなる／容量を食う・設計 §1 やらないこと4）
+    localStorage.setItem(key, JSON.stringify({
+      at: Date.now(),
+      nextN: nextSearchN,
+      active: selectedSearchTab ? selectedSearchTab.n : (editorTabs && editorTabs.isStats() ? "stats" : "deck"),
+      tabs: searchTabs.map((t) => ({ n: t.n, cond: t.cond, open: !!t.open })),
+    }));
+    pruneSearchTabsStore();
+  } catch { /* fail-open: 保存できなくてもその場限りのタブとして動き続ける */ }
+}
+
+// デッキを切り替えるときは前のデッキのタブを持ち越さない（U2＝デッキごと）。
+// ⚠️ ここで保存を書かない——保存先は「今開いているデッキ」のキーなので、消しに行くと
+//    前のデッキの保存を消してしまう
+function clearSearchTabs() {
+  searchTabs = [];
+  activeSearchTab = null;
+  selectedSearchTab = null;
+  nextSearchN = 1;
+  searchTabsDeckId = null;
+  el.resultGrid.textContent = "";
+  if (!el.resultModal.hidden) closeModal(el.resultModal);
+  renderSearchTabs();
+}
+
+// リロード後（U4）: 保存からタブを復元し、最後に見ていたタブを開いてそのタブだけ再検索する。
+// ほかのタブは押したときに検索する（それまでリクエストを投げない・§5-3）
+function loadSearchTabs(deckId) {
+  clearSearchTabs();
+  searchTabsDeckId = deckId;
+  let data = null;
+  try { data = JSON.parse(localStorage.getItem(searchTabsKeyOf(deckId)) || "null"); } catch { data = null; }
+  const rows = data && Array.isArray(data.tabs) ? data.tabs.slice(-SEARCH_TAB_MAX) : [];
+  rows.forEach((row) => {
+    const n = Number(row && row.n);
+    if (!Number.isFinite(n) || n < 1) return;
+    const tab = {
+      id: ++searchTabSeq, n, cond: String((row && row.cond) || ""), open: !!(row && row.open),
+      statusText: "", hasMore: false, loaded: false, holder: document.createElement("div"),
+    };
+    tab.ctl = makeSearchCtl(tab);
+    searchTabs.push(tab);
+  });
+  const savedNext = Number(data && data.nextN);
+  const maxN = searchTabs.reduce((m, t) => Math.max(m, t.n), 0);
+  nextSearchN = Number.isFinite(savedNext) && savedNext > maxN ? savedNext : maxN + 1;
+  renderSearchTabs();
+  const active = data ? data.active : null;
+  if (typeof active === "number") {
+    const tab = searchTabs.find((t) => t.n === active);
+    if (tab) { selectSearchTab(tab); return; } // ⭐ このタブだけ再検索する
+  }
+  if (active === "stats" && editorTabs) editorTabs.select(true);
+}
 
 // エレメントANDで0件が確定する組み合わせの注意書き(#31)。
 // 結果ダイアログが検索フォームを覆うので、文言はダイアログ側(searchStatusText)にも出す。
@@ -1713,21 +2093,26 @@ el.resultGrid.addEventListener("change", async (e) => {
   } catch (err) { showToast(`保存に失敗しました(${err.message})`, true); }
 });
 
-el.sSearch.addEventListener("click", () => runSearch(true));
+// ⭐ 新しいタブを作るのは 🔍検索 と Enter だけ（設計 §2-3）
+el.sSearch.addEventListener("click", runNewSearchTab);
 [el.sName, el.sText].forEach((input) => {
-  input.addEventListener("keydown", (e) => { if (e.key === "Enter") runSearch(true); });
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") runNewSearchTab(); });
 });
-el.resultMore.addEventListener("click", () => searchCtl.loadMore());
+// 「もっと見る」は表示中のタブのコントローラが続きを取る。
+// ⚠️ ⭐ そのコントローラは自分のタブの条件（スナップショット）だけを読むので、
+//    左ペインを書き換えても混ざらない（P1 の直し・設計 §7・V11）
+el.resultMore.addEventListener("click", () => {
+  if (activeSearchTab) activeSearchTab.ctl.loadMore();
+});
 // 並び替え(名前順など)は検索パネル(#search-top)の中にあり、常に触れる。
 // ⚠️ if (!el.resultModal.hidden) のガードを戻さないこと。結果ダイアログが閉じているときに
 //    「並び替えを変えても何も起きない」＝無言の劣化になる（左ペイン化_設計 §5-2）。
-//    トップページと同じく、まだ一度も検索していない状態で触ると空条件の検索が走る（許容）。
-el.sSort.addEventListener("change", () => runSearch(true));
+//    ⭐ タブ化後は「表示中の検索タブをその場で更新する」（タブは増やさない・設計 §2-3）。
+//    まだ一度も検索していない状態で触ると空条件の検索で新しいタブができる（許容・V9）。
+el.sSort.addEventListener("change", updateActiveSearchTab);
 el.sOrder.addEventListener("click", () => {
-  const next = (el.sOrder.dataset.dir || "ASC") === "ASC" ? "DESC" : "ASC";
-  el.sOrder.dataset.dir = next;
-  el.sOrder.textContent = next === "ASC" ? "▲ 昇順" : "▼ 降順";
-  runSearch(true);
+  setSearchOrder((el.sOrder.dataset.dir || "ASC") === "ASC" ? "DESC" : "ASC");
+  updateActiveSearchTab();
 });
 // スマホでは絞り込みを折りたたむ(トップページの検索ツールと同じ挙動)。
 // 文言はラベル用の子要素に書く — ボタン直下には選択件数バッジも入るため textContent では消えてしまう
@@ -2142,19 +2527,39 @@ function renderStatsInto(container, cards, bySlug, formatKey) {
 // ---------- タブ切替 ----------
 // タブ状態はhashに持たない(リロードでデッキタブに戻る。シンプル優先)。
 // deckTabId → statsTabId → deckPane → statsPane。onStats は統計タブ表示時の描画コールバック。
-function setupTabs(deckTabId, statsTabId, deckPane, statsPane, onStats) {
+// ⚠️ onFixedSelect は編集画面だけが渡す（検索タブの選択を落とすため）。
+//    共有閲覧画面（#view-deck）には検索タブが無いので渡さない＝完全な no-op。
+function setupTabs(deckTabId, statsTabId, deckPane, statsPane, onStats, onFixedSelect) {
   const deckTab = document.getElementById(deckTabId);
   const statsTab = document.getElementById(statsTabId);
+  let stats = false; // 固定タブのどちらを選んでいるか。⚠️ aria-selected は検索タブ選択中に
+                     //    両方 false になるので、そこから読み直さない
   const select = (showStats) => {
-    deckTab.setAttribute("aria-selected", String(!showStats));
-    statsTab.setAttribute("aria-selected", String(showStats));
-    deckPane.hidden = showStats;
-    statsPane.hidden = !showStats;
-    if (showStats) onStats();
+    stats = !!showStats;
+    deckTab.setAttribute("aria-selected", String(!stats));
+    statsTab.setAttribute("aria-selected", String(stats));
+    deckPane.hidden = stats;
+    statsPane.hidden = !stats;
+    if (stats) onStats();
+    if (onFixedSelect) onFixedSelect();
   };
   deckTab.addEventListener("click", () => select(false));
   statsTab.addEventListener("click", () => select(true));
-  return { reset: () => select(false), isStats: () => statsTab.getAttribute("aria-selected") === "true" };
+  return {
+    reset: () => select(false),
+    isStats: () => stats,
+    select,
+    // 検索タブが選ばれている間、固定2つの aria-selected を落とす（帯の中で true は常に1つ）。
+    // ⚠️ パネルの表示は変えない（デッキ/統計の中身はそのまま下に残す）
+    deselect: () => {
+      deckTab.setAttribute("aria-selected", "false");
+      statsTab.setAttribute("aria-selected", "false");
+    },
+    syncFixed: () => {
+      deckTab.setAttribute("aria-selected", String(!stats));
+      statsTab.setAttribute("aria-selected", String(stats));
+    },
+  };
 }
 
 // 編集画面: 現在のデッキ内容で統計パネルを描画する(タブ表示中のみ呼ばれる)。
@@ -2177,8 +2582,41 @@ async function renderViewStats() {
   renderStatsInto(el.vPaneStats, cards, bySlug, deckFormat());
 }
 
-editorTabs = setupTabs("ed-tab-deck", "ed-tab-stats", $("ed-pane-deck"), el.edPaneStats, renderEditorStats);
+editorTabs = setupTabs("ed-tab-deck", "ed-tab-stats", $("ed-pane-deck"), el.edPaneStats, renderEditorStats, () => {
+  // 固定タブ（デッキ/統計）を選んだら検索タブの選択は落ちる。
+  // ⚠️ activeSearchTab（結果パネルの持ち主）はそのまま——取得中の結果を捨てないため
+  if (!selectedSearchTab) return;
+  selectedSearchTab = null;
+  syncSearchTabSelection();
+  saveSearchTabs();
+});
 viewTabs = setupTabs("v-tab-deck", "v-tab-stats", el.vZones, el.vPaneStats, renderViewStats);
+
+// タブ帯のキーボード操作（設計 §4-1）。←/→ でデッキ・統計・検索タブを順に移動し、
+// Delete で（フォーカスしている）検索タブを閉じる。⚠️ 固定2つでは Delete は何も起きない。
+// ⚠️ 編集画面の帯だけに付ける（共有閲覧の帯は現状のまま＝V19）
+$("ed-tab-deck").closest(".deck-tabs").addEventListener("keydown", (e) => {
+  const cur = e.target.closest('button[role="tab"]');
+  if (!cur) return;
+  if (e.key === "Delete") {
+    const tab = searchTabs.find((t) => t.btn === cur);
+    if (!tab) return; // 固定タブは閉じられない
+    e.preventDefault();
+    closeSearchTab(tab);
+    return;
+  }
+  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+  const list = [$("ed-tab-deck"), $("ed-tab-stats")].concat(searchTabs.map((t) => t.btn));
+  const i = list.indexOf(cur);
+  if (i < 0) return;
+  e.preventDefault();
+  const next = list[(i + (e.key === "ArrowRight" ? 1 : list.length - 1)) % list.length];
+  if (!next) return;
+  next.focus();
+  next.click(); // 選択も一緒に移す（既存の2つと同じく「移動＝選択」）
+});
+el.edTabsScroll.addEventListener("scroll", updateTabsFade);
+window.addEventListener("resize", updateTabsFade);
 
 // ---------- 共有リンク閲覧 ----------
 

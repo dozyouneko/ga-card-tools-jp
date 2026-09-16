@@ -682,6 +682,58 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
 }
 .deck-tabs button:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 1px; }
 
+/* ---------- 検索結果のタブ（検索結果のタブ化_設計 §4-1 / §4-3） ----------
+   ⚠️ ⭐ すべて #view-editor の中だけに効かせる。閲覧専用画面（#view-deck）の帯は
+      「1pxも変わらない」ことが検証項目（V19）なので、.deck-tabs の既存ルールを書き換えない。
+   ⭐ 横に送るのは .tabs-scroll だけ。固定2つ（🃏 デッキ / 📊 統計）は縮まない・動かない。 */
+#view-editor .deck-tabs > button[role="tab"] { flex: 0 0 auto; }
+#view-editor .tabs-sep {
+  flex: 0 0 1px; width: 1px; align-self: stretch;
+  background: var(--border); margin: 4px 2px 6px;
+}
+#view-editor .tabs-sep[hidden] { display: none; }
+/* ⚠️ min-width: 0 が無いと中身の幅ぶんだけ伸びて、帯ごと横あふれする（縮めない flex アイテムになる）。
+   ⚠️ overflow-x だけを指定すると overflow-y が visible → auto に計算され、選択タブの
+      margin-bottom: -1px（帯の下線に重ねる 1px）が縦スクロール扱いになる。
+      そのため overflow-y: hidden を明示し、padding-bottom で 1px の逃げ場を作る。 */
+#view-editor .tabs-scroll {
+  display: flex; gap: 6px; flex: 1 1 auto; min-width: 0;
+  overflow-x: auto; overflow-y: hidden;
+  padding-bottom: 1px; margin-bottom: -1px;
+  scrollbar-width: thin;
+}
+#view-editor .tabs-scroll::-webkit-scrollbar { height: 6px; }
+#view-editor .tabs-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+/* 続きがある側の端をぼかす（設計 §4-3）。クラスは app.js の updateTabsFade() が付け外しする */
+#view-editor .tabs-scroll.fade-r { mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); }
+#view-editor .tabs-scroll.fade-l { mask-image: linear-gradient(to right, transparent, #000 24px); }
+#view-editor .tabs-scroll.fade-l.fade-r {
+  mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+}
+/* ⚠️ タブ本体と × は兄弟にする（ボタンの中にボタンは置けない）。見た目の「タブ」は
+   この .tab-item が持ち、選択状態は app.js が .on を付け外しして表す
+   （:has() は使わない——無視されると壊れる用途には使わない既存方針）。 */
+#view-editor .tabs-scroll .tab-item {
+  display: flex; align-items: center; flex: 0 0 auto;
+  border: 1px solid transparent; border-bottom: none;
+  border-radius: 8px 8px 0 0; margin-bottom: -1px; padding-right: 4px;
+}
+#view-editor .tabs-scroll .tab-item.on {
+  background: var(--panel); border-color: var(--border); box-shadow: inset 0 2px 0 var(--accent);
+}
+#view-editor .tabs-scroll .tab-item > button[role="tab"] {
+  background: transparent; border: none; box-shadow: none;
+  margin-bottom: 0; padding: 8px 6px 8px 14px; white-space: nowrap;
+}
+#view-editor .tabs-scroll .tab-item.on > button[role="tab"] { color: var(--text); font-weight: 700; }
+#view-editor .tabs-scroll .tab-close {
+  flex: 0 0 auto; width: 28px; height: 28px; padding: 0; margin: 0;
+  display: grid; place-items: center;
+  border: none; border-radius: 50%; background: transparent;
+  color: var(--muted); font-size: .9rem; line-height: 1;
+}
+#view-editor .tabs-scroll .tab-close:hover { background: var(--panel-2); color: var(--text); }
+
 /* ---------- 統計パネル ---------- */
 .stats-pane {
   display: flex; flex-direction: column; gap: 16px;
@@ -748,6 +800,9 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
 /* スマホ: ラベルを上・バーを下に折り返し */
 @media (max-width: 620px) {
   .deck-tabs { padding: 10px 16px 0; }
+  /* 検索タブの × は 28px → 24px（検索結果のタブ化_設計 §4-1）。
+     ⚠️ ここは 620px。PANE_MIN_WIDTH(1200) 未満でなければ npm run validate の検査②が exit 1 になる */
+  #view-editor .tabs-scroll .tab-close { width: 24px; height: 24px; }
   .stats-pane { padding: 16px 16px 48px; }
   .statrow { flex-wrap: wrap; }
   .sr-label { width: 100%; text-align: left; }
