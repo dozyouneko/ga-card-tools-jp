@@ -1793,14 +1793,23 @@ function sendPageToTabs() {
   window.scrollTo({ top: Math.max(0, Math.round(window.scrollY + top - off)) });
 }
 
-// 新しいタブの位置は右端。⚠️ 帯を横に送って見える位置へ（ページは縦に動かさない）
+// 選んだタブの左端を、スクロール箱の左端（＝📊統計 のすぐ右）へ寄せる（設計 §4-3-1）。
+// ⚠️ ⭐ offsetLeft を使わない——`.tabs-scroll` は position: static なので `.tab-item` の
+//    offsetParent は <body> になり、固定タブ（🃏/📊）と帯の padding ぶんが加算される
+//    （375px の実測で 232px ずれ、常に右へ寄りすぎていた＝ユーザーが見つけた症状。§4-3-3）。
+//    ⭐ rect の差なら offsetParent が何であっても正しく、CSS に一切依存しない。
+// ⚠️ ⭐ `.tabs-scroll` に position: relative を足して offsetLeft を使う直し方は採らない
+//    （CSS と JS にまたがる暗黙の依存を新しく作ることになる。検査は無い）。
+// ⚠️ ⭐ element.scrollIntoView() も使わない——祖先（ページ全体）まで縦に動きうるので、
+//    §8-7 の「送り先はタブ帯の上端」と衝突する。動かしてよいのは箱の scrollLeft だけ。
+// ⭐ 右端側で寄せ切れないタブは、ブラウザが 0〜maxScroll にクランプする＝一番右に見える
+//    （ユーザー決定2）。⚠️ そのためのコードは足さない。
+// ⭐ 寄せ方は5経路（押す／🔍で新規／キーボード ←→／リロード復元／× で隣へ）で共通
+//    ——すべて selectSearchTab() のこの1か所を通る（§4-3-2）。
 function scrollTabIntoView(tab) {
-  if (!tab || !tab.btn || !el.edTabsScroll) return;
+  if (!tab || !tab.item || !el.edTabsScroll) return;
   const box = el.edTabsScroll;
-  const left = tab.item.offsetLeft;
-  const right = left + tab.item.offsetWidth;
-  if (left < box.scrollLeft) box.scrollLeft = left;
-  else if (right > box.scrollLeft + box.clientWidth) box.scrollLeft = right - box.clientWidth;
+  box.scrollLeft += tab.item.getBoundingClientRect().left - box.getBoundingClientRect().left;
   updateTabsFade();
 }
 
