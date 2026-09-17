@@ -1511,11 +1511,27 @@ function condEls(cond) {
   };
 }
 
+// 絵柄の追従（#41）に使う条件を、条件のスナップショットから取り出す（設計 §8-1・V22）。
+// ⚠️ ⭐ 左ペイン（#s-set / #s-g-rarity）を読まない——読むと「もっと見る」や裏のタブの絵柄が
+//    左ペインの「いま」で決まってしまい、P5（レアリティで絵柄が追従しない）が再発する。
+// ⚠️ 保存は prefix なので、condEls() と同じく setIndexOf() で添字へ戻してから setPrefixes() を通す
+//    （meta.sets の並びに依存する添字は保存しない＝§5-2・#20 と同じ理由）。
+function artCondOf(cond) {
+  const p = new URLSearchParams(cond || "");
+  return {
+    prefixes: GA_CARD_SEARCH.setPrefixes(GA_CARD_SEARCH.setIndexOf(p.get("set"))),
+    // ⚠️ レアリティを落とさない（P5 はレアリティ側で起きた不具合・設計 §8-1-1 の4）
+    rarities: p.getAll("rarity").map(String),
+  };
+}
+
 // ---------- 条件の箱（設計 §6・T3） ----------
 // ⭐ 「検索N の条件」＋2列の表（項目名｜値）。⚠️ 丸ピルにはしない（375px で結果が 583px まで
-//    押し下がった＝モック説明 §4-2 の実測）。畳みの閾値は style.css の :nth-child(n+7) と対。
+//    押し下がった＝モック説明 §4-2 の実測）。
+// ⚠️ ⭐ 畳みの閾値を持つのはこの2つだけ（設計 §8-4-3・§8-4-3-1）。CSS は renderCondBox() が付けた
+//    .cond-extra を隠すだけで行数を書かない——⚠️ style.css へ数値指定を書き戻さないこと。
 const COND_FOLD_AT = 4;   // ⭐ これを「超えたら」畳む（＝4項目までは畳まない・設計 §6）
-const COND_FOLD_SHOW = 3; // 畳んだときに見せる項目数。⚠️ style.css の n+7 は 3*2+1（dt+dd で1項目）
+const COND_FOLD_SHOW = 3; // 畳んだときに見せる項目数（⭐ CSS 側に対応する数値は無い）
 
 // チップの日本語名を引く。⚠️ 辞書を持たない——チップ自身（fillChips が作った
 // <input value=KEY><span>日本語</span><em>KEY</em>）から読むので、meta の追加に自動で追従する。
@@ -1623,6 +1639,9 @@ el.resultCondMore.addEventListener("click", () => {
 // ⚠️ 差し替え前のコントローラの結果が後から届くことがあるので、必ず tab.ctl === ctl を見る。
 function makeSearchCtl(tab) {
   let ctl = null;
+  // ⭐ 絵柄の追従（#41・V22）に使う条件も els と同じく「作った時点の条件」で固定する。
+  //    ⚠️ tab.cond が変わるのは updateActiveSearchTab() だけで、そこは ctl も作り直す＝必ず一致する。
+  const artCond = artCondOf(tab.cond);
   // 結果パネルは1組しかないので、描画してよいのは「今パネルを持っているタブ」だけ。
   // ⚠️ 表示中でなくなっていたら破棄して loaded を落とす（次に開いたときに取り直す）。
   //    ⭐ こうしておくと searchStatusText()/appendResults() の描画先を引数化しなくて済む
@@ -1657,7 +1676,7 @@ function makeSearchCtl(tab) {
     onResults: (cards, info) => {
       cards.forEach((card) => { cardCache.set(card.slug, Promise.resolve(card)); });
       if (!mine()) { tab.loaded = false; return; }
-      appendResults(cards, info);
+      appendResults(cards, info, artCond); // ⭐ 左ペインではなくこのタブの条件で絵柄を選ぶ（§8-1）
       updateElementWarn(info); // 表示中のタブの結果のときだけ（設計 §8-3）
       tab.statusText = searchStatusText(info);
       tab.hasMore = !!info.hasMore;
@@ -2115,10 +2134,13 @@ function renderAddRow(item, card) {
 // トップページの app.js の preferredArtIndex() と同じ規則。参照する要素だけが違う。
 // ⚠️ レアリティを見ないと「レアリティで絞ってもタイルの絵柄が追従しない」（2026-09-03 に
 //    ユーザーが実物を触って見つけた不具合 P5 と同じものが、ここで再発する）。
+// ⚠️ ⭐ artCond は artCondOf() が作る「そのタブの条件」（設計 §8-1・V22）。⚠️ 左ペインを見ない——
+//    見ると「もっと見る」の続きや裏のタブの絵柄が、左ペインの「いま」で決まってしまう。
 // ⚠️ この関数はトップと二重定義。片方だけ直すと画面によって別の絵柄が出る（左ペイン化_設計 §10-1）
-function preferredArtIndex(imgs) {
-  const pre = GA_CARD_SEARCH.setPrefixes(el.sSet.value);
-  const rar = el.sGRarity ? el.sGRarity.getValues().map(String) : [];
+//    ⭐ 二重定義の解消は別タスク（検索結果のタブ化_設計 §11-2）——トップ側は引数化していない。
+function preferredArtIndex(imgs, artCond) {
+  const pre = (artCond && artCond.prefixes) || [];
+  const rar = (artCond && artCond.rarities) || [];
   if (!pre.length && !rar.length) return 0;
   const idx = imgs.findIndex((im) =>
     (!pre.length || pre.includes(im.prefix)) &&
@@ -2133,12 +2155,14 @@ function updateResultBadge(item, slug) {
   badge.hidden = n === 0;
 }
 
-// info は検索コントローラが渡すメタ情報。裏面だけが一致したカードの注記(#46)に使う
-function appendResults(cards, info) {
+// info は検索コントローラが渡すメタ情報。裏面だけが一致したカードの注記(#46)に使う。
+// ⚠️ ⭐ artCond は「この結果を出したタブの条件」（makeSearchCtl が作成時に固定したもの・設計 §8-1）。
+//    ⚠️ 左ペインから取り直さないこと——それが V22（絵柄の追従）の不具合そのもの。
+function appendResults(cards, info, artCond) {
   const frag = document.createDocumentFragment();
   cards.forEach((card) => {
     const imgs = cardImages(card);
-    const initialAi = preferredArtIndex(imgs);
+    const initialAi = preferredArtIndex(imgs, artCond);
     const back = backFace(card); // 両面カードなら裏面(無ければ null)
     // 日本語検索で「裏面だけが一致した」カード(#46)。検索語がタイルのどこにも出ないため、
     // 名前の下に裏面名の行を足し、画像も最初から裏面で開く。
