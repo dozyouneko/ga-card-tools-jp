@@ -106,8 +106,9 @@ const el = {
   // 検索結果のタブ帯（検索結果のタブ化_設計 §4-1）。中身は renderSearchTabs() が作る
   edTabsSep: $("ed-tabs-sep"),
   edTabsScroll: $("ed-tabs-scroll"),
-  resultModal: $("result-modal"),
-  resultTitle: $("result-title"),
+  // 検索結果パネル（設計 §8-4・T4）。⭐ 旧 #result-modal を撤去し、#view-editor の右列の
+  //    タブ面（role="tabpanel"）にした。⚠️ 表示・非表示は syncSearchTabSelection() が1か所で決める。
+  resultPane: $("ed-pane-search"),
   // そのタブの検索条件の箱（設計 §6・T3）。中身は renderCondBox() が作る
   resultCond: $("result-cond"),
   resultCondTitle: $("result-cond-title"),
@@ -319,10 +320,12 @@ function openModal(modal) {
 function closeModal(modal) {
   modal.hidden = true;
   // 他のモーダル(共通のカード詳細含む)が開いたままならスクロールは固定のまま
-  const anyOpen = [el.resultModal, el.omniModal, el.importModal, el.artModal, el.imageModal, el.newDeckModal].some((m) => !m.hidden) || GA_CARD_DETAIL.isOpen();
+  // ⚠️ ⭐ 検索結果はモーダルではなくなった（設計 §8-4）。ここに el.resultPane を足さないこと——
+  //    パネルは body のスクロールを止めないタブ面で、開いていても overflow を固定する理由が無い。
+  const anyOpen = [el.omniModal, el.importModal, el.artModal, el.imageModal, el.newDeckModal].some((m) => !m.hidden) || GA_CARD_DETAIL.isOpen();
   if (!anyOpen) document.body.style.overflow = "";
 }
-[["result-modal"], ["omni-modal"], ["import-modal"], ["art-modal"], ["image-modal"], ["new-deck-modal"]].forEach(([id]) => {
+[["omni-modal"], ["import-modal"], ["art-modal"], ["image-modal"], ["new-deck-modal"]].forEach(([id]) => {
   const modal = $(id);
   modal.addEventListener("click", (e) => {
     if (e.target.closest("[data-close]")) closeModal(modal);
@@ -337,8 +340,9 @@ document.addEventListener("keydown", (e) => {
   if (!el.artModal.hidden) { closeModal(el.artModal); return; }
   if (!el.imageModal.hidden) { closeModal(el.imageModal); return; }
   if (!el.importModal.hidden) { closeModal(el.importModal); return; }
-  if (!el.omniModal.hidden) { closeModal(el.omniModal); return; }
-  if (!el.resultModal.hidden) closeModal(el.resultModal);
+  // ⚠️ 検索結果はモーダルではなくなったので Escape で閉じるものが無い（設計 §8-4 の2）。
+  //    ⭐ タブを閉じるのは帯の × と Delete キー（§4-1）。
+  if (!el.omniModal.hidden) closeModal(el.omniModal);
 });
 
 // ---------- 認証まわり ----------
@@ -1579,23 +1583,32 @@ function renderCondBox() {
   if (!tab) return;
   el.resultCondTitle.textContent = `検索${tab.n} の条件`;
   const rows = condRows(tab.cond);
+  const foldable = rows.length > COND_FOLD_AT;
   el.resultCondList.textContent = "";
-  rows.forEach(([k, v]) => {
+  rows.forEach(([k, v], i) => {
     const dt = document.createElement("dt");
     dt.textContent = k;
     const dd = document.createElement("dd");
     dd.textContent = v;
     if (k === "絞り込み") dd.className = "cond-none";
+    // ⭐ 畳んだときに隠れる行にだけ印を付ける（設計 §8-4-3）。
+    //    ⚠️ ⭐ style.css には行数を書かない——CSS は .cond-extra を隠すだけ。
+    //       こうしないと「CSS の順番指定」と COND_FOLD_SHOW の二重管理になり、
+    //       片方だけ動かすと「ほか N 項目」の N と実際に隠れている行数がずれる（レビュー T3 S-2）。
+    if (foldable && i >= COND_FOLD_SHOW) { dt.classList.add("cond-extra"); dd.classList.add("cond-extra"); }
     el.resultCondList.append(dt, dd);
   });
-  const foldable = rows.length > COND_FOLD_AT;
   // ⭐ 開閉はタブごとに覚える（tab.open。localStorage にも入る＝T2 が枠を作ってある・§5-1）
   el.resultCond.classList.toggle("is-folded", foldable && !tab.open);
   el.resultCondMore.hidden = !foldable;
   el.resultCondMore.setAttribute("aria-expanded", String(foldable && !!tab.open));
-  el.resultCondMore.textContent = tab.open
-    ? "▴ 畳む"
-    : `▾ すべて表示（ほか ${rows.length - COND_FOLD_SHOW} 項目）`;
+  // ⚠️ ⭐ 畳めないときは文言を組み立てない（設計 §8-4-2 の2・V17-b）。
+  //    旧実装は rows.length - COND_FOLD_SHOW をそのまま書いたので、2〜4項目のタブでは
+  //    「▾ すべて表示（ほか -1 項目）」という出るはずのない文字列が hidden の裏に残っていた。
+  //    ⚠️ hidden に頼らない・0 下限で誤魔化さない——**持たせない**のが正
+  //    （T4 は hidden の扱いを作り直す単位なので、1つ間違えた瞬間に画面へ出る）。
+  el.resultCondMore.textContent = !foldable ? ""
+    : (tab.open ? "▴ 畳む" : `▾ すべて表示（ほか ${rows.length - COND_FOLD_SHOW} 項目）`);
 }
 
 el.resultCondMore.addEventListener("click", () => {
@@ -1626,7 +1639,9 @@ function makeSearchCtl(tab) {
       if (!mine()) return;
       if (reset) {
         el.resultGrid.innerHTML = "";
-        openModal(el.resultModal);
+        // ⭐ 検索のたびにタブ帯の上端までページを送る（設計 §8-7・§8-7-1）。
+        //    ⚠️ 旧 openModal(el.resultModal) の置き換え（結果はモーダルではなく右列のタブ面になった）。
+        sendPageToTabs();
       }
       tab.statusText = "検索中…";
       el.resultCount.textContent = tab.statusText;
@@ -1676,7 +1691,7 @@ function renderSearchTabs() {
     btn.type = "button";
     btn.id = `ed-tab-search-${tab.id}`;
     btn.setAttribute("role", "tab");
-    btn.setAttribute("aria-controls", "result-grid");
+    btn.setAttribute("aria-controls", "ed-pane-search"); // ⭐ 共有パネル（設計 §8-4-1 の2）
     btn.setAttribute("aria-selected", "false");
     btn.textContent = `検索${tab.n}`;
     btn.addEventListener("click", () => selectSearchTab(tab));
@@ -1710,6 +1725,17 @@ function syncSearchTabSelection() {
   if (editorTabs) {
     if (selectedSearchTab) editorTabs.deselect();
     else editorTabs.syncFixed();
+    // ⭐ 面は3つ（デッキ・統計・検索結果）のうち1つだけを出す（設計 §8-4-1 の4）。
+    //    ⚠️ 固定タブの面を出したまま結果パネルも出すと、右列がデッキの下に検索結果が続く
+    //       長いページになり、タブの意味が無くなる。
+    editorTabs.syncPanes(!selectedSearchTab);
+  }
+  // ⚠️ 結果パネルは1つを共有して中身を差し替える（§8-4-1 の2・3）。
+  //    ⭐ そのため aria-labelledby は固定にできない——表示中の検索タブのボタン id に切り替える。
+  //    ⚠️ 固定しておくと、別のタブを見ているのに「検索1」と読み上げられる。
+  el.resultPane.hidden = !selectedSearchTab;
+  if (selectedSearchTab && selectedSearchTab.btn) {
+    el.resultPane.setAttribute("aria-labelledby", selectedSearchTab.btn.id);
   }
   // ⭐ 条件の箱もここで描き直す（設計 §6・T3）。⚠️ この関数は タブの増減（renderSearchTabs）・
   //    タブの切り替え（selectSearchTab）・並び替えのその場更新（updateActiveSearchTab）の
@@ -1724,6 +1750,25 @@ function updateTabsFade() {
   const max = box.scrollWidth - box.clientWidth;
   box.classList.toggle("fade-l", box.scrollLeft > 1);
   box.classList.toggle("fade-r", max > 1 && box.scrollLeft < max - 1);
+}
+
+// 検索したときのページ位置（設計 §8-7・§8-7-1）。
+// ⭐ 送り先の基準は「タブ帯の上端」に固定する。
+// ⚠️ ⭐ 条件の箱や結果タイルの先頭を基準にしない——箱の高さは条件の数と幅で変わり
+//    （§6-2: 375px で畳んで 108〜211px・開いて 510px）、送り先が 100px 以上ずれる。
+// ⚠️ 「箱の高さぶん送る」式を定数で書かない（211px でも 510px でもない値になる・§8-7-1）。
+function sendPageToTabs() {
+  const band = document.querySelector("#view-editor .deck-tabs");
+  if (!band || !band.getClientRects().length) return;
+  const top = band.getBoundingClientRect().top;
+  // 1200px以上: タブ帯が画面の上半分に見えているならページを動かさない（§8-7・V16）。
+  //    ⭐ 左ペインは sticky なのでページのどこからでも検索できる＝送る必要が無い。
+  if (matchMedia(`(min-width: ${PANE_MIN_WIDTH}px)`).matches && top >= 0 && top <= window.innerHeight / 2) return;
+  // 編集バーが sticky のときは、その高さぶん手前で止める（帯がバーの下に潜らないように）。
+  // ⚠️ 画面幅で分岐しない——position を実測する（CSS 側で sticky になる条件が動いても追従する）。
+  const bar = document.querySelector("#view-editor .editor-bar");
+  const off = bar && getComputedStyle(bar).position === "sticky" ? bar.getBoundingClientRect().height : 0;
+  window.scrollTo({ top: Math.max(0, Math.round(window.scrollY + top - off)) });
 }
 
 // 新しいタブの位置は右端。⚠️ 帯を横に送って見える位置へ（ページは縦に動かさない）
@@ -1784,6 +1829,16 @@ function refreshResultTiles() {
   });
 }
 
+// 結果パネルの中身を空にする（設計 §8-4-2 の1・V25-b）。
+// ⚠️ ⭐ タイルだけ消して件数を残さないこと——右列に常時出るようになったので、
+//    「1枚も出ていないのに『18 件を表示』」がそのまま見える（モーダルの裏だった間は見えなかった）。
+function clearResultPane() {
+  el.resultGrid.textContent = "";
+  el.resultCount.textContent = "";
+  el.resultMore.hidden = true;
+  el.resultMore.disabled = false;
+}
+
 // 表示していないタブのタイルはDOM外の holder に退避する（切り替えで再検索しないため・§5-1）
 function stashTiles(tab) {
   if (!tab || !tab.holder) return;
@@ -1814,7 +1869,7 @@ function selectSearchTab(tab) {
   el.resultCount.textContent = tab.statusText || "";
   el.resultMore.hidden = !tab.hasMore;
   el.resultMore.disabled = false;
-  openModal(el.resultModal); // ⚠️ 結果パネルはまだモーダルの中にある（移設は T4）
+  // ⚠️ パネルの表示・非表示は syncSearchTabSelection() が1か所で決める（上で通っている）
   scrollTabIntoView(tab);
   saveSearchTabs();
   if (!tab.loaded) tab.ctl.run(true);
@@ -1833,16 +1888,17 @@ function closeSearchTab(tab) {
   const wasSelected = tab === selectedSearchTab; // ⭐ これが「表示中」の定義（§4-2-1）
   const wasActive = tab === activeSearchTab;     // 結果パネルの持ち主か（見ている面とは別）
   searchTabs.splice(i, 1);
-  // 持ち主だったタブのタイルは捨てる。⚠️ 見ている面が固定タブなら、それ以上は何もしない
-  if (wasActive) { activeSearchTab = null; el.resultGrid.textContent = ""; }
+  // 持ち主だったタブのタイル・件数・「もっと見る」は捨てる。⚠️ 見ている面が固定タブなら、それ以上は何もしない。
+  // ⚠️ ⭐ 件数を消し忘れると「1枚も出ていないのに『18 件を表示』」が右列に残る
+  //    （設計 §8-4-2 の1・V25-b。⭐ モーダルの裏だった間は見えなかった）
+  if (wasActive) { activeSearchTab = null; clearResultPane(); }
   if (wasSelected) selectedSearchTab = null;
   if (!searchTabs.length) nextSearchN = 1; // U3: 全部閉じたら「検索1」に戻す
   const next = wasSelected ? (searchTabs[i] || searchTabs[i - 1] || null) : null;
   renderSearchTabs();
   if (wasSelected) {
     if (next) { selectSearchTab(next); return; }
-    closeModal(el.resultModal);
-    if (editorTabs) editorTabs.reset(); // 行き先が無ければデッキタブ
+    if (editorTabs) editorTabs.reset(); // 行き先が無ければデッキタブ（パネルは reset() 経由で hidden になる）
   }
   saveSearchTabs();
 }
@@ -1862,9 +1918,8 @@ function updateActiveSearchTab() {
   tab.ctl = makeSearchCtl(tab); // ⚠️ 条件が変わったので作り直す（els は作成時に固定される）
   tab.loaded = false;
   selectedSearchTab = tab;
-  syncSearchTabSelection();
+  syncSearchTabSelection(); // ⭐ ここでパネルが表示状態になる（旧 openModal の置き換え）
   el.resultGrid.textContent = "";
-  openModal(el.resultModal);
   saveSearchTabs();
   tab.ctl.run(true);
 }
@@ -1916,9 +1971,8 @@ function clearSearchTabs() {
   selectedSearchTab = null;
   nextSearchN = 1;
   searchTabsDeckId = null;
-  el.resultGrid.textContent = "";
-  if (!el.resultModal.hidden) closeModal(el.resultModal);
-  renderSearchTabs();
+  clearResultPane();
+  renderSearchTabs(); // ⭐ この中の syncSearchTabSelection() がパネルを hidden に戻す
 }
 
 // リロード後（U4）: 保存からタブを復元し、最後に見ていたタブを開いてそのタブだけ再検索する。
@@ -2241,7 +2295,7 @@ el.resultMore.addEventListener("click", () => {
   if (activeSearchTab) activeSearchTab.ctl.loadMore();
 });
 // 並び替え(名前順など)は検索パネル(#search-top)の中にあり、常に触れる。
-// ⚠️ if (!el.resultModal.hidden) のガードを戻さないこと。結果ダイアログが閉じているときに
+// ⚠️ 「結果が表示されているときだけ並び替える」というガードを戻さないこと。結果が出ていないときに
 //    「並び替えを変えても何も起きない」＝無言の劣化になる（左ペイン化_設計 §5-2）。
 //    ⭐ タブ化後は「表示中の検索タブをその場で更新する」（タブは増やさない・設計 §2-3）。
 //    まだ一度も検索していない状態で触ると空条件の検索で新しいタブができる（許容・V9）。
@@ -2694,6 +2748,13 @@ function setupTabs(deckTabId, statsTabId, deckPane, statsPane, onStats, onFixedS
     syncFixed: () => {
       deckTab.setAttribute("aria-selected", String(!stats));
       statsTab.setAttribute("aria-selected", String(stats));
+    },
+    // 固定タブの面を出す／両方しまう（検索タブを表示している間は両方 hidden・設計 §8-4-1 の4）。
+    // ⚠️ stats（どちらの固定タブを選んでいたか）は変えない——検索タブから戻ったときに元の面へ戻すため。
+    // ⚠️ ⭐ 閲覧専用画面（#view-deck）の setupTabs はこれを呼ばない＝1pxも変わらない（V19）。
+    syncPanes: (show) => {
+      deckPane.hidden = !show || stats;
+      statsPane.hidden = !show || !stats;
     },
   };
 }
@@ -3434,7 +3495,8 @@ window.addEventListener("hashchange", route);
     effectsUrl: TL_EFFECTS_URL, // 日本語の効果・フレーバーはダイアログを開くときに取得する(#22)
     seasonalUrl: SEASONAL_URL, // シーズン禁止(#34)。init() で取得済みのためここでは待たずに解決する
     onAfterClose: () => {
-      if (!el.resultModal.hidden || !el.omniModal.hidden) document.body.style.overflow = "hidden";
+      // ⚠️ 検索結果パネルはモーダルではないので数えない（設計 §8-4 の3）
+      if (!el.omniModal.hidden) document.body.style.overflow = "hidden";
     },
   });
   // 複数選択(AND/OR)の絞り込みグループ。既定は閉じた状態(開くとチップが50個以上並ぶため)。

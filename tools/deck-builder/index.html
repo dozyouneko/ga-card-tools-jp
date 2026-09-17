@@ -217,6 +217,29 @@
   </div>
 
   <div class="stats-pane" id="ed-pane-stats" role="tabpanel" aria-labelledby="ed-tab-stats" hidden></div>
+
+  <!-- 検索結果パネル（検索結果のタブ化_設計 §8-4・T4）。⭐ 旧 #result-modal の中身をそのまま右列へ移した。
+       ⚠️ ⭐ 条件の箱はこのパネルの一部。箱だけ別に出し分けない（§8-4-2 の5）——
+          別にすると「デッキ面の上に『検索3 の条件』が浮く」。
+       ⚠️ パネルは1つを共有して中身を差し替える方式なので、検索タブは全部この id を aria-controls で指す。
+          そのぶん aria-labelledby は固定にできない——app.js の syncSearchTabSelection() が
+          表示中の検索タブのボタン id に差し替える（§8-4-1 の3）。
+       ⚠️ 固定タブ（🃏/📊）を表示している間は hidden にする（見えていない tabpanel を支援技術へ露出させない）。
+       ⚠️ ⭐ 1200px以上では #view-editor > * { grid-column: 2 } により自動で右列に入る。 -->
+  <div class="result-pane" id="ed-pane-search" role="tabpanel" hidden>
+    <!-- ⭐ そのタブの検索条件（設計 §6・T3）。⚠️ 置き場はパネルの先頭（件数の上）。
+         ⚠️ 中身は app.js の renderCondBox() が組み立てる（丸ピルにはしない＝設計 §6）。 -->
+    <div class="cond-box" id="result-cond" hidden>
+      <p class="cond-title" id="result-cond-title"></p>
+      <dl class="cond-list" id="result-cond-list"></dl>
+      <!-- ⚠️ aria-expanded だけでは「何を開くのか」が無い（§8-4-1 の5）。
+           ⚠️ 文言は app.js が組み立てる。畳めないときは組み立てない（§8-4-2 の2） -->
+      <button class="cond-more" type="button" id="result-cond-more" aria-expanded="false" aria-controls="result-cond-list" hidden></button>
+    </div>
+    <p class="result-count" id="result-count"></p>
+    <div class="resultgrid" id="result-grid"></div>
+    <div class="result-more-wrap"><button class="btn" id="result-more" hidden>もっと見る</button></div>
+  </div>
 </section>
 
 <!-- ============ 共有リンク閲覧 ============ -->
@@ -246,27 +269,6 @@
     <a class="btn btn-sm btn-primary" id="v-cta-login" href="/api/auth/discord/authorize">自分もデッキを作る</a>
   </div>
 </section>
-
-<!-- 検索結果ダイアログ -->
-<div class="modal" id="result-modal" hidden>
-  <div class="modal-backdrop" data-close></div>
-  <div class="modal-body" role="dialog" aria-modal="true" aria-label="検索結果">
-    <button class="modal-close" type="button" data-close aria-label="閉じる">×</button>
-    <h2 id="result-title">検索結果</h2>
-    <!-- ⭐ そのタブの検索条件（検索結果のタブ化_設計 §6・T3）。
-         ⚠️ 置き場は「結果パネルの先頭（件数の上）」。T4 で結果パネルごと右列へ移すので、
-            ここに置いておけばパネルの中身の並びは変えずに移設できる。
-         ⚠️ 中身は app.js の renderCondBox() が組み立てる（丸ピルにはしない＝設計 §6）。 -->
-    <div class="cond-box" id="result-cond" hidden>
-      <p class="cond-title" id="result-cond-title"></p>
-      <dl class="cond-list" id="result-cond-list"></dl>
-      <button class="cond-more" type="button" id="result-cond-more" aria-expanded="false" hidden></button>
-    </div>
-    <p class="result-count" id="result-count"></p>
-    <div class="resultgrid" id="result-grid"></div>
-    <div class="result-more-wrap"><button class="btn" id="result-more" hidden>もっと見る</button></div>
-  </div>
-</div>
 
 <!-- カード詳細モーダルは shared/js/card-detail.js が #gacd-modal としてDOM注入する -->
 

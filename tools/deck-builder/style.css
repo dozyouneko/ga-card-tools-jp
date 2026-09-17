@@ -329,6 +329,18 @@ img.champ-thumb-img { display: block; }
 .modal-body h2 { margin: 0 0 4px; font-size: 1.05rem; }
 .result-count { margin: 0 0 14px; font-size: .8rem; color: var(--muted); }
 
+/* ---------- 検索結果パネル（検索結果のタブ化_設計 §8-4・§8-7・T4） ----------
+   ⭐ 旧 #result-modal の中身をそのまま右列のタブ面にしたもの。並びは
+      条件の箱 → 件数 → タイル → もっと見る のまま（モーダル時代と同じ）。
+   ⚠️ padding は .deck-pane / .stats-pane と同じ（タブを切り替えても左端がずれないため）。
+   ⚠️ ⭐ min-height: 100vh は必須（設計 §8-7）——検索中はパネルが空でページが短く、
+      送り先の高さが無いと「タブ帯まで送る」が効かない。
+      ⭐ 条件の箱の高さは可変（§6-2: 畳んで 108〜211px）だが、箱が高いほどページは長くなるので
+         この 100vh は「送れなくなる側」には倒れない（§8-7-1）。
+   ⚠️ 高さの内訳（箱＋件数＋1行…）を足し合わせて決めないこと（箱が伸びた日に崩れる・§8-7-1）。 */
+.result-pane { padding: 16px 24px 56px; min-height: 100vh; }
+.result-pane[hidden] { display: none; }
+
 /* ---------- 検索タブの条件の箱（検索結果のタブ化_設計 §6・T3） ----------
    ⚠️ ⭐ 丸ピル（「選択中の条件」と同じ見た目）にしないこと。375px の最悪ケース（8項目）で
       箱だけが 470px になり、結果のタイルが 583px まで押し下がった（モック説明 §4-2 の実測）。
@@ -338,7 +350,12 @@ img.champ-thumb-img { display: block; }
 .cond-box {
   margin: 0 0 12px; padding: 9px 11px;
   border: 1px solid var(--accent); border-radius: 10px;
-  background: rgba(217, 164, 65, .08);
+  /* ⭐ --accent に追従させる（設計 §8-4-2 の4・レビュー T3 S-4）。
+     ⚠️ ⭐ 直値（旧 rgba(217,164,65,.08)）に戻さないこと——**--accent を変えた日に箱だけ古い色で残る**。
+     ⚠️ shared/css/tokens.css に新しいトークンを足さない・このファイルに :root を書かないこと
+        （前者は V21 で不合格・後者は npm run validate の検査(ii) が exit 1）＝
+        ⭐ 2つの規約の隙間で成立する直し方が color-mix だけ。 */
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 .cond-box[hidden] { display: none; } /* ⚠️ UA の [hidden] が効かなくなる将来の display 指定への保険 */
 .cond-title { margin: 0 0 7px; font-size: .74rem; font-weight: 700; letter-spacing: .04em; color: var(--muted); }
@@ -350,10 +367,13 @@ img.champ-thumb-img { display: block; }
 .cond-list dt { color: var(--muted); font-size: .74rem; white-space: nowrap; }
 .cond-list dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
 .cond-list .cond-none { color: var(--muted); }
-/* 畳んだ状態＝先頭3項目だけ見せる。1項目が <dt>+<dd> の2要素なので 3*2+1 = 7 番目から隠す。
-   ⚠️ ⭐ この 7 は app.js の COND_FOLD_SHOW(=3) と必ず同時に動かす（片方だけ変えると
-      「▾ すべて表示（ほか N 項目）」の N と実際に隠れている行数がずれる＝無言の食い違い）。 */
-.cond-box.is-folded .cond-list > :nth-child(n+7) { display: none; }
+/* 畳んだ状態＝先頭 COND_FOLD_SHOW 項目だけ見せる。
+   ⭐ 設計 §8-4-3: ⚠️ **CSS に行数を書かない**。畳む行には app.js の renderCondBox() が
+      .cond-extra を付けるので、ここはその印を隠すだけにする。
+   ⚠️ ⭐ 「先頭から数えて何番目以降を隠す」という数値の指定へ戻さないこと——JS の COND_FOLD_SHOW と二重になり、
+      片方だけ動かすと「▾ すべて表示（ほか N 項目）」の N と実際に隠れている行数がずれる
+      （＝レビュー T3 S-2。⭐ 検査を足すのではなく重複を消す、が裁定）。 */
+.cond-box.is-folded .cond-list > .cond-extra { display: none; }
 .cond-more {
   margin-top: 6px; padding: 2px 0;
   font: inherit; font-size: .76rem; color: var(--accent);
@@ -838,6 +858,10 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
      ⚠️ ここは 620px。PANE_MIN_WIDTH(1200) 未満でなければ npm run validate の検査②が exit 1 になる */
   #view-editor .tabs-scroll .tab-close { width: 24px; height: 24px; }
   .stats-pane { padding: 16px 16px 48px; }
+  /* ⭐ 検索結果パネルも統計パネルと同じ横 16px にする（設計 §8-4）。
+     ⚠️ 旧 .modal-body は 860px以下で padding: 20px 16px の全画面シートだった。24px のままだと
+        375px で結果タイルと条件の箱が 16px ぶん細くなる（＝移設で見た目が縮む）。 */
+  .result-pane { padding: 16px 16px 48px; }
   .statrow { flex-wrap: wrap; }
   .sr-label { width: 100%; text-align: left; }
   .sr-note--multi { display: none; } /* 第7版⑯: 重複計上注記はスマホで非表示(Boon注記は素の.sr-noteなので表示継続) */
@@ -980,13 +1004,7 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
   #s-selected-filters-list .x { color: var(--muted); font-weight: 700; }
   #s-selected-filters-list .clear-all { border-style: dashed; border-color: var(--border); color: var(--muted); }
 
-  /* ⭐ 検索結果ダイアログが左ペインを覆わないようにする（左ペイン化_設計 §7-5 D-add-2）。
-     並び替え（#s-sort / #s-order）を左ペインへ移した結果、モーダルを開いたままでは
-     ⚠️ ベール（.modal-backdrop）が左ペインの上に載り、「結果を見ながら並び替える」ができなくなった
-        （elementFromPoint が #s-sort の位置で modal-backdrop を返す＝機能の後退）。
-     ⭐ .modal は position:fixed; inset:0 なので、left をペイン幅だけ寄せれば
-        ベールも本体もまとめて右へ動く（追加のJSは要らない。ガードは §5-2 で外してある）。
-     ⚠️ 1199px以下は現状のまま（スマホの全画面シート化と噛み合わせない）。
-     ⚠️ 320px は #view-editor の grid-template-columns の左列と同じ値。片方だけ変えないこと。 */
-  #result-modal { left: 320px; }
+  /* ⭐ 検索結果は右列のタブ面（#ed-pane-search）になったので、旧 #result-modal { left: 320px }
+     （結果ダイアログが左ペインを覆わないようにする左ペイン化_設計 §7-5 D-add-2 の手当て）は
+     ⚠️ 器ごと不要になった（設計 §8-4）。⭐ 左ペインはもう何にも覆われない。 */
 }
