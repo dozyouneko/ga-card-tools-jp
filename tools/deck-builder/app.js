@@ -2028,8 +2028,11 @@ function loadSearchTabs(deckId) {
 }
 
 // エレメントANDで0件が確定する組み合わせの注意書き(#31)。
-// 結果ダイアログが検索フォームを覆うので、文言はダイアログ側(searchStatusText)にも出す。
-// ここではダイアログを閉じたときに原因が分かるよう、グループを開いて警告を残す。
+// ⚠️ ⭐ 旧コメントの前提「結果ダイアログが検索フォームを覆う」は T4 で消えた（結果はモーダルではなく
+//    右列の3つ目の面＝#ed-pane-search になった）。⭐ いまの役割は次の2つ:
+//    ① 文言は結果パネルの件数欄にも出す（searchStatusText）——そちらが検索直後に目に入る
+//    ② ここでは絞り込み側にも警告を残す（スマホでは絞り込み自体が畳まれているので開く）。
+// ⚠️ 呼び出しは onResults の mine() ガードの内側だけ＝表示中のタブの結果のときだけ（設計 §8-3）。
 function updateElementWarn(info) {
   const warn = el.sGElement.warnEl;
   if (!warn) return;
