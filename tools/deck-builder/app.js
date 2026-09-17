@@ -1736,6 +1736,9 @@ function syncSearchTabSelection() {
   el.resultPane.hidden = !selectedSearchTab;
   if (selectedSearchTab && selectedSearchTab.btn) {
     el.resultPane.setAttribute("aria-labelledby", selectedSearchTab.btn.id);
+  } else {
+    // ⚠️ 閉じたタブのボタン id を指したまま残さない（DOM から消えた要素を指す idref になる）
+    el.resultPane.removeAttribute("aria-labelledby");
   }
   // ⭐ 条件の箱もここで描き直す（設計 §6・T3）。⚠️ この関数は タブの増減（renderSearchTabs）・
   //    タブの切り替え（selectSearchTab）・並び替えのその場更新（updateActiveSearchTab）の
