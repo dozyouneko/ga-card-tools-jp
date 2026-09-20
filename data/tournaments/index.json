@@ -1,10 +1,46 @@
 {
-  "updatedAt": "2026-09-10T02:16:52.498Z",
+  "updatedAt": "2026-09-20T11:55:25.218Z",
   "scan": {
     "minId": 46500,
-    "maxId": 63259
+    "maxId": 64213
   },
   "events": [
+    {
+      "id": 63680,
+      "name": "GA #66",
+      "category": "store-championships",
+      "format": "standard",
+      "startAt": "2026-09-14T18:45:00.000Z",
+      "season": null,
+      "country": "KW",
+      "host": "Limitless",
+      "playerCount": 11,
+      "deckCount": 11
+    },
+    {
+      "id": 62175,
+      "name": "Stevenson Games PRD Store Championships",
+      "category": "store-championships",
+      "format": "standard",
+      "startAt": "2026-09-12T16:00:00.000Z",
+      "season": null,
+      "country": "US",
+      "host": "Stevenson Games",
+      "playerCount": 12,
+      "deckCount": 12
+    },
+    {
+      "id": 62616,
+      "name": "Ascent Melbourne 2026",
+      "category": "ascent",
+      "format": "standard",
+      "startAt": "2026-09-11T23:00:00.000Z",
+      "season": null,
+      "country": "AU",
+      "host": "Illusive Tcg",
+      "playerCount": 166,
+      "deckCount": 166
+    },
     {
       "id": 59730,
       "name": "Ascent Worlds Singapore Team Standard 3v3",
