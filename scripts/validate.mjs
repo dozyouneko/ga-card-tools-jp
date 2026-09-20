@@ -644,6 +644,112 @@ const LINEREF_EXCLUDE = ["shared/vendor"];
   }
 }
 
+// --- CLAUDE.md に現在形の公開状態を書かせない検査（未採番・未公開注記の陳腐化 B2） -------
+// 「⚠ 未pushなので本番にはまだ出ていない」という注記が CLAUDE.md に10箇所あり、10箇所とも
+// 誤りだった。誤記ではなく陳腐化で、「push していない ⇒ 本番に出ていない」という推論が
+// 2026-08-27 の経路②（wrangler pages deploy）で成立しなくなったことが原因。以後、経路②で
+// 公開するたびに、この形の注記は書いた本人に無断で誤りへ変わる（09-06 / 09-09 / 09-17 と
+// 人は3回続けて気づかずに同じ形を書き足した＝規約では止まらなかった）。
+// ⚠ 真偽は検査できない。本番位置 P はネットワークと Cloudflare トークンが要り、索引 §3 が
+//   「書かずに測る」と決めている。しかもローカルで測れる origin/main..HEAD は（GitHub 停止中は
+//   常に）真なので、素朴な検査は誤りを緑で追認する。→ LINEREF と同じく「書き方そのもの」を禁じる。
+// ⚠ 走査するのは CLAUDE.md だけ。docs/ は対象外にする——設計書・工程記録・起票案は「その時点の
+//   実測」を書く文書なので、古くなっても誤りではない（LINEREF が docs/ を除外しているのと同じ理屈）。
+//   本件の起票案だけでこの文言を7回引用しており、広げると本件の記録自体が落ちる。
+// ⚠ 「未push」を含まない行は見ない（裁定①）。「push」と「本番公開」の同居は CLAUDE.md に
+//   7行あり、いずれも正当な運用説明（「mainへのpushは…そのまま本番公開になる」など）。
+//   逆に完全一致だけにすると「未pushなので本番には出ていません」で抜けられる。
+// ⚠ 否定語が無い行も見ない。push待ち の目的説明（「未pushの本番配信物が、issueを見ただけで
+//   分かる」）は正当な記述で、落としてはいけない。
+// ⚠ 抽出に失敗したときに「合格」へ倒さないこと（#40・#70・LINEREF と同じ方針）。読めない・
+//   マーカーが0組／2組以上・END が先・マーカーが行頭・マーカー間が空 のすべてを exit 1 にする。
+const PUBSTATE_FILE = "CLAUDE.md";
+const PUBSTATE_START = "<!-- PUBSTATE-NOTE:START -->";
+const PUBSTATE_END = "<!-- PUBSTATE-NOTE:END -->";
+// 「未push」と同じ行に同居したら落とす語（裁定①）
+const PUBSTATE_DENY = ["本番にはまだ出ていない", "本番にまだ出ていない", "未公開", "公開されていない", "出ていません"];
+{
+  const bad = [];
+  const hits = [];
+  let text = null;
+  try {
+    text = readFileSync(path.join(root, PUBSTATE_FILE), "utf8");
+  } catch (e) {
+    bad.push(`${PUBSTATE_FILE} の読み込みに失敗: ${e.message} — 走査対象の指定が陳腐化しています`);
+  }
+  if (text !== null) {
+    // ⚠ 出現数まで数える（CRON-ADD の S1 と同型）。2組目に古い案内を残すと黙って通る
+    const countOf = (needle) => text.split(needle).length - 1;
+    const sn = countOf(PUBSTATE_START);
+    const en = countOf(PUBSTATE_END);
+    const lines = text.split(/\r?\n/);
+    if (sn === 0 || en === 0) {
+      bad.push(`${PUBSTATE_FILE} に注記ブロックのマーカーがありません（START ${sn}個 / END ${en}個）— 案内ごと消えています`);
+    } else if (sn !== 1 || en !== 1) {
+      bad.push(`${PUBSTATE_FILE} に注記ブロックのマーカーが複数あります（START ${sn}個 / END ${en}個）— 1組だけにしてください`);
+    } else {
+      const s = text.indexOf(PUBSTATE_START);
+      const t = text.indexOf(PUBSTATE_END);
+      if (t < s) {
+        bad.push(`${PUBSTATE_FILE} の注記ブロックのマーカーが逆順です（END が START より前）`);
+      } else if (!text.slice(s + PUBSTATE_START.length, t).trim()) {
+        bad.push(`${PUBSTATE_FILE} の注記ブロックのマーカー間が空です — 案内の中身が消えています`);
+      }
+      // ⚠ マーカーを行頭に置くと CommonMark の HTMLブロック(type 2)に入り、その行の Markdown が
+      //   死ぬ（#70 の実測）。⚠ 実測（2026-09-20・GitHub の /markdown API）では「- <!-- … -->本文」
+      //   のようにリストの記号だけが前にある場合も同じく死ぬ（**強調** が生のまま・`code` が
+      //   <code> にならない）ので、記号だけの前置きも行頭として落とす。見た目では気づけない。
+      for (const marker of [PUBSTATE_START, PUBSTATE_END]) {
+        lines.forEach((line, i) => {
+          const col = line.indexOf(marker);
+          if (col < 0) return;
+          // 前置きから空白とリスト/引用の記号を除いて、何も残らなければ行頭扱い
+          const before = line.slice(0, col).replace(/^[\s>]*(?:[-*+]|\d+[.)])?\s*/, "");
+          if (!before.trim()) {
+            bad.push(`${PUBSTATE_FILE}:${i + 1} — マーカー ${marker} が行頭にあります（その行の Markdown が死にます）`);
+          }
+        });
+      }
+    }
+
+    // 判定はマーカーの内側を除いた各行。ブロックが壊れているときは除外せず全行を見る
+    const inBlock = (idx) => {
+      if (sn !== 1 || en !== 1) return false;
+      const s = text.indexOf(PUBSTATE_START);
+      const t = text.indexOf(PUBSTATE_END);
+      if (t < s) return false;
+      let off = 0;
+      for (let i = 0; i < idx; i++) off += lines[i].length + 1;
+      return off + lines[idx].length > s && off < t + PUBSTATE_END.length;
+    };
+    lines.forEach((line, i) => {
+      if (!line.includes("未push")) return;
+      if (inBlock(i)) return;
+      const word = PUBSTATE_DENY.find((w) => line.includes(w));
+      if (!word) return;
+      const snippet = line.trim().length > 60 ? `${line.trim().slice(0, 60)}…` : line.trim();
+      hits.push(`${PUBSTATE_FILE}:${i + 1} — 「未push」と「${word}」が同居: ${snippet}`);
+    });
+  }
+
+  if (hits.length) {
+    bad.push(`公開状態の主張: ${hits.length}件`);
+    // 件数が多いときも先頭20件だけ出す（LINEREF と同じ）
+    hits.slice(0, 20).forEach((h) => bad.push(`  ${h}`));
+    if (hits.length > 20) bad.push(`  …ほか ${hits.length - 20}件`);
+  }
+
+  if (bad.length) {
+    problems++;
+    console.error(`\nPUBLICATION STATE CLAIMS (${PUBSTATE_FILE}):`);
+    bad.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → 公開状態は CLAUDE.md に書かないでください。経路②があるので、pushの状態から公開状態は導けません`);
+    console.error(`    測り方は docs/design/待ち行列/待ち行列と復旧手順.md §3（本番位置 P を測って祖先判定）`);
+  } else {
+    console.log(`no publication-state claims in ${PUBSTATE_FILE} — 0件（注記ブロック1組）`);
+  }
+}
+
 // --- 共有トークン shared/css/tokens.css の検査2本（左ペイン化_設計 §3-5・Q1） -------------
 // 2a057112 で style.css の :root だけが動き、--panel / --panel-2 / --border / --radius の4つが
 // デッキ構築とズレた。その結果、同じ shared/css/filter-chips.css が2ページで違う色を出していた
