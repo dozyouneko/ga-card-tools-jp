@@ -166,7 +166,7 @@
 |---|---|---|
 | **V1** | `npm run validate` | **exit 0**。⭐ **成功行が 18本 → 16本**になる（`queue index up to date — …` と `task records in sync — …` の2本が消える）。⚠️ ⭐ **残る16本のうち1本は文言が変わる**: `no line-number refs in code comments — 0件（**47**ファイル走査）` → **46ファイル走査**（削除する `gen-queue-index.mjs` が `LINEREF_ROOTS` の走査対象だったため）。**残り15本は文言も含めて不変** |
 | **V2** | `scripts/gen-queue-index.mjs` | **存在しない**。`git ls-files scripts/ \| grep -c gen-queue-index` が **0** |
-| **V3** | 残った参照 | ⭐ **単位1では `scripts/` と `package.json` が 0件**（⚠️ **単位1で 0件にできるのはここだけ**）。⭐ **単位2の完了後**に `grep -rn "gen-queue-index" CLAUDE.md .claude/agents/ docs/design/README.md docs/design/待ち行列/待ち行列と復旧手順.md` が **0件**。⚠️ **除外するもの2つ**: ① `docs/design/未採番-*/` の過去の設計書・実装報告（当時の記録）② `待ち行列/起票案_起票案の状態行と語索引の整合検査.md`（**V7 が編集を禁じている起票案そのもの**） |
+| **V3** | 残った参照 | ⭐ **単位1では `scripts/` と `package.json` が 0件**（⚠️ **単位1で 0件にできるのはここだけ**）。⭐ **単位2の完了後**に `grep -rn "gen-queue-index" CLAUDE.md .claude/agents/ docs/design/README.md docs/design/待ち行列/待ち行列と復旧手順.md` が **0件**。⚠️ **除外するもの2つ**: ① `docs/design/未採番-*/` の過去の設計書・実装報告（当時の記録）② `待ち行列/起票案_起票案の状態行と索引の整合検査.md`（**V7 が編集を禁じている起票案そのもの**） |
 | **V4** | 索引のマーカー | ⭐ **HTMLコメントの実マーカー（`<!-- QUEUE-INDEX:START -->` / `:END -->`）が 0個**。⚠️ **語としての `QUEUE-INDEX` は改版履歴の地の文に1件残る**（第24版）——**これは当時の記録なので書き換えない**（＝`grep -c` が 0 にならないのが正） |
 | **V5** | 追跡表 | §1 の表が **38行**（ヘッダ2行を除く）。**issue番号を持つのは36行**・**`—` が2行**（取り下げ） |
 | **V6** | 追跡表のリンク | **38件すべてリンク先のファイルが実在**する（⚠️ 相対パスは `待ち行列/` からの `../` 始まり） |
