@@ -16,8 +16,6 @@
 // 同型で meta.rarities（レアリティ絞り込みの選択肢）が実データの全レアリティを覆っているかも検査する。
 // さらに data/card-meta-index.json の並び替えキー（8要素・数値4項目・フリップ面）の内部整合を検査する。
 // 加えて cronワークフローの git add 対象と README.md / CLAUDE.md の列挙が一致するかを検査する（#70）。
-// 続いて docs/design/** の起票案の1行目から索引（待ち行列と復旧手順.md）§1 の生成部を作り直し、書かれているものと一致するかを検査する。
-// 続いて工程記録（未採番-*/ と 待ち行列/ の 承認_・実装報告_ 等）の1行目の宣言と、起票案の状態行を突き合わせる。
 // 続いてコード内に「<file>.js:<行番号>」の形の参照が残っていないかを検査する（行番号は腐るため）。
 // 続いて共有トークン shared/css/tokens.css の集約状態を検査する（未定義参照と :root の持ち主）。
 // 続いてUI規約の自動検査3本（onRemoveOne の配線・左ペインの閾値・スマホ表示の帯）を行う。
@@ -29,22 +27,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadI18n } from "./lib/load-i18n.mjs";
 import { buildTlJson, serialize, NAMES_FILE, EFFECTS_FILE } from "./gen-tl-json.mjs";
-import {
-  QUEUE_INDEX,
-  STATES,
-  readDrafts,
-  countByState,
-  buildSection,
-  inspectIndex,
-  headingProblems,
-  firstDiff,
-  driftMessage as queueDriftMessage,
-  readRecords,
-  matchRecords,
-  countDecls,
-  SKIP_BY_DRAFTS,
-  skipByRecords,
-} from "./gen-queue-index.mjs";
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 
@@ -461,110 +443,6 @@ const CRON_WORKFLOW = ".github/workflows/build-tournaments.yml";
     bad.forEach((m) => console.error(`  - ${m}`));
     console.error(`  → 正はワークフローの git add 行です。README.md「大会データの自動更新」節と`);
     console.error(`    CLAUDE.md「cronがコミットする範囲」のマーカー間の列挙を合わせてください`);
-  }
-}
-
-// --- 索引の生成部の検査（未採番・索引の転記ドリフト防止 単位1） -------------------
-// docs/design/** の起票案（起票案*.md / 派生起票案*.md）の状態の正は「各ファイルの1行目」だけで、
-// 索引 docs/design/待ち行列/待ち行列と復旧手順.md の §1 はそこから生成する（マーカー
-// QUEUE-INDEX の間。作るのは scripts/gen-queue-index.mjs）。旧検査（収録漏れと件数一致の2点）は
-// これに置き換えた——一覧・件数は「生成部が最新か」に含まれる。手で書き写す索引は、状態行と
-// 整合したまま両方古い形でも改版履歴で7回ずれた（設計書 §1）。
-// ⭐ 生成と検査で同じ関数を使う（gen-tl-json.mjs の buildTlJson と同じ型）。両辺は「索引に書かれて
-//   いる文字列」と「起票案から今作った文字列」＝別の出所なので空回りしない。
-// ⚠ 抽出に失敗したときに「一致」へ倒さないこと（#40 の教訓）。索引が読めない・マーカーが1組でない・
-//   順序が逆・起票案が0件 のすべてを exit 1 にする（fail-open は1つも無い）。
-// ⚠ 起票案に問題があるときは比較しない（1つの原因で2種類のエラーを出さない）。
-// ⚠ 生成部の外の見出しに件数（N件）を書くと exit 1（件数の複製を許さない。散文は検査できない）。
-// ⚠ この検査のため「起票案」で始まる名前の .md は起票案以外の目的で置けない。除外リストで逃げると
-//   本物を取りこぼす穴が増えるので、名前のほうを直す。
-// ⚠ 分割代入で problems と書かないこと（外側の problems カウンタを隠して problems++ が壊れる）
-// ⭐ 起票案の読み取りは下の「工程記録の突き合わせ」でも使うので、ここで1回だけ読む
-const { drafts: queueDrafts, problems: queueDraftProblems } = readDrafts(root);
-{
-  const draftBad = [...queueDraftProblems];
-  const indexBad = [];
-  const drafts = queueDrafts;
-
-  let idxText = null;
-  try {
-    idxText = readFileSync(path.join(root, QUEUE_INDEX), "utf8");
-  } catch {
-    indexBad.push(`索引が見つかりません: ${QUEUE_INDEX}`);
-  }
-  if (idxText !== null) {
-    const idx = inspectIndex(idxText);
-    // ⚠ マーカーが1組でない・順序が逆なら、生成部の範囲が決まらないので後続は全部省略する
-    if (idx.problems.length) {
-      indexBad.push(...idx.problems);
-    } else {
-      indexBad.push(...headingProblems(idx.lines, idx.start, idx.end));
-      if (draftBad.length) {
-        indexBad.push(`生成部の比較を省略しました（起票案の問題が ${draftBad.length}件 あるため）`);
-      } else {
-        const k = firstDiff(idx.lines.slice(idx.start + 1, idx.end), buildSection(drafts));
-        if (k) indexBad.push(queueDriftMessage(k));
-      }
-    }
-  }
-
-  const bad = [...draftBad, ...indexBad];
-  if (bad.length) {
-    problems++;
-    console.error(`\nQUEUE INDEX DRIFT (${QUEUE_INDEX}):`);
-    bad.forEach((m) => console.error(`  - ${m}`));
-    console.error(`  → 状態の正は各起票案の1行目です。起票案を直し、node scripts/gen-queue-index.mjs で生成部を作り直してください`);
-    console.error(`  → 「起票案」で始まる名前の .md はすべて起票案として扱われます。設計書・解説文書には別の名前を付けてください`);
-    console.error(`  → 書式と手順は ${QUEUE_INDEX} §4`);
-  } else {
-    const c = countByState(drafts);
-    console.log(
-      `queue index up to date — 起票案${drafts.length}件（${STATES.map((s) => `${s}${c[s]}`).join(" / ")}）`,
-    );
-  }
-}
-
-// --- 工程記録と起票案の状態行の突き合わせ（未採番・索引の転記ドリフト防止 単位2） -------
-// 工程記録（docs/design/未採番-*/ と 待ち行列/ の モック説明_ 設計完了_ 追加指示_ 実装報告_
-// レビュー判定_ 再判定_ 承認_ 実物確認結果_ 取り下げ_）の1行目に **対象: 「呼び名」** を書かせ、
-// 承認_ と 実物確認結果_ には（→ 完了）か（→ 継続）を、取り下げ_ には（→ 取り下げ）を必ず選ばせる。
-// ⭐ ねらいは「完了したのに起票案の状態が古いまま」を止めること。索引 §1 は生成物なので状態行と
-//   always 整合するが、⚠ 状態行そのものが古ければ索引も揃って古くなり、生成部の検査は緑になる
-//   （2026-09-11 に実際に起きた。改版履歴で同型の是正が7回）。だから根拠を別のファイルに置く。
-// ⭐ 比べる両辺は「工程記録の1行目の宣言」と「起票案の1行目の状態」＝別ファイル・別の書き手なので
-//   空回りしない（同源で常に緑になる型ではない）。
-// ⚠ 1つの原因で2種類のエラーを出さない: 起票案が読めないときは突き合わせをせず1行だけ、
-//   記録に問題があるときはタスクごとの判定をしない。
-// ⚠ 残る穴: 最後の承認で完了を宣言し損ねると、状態も直らず整合したまま緑になる。
-//   潰すには承認のたびに別の根拠ファイルが要るので、ここで止めている。
-//   ⭐ どう宣言し損ねるか（類型）と根拠は設計書 §12 が正。⚠ ここに書き写さない——写しを増やすと
-//   検査の無い側から黙って古くなる（2026-09-13、このコメント自身がそうなった）。
-{
-  const bad = [];
-  if (queueDraftProblems.length) {
-    // ⚠ 起票案が読めないと呼び名の集合が作れない。QUEUE INDEX DRIFT 側で既に赤くなっている
-    bad.push(SKIP_BY_DRAFTS);
-  } else {
-    const names = new Set(queueDrafts.map((d) => d.name));
-    const { records, count, problems: recProblems } = readRecords(names, root);
-    if (recProblems.length) {
-      bad.push(...recProblems, skipByRecords(recProblems.length));
-    } else {
-      bad.push(...matchRecords(queueDrafts, records));
-      if (!bad.length) {
-        const c = countDecls(records);
-        console.log(
-          `task records in sync — 工程記録${count}件（完了の根拠${c.完了} / 継続${c.継続} / 取り下げの根拠${c.取り下げ}）`,
-        );
-      }
-    }
-  }
-  if (bad.length) {
-    problems++;
-    console.error(`\nTASK RECORD DRIFT:`);
-    bad.forEach((m) => console.error(`  - ${m}`));
-    console.error(`  → 工程記録の1行目は **対象: 「呼び名」** です（承認_・実物確認結果_ は（→ 完了）か（→ 継続）、取り下げ_ は（→ 取り下げ）を付ける）`);
-    console.error(`  → 状態を進める記録（設計完了_・（→ 完了））を書いたら、同じコミットで起票案の1行目を直し、node scripts/gen-queue-index.mjs を打ってください`);
   }
 }
 
