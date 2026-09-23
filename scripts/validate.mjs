@@ -20,6 +20,7 @@
 // 続いて CLAUDE.md に現在形の公開状態（「未push」と公開状態を否定する語の同居）が無いかを検査する（#87）。
 // 続いて共有トークン shared/css/tokens.css の集約状態を検査する（未定義参照と :root の持ち主）。
 // 続いてUI規約の自動検査3本（onRemoveOne の配線・左ペインの閾値・スマホ表示の帯）を行う。
+// 続いて版レベルの絞り込み項目（MULTI の第3要素が null）が想定どおりか、実際に絞れるかを検査する（#93）。
 // 続いて版の正規順序 editionOrder() が全順序であること（＝比較器が簡略化されていないこと）を検査する（#108）。
 // 最後に、生成済みカードページの日本語効果文に「ハイライトされていない用語」が残っていないかを
 // 検査する（用語ハイライトの語形ずれ・片方向）。⚠ この検査だけ非同期（並列読み込み）。
@@ -27,6 +28,7 @@ import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import vm from "node:vm";
 import { loadI18n } from "./lib/load-i18n.mjs";
 import { buildTlJson, serialize, NAMES_FILE, EFFECTS_FILE } from "./gen-tl-json.mjs";
 
@@ -980,6 +982,157 @@ const MOBILE_BAND_MARKER = "MOBILE-BAND:START";
     console.log(`onRemoveOne wiring in sync — 渡しているのは ${passers.length}ファイル（${passers.join(" / ") || "なし"}）／${jsTargets.length}ファイル走査`);
     console.log(`pane threshold in sync — ${paneLog.length}ページ（${paneLog.join(" / ")}）`);
     console.log(`mobile band marker in sync — ${bandLog.length}組（${bandLog.join(" / ")}）`);
+  }
+}
+
+// --- 版レベルの絞り込み項目の配線検査（#93） -------------------------------
+// shared/js/card-search.js の MULTI は「第3要素が null ＝ 版レベル（editions[] を見る）」で、
+// 一般ループは isIndexBlind() で読み飛ばす。ところが第2段（rarityMatchesIn / matchesAndFilters）は
+// キー名 rarity を名指ししているので、版レベル項目を2つ目に足しても・rarity を改名しても、
+// 「選んでも1件も落ちないのに警告も注記も出ない」状態になる（実測済み・fail-open）。
+//
+// ⚠ ブラウザ側では落とさない（throw すると window.GA_CARD_SEARCH が undefined になり、
+//   app.js 冒頭の分割代入が TypeError で落ちてトップもデッキ構築も丸ごと死ぬ＝実測）。
+//   落とすのはこの validate の中だけ。
+// ⚠ 字句検査にしない。vm で本物のモジュールを読み、MULTI から導いた INDEX_BLIND_KEYS を
+//   そのまま読む（#108 と同じ「実物を動かして測る」方針。整形で壊れない）。
+// ⚠ 許可リストの照合だけでは空回りする。第2段の呼び出しを消しても MULTI は無傷なので
+//   照合は緑のまま絞り込みだけが死ぬ。だから「実際に絞れること」を行動で確かめる（下の F1/F2）。
+// ⚠ ネットワークは使わない。fetch はフィクスチャを返すスタブで塞ぐ。
+
+// ⚠ 増やすときは第2段（rarityMatchesIn）の一般化とセット。表だけ増やすと無言で効かなくなる（#93）
+const INDEX_BLIND_ALLOW = ["rarity"];
+
+// 行動フィクスチャ用のカード3枚。a・b はレアリティ3、c は8。和名の「ー」で JPモードを作る。
+// ⚠ 許可リストにあるのにフィクスチャが無いキーは exit 1（fail-closed）。将来2つ目の版レベル
+//   項目を足した人は「検査がその項目の判定の仕方を知らない」と言われて必ず止まる＝本件の目的。
+const IB_CARDS = {
+  a: { slug: "a", name: "Alpha", editions: [{ slug: "a-1", rarity: 3 }] },
+  b: { slug: "b", name: "Bravo", editions: [{ slug: "b-1", rarity: 3 }] },
+  c: { slug: "c", name: "Charlie", editions: [{ slug: "c-1", rarity: 8 }] },
+};
+const IB_JP = { a: { name: "アルファ" }, b: { name: "ブラボー" }, c: { name: "チャーリー" } };
+const ibChip = (values, mode) => ({ getValues: () => values, getMode: () => mode });
+const INDEX_BLIND_FIXTURES = {
+  rarity: [
+    // F1: JPモード（matchesActiveFilters が判定する経路）。名前「ー」で候補は b・c の2枚。
+    //     rarity=3（OR）なので c が落ちて b だけが残る。
+    // ⚠ metaIndexUrl は null にする。索引があると候補が畳まれ、第2段だけを裸で測れない
+    { label: "F1（JPモード・OR）", expect: ["b"], els: { name: { value: "ー" }, rarity: ibChip(["3"], "OR") } },
+    // F2: ENモード AND（matchesAndFilters が判定する経路）。偽APIは rarity を解釈して a・b を
+    //     返すが、どのカードも3と8の両方では刷られていないので0件になる。
+    { label: "F2（ENモード・AND）", expect: [], els: { rarity: ibChip(["3", "8"], "AND") } },
+  ],
+};
+
+{
+  const bad = [];
+  const CS_FILE = "shared/js/card-search.js";
+  let search = null;
+  try {
+    const sb = { console, setTimeout, clearTimeout, URLSearchParams };
+    sb.window = sb;
+    sb.GA_I18N = { meta: { sets: [] }, terms: {}, cards: IB_JP };
+    sb.GA_CARD_I18N = {
+      hasJapanese: (s) => /[ぁ-んァ-ヶ一-龠ー]/.test(String(s || "")),
+      bannedFormats: () => [],
+      loadEffects: () => Promise.resolve(),
+    };
+    // 偽の公式API。実物と同じく rarity は解釈し、知らないパラメータは無視する。
+    // ⚠ 外へ出ない（validate はオフライン前提）
+    sb.fetch = (url) => {
+      const q = new URLSearchParams(String(url).split("?")[1] || "");
+      const want = q.getAll("rarity");
+      const data = Object.values(IB_CARDS).filter(
+        (c) => !want.length || c.editions.some((e) => want.includes(String(e.rarity)))
+      );
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ data, total_cards: data.length, has_more: false }),
+      });
+    };
+    vm.createContext(sb);
+    vm.runInContext(readFileSync(path.join(root, CS_FILE), "utf8"), sb, { filename: "card-search.js" });
+    search = sb.window.GA_CARD_SEARCH;
+    if (!search || typeof search.create !== "function") throw new Error("GA_CARD_SEARCH が組み立てられていません");
+  } catch (e) {
+    // ⚠ 素の例外でクラッシュさせない。原因が分かる1行を出してから problems に数える
+    bad.push(`モジュールを読み込めません: ${e.message}`);
+  }
+
+  // (b) 版レベル項目の集合と許可リストの双方向の一致
+  // ⚠ 片方向にしない。「rarity を別名に改名した」（個数は1のまま）も落とすため
+  let keys = null;
+  if (search) {
+    keys = search.INDEX_BLIND_KEYS;
+    if (!Array.isArray(keys)) {
+      bad.push("INDEX_BLIND_KEYS が配列ではありません（公開されていない／形が変わった）");
+      keys = null;
+    } else if (!keys.length) {
+      bad.push("INDEX_BLIND_KEYS が空です（MULTI から版レベル項目が消えた？）");
+      keys = null;
+    }
+  }
+  if (keys) {
+    for (const k of keys) {
+      if (!INDEX_BLIND_ALLOW.includes(k)) {
+        bad.push(`許可リストに無い版レベル項目: ${k} — 第2段（rarityMatchesIn）は評価しないので無言で効かなくなります`);
+      }
+    }
+    for (const k of INDEX_BLIND_ALLOW) {
+      if (!keys.includes(k)) {
+        bad.push(`許可リストにあるのに MULTI の版レベル項目に無い: ${k} — 改名か削除の疑い（第2段は今もこの名前を名指ししています）`);
+      }
+    }
+  }
+
+  // (c) 行動フィクスチャ — 許可リストの各キーが「実際に絞れる」ことを本物の create()/run() で確かめる
+  let fixtureCount = 0;
+  if (search) {
+    for (const key of INDEX_BLIND_ALLOW) {
+      const fixtures = INDEX_BLIND_FIXTURES[key];
+      if (!Array.isArray(fixtures) || !fixtures.length) {
+        bad.push(`${key} の行動フィクスチャがありません — この項目が実際に絞れるかを検査できません（fail-closed）`);
+        continue;
+      }
+      for (const f of fixtures) {
+        fixtureCount++;
+        let got;
+        try {
+          got = await new Promise((resolve, reject) => {
+            const ctl = search.create({
+              els: f.els,
+              metaIndexUrl: null,
+              fetchCard: (s) => Promise.resolve(IB_CARDS[s] || null),
+              onResults: (cards) => resolve(cards.map((c) => c.slug)),
+              onError: (err) => reject(err),
+            });
+            ctl.run(true);
+          });
+        } catch (e) {
+          bad.push(`${key} の行動フィクスチャ ${f.label} が失敗しました: ${e.message}`);
+          continue;
+        }
+        const exp = f.expect.join(",");
+        const act = [...got].sort().join(",");
+        if (exp !== act) {
+          bad.push(
+            `${key} の行動フィクスチャ ${f.label} が期待どおり絞っていません（期待 [${exp}] / 実際 [${act}]）` +
+            ` — 第2段の判定が効いていません`
+          );
+        }
+      }
+    }
+  }
+
+  if (bad.length) {
+    problems++;
+    console.error(`\nINDEX-BLIND FILTER WIRING (${CS_FILE}):`);
+    bad.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → 版レベル項目（MULTI の第3要素が null）を足すときは、第2段の判定も一般化してください。`);
+    console.error(`    表だけ足すと「選んでも1件も落ちない」状態になり、警告も注記も出ません（#93）`);
+  } else {
+    console.log(`index-blind filters in sync — ${keys.length}項目（${keys.join(" / ")}）／行動フィクスチャ ${fixtureCount}組`);
   }
 }
 

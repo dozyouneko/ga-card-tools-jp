@@ -1286,5 +1286,9 @@ window.GA_CARD_SEARCH = (() => {
     setPrefixes, setKeyOf, setIndexOf, numericSortNote, numericSortLabel, jpSortNote, jpDropNote,
     fetchGapNote,
     SUBTYPE_TOP, ELEMENT_AND_MESSAGE,
+    // ⭐ 版レベル項目（isIndexBlind）の一覧。npm run validate が読んで、第2段
+    //    （rarityMatchesIn）が名指ししているキーとずれていないかを検査する（#93）。
+    // ⚠ ここに配列リテラルを書き写さないこと——MULTI から導くから検査が意味を持つ。
+    INDEX_BLIND_KEYS: MULTI.filter(isIndexBlind).map(([k]) => k),
   };
 })();
