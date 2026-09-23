@@ -1644,7 +1644,7 @@ function makeSearchCtl(tab) {
   const artCond = artCondOf(tab.cond);
   // 結果パネルは1組しかないので、描画してよいのは「今パネルを持っているタブ」だけ。
   // ⚠️ 表示中でなくなっていたら破棄して loaded を落とす（次に開いたときに取り直す）。
-  //    ⭐ こうしておくと searchStatusText()/appendResults() の描画先を引数化しなくて済む
+  //    ⭐ こうしておくと件数欄/appendResults() の描画先を引数化しなくて済む
   //       （＝設計 §8-2・§8-3 は T5 のまま触らない）。
   const mine = () => tab.ctl === ctl && tab === activeSearchTab;
   ctl = GA_CARD_SEARCH.create({
@@ -1678,8 +1678,16 @@ function makeSearchCtl(tab) {
       if (!mine()) { tab.loaded = false; return; }
       appendResults(cards, info, artCond); // ⭐ 左ペインではなくこのタブの条件で絵柄を選ぶ（§8-1）
       updateElementWarn(info); // 表示中のタブの結果のときだけ（設計 §8-3）
-      tab.statusText = searchStatusText(info);
-      tab.hasMore = !!info.hasMore;
+      // ⚠ 文言はここにもトップ（app.js）にも書かない。共有側 1か所で作る（#101）。
+      //   ?. と1行のフォールバックは push直後の伝播ラグ対策（新しい app.js と古い
+      //   card-search.js が数十秒だけ組み合わさる）。⚠ フォールバックに分岐を書かないこと。
+      const shown = el.resultGrid.childElementCount;
+      const st = GA_CARD_SEARCH.searchStatus?.(info, shown)
+        || { text: `${shown} 件を表示`, showLoadMore: !!info.hasMore };
+      tab.statusText = st.text;
+      // ⚠ info.hasMore から入れ直さないこと。タブを戻したときだけ共有側の判断が
+      //   無視される穴になる（tab.hasMore の読み出しは el.resultMore.hidden だけ・#101 D6）。
+      tab.hasMore = st.showLoadMore;
       tab.loaded = true;
       el.resultCount.textContent = tab.statusText;
       el.resultMore.hidden = !tab.hasMore;
@@ -2039,7 +2047,7 @@ function loadSearchTabs(deckId) {
 // エレメントANDで0件が確定する組み合わせの注意書き(#31)。
 // ⚠️ ⭐ 旧コメントの前提「結果ダイアログが検索フォームを覆う」は T4 で消えた（結果はモーダルではなく
 //    右列の3つ目の面＝#ed-pane-search になった）。⭐ いまの役割は次の2つ:
-//    ① 文言は結果パネルの件数欄にも出す（searchStatusText）——そちらが検索直後に目に入る
+//    ① 文言は結果パネルの件数欄にも出す（GA_CARD_SEARCH.searchStatus）——そちらが検索直後に目に入る
 //    ② ここでは絞り込み側にも警告を残す（スマホでは絞り込み自体が畳まれているので開く）。
 // ⚠️ 呼び出しは onResults の mine() ガードの内側だけ＝表示中のタブの結果のときだけ（設計 §8-3）。
 function updateElementWarn(info) {
@@ -2056,62 +2064,6 @@ function updateElementWarn(info) {
   }
 }
 
-// 検索結果パネル（#ed-pane-search）の件数欄 #result-count に出す文言。
-// ⚠️ ⭐ 描画先は T4 でモーダルから右列のタブ面に変わった（戻り値は tab.statusText 経由で入る）。
-//    AND指定・日本語モードでは客側で後段フィルタが入るため、総件数を正確に出せないことがある(#31 変更6)。
-function searchStatusText(info) {
-  const shown = el.resultGrid.childElementCount;
-  if (info.blocked === "element-and") return GA_CARD_SEARCH.ELEMENT_AND_MESSAGE;
-  if (shown === 0) {
-    // AND条件は取得済みのページに対して適用するため、このページに1件も残らないことがある。
-    // 続きのページに該当が残っている場合は「もっと見る」で続けられる
-    if (info.hasMore) {
-      // 日本語には一致していて、絞り込みで落ちている場合は「あと何件確認すれば終わるか」を出す。
-      // ⚠ 候補を自動で追い掛けない（0件の間だけ次ページを取る案は明示的に不採用）
-      if (info.jpMode && info.jpMatched > 0 && info.jpFiltered) {
-        return `候補 ${info.total} 件のうち ${info.jpChecked} 件を確認しましたが、絞り込み条件に合うカードはまだありません。「もっと見る」で続きを確認できます。`;
-      }
-      return "このページには該当がありませんでした。「もっと見る」で続きを検索できます。";
-    }
-    // 日本語には一致したのに、数値項目の並び替えでその項目を持つカードが0件になった場合(#43)。
-    // 従来の文言だと「一致しなかった」と嘘になり、原因(並び替え)が画面のどこにも出ない
-    if (info.jpMode && info.numericSort && info.jpMatched > 0) {
-      const lbl = GA_CARD_SEARCH.numericSortLabel?.(info.numericSort) || "";
-      return `日本語テキストには一致しましたが、${lbl}を持つカードはありませんでした（並び替えを「名前順」に戻すと表示できます）。`;
-    }
-    // 日本語には一致したのに、絞り込み条件で全部落ちた場合。従来の文言だと「一致しなかった」と
-    // 嘘になり、「英語で検索し直す」という的外れな行動に誘導してしまう
-    if (info.jpMode && info.jpMatched > 0 && info.jpFiltered) {
-      return "日本語テキストには一致しましたが、絞り込み条件に合うカードはありませんでした（絞り込みを外すと表示できます）。";
-    }
-    // 日本語に一致し、絞り込みも1つも無いのに0件＝候補を1件も取得できなかったときだけ。
-    // ⚠ ここで上の「絞り込みを外すと表示できます」を出すと、外す絞り込みが無いので新しい嘘になる
-    if (info.jpMode && info.jpMatched > 0) {
-      return "日本語テキストには一致しましたが、カード情報を取得できませんでした（時間をおいて再度お試しください）。";
-    }
-    return info.jpMode
-      ? "日本語テキストに一致する翻訳済みカードが見つかりませんでした（未翻訳のカードは日本語検索できません。英語での検索もお試しください）。"
-      : "該当するカードがありません。条件を変えてお試しください。";
-  }
-  const totalPart = !info.approxTotal && info.total > shown ? ` / 全 ${info.total} 件` : "";
-  let suffix = info.jpMode ? "（日本語一致・翻訳済みのみ）" : "";
-  // 数値項目の並び替えは、その項目を持たないカードを除くので総件数が減る(#39)。理由を添える
-  // ?. は push直後の伝播ラグ対策（新しい app.js と古い card-search.js が数十秒だけ組み合わさる）
-  suffix += GA_CARD_SEARCH.numericSortNote?.(info.numericSort) || "";
-  // JPモードの並び替えキーが取れなかった/一部欠けたときの注記(#43)
-  suffix += GA_CARD_SEARCH.jpSortNote?.(info) || "";
-  // 取得後に落ちた件数の注記(#45)。フリップ面を畳んだあとは「出たら異常」の信号
-  suffix += GA_CARD_SEARCH.jpDropNote?.(info) || "";
-  // 数値ソートの全件取得がAPIの申告件数と食い違ったときの注記(#44)。これも「出たら異常」の信号
-  suffix += GA_CARD_SEARCH.fetchGapNote?.(info) || "";
-  if (info.approxTotal) {
-    // JPモードは索引で取得前に絞るためANDでも件数を出せる。概算になるのは索引が使えないときだけ(#27)
-    suffix += info.jpMode
-      ? "（一部のカードは取得後に判定するため総件数は概算です）"
-      : "（AND条件などは取得済みのページに適用するため、総件数は表示できません）";
-  }
-  return `${shown} 件を表示${totalPart}${suffix}`;
-}
 
 // デッキ全体(全ゾーン)での投入枚数(ダイアログのバッジ用)
 function totalQtyInDeck(slug) {

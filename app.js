@@ -164,75 +164,13 @@ function updateElementWarn(info) {
 
 function updateSearchStatus(info) {
   const shown = el.grid.childElementCount;
-  if (info.blocked === "element-and") {
-    el.status.textContent = GA_CARD_SEARCH.ELEMENT_AND_MESSAGE;
-    el.loadMore.hidden = true;
-    return;
-  }
-  if (shown === 0) {
-    // AND条件は取得済みのページに対して適用するため、このページに1件も残らないことがある。
-    // 続きのページに該当が残っている場合は「もっと見る」を残す
-    if (info.hasMore) {
-      // 日本語には一致していて、絞り込みで落ちている場合は「あと何件確認すれば終わるか」を出す。
-      // ⚠ 候補を自動で追い掛けない（0件の間だけ次ページを取る案は明示的に不採用）。
-      //   良かれと思って自動追従を足すと、操作なしで外部APIへの待ちが発生する
-      if (info.jpMode && info.jpMatched > 0 && info.jpFiltered) {
-        el.status.textContent = `候補 ${info.total} 件のうち ${info.jpChecked} 件を確認しましたが、絞り込み条件に合うカードはまだありません。「もっと見る」で続きを確認できます。`;
-        el.loadMore.hidden = false;
-        return;
-      }
-      el.status.textContent = "このページには該当がありませんでした。「もっと見る」で続きを検索できます。";
-      el.loadMore.hidden = false;
-      return;
-    }
-    // 日本語には一致したのに、数値項目の並び替えでその項目を持つカードが0件になった場合(#43)。
-    // 従来の文言だと「一致しなかった」と嘘になり、原因(並び替え)が画面のどこにも出ない
-    if (info.jpMode && info.numericSort && info.jpMatched > 0) {
-      const label = GA_CARD_SEARCH.numericSortLabel?.(info.numericSort) || "";
-      el.status.textContent = `日本語テキストには一致しましたが、${label}を持つカードはありませんでした（並び替えを「名前順」に戻すと表示できます）。`;
-      el.loadMore.hidden = true;
-      return;
-    }
-    // 日本語には一致したのに、絞り込み条件で全部落ちた場合。従来の文言だと「一致しなかった」と
-    // 嘘になり、「英語で検索し直す」という的外れな行動に誘導してしまう
-    if (info.jpMode && info.jpMatched > 0 && info.jpFiltered) {
-      el.status.textContent = "日本語テキストには一致しましたが、絞り込み条件に合うカードはありませんでした（絞り込みを外すと表示できます）。";
-      el.loadMore.hidden = true;
-      return;
-    }
-    // 日本語に一致し、絞り込みも1つも無いのに0件＝候補を1件も取得できなかったときだけ。
-    // ⚠ ここで上の「絞り込みを外すと表示できます」を出すと、外す絞り込みが無いので新しい嘘になる
-    if (info.jpMode && info.jpMatched > 0) {
-      el.status.textContent = "日本語テキストには一致しましたが、カード情報を取得できませんでした（時間をおいて再度お試しください）。";
-      el.loadMore.hidden = true;
-      return;
-    }
-    el.status.textContent = info.jpMode
-      ? "日本語テキストに一致する翻訳済みカードが見つかりませんでした（未翻訳のカードは日本語検索できません。英語での検索もお試しください）。"
-      : "該当するカードがありません。条件を変えてお試しください。";
-    el.loadMore.hidden = true;
-    return;
-  }
-  // 客側で後段フィルタが入る場合（AND指定・日本語モードでの絞り込み）は総件数を正確に出せない
-  const totalPart = !info.approxTotal && info.total > shown ? ` / 全 ${info.total} 件` : "";
-  let suffix = info.jpMode ? "（日本語テキスト一致・翻訳済みのみ）" : "";
-  // 数値項目の並び替えは、その項目を持たないカードを除くので総件数が減る(#39)。理由を添える
-  // ?. は push直後の伝播ラグ対策（新しい app.js と古い card-search.js が数十秒だけ組み合わさる）
-  suffix += GA_CARD_SEARCH.numericSortNote?.(info.numericSort) || "";
-  // JPモードの並び替えキーが取れなかった/一部欠けたときの注記(#43)
-  suffix += GA_CARD_SEARCH.jpSortNote?.(info) || "";
-  // 取得後に落ちた件数の注記(#45)。フリップ面を畳んだあとは「出たら異常」の信号
-  suffix += GA_CARD_SEARCH.jpDropNote?.(info) || "";
-  // 数値ソートの全件取得がAPIの申告件数と食い違ったときの注記(#44)。これも「出たら異常」の信号
-  suffix += GA_CARD_SEARCH.fetchGapNote?.(info) || "";
-  if (info.approxTotal) {
-    // JPモードは索引で取得前に絞るためANDも件数を出せる。概算になるのは索引が使えない/未収録slugが混じるときだけ
-    suffix += info.jpMode
-      ? "（一部のカードは取得後に判定するため総件数は概算です）"
-      : "（AND条件などは取得済みのページに適用するため、総件数は表示できません）";
-  }
-  el.status.textContent = `${shown} 件を表示${totalPart}${suffix}`;
-  el.loadMore.hidden = !info.hasMore;
+  // ⚠ 文言はここに書かない。デッキ構築と同じものを2か所で書いていたのを共有側へ寄せた（#101）。
+  //   ?. と1行のフォールバックは push直後の伝播ラグ対策（新しい app.js と古い card-search.js が
+  //   数十秒だけ組み合わさる）。⚠ フォールバックに分岐を書かないこと＝書いたら二重定義が戻る。
+  const st = GA_CARD_SEARCH.searchStatus?.(info, shown)
+    || { text: `${shown} 件を表示`, showLoadMore: !!info.hasMore };
+  el.status.textContent = st.text;
+  el.loadMore.hidden = !st.showLoadMore;
 }
 
 // ---------- グリッド描画 ----------

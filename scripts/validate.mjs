@@ -22,6 +22,7 @@
 // 続いてUI規約の自動検査3本（onRemoveOne の配線・左ペインの閾値・スマホ表示の帯）を行う。
 // 続いて版レベルの絞り込み項目（MULTI の第3要素が null）が想定どおりか、実際に絞れるかを検査する（#93）。
 // 続いて版の正規順序 editionOrder() が全順序であること（＝比較器が簡略化されていないこと）を検査する（#108）。
+// 続いて検索結果の件数欄の文言が shared/js/card-search.js 1か所だけに書かれているかを検査する（#101）。
 // 最後に、生成済みカードページの日本語効果文に「ハイライトされていない用語」が残っていないかを
 // 検査する（用語ハイライトの語形ずれ・片方向）。⚠ この検査だけ非同期（並列読み込み）。
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
@@ -1294,6 +1295,119 @@ if (loaded) {
     }
   } else {
     console.log(`edition order is a total order — 合成${fixtureCount}組 / ${dataNote}`);
+  }
+}
+
+// --- 件数欄の文言が1か所でしか定義されていないことの検査（#101） -------------
+// トップ（app.js）とデッキ構築（tools/deck-builder/app.js）は、検索結果の件数欄に出す文言を
+// 長いあいだ丸ごと複製していた（0件の7分岐＋件数行）。片方だけ直した結果、実際に
+// 「日本語テキスト一致」と「日本語一致」が画面で食い違っていた。文言は
+// shared/js/card-search.js の searchStatus() へ寄せたので、呼び出し側へ書き戻されたら止める。
+//
+// ⭐ 両辺が別ファイルなので空回りしない（左辺＝共有側のマーカーで囲んだブロック、
+//   右辺＝2つの app.js にその文言が現れないこと）。
+// ⚠ この検査が見ないもの（承知のうえ・設計 §6-4）:
+//   - 10文字未満の断片（呼び出し側のフォールバック `${shown} 件を表示` を許すため）
+//   - 上の2ファイル以外（実際に複製していたのはこの2つだけ）
+//   - 文言を「少し変えて」書き戻すこと（断片一致なので止められるのはコピペだけ）
+// ⚠ 緑は「二重定義が無い」証明ではない。証明にいちばん近いのは破壊試験（設計 §7-5 V11）。
+{
+  const SS_SRC = "shared/js/card-search.js";
+  const SS_TARGETS = ["app.js", "tools/deck-builder/app.js"];
+  const SS_START = "SEARCH-STATUS:START";
+  const SS_END = "SEARCH-STATUS:END";
+  // ⚠ 下限。関数を骨抜きにして（文言を消して）検査を黙らせる逃げ道を塞ぐ。
+  //   設計時点の実測は11個で、書き方を変えて増減したら成功行と設計書 §6-3 を同じコミットで直す。
+  const SS_MIN = 9;
+  // 日本語を含む断片だけを見る（変数名・CSSクラス名などを拾わないため）
+  const SS_JP = /[ぁ-んァ-ヶ一-龥々ー]/;
+
+  // 文字列リテラルの中身だけを取り出す（コメントは落とす）。
+  // ⚠ 正規表現リテラルは扱わない——マーカーの中は文言を返す純関数だけに保つこと。
+  const ssLiterals = (code) => {
+    const out = [];
+    for (let i = 0; i < code.length; ) {
+      const c = code[i];
+      if (c === "/" && code[i + 1] === "/") { while (i < code.length && code[i] !== "\n") i++; continue; }
+      if (c === "/" && code[i + 1] === "*") {
+        i += 2;
+        while (i < code.length && !(code[i] === "*" && code[i + 1] === "/")) i++;
+        i += 2; continue;
+      }
+      if (c === '"' || c === "'" || c === "`") {
+        const q = c; i++;
+        let buf = "";
+        while (i < code.length && code[i] !== q) {
+          if (code[i] === "\\") { buf += code[i] + (code[i + 1] || ""); i += 2; continue; }
+          buf += code[i]; i++;
+        }
+        i++; out.push(buf); continue;
+      }
+      i++;
+    }
+    return out;
+  };
+
+  const bad = [];
+  let frags = [];
+  let src = null;
+  try {
+    src = readFileSync(path.join(root, SS_SRC), "utf8");
+  } catch (e) {
+    bad.push(`${SS_SRC} を読めません: ${e.message}`);
+  }
+  if (src != null) {
+    // (a) マーカーはちょうど1組・順序どおり（0組・2組以上・逆順はいずれも exit 1＝fail-closed）
+    const nStart = src.split(SS_START).length - 1;
+    const nEnd = src.split(SS_END).length - 1;
+    if (nStart !== 1 || nEnd !== 1) {
+      bad.push(`マーカーがちょうど1組ではありません（START ${nStart}個 / END ${nEnd}個）`);
+    } else if (src.indexOf(SS_END) < src.indexOf(SS_START)) {
+      bad.push("マーカーが逆順です（END が START より前にあります）");
+    } else {
+      // (b) ブロック内の文字列リテラルから、${…} を除いた静的断片を集める
+      const block = src.slice(src.indexOf(SS_START) + SS_START.length, src.indexOf(SS_END));
+      const seen = new Set();
+      for (const lit of ssLiterals(block)) {
+        for (const part of lit.split(/\$\{[^{}]*\}/)) {
+          const t = part.trim();
+          if (t.length >= 10 && SS_JP.test(t)) seen.add(t);
+        }
+      }
+      frags = [...seen].sort();
+      if (frags.length < SS_MIN) {
+        bad.push(`ブロック内の文言が ${frags.length}個しかありません（下限 ${SS_MIN}個）— 関数が骨抜きにされていませんか`);
+      }
+    }
+  }
+  // (c) 呼び出し側の2ファイルに、その文言が現れないこと
+  if (frags.length) {
+    for (const rel of SS_TARGETS) {
+      let text = null;
+      try {
+        text = readFileSync(path.join(root, rel), "utf8");
+      } catch (e) {
+        bad.push(`${rel} を読めません: ${e.message}`);
+        continue;
+      }
+      for (const f of frags) {
+        if (text.includes(f)) {
+          const head = f.length > 24 ? `${f.slice(0, 24)}…` : f;
+          bad.push(`${rel} に件数欄の文言が書かれています: 「${head}」`);
+        }
+      }
+    }
+  }
+
+  if (bad.length) {
+    problems++;
+    console.error(`\nSEARCH STATUS TEXT DUPLICATED (${SS_SRC} ↔ ${SS_TARGETS.join(" / ")}):`);
+    bad.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → 件数欄の文言は ${SS_SRC} の searchStatus() だけに書いてください（#101）。`);
+    console.error(`    呼び出し側は GA_CARD_SEARCH.searchStatus?.(info, shown) の戻り値を使い、`);
+    console.error(`    フォールバックには分岐を書かないこと（書いたら二重定義が戻ります）`);
+  } else {
+    console.log(`search status text is single-sourced — ${frags.length}断片 / ${SS_TARGETS.length}ファイル走査`);
   }
 }
 

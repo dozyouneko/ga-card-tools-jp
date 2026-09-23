@@ -488,6 +488,94 @@ window.GA_CARD_SEARCH = (() => {
     return `（APIの申告は ${gap.total} 件ですが ${gap.unique} 件しか取得できませんでした）`;
   }
 
+
+  // SEARCH-STATUS:START
+  // 検索結果の件数欄に出す文言と「もっと見る」の出し分け（#101）。
+  // ⚠ トップ（app.js）とデッキ構築（tools/deck-builder/app.js）が同じ文言を丸ごと複製していたのを
+  //   ここ1箇所へ寄せた。⚠ 呼び出し側へ文言を書き戻さないこと——npm run validate が
+  //   このマーカーの中の文言を2つの app.js から探し、見つかったら exit 1 にする（#101 §6）。
+  // ⚠ shown は DOM 由来（タイルの枚数）なので呼び出し側が数えて渡す。この関数は DOM を触らない。
+  // ⚠ 分岐の順序を入れ替えないこと。とくに #43（数値並び替えで全滅）の分岐を絞り込みの分岐より
+  //   後ろへ動かすと、原因が「絞り込み」と誤って説明される。
+  // ⚠ 同じファイル内の注記関数は ?. を付けずに直接呼ぶ（消したときに無言で空文字にしないため）。
+  // 戻り値の showLoadMore は今日の全経路で !!info.hasMore と一致するが、「文言は出すが
+  // 『もっと見る』は隠す」分岐を片方の画面にだけ書く穴を塞ぐために2値で返す（#101 D2）。
+  function searchStatus(info, shown) {
+    if (info.blocked === "element-and") {
+      return { text: ELEMENT_AND_MESSAGE, showLoadMore: false };
+    }
+    if (shown === 0) {
+      // AND条件は取得済みのページに対して適用するため、このページに1件も残らないことがある。
+      // 続きのページに該当が残っている場合は「もっと見る」を残す
+      if (info.hasMore) {
+        // 日本語には一致していて、絞り込みで落ちている場合は「あと何件確認すれば終わるか」を出す。
+        // ⚠ 候補を自動で追い掛けない（0件の間だけ次ページを取る案は明示的に不採用）。
+        //   良かれと思って自動追従を足すと、操作なしで外部APIへの待ちが発生する
+        if (info.jpMode && info.jpMatched > 0 && info.jpFiltered) {
+          return {
+            text: `候補 ${info.total} 件のうち ${info.jpChecked} 件を確認しましたが、絞り込み条件に合うカードはまだありません。「もっと見る」で続きを確認できます。`,
+            showLoadMore: true,
+          };
+        }
+        return {
+          text: "このページには該当がありませんでした。「もっと見る」で続きを検索できます。",
+          showLoadMore: true,
+        };
+      }
+      // 日本語には一致したのに、数値項目の並び替えでその項目を持つカードが0件になった場合(#43)。
+      // 従来の文言だと「一致しなかった」と嘘になり、原因(並び替え)が画面のどこにも出ない
+      if (info.jpMode && info.numericSort && info.jpMatched > 0) {
+        const label = numericSortLabel(info.numericSort);
+        return {
+          text: `日本語テキストには一致しましたが、${label}を持つカードはありませんでした（並び替えを「名前順」に戻すと表示できます）。`,
+          showLoadMore: false,
+        };
+      }
+      // 日本語には一致したのに、絞り込み条件で全部落ちた場合。従来の文言だと「一致しなかった」と
+      // 嘘になり、「英語で検索し直す」という的外れな行動に誘導してしまう
+      if (info.jpMode && info.jpMatched > 0 && info.jpFiltered) {
+        return {
+          text: "日本語テキストには一致しましたが、絞り込み条件に合うカードはありませんでした（絞り込みを外すと表示できます）。",
+          showLoadMore: false,
+        };
+      }
+      // 日本語に一致し、絞り込みも1つも無いのに0件＝候補を1件も取得できなかったときだけ。
+      // ⚠ ここで上の「外すと表示できます」の文言を出すと、外す絞り込みが無いので新しい嘘になる
+      if (info.jpMode && info.jpMatched > 0) {
+        return {
+          text: "日本語テキストには一致しましたが、カード情報を取得できませんでした（時間をおいて再度お試しください）。",
+          showLoadMore: false,
+        };
+      }
+      return {
+        text: info.jpMode
+          ? "日本語テキストに一致する翻訳済みカードが見つかりませんでした（未翻訳のカードは日本語検索できません。英語での検索もお試しください）。"
+          : "該当するカードがありません。条件を変えてお試しください。",
+        showLoadMore: false,
+      };
+    }
+    // 客側で後段フィルタが入る場合（AND指定・日本語モードでの絞り込み）は総件数を正確に出せない
+    const totalPart = !info.approxTotal && info.total > shown ? ` / 全 ${info.total} 件` : "";
+    let suffix = info.jpMode ? "（日本語テキスト一致・翻訳済みのみ）" : "";
+    // 数値項目の並び替えは、その項目を持たないカードを除くので総件数が減る(#39)。理由を添える
+    suffix += numericSortNote(info.numericSort);
+    // JPモードの並び替えキーが取れなかった/一部欠けたときの注記(#43)
+    suffix += jpSortNote(info);
+    // 取得後に落ちた件数の注記(#45)。フリップ面を畳んだあとは「出たら異常」の信号
+    suffix += jpDropNote(info);
+    // 数値ソートの全件取得がAPIの申告件数と食い違ったときの注記(#44)。これも「出たら異常」の信号
+    suffix += fetchGapNote(info);
+    if (info.approxTotal) {
+      // JPモードは索引で取得前に絞るためANDも件数を出せる。
+      // 概算になるのは索引が使えない/未収録slugが混じるときだけ(#27)
+      suffix += info.jpMode
+        ? "（一部のカードは取得後に判定するため総件数は概算です）"
+        : "（AND条件などは取得済みのページに適用するため、総件数は表示できません）";
+    }
+    return { text: `${shown} 件を表示${totalPart}${suffix}`, showLoadMore: !!info.hasMore };
+  }
+  // SEARCH-STATUS:END
+
   // メタ索引の entry[6]（数値4項目）の並び。gen-card-meta-index.mjs の NUM_FIELDS と対応する
   const NUM_POS = { level: 0, power: 1, life: 2, cost_memory: 3 };
 
@@ -1285,6 +1373,8 @@ window.GA_CARD_SEARCH = (() => {
     createSelectedFilters, initAccordion,
     setPrefixes, setKeyOf, setIndexOf, numericSortNote, numericSortLabel, jpSortNote, jpDropNote,
     fetchGapNote,
+    // 件数欄の文言（#101）。⚠ 呼び出し側に書き戻さないこと（npm run validate が落とす）
+    searchStatus,
     SUBTYPE_TOP, ELEMENT_AND_MESSAGE,
     // ⭐ 版レベル項目（isIndexBlind）の一覧。npm run validate が読んで、第2段
     //    （rarityMatchesIn）が名指ししているキーとずれていないかを検査する（#93）。
