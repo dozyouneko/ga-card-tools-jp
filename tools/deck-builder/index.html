@@ -135,9 +135,10 @@
         <select id="s-format"><option value="">フォーマット（全て）</option></select>
         <select id="s-set"><option value="">エキスパンション（全て）</option></select>
       </div>
-      <!-- 並び替え・昇降順（左ペイン化_設計 §5）。⚠️ 結果ダイアログの中ではなくここに置く。
+      <!-- 並び替え・昇降順（左ペイン化_設計 §5）。⚠️ 結果パネル側ではなくこの検索パネルに置く。
            トップページの .filter-rest（#f-sort / #order）と同じ位置づけで、
-           変更したら結果ダイアログが閉じていても再検索する（app.js のハンドラ・§5-2）。 -->
+           変更したら表示中の検索タブをその場で更新する
+           （app.js の updateActiveSearchTab()・検索結果のタブ化_設計 §2-3。タブは増やさない）。 -->
       <div class="result-sort">
         <label for="s-sort">並び替え</label>
         <select id="s-sort" aria-label="並び替え">

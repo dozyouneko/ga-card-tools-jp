@@ -2056,8 +2056,9 @@ function updateElementWarn(info) {
   }
 }
 
-// 結果ダイアログの件数表示。AND指定・日本語モードでは客側で後段フィルタが入るため、
-// 総件数を正確に出せないことがある(#31 変更6)。
+// 検索結果パネル（#ed-pane-search）の件数欄 #result-count に出す文言。
+// ⚠️ ⭐ 描画先は T4 でモーダルから右列のタブ面に変わった（戻り値は tab.statusText 経由で入る）。
+//    AND指定・日本語モードでは客側で後段フィルタが入るため、総件数を正確に出せないことがある(#31 変更6)。
 function searchStatusText(info) {
   const shown = el.resultGrid.childElementCount;
   if (info.blocked === "element-and") return GA_CARD_SEARCH.ELEMENT_AND_MESSAGE;
@@ -2304,7 +2305,7 @@ el.resultGrid.addEventListener("click", async (e) => {
   if (e.target.closest(".cardph") || e.target.closest(".rname")) openDetail(slug);
 });
 
-// 枚数の直接入力(検索結果ダイアログ)
+// 枚数の直接入力（検索結果パネル #ed-pane-search の結果カード内）
 el.resultGrid.addEventListener("change", async (e) => {
   const input = e.target.closest(".cs-input");
   if (!input) return;
