@@ -20,6 +20,7 @@
 // 続いて CLAUDE.md に現在形の公開状態（「未push」と公開状態を否定する語の同居）が無いかを検査する（#87）。
 // 続いて共有トークン shared/css/tokens.css の集約状態を検査する（未定義参照と :root の持ち主）。
 // 続いてUI規約の自動検査3本（onRemoveOne の配線・左ペインの閾値・スマホ表示の帯）を行う。
+// 続いて版の正規順序 editionOrder() が全順序であること（＝比較器が簡略化されていないこと）を検査する（#108）。
 // 最後に、生成済みカードページの日本語効果文に「ハイライトされていない用語」が残っていないかを
 // 検査する（用語ハイライトの語形ずれ・片方向）。⚠ この検査だけ非同期（並列読み込み）。
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
@@ -979,6 +980,167 @@ const MOBILE_BAND_MARKER = "MOBILE-BAND:START";
     console.log(`onRemoveOne wiring in sync — 渡しているのは ${passers.length}ファイル（${passers.join(" / ") || "なし"}）／${jsTargets.length}ファイル走査`);
     console.log(`pane threshold in sync — ${paneLog.length}ページ（${paneLog.join(" / ")}）`);
     console.log(`mobile band marker in sync — ${bandLog.length}組（${bandLog.join(" / ")}）`);
+  }
+}
+
+// --- 版の正規順序が全順序であることの検査（#108） ---------------------------
+// scripts/lib/edition-order.mjs の editionOrder() は5段の全順序で、1段でも削ると
+// 公式APIの editions 配列順が生成物に漏れる（中身が変わらない日に差分が出る＝#71 の正体）。
+// 守っていたのはコメントだけだったので、ここで止める。
+//
+// ⚠ 比較器は build-card-pages.mjs から import しないこと。あれは import しただけで
+//   カード2,495ページのビルドが走る（だから scripts/lib/edition-order.mjs へ切り出した）。
+// ⚠ fail-open にしない。合成フィクスチャ（案A）はスナップショットが無くても必ず走る。
+//   スナップショットを使う実データ走査（案B）だけがスキップされ、それは成功行に明記する。
+// ⭐ 案A と案B は目的が違う: 案A は「人が比較器を簡略化した」、案B は「データが最終決着キー
+//   （版slug）の一意性を破った」を捕まえる。実測では案B の検出力は5キー中1キーだけなので、
+//   案B を本体にしてはいけない（K1〜K4 を削っても実データの同値ペアは0組のまま）。
+if (loaded) {
+  const bad = [];
+  const dataBad = [];
+  const dataExamples = [];
+  let editionOrder = null;
+  let setOrder = null;
+  try {
+    const mod = await import("./lib/edition-order.mjs");
+    setOrder = mod.makeSetOrder((loaded.meta && loaded.meta.sets) || []).setOrder;
+    editionOrder = mod.makeEditionOrder(setOrder);
+    if (typeof editionOrder !== "function") throw new Error("makeEditionOrder() が関数を返しません");
+  } catch (e) {
+    // ⚠ 素の例外でクラッシュさせない。原因が分かる1行を出してから problems に数える
+    bad.push(`比較器を読み込めません: ${e.message}`);
+  }
+
+  // K2 のフィクスチャには order の異なる prefix が2つ要る。
+  // ⚠ 取れないまま黙って K2 を飛ばすと、そこだけ無検査になる（fail-closed にする）。
+  let prefixLow = null;
+  let prefixHigh = null;
+  if (editionOrder) {
+    const prefixes = [];
+    for (const st of (loaded.meta && loaded.meta.sets) || []) {
+      for (const pfx of st.prefixes || []) prefixes.push(pfx);
+    }
+    const ranked = [...new Set(prefixes)].map((pfx) => [pfx, setOrder(pfx)]).sort((x, y) => x[1] - y[1]);
+    if (ranked.length >= 2 && ranked[0][1] !== ranked[ranked.length - 1][1]) {
+      prefixLow = ranked[0][0];
+      prefixHigh = ranked[ranked.length - 1][0];
+    } else {
+      bad.push("meta.sets から order の異なる prefix が2つ取れません（K2 のフィクスチャを作れません）");
+    }
+  }
+
+  // --- 案A: 合成フィクスチャ6組（必須・常に走る・スキップ不可） ---
+  // ⚠ 観測フィールドはスナップショットから借りず明示的に書く（案B と独立させる）。
+  const FIXTURE_FIELDS = [
+    ["set.release_date", (e) => (e.set || {}).release_date],
+    ["set.prefix", (e) => (e.set || {}).prefix],
+    ["rarity", (e) => e.rarity],
+    ["collector_number", (e) => e.collector_number],
+    ["slug", (e) => e.slug],
+  ];
+  let fixtureCount = 0;
+  if (editionOrder && prefixLow && prefixHigh) {
+    const base = () => ({
+      set: { release_date: "2025-01-01", prefix: prefixLow },
+      rarity: 1,
+      collector_number: "001",
+      slug: "base-slug",
+    });
+    const vary = (mutate) => { const e = base(); mutate(e); return e; };
+    const fixtures = [
+      ["F1（発売日）", "set.release_date", base(), vary((e) => { e.set.release_date = "2024-01-01"; })],
+      ["F2（meta.sets の並び）", "set.prefix", base(), vary((e) => { e.set.prefix = prefixHigh; })],
+      ["F3（レアリティ）", "rarity", base(), vary((e) => { e.rarity = 2; })],
+      ["F4（カード番号）", "collector_number", base(), vary((e) => { e.collector_number = "002"; })],
+      ["F5（版slug）", "slug", base(), vary((e) => { e.slug = "zzz-slug"; })],
+      // ⭐ F6 は numeric: true を突く。辞書順だと "10" < "9" なので 0 ではなく「向きが逆」で出る
+      ["F6（カード番号の数値順）", "collector_number",
+        vary((e) => { e.collector_number = "9"; }), vary((e) => { e.collector_number = "10"; })],
+    ];
+    fixtureCount = fixtures.length;
+    for (const [label, field, a, b] of fixtures) {
+      // ⭐ フィクスチャの自己検査。2フィールド違いのフィクスチャは、キーを1本潰しても差がついて
+      //   しまい検査が空回りする。作り間違いを構造で塞ぐ。
+      const diff = FIXTURE_FIELDS.filter(([, get]) => get(a) !== get(b)).map(([name]) => name);
+      if (diff.length !== 1 || diff[0] !== field) {
+        bad.push(
+          `${label}が${diff.length}つのフィールドで違います（フィクスチャの作り間違い: ` +
+          `${diff.join(" / ") || "なし"}。期待: ${field} だけ）`
+        );
+        continue; // ⚠ 作り間違ったフィクスチャの比較結果は意味を持たないので比較しない
+      }
+      const ab = editionOrder(a, b);
+      const ba = editionOrder(b, a);
+      if (ab === 0) {
+        bad.push(`${label}で差がつきません（比較結果 0）`);
+        continue;
+      }
+      if (ab > 0) {
+        bad.push(`${label}の向きが逆です（cmp=${ab}・負であるべき）`);
+        continue;
+      }
+      if (Math.sign(ab) !== -Math.sign(ba)) {
+        bad.push(`${label}が反対称ではありません（cmp(a,b)=${ab} / cmp(b,a)=${ba}）`);
+      }
+    }
+  }
+
+  // --- 案B: スナップショットの実データで同値ペアを数える（あるときだけ・上乗せ） ---
+  // ⚠ meta.rarities の検査とスナップショットを共有しない（既存検査に手を入れて回帰面を増やさない）。
+  // ⚠ ペアは同一カード内だけでよい（並べ替えが起きるのはカード単位）。カード横断の全ペア
+  //   （約1,200万組）を回さないこと。
+  const SNAP_EO = path.join(root, "tmp", "api-cache", "cards-snapshot.json");
+  let dataNote = `実データはスキップ（${path.relative(root, SNAP_EO)} がありません）`;
+  if (editionOrder && existsSync(SNAP_EO)) {
+    try {
+      const snap = JSON.parse(readFileSync(SNAP_EO, "utf8"));
+      const cards = Array.isArray(snap) ? snap : (snap.cards || []);
+      let editions = 0;
+      let pairs = 0;
+      const ties = [];
+      for (const c of cards) {
+        const eds = c.editions || c.result_editions || [];
+        editions += eds.length;
+        for (let i = 0; i < eds.length; i++) {
+          for (let j = i + 1; j < eds.length; j++) {
+            pairs++;
+            if (editionOrder(eds[i], eds[j]) === 0) {
+              ties.push(`${c.slug}（${eds[i].slug} / ${eds[j].slug}）`);
+            }
+          }
+        }
+      }
+      // ⚠ 抽出に失敗したときに「一致」へ倒さない。0件は破損であって決定性の証明ではない
+      if (editions === 0) {
+        dataBad.push("スナップショットから版を1件も取り出せません（破損か形式変更の疑い）");
+      } else if (ties.length) {
+        dataBad.push(`実データに同値ペアがあります: ${ties.length}組`);
+        ties.slice(0, 3).forEach((t) => dataExamples.push(`例: ${t}`));
+      } else {
+        dataNote = `実データ ${editions}版・${pairs}ペア・同値0`;
+      }
+    } catch (e) {
+      dataBad.push(`スナップショットの読み込みに失敗: ${e.message}`);
+    }
+  }
+
+  if (bad.length || dataBad.length) {
+    problems++;
+    console.error(`\nNON-DETERMINISTIC EDITION ORDER (scripts/lib/edition-order.mjs):`);
+    bad.forEach((m) => console.error(`  - ${m}`));
+    dataBad.forEach((m) => console.error(`  - ${m}`));
+    dataExamples.forEach((m) => console.error(`    ${m}`));
+    // ⚠ 案A の失敗（人がコードを削った）と案B の失敗（データが変わった）は原因も対処も違う。
+    //   同じ誘導文を出さないこと。
+    if (bad.length) {
+      console.error(`  → editionOrder() は5段すべてが必要です。1段でも削ると公式APIの editions 配列順が`);
+      console.error(`    生成物に漏れ、中身が変わらない日に差分が出ます（#108 / 親タスク: 版順序の非決定性）`);
+    }
+    if (dataBad.length) {
+      console.error(`  → 同一カード内で版slug が重複している可能性があります（比較器ではなくデータ側の事故）`);
+    }
+  } else {
+    console.log(`edition order is a total order — 合成${fixtureCount}組 / ${dataNote}`);
   }
 }
 
