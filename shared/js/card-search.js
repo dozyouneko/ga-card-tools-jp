@@ -63,6 +63,50 @@ window.GA_CARD_SEARCH = (() => {
     return i >= 0 ? String(i) : ""; // 無ければ「全て」（古いURL・手打ちで壊れないように）
   }
 
+  // ---------- 版レベルの絞り込みに合わせた絵柄の選択（#41 → #97 で一本化）----------
+
+  // ⭐ 「版レベルの絞り込み」＝ 版（editions[]）の属性で絞る条件の、唯一の定義（#97）。
+  // ⚠ 項目を足すときはここだけを直す。npm run validate が許可リスト（ART_COND_ALLOW）と
+  //   双方向に突き合わせ、「そのキーだけで先頭以外が選ばれる」行動フィクスチャも要求する。
+  // ⚠ ⭐ ここをページ側（app.js / tools/deck-builder/app.js）へコピーで戻さないこと——
+  //   かつて2つに分かれていて、片方だけ直すと画面によって別の絵柄が出る状態だった（#97）。
+  //   [cond のキー, imgs[] の属性名, els のキー, els からの読み方]
+  const ART_COND = [
+    ["prefixes", "prefix", "set", (els) => setPrefixes(els.set ? els.set.value : "")],
+    ["rarities", "rarity", "rarity", (els) => valuesOf(els.rarity).map(String)],
+  ];
+
+  // 絞り込みUIの要素群（els）から「版レベルの絞り込み条件」を取り出す。
+  // ⭐ 取り出しと判定を分けているのは、デッキ構築ツールが条件を検索タブごとに凍結して
+  //   持ち回るため（生の els を渡す形にすると「もっと見る」や裏のタブの絵柄が
+  //   左ペインの「いま」で決まってしまう＝検索結果のタブ化_設計 V22 の不具合）。
+  function artCondOf(els) {
+    const src = els || {};
+    const cond = {};
+    for (const [key, , , read] of ART_COND) cond[key] = read(src);
+    return cond;
+  }
+
+  // 版レベルの絞り込みで検索している場合、その条件に一致する版のイラストを初期表示にする。
+  // 絞り込みが無い、または一致する版が無い場合は先頭（imgs[0]）にフォールバック。
+  // ⚠ 有効な条件が複数あるときは AND —— 片方だけ一致する版を選ばない。
+  // ⚠ その属性を持たない版（rarity が null 等）は選ばない。
+  // ⭐ タイルの初期表示・🎨バッジの版表示・印刷リストに入る版・カード詳細モーダルの初期表示は、
+  //   すべてこの戻り値から決まる。
+  // ⚠ 根拠は editions（cardImages 経由）だけにする。result_editions は全件取得経路で
+  //   delete されるため、並び替えを変えると絵柄が変わることになる（#44）。
+  function preferredArtIndex(imgs, cond) {
+    const src = cond || {};
+    const active = ART_COND
+      .map(([key, attr]) => [attr, (src[key] || []).map(String)])
+      .filter(([, v]) => v.length);
+    if (!active.length) return 0;
+    const list = imgs || [];
+    const idx = list.findIndex((im) =>
+      active.every(([attr, v]) => im[attr] != null && v.includes(String(im[attr]))));
+    return idx >= 0 ? idx : 0;
+  }
+
   // ---------- フィルタ選択肢の生成 ----------
 
   // エレメントの表示順: 基本属性(ノーム→火→水→風)→上級属性(アルファベット順)→EXALTED。
@@ -1363,5 +1407,11 @@ window.GA_CARD_SEARCH = (() => {
     //    （rarityMatchesIn）が名指ししているキーとずれていないかを検査する（#93）。
     // ⚠ ここに配列リテラルを書き写さないこと——MULTI から導くから検査が意味を持つ。
     INDEX_BLIND_KEYS: MULTI.filter(isIndexBlind).map(([k]) => k),
+    // ⭐ 版レベルの絞り込みに合わせた絵柄の選択（#97）。⚠ 呼び出し側に規則を書き戻さないこと
+    //    （npm run validate が「定義は1ファイルだけ」を双方向に検査して落とす）。
+    artCondOf, preferredArtIndex,
+    // ⭐ ART_COND が見ている els のキー。npm run validate が許可リストと突き合わせる。
+    // ⚠ ここに配列リテラルを書き写さないこと——ART_COND から導くから検査が意味を持つ。
+    ART_COND_KEYS: ART_COND.map(([, , elsKey]) => elsKey),
   };
 })();

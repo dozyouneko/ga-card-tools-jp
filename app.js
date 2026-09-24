@@ -54,8 +54,8 @@ const {
   cardImages, rarityCode, speedLabel, formatBadgeHtml, seasonalBadgeHtml,
 } = window.GA_CARD_I18N;
 
-// クエリ構築・日本語ローカル検索・ページング・setPrefixes は shared/js/card-search.js に共通化
-const { setPrefixes } = window.GA_CARD_SEARCH;
+// クエリ構築・日本語ローカル検索・ページング・版レベルの絞り込みに合わせた絵柄の選択（#97）は
+// shared/js/card-search.js に共通化（GA_CARD_SEARCH 経由で呼ぶ）。
 
 // 訳データ(#22 フェーズ2)。data/tl/*.js 38本の <script> をやめ、生成物のJSONを読む。
 // 名前はグリッド描画に要るのでここ(app.js 評価時＝最速)で取得を開始し、初期表示の前に待つ。
@@ -74,23 +74,18 @@ const seasonalReady = window.GA_CARD_I18N.loadSeasonalBanlist(SEASONAL_URL);
 // escapeHtml / renderEffect / isTranslated / label / rarityCode / フォーマット判定 /
 // cardImages / speedLabel は shared/js/card-i18n.js に共通化済み。
 
-// エキスパンション（版）で絞り込み検索している場合、その版のイラストを初期表示にする。
-// 絞り込みが無い、または一致する版が無い場合は先頭（imgs[0]）にフォールバック。
-// ⚠ 「版レベルの絞り込み」（エキスパンション・レアリティ）に一致する版を選ぶ（設計書 §5 P5 の D-4）。
-// ⭐ タイルの初期表示・🎨バッジの版表示・印刷リストに入る版は、すべてこの戻り値から決まる。
-// ⚠ 両方が有効なときは AND —— 片方だけ一致する版を選ばない。一致が無ければ従来どおり先頭へ。
-// ⚠ 署名は (imgs) のまま。shared/js/card-detail.js（詳細モーダル）が同じ関数を受け取るので、
-//   ここを直すとモーダル側も改造なしで追従する。
-// ⚠ 根拠は editions（cardImages 経由）だけにする。result_editions は全件取得経路で
-//   delete されるため、並び替えを変えると絵柄が変わることになる（#44・設計書 §5 P5）。
-function preferredArtIndex(imgs) {
-  const pre = setPrefixes(el.fSet.value);
-  const rar = el.gRarity ? el.gRarity.getValues().map(String) : [];
-  if (!pre.length && !rar.length) return 0;
-  const idx = imgs.findIndex((im) =>
-    (!pre.length || pre.includes(im.prefix)) &&
-    (!rar.length || (im.rarity != null && rar.includes(String(im.rarity)))));
-  return idx >= 0 ? idx : 0;
+// 版レベルの絞り込み（エキスパンション・レアリティ）で検索している場合、その版のイラストを
+// 初期表示にする（#41）。⭐ 規則と条件の取り出しは shared/js/card-search.js に1本だけ置いてある（#97）。
+// ⚠ ⭐ ここに規則を書き戻さないこと——かつて二重定義で、片方だけ直すと画面によって別の絵柄が
+//   出る状態だった（npm run validate が「定義は1ファイルだけ」を検査して落とす）。
+// ⭐ このページに残るのは「どの要素から条件を取るか」だけ。
+// ⚠ トップは「いまの絞り込み」を読む（タイルもモーダルも同じ。デッキ構築とは違ってタブ単位の
+//   凍結が要らないため）。
+function artEls() {
+  return { set: el.fSet, rarity: el.gRarity };
+}
+function artIndexOf(imgs) {
+  return GA_CARD_SEARCH.preferredArtIndex(imgs, GA_CARD_SEARCH.artCondOf(artEls()));
 }
 
 // ---------- 両面（flip）カード ----------
@@ -187,7 +182,7 @@ function appendGrid(cards, info) {
     // 「名前JSONが取れなかった」のか区別できず、訳のあるカードを誤って未翻訳と示すため（変更6・#22）
     const showUntranslated = !isTranslated(card) && translationsReady();
     const imgs = cardImages(card);
-    const initialAi = preferredArtIndex(imgs);
+    const initialAi = artIndexOf(imgs);
     const back = backFace(card); // 両面カードなら裏面（無ければ null）
     // 日本語検索で「裏面だけが一致した」カード（#46）。検索語がタイルのどこにも出ないため、
     // 本文に裏面名の行を足し、画像も最初から裏面で開く。
@@ -834,7 +829,9 @@ function init() {
 
   // カード詳細モーダル（共通コンポーネント）。印刷ボタンとハッシュ連動はこのページ固有
   GA_CARD_DETAIL.init({
-    preferredArtIndex,
+    // ⭐ 条件はこのページの「いまの絞り込み」から毎回作る（#97）。⚠ 規則そのものは
+    //    shared/js/card-search.js の1本だけ——ここに書き戻さないこと。
+    preferredArtIndex: artIndexOf,
     namesUrl: TL_NAMES_URL,
     effectsUrl: TL_EFFECTS_URL, // 日本語の効果・フレーバーはダイアログを開くときに取得する(#22)
     seasonalUrl: SEASONAL_URL, // シーズン禁止(#34)。初期表示で取得済みのためここでは待たずに解決する

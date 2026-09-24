@@ -1137,6 +1137,189 @@ const INDEX_BLIND_FIXTURES = {
   }
 }
 
+// --- preferredArtIndex が1か所だけで定義されていることの検査（#97） ----------
+// 「版レベルの絞り込みに一致する版のイラストを初期表示にする」規則(#41)は、かつて
+// app.js と tools/deck-builder/app.js に同じ5行で二重定義されていた。片方だけ直すと
+// 画面によって別の絵柄が出るのに、どちらも動くので誰も気づけない（実際に、デッキ構築の
+// カード詳細モーダルだけが絞り込みに追従しない状態が長く残った＝#97）。
+//
+// ⚠ #101（0件文言）のような字面検査は使えない。文言ではなく規則なので、同じ字面で
+//   書き直すとは限らない。だから3段にする:
+//   (a) 定義の一意性  … 走査範囲の .js/.mjs に function preferredArtIndex が現れるファイルの集合
+//                       ↔ 許可リスト（双方向。足しても・消しても・改名しても落ちる）
+//   (b) 条件キーの一致 … vm で本物を読んだ ART_COND_KEYS ↔ 許可リスト（双方向）
+//   (c) 行動フィクスチャ … 本物の preferredArtIndex() に合成 imgs[] を通した結果 ↔ 期待値
+//                       （(a)(b) を通しても中身を骨抜きにできないようにする）
+//
+// ⚠ ⭐ (a) は生テキストに当てる。stripJs を再利用しないこと——あれは app.js の
+//   60〜335行（行コメント中の data/tl/*.js の /* が 335行目の */ と対になる）を丸ごと
+//   消すので、その範囲に再定義されても見逃す（#97 設計書 §2-4）。
+//   ⭐ 生テキストで誤検出が無いことは実測済み（現在のヒットは削除対象の2箇所だけだった）。
+// ⚠ 走査範囲は①（onRemoveOne）と同じ定数を使い回す。成功行のファイル数が一致するのはそのため。
+const ART_DEFINE_ALLOW = ["shared/js/card-search.js"];
+// ⚠ 増やすときは ART_COND の表と、下の行動フィクスチャをセットで足す。
+//   表だけ足すと「その項目では絵柄が追従しない」状態に無言でなる（#93 と同じ型）。
+const ART_COND_ALLOW = ["set", "rarity"];
+// 行動フィクスチャ。imgs は [{prefix, rarity}, …]、cond は preferredArtIndex の第2引数。
+// ⚠ 組数を増減させたら成功行の期待値も直すこと。
+// ⚠ ART_COND_ALLOW の各キーは「そのキーだけで先頭以外が選ばれる」ケースを1つ以上持つこと
+//   （fail-closed。許可リストに足して黙らせる逃げ道を塞ぐ）。
+const ART_FIXTURES_BY_KEY = {
+  set: [
+    { label: "F2（set キーが効く）", imgs: [{ prefix: "A", rarity: 1 }, { prefix: "B", rarity: 2 }, { prefix: "C", rarity: 3 }], cond: { prefixes: ["B"] }, expect: 1 },
+  ],
+  rarity: [
+    { label: "F3（rarity キーが効く）", imgs: [{ prefix: "A", rarity: 1 }, { prefix: "B", rarity: 2 }, { prefix: "C", rarity: 3 }], cond: { rarities: ["3"] }, expect: 2 },
+    { label: "F6（rarity が null の版は選ばない）", imgs: [{ prefix: "A", rarity: null }, { prefix: "B", rarity: 2 }], cond: { rarities: ["2"] }, expect: 1 },
+  ],
+};
+const ART_FIXTURES_COMMON = [
+  { label: "F1（条件なし → 先頭）", imgs: [{ prefix: "A", rarity: 1 }, { prefix: "B", rarity: 2 }], cond: {}, expect: 0 },
+  // ⚠ F4 は「AND が OR に退化していないか」を見る唯一のケース（every → some にすると 0 を返す）
+  { label: "F4（AND・片方だけ一致する版を選ばない）", imgs: [{ prefix: "A", rarity: 9 }, { prefix: "B", rarity: 1 }, { prefix: "A", rarity: 1 }], cond: { prefixes: ["A"], rarities: ["1"] }, expect: 2 },
+  { label: "F5（一致が無ければ先頭へフォールバック）", imgs: [{ prefix: "A", rarity: 1 }, { prefix: "B", rarity: 2 }], cond: { prefixes: ["Z"] }, expect: 0 },
+];
+
+{
+  const bad = [];
+  const CS_FILE = "shared/js/card-search.js";
+
+  // ---- (a) 定義の一意性（生テキスト・双方向） ----
+  const artTargets = [];
+  const artExcluded = (rel) => REMOVEONE_EXCLUDE.some((p) => rel === p || rel.startsWith(`${p}/`));
+  const artWalk = (rel) => {
+    if (artExcluded(rel)) return;
+    let st;
+    try {
+      st = statSync(path.join(root, rel));
+    } catch (e) {
+      bad.push(`${rel} を読めません: ${e.message} — 走査対象の指定が陳腐化しています`);
+      return;
+    }
+    if (st.isDirectory()) {
+      for (const d of readdirSync(path.join(root, rel), { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+        artWalk(`${rel}/${d.name}`);
+      }
+    } else if (/\.(?:js|mjs)$/.test(rel)) {
+      artTargets.push(rel);
+    }
+  };
+  for (const r of REMOVEONE_ROOTS) artWalk(r);
+  if (!artTargets.length) bad.push("走査対象の .js が1つもありません — REMOVEONE_ROOTS が陳腐化しています");
+
+  const DEFINE_RE = /function\s+preferredArtIndex\s*\(/;
+  const definers = artTargets.filter((rel) => DEFINE_RE.test(readFileSync(path.join(root, rel), "utf8")));
+  const defAllow = [...ART_DEFINE_ALLOW].sort();
+  const defFound = [...definers].sort();
+  for (const f of defFound) {
+    if (!defAllow.includes(f)) {
+      bad.push(`許可されていない場所に preferredArtIndex が定義されています: ${f} — 規則は ${CS_FILE} の1本だけです`);
+    }
+  }
+  for (const f of defAllow) {
+    if (!defFound.includes(f)) {
+      bad.push(`許可リストにあるのに preferredArtIndex の定義がありません: ${f} — 改名か削除の疑い（呼び出し側は今もこの名前を呼んでいます）`);
+    }
+  }
+
+  // ---- (b)(c) 本物のモジュールを vm で読んで確かめる ----
+  // ⚠ 字句検査にしない（#93・#108 と同じ「実物を動かして測る」方針。整形では壊れない）。
+  // ⚠ ネットワークは使わない。create() を呼ばないので fetch も要らない。
+  let artSearch = null;
+  try {
+    const sb = { console, setTimeout, clearTimeout, URLSearchParams };
+    sb.window = sb;
+    sb.GA_I18N = { meta: { sets: [] }, terms: {}, cards: {} };
+    sb.GA_CARD_I18N = {
+      hasJapanese: () => false,
+      bannedFormats: () => [],
+      loadEffects: () => Promise.resolve(),
+    };
+    vm.createContext(sb);
+    vm.runInContext(readFileSync(path.join(root, CS_FILE), "utf8"), sb, { filename: "card-search.js" });
+    artSearch = sb.window.GA_CARD_SEARCH;
+    if (!artSearch || typeof artSearch.preferredArtIndex !== "function") {
+      throw new Error("preferredArtIndex が公開されていません");
+    }
+    if (typeof artSearch.artCondOf !== "function") {
+      throw new Error("artCondOf が公開されていません");
+    }
+  } catch (e) {
+    bad.push(`モジュールを読み込めません: ${e.message}`);
+    artSearch = null;
+  }
+
+  let condKeys = null;
+  if (artSearch) {
+    condKeys = artSearch.ART_COND_KEYS;
+    if (!Array.isArray(condKeys)) {
+      bad.push("ART_COND_KEYS が配列ではありません（公開されていない／形が変わった）");
+      condKeys = null;
+    } else if (!condKeys.length) {
+      bad.push("ART_COND_KEYS が空です（ART_COND から版レベル項目が消えた？）");
+      condKeys = null;
+    }
+  }
+  if (condKeys) {
+    for (const k of condKeys) {
+      if (!ART_COND_ALLOW.includes(k)) {
+        bad.push(`許可リストに無い版レベルの絵柄条件: ${k} — 行動フィクスチャが無いので「実際に効くか」を検査できません`);
+      }
+    }
+    for (const k of ART_COND_ALLOW) {
+      if (!condKeys.includes(k)) {
+        bad.push(`許可リストにあるのに ART_COND に無い条件キー: ${k} — 改名か削除の疑い（その項目では絵柄が追従しなくなります）`);
+      }
+    }
+  }
+
+  // (c) 行動フィクスチャ。⚠ 許可リストのキーに専用フィクスチャが無ければ exit 1（fail-closed）
+  let artFixtureCount = 0;
+  if (artSearch) {
+    const runOne = (f) => {
+      artFixtureCount++;
+      let got;
+      try {
+        got = artSearch.preferredArtIndex(f.imgs, f.cond);
+      } catch (e) {
+        bad.push(`行動フィクスチャ ${f.label} が失敗しました: ${e.message}`);
+        return;
+      }
+      if (got !== f.expect) {
+        bad.push(`行動フィクスチャ ${f.label} が期待どおりの版を選んでいません（期待 ${f.expect} / 実際 ${got}）`);
+      }
+    };
+    for (const key of ART_COND_ALLOW) {
+      const fixtures = ART_FIXTURES_BY_KEY[key];
+      if (!Array.isArray(fixtures) || !fixtures.length) {
+        bad.push(`${key} の行動フィクスチャがありません — この項目で実際に絵柄が追従するかを検査できません（fail-closed）`);
+        continue;
+      }
+      // ⚠ 「先頭が選ばれる」だけのケースは、規則が死んでいても通ってしまう
+      if (!fixtures.some((f) => f.expect !== 0)) {
+        bad.push(`${key} の行動フィクスチャが「先頭以外が選ばれる」ケースを持っていません（fail-closed）`);
+      }
+      fixtures.forEach(runOne);
+    }
+    ART_FIXTURES_COMMON.forEach(runOne);
+  }
+
+  if (bad.length) {
+    problems++;
+    console.error(`\nPREFERRED ART INDEX SINGLE SOURCE (${CS_FILE}):`);
+    bad.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → 「絞り込みに一致する版のイラストを初期表示にする」規則は ${CS_FILE} に1本だけ置きます。`);
+    console.error(`    ページ側（app.js / tools/deck-builder/app.js）へコピーで戻すと、片方だけ直したときに`);
+    console.error(`    画面によって別の絵柄が出ます。どちらも動くので人の目では気づけません（#97）`);
+  } else {
+    console.log(
+      `preferredArtIndex is single-sourced — 定義 ${definers.length}ファイル（${definers.join(" / ") || "なし"}）`
+      + `／条件キー ${condKeys ? condKeys.length : 0}項目（${condKeys ? condKeys.join(" / ") : "不明"}）`
+      + `／行動フィクスチャ ${artFixtureCount}組／${artTargets.length}ファイル走査`
+    );
+  }
+}
+
 // --- 版の正規順序が全順序であることの検査（#108） ---------------------------
 // scripts/lib/edition-order.mjs の editionOrder() は5段の全順序で、1段でも削ると
 // 公式APIの editions 配列順が生成物に漏れる（中身が変わらない日に差分が出る＝#71 の正体）。

@@ -1417,7 +1417,14 @@ async function saveMemo() {
 // ---------- カード詳細 ----------
 // 本体は shared/js/card-detail.js (GA_CARD_DETAIL) に共通化。openDetail はその薄いラッパー。
 
-function openDetail(slug) {
+// 詳細モーダルを開いたときの「版の絞り込み条件」(#97)。
+// ⚠️ ⭐ 検索結果タイルから開いたときだけ入る。デッキゾーン(.gtile)と共有画面(#v-zones)は
+//    null のまま＝従来どおり先頭の版で開く。ここに「いまの左ペイン」を読む処理を足さないこと——
+//    デッキに入っているカードの絵柄まで検索条件で変わってしまう(設計 §2-2 の A・C)。
+let detailArtCond = null;
+
+function openDetail(slug, artCond) {
+  detailArtCond = artCond || null;
   GA_CARD_DETAIL.openBySlug(slug);
 }
 
@@ -1508,20 +1515,6 @@ function condEls(cond) {
     set: { value: GA_CARD_SEARCH.setIndexOf(p.get("set")) },
     sort: { value: p.get("sort") || "name" },
     order: { dataset: { dir: p.get("order") === "DESC" ? "DESC" : "ASC" } },
-  };
-}
-
-// 絵柄の追従（#41）に使う条件を、条件のスナップショットから取り出す（設計 §8-1・V22）。
-// ⚠️ ⭐ 左ペイン（#s-set / #s-g-rarity）を読まない——読むと「もっと見る」や裏のタブの絵柄が
-//    左ペインの「いま」で決まってしまい、P5（レアリティで絵柄が追従しない）が再発する。
-// ⚠️ 保存は prefix なので、condEls() と同じく setIndexOf() で添字へ戻してから setPrefixes() を通す
-//    （meta.sets の並びに依存する添字は保存しない＝§5-2・#20 と同じ理由）。
-function artCondOf(cond) {
-  const p = new URLSearchParams(cond || "");
-  return {
-    prefixes: GA_CARD_SEARCH.setPrefixes(GA_CARD_SEARCH.setIndexOf(p.get("set"))),
-    // ⚠️ レアリティを落とさない（P5 はレアリティ側で起きた不具合・設計 §8-1-1 の4）
-    rarities: p.getAll("rarity").map(String),
   };
 }
 
@@ -1641,14 +1634,23 @@ function makeSearchCtl(tab) {
   let ctl = null;
   // ⭐ 絵柄の追従（#41・V22）に使う条件も els と同じく「作った時点の条件」で固定する。
   //    ⚠️ tab.cond が変わるのは updateActiveSearchTab() だけで、そこは ctl も作り直す＝必ず一致する。
-  const artCond = artCondOf(tab.cond);
+  //    ⚠️ ⭐ 左ペイン（#s-set / #s-g-rarity）ではなく condEls() のスナップショットから取る——
+  //    読むと「もっと見る」や裏のタブの絵柄が左ペインの「いま」で決まってしまい、
+  //    P5（レアリティで絵柄が追従しない）が再発する。
+  // ⭐ 条件の取り出しと規則は shared/js/card-search.js に1本だけ（#97）。
+  const els = condEls(tab.cond);
+  const artCond = GA_CARD_SEARCH.artCondOf(els);
+  // ⭐ 検索結果タイルから開くカード詳細モーダルも、このタブの条件で絵柄を選ぶ（#97・D-3）。
+  //    ⚠️ tab.cond が変わる経路は updateActiveSearchTab() だけで、そこは ctl を作り直して
+  //    結果グリッドも空にする＝表示中のタイルと activeSearchTab.artCond は必ず一致する。
+  tab.artCond = artCond;
   // 結果パネルは1組しかないので、描画してよいのは「今パネルを持っているタブ」だけ。
   // ⚠️ 表示中でなくなっていたら破棄して loaded を落とす（次に開いたときに取り直す）。
   //    ⭐ こうしておくと件数欄/appendResults() の描画先を引数化しなくて済む
   //       （＝設計 §8-2・§8-3 は T5 のまま触らない）。
   const mine = () => tab.ctl === ctl && tab === activeSearchTab;
   ctl = GA_CARD_SEARCH.create({
-    els: condEls(tab.cond),
+    els,
     pageSize: 24,
     jpPageSize: 24,
     metaIndexUrl: "../../data/card-meta-index.json", // JP検索の取得前フィルタ用メタ索引(#27)
@@ -2094,25 +2096,6 @@ function renderAddRow(item, card) {
   }).join("");
 }
 
-// エキスパンション(版)・レアリティで絞り込み検索している場合、その版のイラストを初期表示にする(#41)。
-// 絞り込みが無い、または一致する版が無い場合は先頭(imgs[0])にフォールバック。
-// トップページの app.js の preferredArtIndex() と同じ規則。参照する要素だけが違う。
-// ⚠️ レアリティを見ないと「レアリティで絞ってもタイルの絵柄が追従しない」（2026-09-03 に
-//    ユーザーが実物を触って見つけた不具合 P5 と同じものが、ここで再発する）。
-// ⚠️ ⭐ artCond は artCondOf() が作る「そのタブの条件」（設計 §8-1・V22）。⚠️ 左ペインを見ない——
-//    見ると「もっと見る」の続きや裏のタブの絵柄が、左ペインの「いま」で決まってしまう。
-// ⚠️ この関数はトップと二重定義。片方だけ直すと画面によって別の絵柄が出る（左ペイン化_設計 §10-1）
-//    ⭐ 二重定義の解消は別タスク（検索結果のタブ化_設計 §11-2）——トップ側は引数化していない。
-function preferredArtIndex(imgs, artCond) {
-  const pre = (artCond && artCond.prefixes) || [];
-  const rar = (artCond && artCond.rarities) || [];
-  if (!pre.length && !rar.length) return 0;
-  const idx = imgs.findIndex((im) =>
-    (!pre.length || pre.includes(im.prefix)) &&
-    (!rar.length || (im.rarity != null && rar.includes(String(im.rarity)))));
-  return idx >= 0 ? idx : 0;
-}
-
 function updateResultBadge(item, slug) {
   const badge = item.querySelector(".in-deck");
   const n = totalQtyInDeck(slug);
@@ -2127,7 +2110,8 @@ function appendResults(cards, info, artCond) {
   const frag = document.createDocumentFragment();
   cards.forEach((card) => {
     const imgs = cardImages(card);
-    const initialAi = preferredArtIndex(imgs, artCond);
+    // ⭐ 規則は shared/js/card-search.js に1本だけ（#97）。⚠️ ここに書き戻さないこと
+    const initialAi = GA_CARD_SEARCH.preferredArtIndex(imgs, artCond);
     const back = backFace(card); // 両面カードなら裏面(無ければ null)
     // 日本語検索で「裏面だけが一致した」カード(#46)。検索語がタイルのどこにも出ないため、
     // 名前の下に裏面名の行を足し、画像も最初から裏面で開く。
@@ -2254,7 +2238,11 @@ el.resultGrid.addEventListener("click", async (e) => {
   }
 
   // カード画像・名前のクリック → 詳細
-  if (e.target.closest(".cardph") || e.target.closest(".rname")) openDetail(slug);
+  // ⭐ 検索結果タイルは「そのタブの条件」で開く＝タイルと同じ絵柄になる（#97・D-3）。
+  //    ⚠️ 左ペインの現在値ではない（🔍 を押すまで反映しない＝タイルの側と揃える）。
+  if (e.target.closest(".cardph") || e.target.closest(".rname")) {
+    openDetail(slug, activeSearchTab && activeSearchTab.artCond);
+  }
 });
 
 // 枚数の直接入力（検索結果パネル #ed-pane-search の結果カード内）
@@ -3483,6 +3471,9 @@ window.addEventListener("hashchange", route);
   // 詳細を閉じたとき、下に検索結果等のモーダルが開いたままならスクロールロックを維持する
   GA_CARD_DETAIL.init({
     fetchCard: getCard,
+    // ⭐ 開いたタイルの条件で絵柄を選ぶ（#97・D-3）。検索結果タイル以外は detailArtCond が
+    //    null なので先頭の版＝従来どおり。⚠️ 規則は shared/js/card-search.js の1本だけ
+    preferredArtIndex: (imgs) => GA_CARD_SEARCH.preferredArtIndex(imgs, detailArtCond),
     namesUrl: TL_NAMES_URL,
     effectsUrl: TL_EFFECTS_URL, // 日本語の効果・フレーバーはダイアログを開くときに取得する(#22)
     seasonalUrl: SEASONAL_URL, // シーズン禁止(#34)。init() で取得済みのためここでは待たずに解決する
