@@ -1033,7 +1033,7 @@ const ORB_CSS = Object.entries(ELEMENT_ORBS)
 
 const CSS = `/* 大会デッキ検索(静的生成)用。生成元: scripts/build-tournament-pages.mjs
    トークン・共通部品は cards/cards.css と揃えている(cp- 接頭辞は共通) */
-:root { --bg:#12141a; --panel:#171a21; --panel-2:#1f232c; --line:#262b36; --text:#e6e8ee; --muted:#9aa2b1; --accent:#d9a441; --accent-2:#6ea8fe; }
+:root { --bg:#12141a; --panel:#171a21; --panel-2:#1f232c; --line:#262b36; --text:#e6e8ee; --muted:#9aa2b1; --accent:#d9a441; --accent-2:#6ea8fe; --accent-3:#e07bd0; --yes:#2f9e6b; }
 * { box-sizing:border-box; }
 [hidden] { display:none !important; }
 body { margin:0; background:var(--bg); color:var(--text); font:15px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif; }
@@ -1097,10 +1097,10 @@ td.num { text-align:right; font-variant-numeric:tabular-nums; color:var(--muted)
 .cat-badge { display:inline-block; border-radius:999px; padding:2px 10px; font-size:.74rem; font-weight:600; white-space:nowrap; }
 /* 一覧の種別バッジ: 列が狭いPC幅は略称、カード表示になるスマホ幅は正式名を出す */
 .cat-full { display:none; }
-.cat-store { background:rgba(217,164,65,.15); color:var(--accent); border:1px solid rgba(217,164,65,.4); }
-.cat-regional { background:rgba(110,168,254,.15); color:var(--accent-2); border:1px solid rgba(110,168,254,.4); }
-.cat-nationals { background:rgba(47,158,107,.15); color:#7fd4a8; border:1px solid rgba(47,158,107,.4); }
-.cat-ascent { background:rgba(224,123,208,.15); color:#e9a8dd; border:1px solid rgba(224,123,208,.4); }
+.cat-store { background:color-mix(in srgb, var(--accent) 15%, transparent); color:var(--accent); border:1px solid color-mix(in srgb, var(--accent) 40%, transparent); }
+.cat-regional { background:color-mix(in srgb, var(--accent-2) 15%, transparent); color:var(--accent-2); border:1px solid color-mix(in srgb, var(--accent-2) 40%, transparent); }
+.cat-nationals { background:color-mix(in srgb, var(--yes) 15%, transparent); color:#7fd4a8; border:1px solid color-mix(in srgb, var(--yes) 40%, transparent); }
+.cat-ascent { background:color-mix(in srgb, var(--accent-3) 15%, transparent); color:#e9a8dd; border:1px solid color-mix(in srgb, var(--accent-3) 40%, transparent); }
 td.country { white-space:nowrap; }
 
 /* ---- 大会詳細 ---- */
@@ -1108,7 +1108,7 @@ td.country { white-space:nowrap; }
 .ev-head h1 { margin:0 0 6px; font-size:1.3rem; }
 .meta-row { display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; font-size:.88rem; color:var(--muted); }
 td.rank { font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
-tr.top1 { background:rgba(217,164,65,.08); }
+tr.top1 { background:color-mix(in srgb, var(--accent) 8%, transparent); }
 .player-name { font-weight:600; }
 td.rec, td.pct { font-variant-numeric:tabular-nums; color:var(--muted); white-space:nowrap; }
 .deck-link { white-space:nowrap; }
@@ -1121,12 +1121,12 @@ td.score { font-weight:600; }
    モック(docs/design/65-チーム戦対応/モック_順位表.html)の案Aをそのまま実装した */
 .standings td:empty { padding:0; }
 .team-block { border-bottom:2px solid var(--line); }
-.team-row td { background:rgba(110,168,254,.06); }
-.team-row td.deck-id, .team-row td:last-child { background:rgba(110,168,254,.06); border-bottom-color:transparent; }
+.team-row td { background:color-mix(in srgb, var(--accent-2) 6%, transparent); }
+.team-row td.deck-id, .team-row td:last-child { background:color-mix(in srgb, var(--accent-2) 6%, transparent); border-bottom-color:transparent; }
 .team-name { font-weight:700; }
 .mem-count { color:var(--muted); font-weight:400; font-size:.78rem; margin-left:8px; }
 .member-row td.player-name { font-weight:500; padding-left:26px; color:var(--text); }
-.member-row td { border-bottom:1px solid rgba(38,43,54,.35); }
+.member-row td { border-bottom:1px solid color-mix(in srgb, var(--line) 35%, transparent); }
 .slot { display:inline-block; min-width:1.5em; margin-right:6px; color:var(--muted); font-size:.78rem; font-variant-numeric:tabular-nums; }
 
 /* ---- 順位表の「デッキ」列: 属性玉 + チャンピオン名(#15) ----
@@ -1172,7 +1172,7 @@ ${ORB_CSS}
 .deck-retry { margin-left:10px; background:var(--panel-2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:4px 12px; font:inherit; font-size:.82rem; cursor:pointer; }
 .deck-retry:hover { border-color:var(--accent); }
 .deck-player { font-weight:600; }
-.rank-badge { background:rgba(217,164,65,.15); color:var(--accent); border:1px solid rgba(217,164,65,.4); border-radius:999px; padding:1px 10px; font-size:.78rem; font-weight:700; white-space:nowrap; }
+.rank-badge { background:color-mix(in srgb, var(--accent) 15%, transparent); color:var(--accent); border:1px solid color-mix(in srgb, var(--accent) 40%, transparent); border-radius:999px; padding:1px 10px; font-size:.78rem; font-weight:700; white-space:nowrap; }
 .view-zone { padding:14px 16px 0; }
 .deck-acc > .view-zone:last-of-type { padding-bottom:16px; }
 .view-zone h4 { font-size:.85rem; color:var(--muted); font-weight:600; letter-spacing:.04em; margin:0 0 10px; padding-bottom:8px; border-bottom:1px solid var(--line); }

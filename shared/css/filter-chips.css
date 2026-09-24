@@ -76,7 +76,7 @@
   font-size: .85rem;
 }
 .fgroup .chip:hover { border-color: var(--accent); }
-.fgroup .chip.on { border-color: var(--accent); background: rgba(217,164,65,.14); }
+.fgroup .chip.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
 /* min-width:0 は必須。デッキ構築の .search-top input が min-width:180px を掛けるため、
    これが無いと「見えないが幅180pxの入力欄」が絶対配置で残る（#31） */
 .fgroup .chip input { position: absolute; opacity: 0; width: 0; height: 0; min-width: 0; }
@@ -139,7 +139,7 @@
   margin: 0 12px 12px;
   padding: 9px 11px;
   border: 1px solid #6b4a1e;
-  background: rgba(217,164,65,.10);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
   border-radius: 8px;
   color: #e8cf9a;
   font-size: .84rem;

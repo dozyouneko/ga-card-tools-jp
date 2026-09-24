@@ -735,6 +735,143 @@ const ROOT_OWNERS = [
     missing.forEach((f) => bad.push(`  ${f}`));
   }
 
+  // --- (iii) トークン色の rgb()/rgba() リテラルが残っていないか（#105） ---
+  // トークンと同じ色を手で書いたリテラルは、トークンを変えた日にそれだけが古い色で残る。
+  // 画面は壊れず警告も出ない（fail-open）ので、ここで人を止める。
+  // ⚠ 直し方は color-mix(in srgb, var(--トークン) N%, transparent)。
+  //   rgba(var(--accent), .08) は成立せず、ページCSSの :root への派生色の定義は (ii) が落とす。
+  // ⚠ 生成CSS（cards.css / tournaments.css）は生成元を直さないと次のビルドで戻る。だから生成元も走査する。
+  // ⚠ ⭐ 生成元の .mjs はコメントを除去せず生テキストで走査する（#117: JS のコメント除去は
+  //   行コメント中の /* を後方の */ と誤対応させて計609行を検査から消していた。そもそもパースしない）。
+  //   代わりに「生成元の .mjs にはトークン色のリテラルをコメントにも書かない」という規約が1つ増える。
+  // ⚠ hex の直書き（color: #fca5a5）はこの検査の視野の外。緑を「全部トークン参照になった」と読まないこと。
+  const CSS_GENERATORS = {
+    "scripts/build-tournament-pages.mjs": "tournaments/tournaments.css",
+    "scripts/build-card-pages.mjs": "cards/cards.css",
+    "scripts/gen-element-orbs-css.mjs": "shared/css/element-orbs.css",
+  };
+  const bad3 = [];
+  let scannedGen = 0;
+  {
+    // 行番号を保つコメント除去（既存の stripComments は改行ごと潰すので位置が出せない）
+    const stripKeepLines = (t) => t.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "));
+    const hexRgb = (v) => {
+      const t = String(v).trim().replace(/^#/, "");
+      if (!/^([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)) return null;
+      const f = t.length === 3 ? t.split("").map((c) => c + c).join("") : t;
+      return [parseInt(f.slice(0, 2), 16), parseInt(f.slice(2, 4), 16), parseInt(f.slice(4, 6), 16)].join(",");
+    };
+    // rel の :root が定義するトークンのうち、hex で書かれたものを "r,g,b" → 名前 で引けるようにする
+    const rootColorsCache = new Map();
+    const rootColorsOf = (rel) => {
+      if (rootColorsCache.has(rel)) return rootColorsCache.get(rel);
+      let map = null;
+      try {
+        const src = stripComments(readFileSync(path.join(root, rel), "utf8"));
+        const m = src.match(/:root\b[^{};]*\{([\s\S]*?)\}/);
+        map = new Map();
+        if (m) for (const d of m[1].matchAll(/(--[A-Za-z0-9_-]+)\s*:\s*([^;]+)/g)) {
+          const k = hexRgb(d[2]);
+          if (k) map.set(k, d[1]);
+        }
+      } catch (e) {
+        bad3.push(`${rel} を読めません: ${e.message}`);
+      }
+      rootColorsCache.set(rel, map);
+      return map;
+    };
+    // そのファイルを支配する :root の出所（§3 の表と同じ導出。新しい一覧は作らない）
+    const ownerOf = (rel) => (ROOT_OWNERS.includes(rel) ? rel : TOKENS_FILE);
+    const LITERAL = /rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*[,)]/gi;
+    const scan = (rel, text, owner) => {
+      const colors = rootColorsOf(owner);
+      if (!colors) return;
+      if (!colors.size) { bad3.push(`${owner} の :root に hex のトークンが1つもありません — 走査の基準が壊れています`); return; }
+      text.split("\n").forEach((ln, i) => {
+        for (const m of ln.matchAll(LITERAL)) {
+          const key = [m[1], m[2], m[3]].map(Number).join(",");
+          const tok = colors.get(key);
+          if (tok) bad3.push(`${rel}:${i + 1} — ${m[0]}… は ${owner} の ${tok} と同じ色です`);
+        }
+      });
+    };
+    for (const rel of cssFiles) {
+      let raw;
+      try { raw = readFileSync(path.join(root, rel), "utf8"); } catch (e) { bad3.push(`${rel} を読めません: ${e.message}`); continue; }
+      scan(rel, stripKeepLines(raw), ownerOf(rel));
+    }
+    for (const [gen, produced] of Object.entries(CSS_GENERATORS)) {
+      let raw;
+      try { raw = readFileSync(path.join(root, gen), "utf8"); } catch (e) { bad3.push(`生成元 ${gen} を読めません: ${e.message}`); continue; }
+      scannedGen++;
+      scan(gen, raw, ownerOf(produced)); // ⭐ 生テキスト（コメントも走査する）
+    }
+    if (scannedGen !== Object.keys(CSS_GENERATORS).length) bad3.push(`生成元を ${scannedGen} ファイルしか走査できませんでした`);
+
+    // ⭐ 迷子検査: CSS_GENERATORS は片側だけの手書き一覧なので、そのままでは「消せば黙る」。
+    //   scripts/ の .mjs のうち「writeFileSync を呼び、かつ .css の文字列リテラルを持つ」ファイルの集合が
+    //   CSS_GENERATORS のキーと一致することを見る（増えても減っても落とす）。両辺が別ファイルなので空回りしない。
+    const mjs = [];
+    const walkScripts = (rel) => {
+      const abs = path.join(root, rel);
+      let st;
+      try { st = statSync(abs); } catch { return; }
+      if (st.isDirectory()) {
+        for (const d of readdirSync(abs, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) walkScripts(`${rel}/${d.name}`);
+      } else if (rel.endsWith(".mjs")) mjs.push(rel);
+    };
+    walkScripts("scripts");
+    if (!mjs.length) bad3.push("scripts/ の .mjs が1つもありません — 迷子検査の走査範囲が陳腐化しています");
+    const writers = mjs.filter((rel) => {
+      const t = readFileSync(path.join(root, rel), "utf8");
+      return /writeFileSync\s*\(/.test(t) && /["'][^"']*\.css["']/.test(t);
+    });
+    const listed = Object.keys(CSS_GENERATORS).sort();
+    const found = [...writers].sort();
+    found.filter((f) => !listed.includes(f)).forEach((f) => bad3.push(`.css を書き出すのに CSS_GENERATORS に無い: ${f}`));
+    listed.filter((f) => !found.includes(f)).forEach((f) => bad3.push(`CSS_GENERATORS にあるのに .css を書き出していない: ${f}`));
+  }
+
+  // --- (iv) フォールバック無しの var(--X) が、そのファイルを支配する :root に在るか（#105） ---
+  // ⚠ 本タスクは自分で穴を1つ開ける: tournaments.css の :root に --accent-3 / --yes を足して
+  //   同ファイルから参照するが、(i) は shared/css/** しか見ないので、消えても何も止まらない。
+  //   消えると var() が IACVT → unset になり、背景が透明・枠線が currentColor になる（fail-open）。
+  // ⚠ var(--X, 既定値) の形は見ない。--printbar-h / --editor-bar-h / --pane-top の3つは
+  //   JS が実行時に書き込む変数で、:root に定義されないのが正しい（落とすと必ず exit 1 になる）。
+  // ⚠ 限界: 「:root に在るか」しか見ない。値が正しいか・そのページが実際にそのCSSを読むかは見ない。
+  const bad4 = [];
+  let varRefs = 0;
+  {
+    const nameCache = new Map();
+    const namesOf = (rel) => {
+      if (nameCache.has(rel)) return nameCache.get(rel);
+      let set = null;
+      try {
+        const src = stripComments(readFileSync(path.join(root, rel), "utf8"));
+        const m = src.match(/:root\b[^{};]*\{([\s\S]*?)\}/);
+        set = new Set();
+        if (m) for (const d of m[1].matchAll(/(--[A-Za-z0-9_-]+)\s*:/g)) set.add(d[1]);
+      } catch (e) {
+        bad4.push(`${rel} を読めません: ${e.message}`);
+      }
+      nameCache.set(rel, set);
+      return set;
+    };
+    for (const rel of cssFiles) {
+      const owner = ROOT_OWNERS.includes(rel) ? rel : TOKENS_FILE;
+      const names = namesOf(owner);
+      if (!names) continue;
+      if (!names.size) { bad4.push(`${owner} の :root にトークンの定義がありません`); continue; }
+      const src = stripComments(readFileSync(path.join(root, rel), "utf8"));
+      for (const m of src.matchAll(/var\(\s*(--[A-Za-z0-9_-]+)\s*([,)])/g)) {
+        if (m[2] !== ")") continue; // フォールバック付きは対象外
+        varRefs++;
+        if (!names.has(m[1])) bad4.push(`${rel} — ${m[1]} が ${owner} の :root にありません`);
+      }
+    }
+    if (!varRefs) bad4.push("フォールバック無しの var(--…) が1つも見つかりません — 走査が空回りしています");
+  }
+
   if (bad.length) {
     problems++;
     console.error(`\nSHARED CSS TOKENS (${TOKENS_FILE}):`);
@@ -745,6 +882,29 @@ const ROOT_OWNERS = [
   } else {
     console.log(`shared css tokens in sync — ${refCount} トークン参照 / 未定義 0`);
     console.log(`:root owners in sync — ${ROOT_OWNERS.length}ファイル`);
+  }
+
+  if (bad3.length) {
+    problems++;
+    console.error(`\nTOKEN-COLORED CSS LITERALS:`);
+    bad3.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → color-mix(in srgb, var(--トークン) N%, transparent) に直してください`);
+    console.error(`    （rgba(var(--x), .08) は成立せず、ページCSSの :root に派生色を定義するのも :root owners が落とします）`);
+    console.error(`    生成CSS（${Object.values(CSS_GENERATORS).join(" / ")}）は生成元を直してから再生成してください`);
+    console.error(`    生成元を増減したときは scripts/validate.mjs の CSS_GENERATORS も同時に直してください`);
+  } else {
+    console.log(`no token-colored rgb() literals — 0件（${cssFiles.length}ファイル + 生成元${scannedGen}ファイル走査 / :root出所 ${ROOT_OWNERS.length}）`);
+  }
+
+  if (bad4.length) {
+    problems++;
+    console.error(`\nCSS VAR REFS:`);
+    bad4.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → 参照するトークンは、そのCSSを支配する :root に定義してください`);
+    console.error(`    （解決できない var() は IACVT → unset になり、背景が透明・枠線が currentColor になります）`);
+    console.error(`    JS が実行時に書き込む変数は var(--x, 既定値) の形で参照してください（フォールバック付きは対象外）`);
+  } else {
+    console.log(`css var refs resolve — 未定義0（${cssFiles.length}ファイル走査 / フォールバック無し ${varRefs}参照）`);
   }
 }
 
