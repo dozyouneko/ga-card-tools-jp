@@ -93,11 +93,15 @@ table.t th { color:var(--muted); }
 </head>
 <body>
 <div class="wrap">
-<h1>#74 公式裁定（rule）の表示 — 画面モック <span style="color:var(--accent)">1.2（警告行だけ残して畳む）</span></h1>
+<h1>#74 公式裁定（rule）の表示 — 画面モック <span style="color:var(--accent)">1.4（在る種別だけを並記）</span></h1>
 <p class="note">
 データは <b>スナップショット <code>2026-09-24T13:38:59.574Z</code> の実データ</b>です（文字列は1文字も変えていません）。<br>
 対象: 裁定を持つカード <b>478枚</b> / エントリ <b>642件</b>（<code>ERRATA</code> 166件・タイトル空 476件）。<br>
 ⭐ <b>1.2 の決定（ユーザー）: 裁定はエラッタも含めて全部畳み、<u>警告行だけ</u>を外に残す。</b><br>
+⭐ <b>1.4 の決定（ユーザー・実物確認の結果）: <code>&lt;summary&gt;</code> は「在る種別だけ」を並記する</b>
+（両方 <code>エラッタ/裁定（エラッタ2件・裁定4件）</code>／裁定のみ <code>裁定（4件）</code>／エラッタのみ <code>エラッタ（1件）</code>）。
+<b>閉じたままでも「どちらがあるカードか」が見出しだけで分かる</b>のが狙い。
+⭐ <b>あわせて警告行を短くしました</b>（見出しが「エラッタ」と言うようになり「あります」が重複するため）。<br>
 ⚠️ ⭐ <b>警告文言を変えました。</b> 実測の結果 <b>ERRATA 166件のうち 57件は公式APIに既に反映済み</b>だったため、
 「上の効果文は印刷時のテキストのままです」は断定できません → <b>「効果文に反映されていないことがあります」</b>。
 </p>
@@ -105,12 +109,12 @@ table.t th { color:var(--muted); }
 <h2 class="sec">0. 畳み方の全体像 — ⭐ 外に出るのは最大2行</h2>
 <table class="t">
 <tr><th>カードの型</th><th>枚数</th><th>折りたたみの<b>外</b>に出る行</th><th>summary の文言</th></tr>
-<tr><td><b>エラッタのみ</b></td><td>115枚</td><td>⭐ <b>警告行 + summary ＝ 2行</b></td><td><code>公式裁定（N件・うちエラッタN件）</code></td></tr>
-<tr><td><b>裁定のみ</b></td><td>325枚</td><td>⭐ <b>summary だけ ＝ 1行</b></td><td><code>公式裁定（N件）</code></td></tr>
-<tr><td><b>両方</b></td><td>38枚</td><td>⭐ <b>警告行 + summary ＝ 2行</b></td><td><code>公式裁定（N件・うちエラッタM件）</code></td></tr>
+<tr><td><b>エラッタのみ</b></td><td>115枚</td><td>⭐ <b>警告行 + summary ＝ 2行</b></td><td><code>エラッタ（N件）</code></td></tr>
+<tr><td><b>裁定のみ</b></td><td>325枚</td><td>⭐ <b>summary だけ ＝ 1行</b></td><td><code>裁定（N件）</code></td></tr>
+<tr><td><b>両方</b></td><td>38枚</td><td>⭐ <b>警告行 + summary ＝ 2行</b></td><td><code>エラッタ/裁定（エラッタM件・裁定P件）</code></td></tr>
 <tr><td>裁定なし</td><td>2,017枚</td><td><b>何も出ない</b></td><td>—</td></tr>
 </table>
-<p class="note">⭐ <b>見出しを <code>&lt;summary&gt;</code> の中に入れました</b>（<code>&lt;summary&gt;&lt;h3&gt;公式裁定（…）&lt;/h3&gt;&lt;/summary&gt;</code>）。
+<p class="note">⭐ <b>見出しを <code>&lt;summary&gt;</code> の中に入れました</b>（<code>&lt;summary&gt;&lt;h3&gt;エラッタ/裁定（…）&lt;/h3&gt;&lt;/summary&gt;</code>）。
 HTML仕様上、<code>details</code> の最初の <code>summary</code> は見出しを含んでよいので、<b>見出し構造（アウトライン）は保たれます</b>。<br>
 ⭐ <b>ネイティブのマーカーは消し、見出しの後ろに <code>▶ / ▼</code> を出しています</b>（判断13）——
 <b>マーカーを残すと見出しが右に4pxずれて、他のブロックの見出しと左端が揃わない</b>（実測）。</p>
@@ -149,9 +153,9 @@ HTML仕様上、<code>details</code> の最初の <code>summary</code> は見出
           <details class="orig"><summary>英語原文を表示</summary></details>
         </section>
         <section class="rules-block">
-          <p class="rules-warn">⚠️ エラッタがあります（効果文に反映されていないことがあります）</p>
+          <p class="rules-warn">⚠️ エラッタは効果文に反映されていないことがあります</p>
           <details class="rules-fold">
-            <summary><h3>公式裁定（1件・うちエラッタ1件）</h3></summary>
+            <summary><h3>エラッタ（1件）</h3></summary>
             <p class="rules-note">※裁定は英語原文です。</p>
             <ul>
               <li class="rule-item is-errata">
@@ -179,7 +183,7 @@ HTML仕様上、<code>details</code> の最初の <code>summary</code> は見出
     <div class="frame gacd">
       <div class="detail-info">
         <section class="rules-block">
-          <h3 style="margin-top:0">公式裁定（6件）</h3>
+          <h3 style="margin-top:0">公式裁定（6件）</h3><!-- ⚠ 1.1 当時の文言（比較用）。1.4 では使わない -->
           <p class="rules-warn" style="margin-top:0">⚠️ エラッタがあります（上の効果文は印刷時のテキストのままです）</p>
           <p class="rules-note">※裁定は英語原文です。</p>
           <ul>
@@ -198,9 +202,9 @@ HTML仕様上、<code>details</code> の最初の <code>summary</code> は見出
     <div class="frame gacd">
       <div class="detail-info">
         <section class="rules-block">
-          <p class="rules-warn" style="margin-top:0">⚠️ エラッタがあります（効果文に反映されていないことがあります）</p>
+          <p class="rules-warn" style="margin-top:0">⚠️ エラッタは効果文に反映されていないことがあります</p>
           <details class="rules-fold">
-            <summary><h3>公式裁定（6件・うちエラッタ2件）</h3></summary>
+            <summary><h3>エラッタ/裁定（エラッタ2件・裁定4件）</h3></summary>
             <p class="rules-note">※裁定は英語原文です。</p>
             <ul>
               <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2026-08-16</span></div><p class="rule-desc">Must be loaded to use for an attack and can’t be used with an attack card. -&gt; Must be loaded to be wielded and can't be wielded with an attack card.</p></li>
@@ -226,7 +230,7 @@ D2「ERRATA を目立たせる」は <b>①金色の警告行</b> と <b>②summ
   <div class="detail-info">
     <section class="rules-block">
       <details class="rules-fold">
-        <summary><h3 style="margin-top:0">公式裁定（4件）</h3></summary>
+        <summary><h3 style="margin-top:0">裁定（4件）</h3></summary>
         <p class="rules-note">※裁定は英語原文です。</p>
         <ul>
           <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2026-03-27</span></div><p class="rule-desc">For additionally gained deluge effects that target, that effect must be present at the time it is added to the effects stack as well as during resolution for it to resolve properly.</p></li>
@@ -246,9 +250,9 @@ D2「ERRATA を目立たせる」は <b>①金色の警告行</b> と <b>②summ
 <div class="frame gacd">
   <div class="detail-info">
     <section class="rules-block">
-      <p class="rules-warn" style="margin-top:0">⚠️ エラッタがあります（効果文に反映されていないことがあります）</p>
+      <p class="rules-warn" style="margin-top:0">⚠️ エラッタは効果文に反映されていないことがあります</p>
       <details class="rules-fold" open>
-        <summary><h3>公式裁定（1件・うちエラッタ1件）</h3></summary>
+        <summary><h3>エラッタ（1件）</h3></summary>
         <p class="rules-note">※裁定は英語原文です。</p>
         <ul>
           <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2026-04-09</span><span class="rule-scope">対象版: DTRSD・P25</span></div><p class="rule-desc">'Spell' -&gt; 'Skill'</p></li>
@@ -278,9 +282,9 @@ D2「ERRATA を目立たせる」は <b>①金色の警告行</b> と <b>②summ
     <div class="frame w375 gacd">
       <div class="detail-info">
         <section class="rules-block">
-          <p class="rules-warn" style="margin-top:0">⚠️ エラッタがあります（効果文に反映されていないことがあります）</p>
+          <p class="rules-warn" style="margin-top:0">⚠️ エラッタは効果文に反映されていないことがあります</p>
           <details class="rules-fold">
-            <summary><h3>公式裁定（6件・うちエラッタ2件）</h3></summary>
+            <summary><h3>エラッタ/裁定（エラッタ2件・裁定4件）</h3></summary>
             <p class="rules-note">※裁定は英語原文です。</p>
             <ul>
               <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2026-08-16</span></div><p class="rule-desc">Must be loaded to use for an attack and can’t be used with an attack card. -&gt; Must be loaded to be wielded and can't be wielded with an attack card.</p></li>
@@ -295,9 +299,9 @@ D2「ERRATA を目立たせる」は <b>①金色の警告行</b> と <b>②summ
     <div class="frame w375 gacd">
       <div class="detail-info">
         <section class="rules-block">
-          <p class="rules-warn" style="margin-top:0">⚠️ エラッタがあります（効果文に反映されていないことがあります）</p>
+          <p class="rules-warn" style="margin-top:0">⚠️ エラッタは効果文に反映されていないことがあります</p>
           <details class="rules-fold" open>
-            <summary><h3>公式裁定（1件・うちエラッタ1件）</h3></summary>
+            <summary><h3>エラッタ（1件）</h3></summary>
             <p class="rules-note">※裁定は英語原文です。</p>
             <ul>
               <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2026-04-09</span><span class="rule-scope">対象版: DTRSD・P25</span></div><p class="rule-desc">'Spell' -&gt; 'Skill'</p></li>
@@ -308,7 +312,7 @@ D2「ERRATA を目立たせる」は <b>①金色の警告行</b> と <b>②summ
     </div>
   </div>
 </div>
-<p class="note" style="margin-top:10px">⚠️ <b>警告行は375pxで2行に折り返します。</b> ⭐ <code>▶ 公式裁定（…）</code> の行が指で押しやすいかを U11 で見てもらいます。</p>
+<p class="note" style="margin-top:10px">⚠️ <b>警告行は375pxで2行に折り返します。</b> ⭐ <code>▶ エラッタ/裁定（エラッタ2件・裁定4件）</code>（最長20文字）の行が折り返さず、指で押しやすいかを U11 で見てもらいます。</p>
 
 <!-- ============================================================ -->
 <h2 class="sec">4. 静的カードページ — 現状 vs 変更後（Blastshot Pump）</h2>
@@ -332,9 +336,9 @@ D2「ERRATA を目立たせる」は <b>①金色の警告行</b> と <b>②summ
     <div class="frame"><div class="cp">
       <h2 style="margin-top:0">効果（日本語）</h2>
       <p class="cp-effect">（銃 ― 攻撃に使用するには装填されていなければならず、アタックカードとともには使用できない。）……</p>
-      <p class="cp-rule-warn">⚠️ エラッタがあります（効果文に反映されていないことがあります）</p>
+      <p class="cp-rule-warn">⚠️ エラッタは効果文に反映されていないことがあります</p>
       <details class="cp-rules-fold">
-        <summary><h2>公式裁定（6件・うちエラッタ2件）</h2></summary>
+        <summary><h2>エラッタ/裁定（エラッタ2件・裁定4件）</h2></summary>
         <p class="cp-muted">※裁定は英語原文です。</p>
         <ul class="cp-rules">
           <li class="cp-rule is-errata"><div class="cp-rule-head"><span class="cp-rule-tag">エラッタ</span><span class="cp-rule-date">2026-08-16</span></div><p class="cp-rule-desc">Must be loaded to use for an attack and can’t be used with an attack card. -&gt; Must be loaded to be wielded and can't be wielded with an attack card.</p></li>
@@ -366,9 +370,9 @@ D2「ERRATA を目立たせる」は <b>①金色の警告行</b> と <b>②summ
 <div class="frame gacd">
   <div class="detail-info">
     <section class="rules-block">
-      <p class="rules-warn" style="margin-top:0">⚠️ エラッタがあります（効果文に反映されていないことがあります）</p>
+      <p class="rules-warn" style="margin-top:0">⚠️ エラッタは効果文に反映されていないことがあります</p>
       <details class="rules-fold" open>
-        <summary><h3>公式裁定（3件・うちエラッタ1件）</h3></summary>
+        <summary><h3>エラッタ/裁定（エラッタ1件・裁定2件）</h3></summary>
         <p class="rules-note">※裁定は英語原文です。</p>
         <ul>
           <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2023-04-15</span></div><p class="rule-desc">'At the beginning of your end phase, sacrifice all Sword weapons you control.' -&gt; 'At the beginning of your next end phase, sacrifice all Sword weapons you control.'</p></li>
