@@ -376,7 +376,13 @@ window.GA_CARD_DETAIL = (() => {
       return;
     }
     const eN = rules.filter((r) => r.isErrata).length;
-    $("d-rules-h").textContent = `公式裁定（${rules.length}件${eN ? `・うちエラッタ${eN}件` : ""}）`;
+    // ⭐ 見出しは「在る種別だけ」を並記する（閉じたままでもどちらがあるカードか分かる）。
+    // ⚠ 総件数は出さない（エラッタ件数と裁定件数の和で読める）。
+    // ⚠ 静的カードページ（build-card-pages.mjs の ruleBlock）と文言を1文字も違えないこと。
+    const pN = rules.length - eN;
+    $("d-rules-h").textContent = eN && pN
+      ? `エラッタ/裁定（エラッタ${eN}件・裁定${pN}件）`
+      : eN ? `エラッタ（${eN}件）` : `裁定（${pN}件）`;
     warn.hidden = eN === 0;
     list.innerHTML = rules
       .map((r) => `<li class="rule-item${r.isErrata ? " is-errata" : ""}"><div class="rule-head"><span class="rule-tag">${r.isErrata ? "エラッタ" : "裁定"}</span>${r.date ? `<span class="rule-date">${escapeHtml(r.date)}</span>` : ""}${r.scope ? `<span class="rule-scope">対象版: ${escapeHtml(r.scope)}</span>` : ""}</div><p class="rule-desc">${escapeHtml(r.description)}</p></li>`)
@@ -496,9 +502,9 @@ window.GA_CARD_DETAIL = (() => {
         </section>
 
         <section id="d-rules-wrap" class="rules-block" hidden>
-          <p id="d-rules-warn" class="rules-warn" hidden>⚠️ エラッタがあります（効果文に反映されていないことがあります）</p>
+          <p id="d-rules-warn" class="rules-warn" hidden>⚠️ エラッタは効果文に反映されていないことがあります</p>
           <details id="d-rules-fold" class="rules-fold">
-            <summary><h3 id="d-rules-h">公式裁定</h3></summary>
+            <summary><h3 id="d-rules-h">裁定</h3></summary>
             <p class="rules-note">※裁定は英語原文です。</p>
             <ul id="d-rules"></ul>
           </details>
