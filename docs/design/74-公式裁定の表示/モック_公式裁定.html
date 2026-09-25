@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>#74 公式裁定の表示 — 画面モック</title>
+<title>#74 公式裁定の表示 — 画面モック（1.1・2段構え）</title>
 <style>
 /* ⚠ これは docs/ 配下の設計モックです（本番配信対象外・:root の検査対象外）。
    値は shared/css/tokens.css / cards/cards.css の実値を写しています。 */
@@ -30,6 +30,9 @@ h3.sub { font-size:.95rem; color:var(--muted); margin:22px 0 8px; }
 .frame { border:1px solid var(--border); border-radius:12px; padding:14px; background:var(--panel); overflow:hidden; }
 .frame.w375 { width:375px; max-width:100%; }
 .annot { color:#fca5a5; font-size:.8rem; margin:8px 0 0; }
+table.t { border-collapse:collapse; font-size:.85rem; margin:10px 0; }
+table.t th, table.t td { border:1px solid var(--border); padding:5px 10px; text-align:left; }
+table.t th { color:var(--muted); }
 
 /* ===== モーダル（shared/css/card-detail.css 相当。.gacd-modal 名前空間） ===== */
 .gacd .detail-info h2 { margin:8px 0 2px; font-size:1.15rem; }
@@ -43,10 +46,15 @@ h3.sub { font-size:.95rem; color:var(--muted); margin:22px 0 8px; }
 .gacd .flavor-block .flavor { font-style:italic; color:var(--muted); border-left:3px solid var(--border); padding-left:12px; margin-top:14px; }
 .gacd .editions-block ul { margin:0; padding-left:18px; color:var(--muted); font-size:.9rem; }
 
-/* ▼ 追加するCSS（提案。⚠ --panel-2 / --accent / --muted は tokens.css と tournaments.css の両方にある） */
+/* ▼ 追加するCSS（提案。⚠ --panel-2 / --accent / --accent-2 / --muted は tokens.css と tournaments.css の両方にある） */
 .gacd .rules-warn { margin:0 0 6px; color:var(--accent); font-size:.85rem; font-weight:700; }
 .gacd .rules-note { margin:0 0 8px; color:var(--muted); font-size:.8rem; }
 .gacd .rules-block ul { list-style:none; padding:0; margin:0; display:grid; gap:8px; }
+.gacd .rules-block ul[hidden] { display:none; }        /* ⚠ display:grid が [hidden] に勝つので明示する */
+.gacd .rules-fold[hidden] { display:none; }
+.gacd .rules-fold { margin-top:8px; }
+.gacd .rules-fold summary { cursor:pointer; color:var(--accent-2); font-size:.85rem; }
+.gacd .rules-fold[open] summary { margin-bottom:8px; }
 .gacd .rule-item { background:var(--panel-2); border-left:3px solid color-mix(in srgb, var(--muted) 45%, transparent); border-radius:0 10px 10px 0; padding:8px 12px; }
 .gacd .rule-item.is-errata { border-left-color:var(--accent); }
 .gacd .rule-head { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:4px; }
@@ -68,6 +76,9 @@ h3.sub { font-size:.95rem; color:var(--muted); margin:22px 0 8px; }
 /* ▼ 追加するCSS（提案。cards.css の :root には --panel-2 が無いので --panel を使う） */
 .cp .cp-rule-warn { margin:0 0 6px; color:var(--accent); font-size:.85rem; font-weight:700; }
 .cp .cp-rules { list-style:none; padding:0; margin:0; display:grid; gap:8px; }
+.cp .cp-rules-fold { margin-top:8px; }
+.cp .cp-rules-fold summary { cursor:pointer; color:var(--accent-2); font-size:.88rem; }
+.cp .cp-rules-fold[open] summary { margin-bottom:8px; }
 .cp .cp-rule { background:var(--cp-panel); border-left:3px solid color-mix(in srgb, var(--muted) 45%, transparent); border-radius:0 10px 10px 0; padding:8px 12px; }
 .cp .cp-rule.is-errata { border-left-color:var(--accent); }
 .cp .cp-rule-head { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:4px; }
@@ -75,19 +86,34 @@ h3.sub { font-size:.95rem; color:var(--muted); margin:22px 0 8px; }
 .cp .cp-rule.is-errata .cp-rule-tag { color:var(--accent); border-color:color-mix(in srgb, var(--accent) 60%, transparent); background:color-mix(in srgb, var(--accent) 16%, transparent); }
 .cp .cp-rule-date, .cp .cp-rule-scope { color:var(--muted); font-size:.78rem; white-space:nowrap; }
 .cp .cp-rule-desc { margin:0; font-size:.9rem; overflow-wrap:anywhere; }
+
+/* ⚠ 閉じた <details> の中身は印刷に出ない（Chromium 149 実測）。印刷のときだけ開いた状態にする。 */
+@media print { details::details-content { content-visibility: visible; block-size: auto; } }
 </style>
 </head>
 <body>
 <div class="wrap">
-<h1>#74 公式裁定（rule）の表示 — 画面モック</h1>
+<h1>#74 公式裁定（rule）の表示 — 画面モック <span style="color:var(--accent)">1.1（2段構え）</span></h1>
 <p class="note">
 データは <b>スナップショット <code>2026-09-24T13:38:59.574Z</code> の実データ</b>です（文字列は1文字も変えていません）。<br>
 対象: 裁定を持つカード <b>478枚</b> / エントリ <b>642件</b>（<code>ERRATA</code> 158件・複合8件・タイトル空 476件）。<br>
-⚠️ <b>エラッタ＝カードの挙動が変わる</b>ものなので、<code>エラッタ</code> バッジ（金・左罫線も金）と <code>裁定</code> バッジ（灰）で区別します。
+⭐ <b>1.1 の決定（ユーザー）: 「エラッタだけ開く」の2段構え。</b>
+<b>エラッタ（166件）は常に開いたまま</b>・<b>単なる裁定（476件）は既定で閉じる</b>。
 </p>
 
+<h2 class="sec">0. 2段構えの全体像</h2>
+<table class="t">
+<tr><th>カードの型</th><th>枚数</th><th>見出し</th><th>警告行</th><th>開いたまま</th><th>▶ 折りたたみ</th></tr>
+<tr><td><b>エラッタのみ</b></td><td>115枚</td><td>公式裁定（N件）</td><td>⭕</td><td>エラッタ全部</td><td>⭐ <b>出さない</b></td></tr>
+<tr><td><b>裁定のみ</b></td><td>325枚</td><td>公式裁定（N件）</td><td>❌</td><td>なし</td><td>⭕ <code>裁定を表示（N件）</code></td></tr>
+<tr><td><b>両方</b></td><td>38枚</td><td>公式裁定（N件）</td><td>⭕</td><td>エラッタだけ</td><td>⭕ <code>ほかの裁定を表示（N件）</code></td></tr>
+</table>
+<p class="note">⭐ <b>見出し「公式裁定（N件）」は折りたたみの外に常に出す</b>（N は全件）。
+これが <b>裁定のみ 325枚</b>で「裁定があること自体」に気づける唯一の担保です（設計書 判断9・確認は <b>U13</b>）。<br>
+⭐ <b>件数の分布</b>: 1件 360枚(75.3%) / 2件 87枚(18.2%) / 3件以上 <b>31枚(6.5%)</b>。1枚あたり合計文字数は中央値123・90%点356・最大1209。</p>
+
 <!-- ============================================================ -->
-<h2 class="sec">1. 詳細モーダル — 現状 vs 変更後（PC幅・Blightheart Penitent＝エラッタ1件）</h2>
+<h2 class="sec">1. 詳細モーダル — 現状 vs 変更後（PC幅・Blightheart Penitent＝<b>エラッタのみ1件</b>）</h2>
 <div class="cols">
   <div class="col">
     <p class="cap cap-before">現状（before）</p>
@@ -136,48 +162,87 @@ h3.sub { font-size:.95rem; color:var(--muted); margin:22px 0 8px; }
           <ul><li>Primordial Dawn（PRD） #094 ・R ・絵：—</li></ul>
         </section>
       </div>
+      <p class="annot" style="color:var(--muted)">⭐ <b>エラッタのみ（115枚）なので折りたたみ（▶）は出さない</b>——閉じる中身が0件（判断8）</p>
     </div>
   </div>
 </div>
 
 <!-- ============================================================ -->
-<h2 class="sec">2. 最悪ケース（PC幅）</h2>
+<h2 class="sec">2. 最悪ケース（PC幅）— ⭐ 2段構えの本命</h2>
 
-<h3 class="sub">2-a. エントリ最多＝6件・エラッタと裁定が混在（Blastshot Pump）／⭐ エラッタを先頭に並べ替える</h3>
-<div class="frame gacd">
-  <div class="detail-info">
-    <section class="rules-block">
-      <h3>公式裁定（6件）</h3>
-      <p class="rules-warn">⚠️ エラッタがあります（上の効果文は印刷時のテキストのままです）</p>
-      <p class="rules-note">※裁定は英語原文です。</p>
-      <ul>
-        <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2026-08-16</span></div><p class="rule-desc">Must be loaded to use for an attack and can’t be used with an attack card. -&gt; Must be loaded to be wielded and can't be wielded with an attack card.</p></li>
-        <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2026-08-16</span></div><p class="rule-desc">by an attack using -&gt; by an attacker wielding</p></li>
-        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2024-01-19</span></div><p class="rule-desc">Blastshot Pump's replacement effect causes the attacker to deal combat damage to an additional unit. Because this damage is also considered combat damage, it can trigger On Hit effects accordingly.</p></li>
-        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2024-01-19</span></div><p class="rule-desc">If damage is reduced before the replacement effect happens, the additional unit will take the reduced damage instead of the full damage amount.</p></li>
-        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2024-01-19</span></div><p class="rule-desc">The attacking player that controls Blastshot Pump will choose the additional unit for the replacement effect, if applicable.</p></li>
-        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2024-01-19</span></div><p class="rule-desc">The unit that is receiving damage from Blastshop Pump's replacement effect can't retaliate because damage would already have been dealt by starting the resolution of the damage step.</p></li>
-      </ul>
-    </section>
+<h3 class="sub">2-a. エントリ最多＝6件・エラッタ2＋裁定4（Blastshot Pump）／⭐ <b>閉じた状態</b>が既定</h3>
+<div class="cols">
+  <div class="col">
+    <p class="cap cap-before">1.0（全部開いたまま）— 6件が縦に並ぶ</p>
+    <div class="frame gacd">
+      <div class="detail-info">
+        <section class="rules-block">
+          <h3>公式裁定（6件）</h3>
+          <p class="rules-warn">⚠️ エラッタがあります（上の効果文は印刷時のテキストのままです）</p>
+          <p class="rules-note">※裁定は英語原文です。</p>
+          <ul>
+            <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2026-08-16</span></div><p class="rule-desc">Must be loaded to use for an attack and can’t be used with an attack card. -&gt; Must be loaded to be wielded and can't be wielded with an attack card.</p></li>
+            <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2026-08-16</span></div><p class="rule-desc">by an attack using -&gt; by an attacker wielding</p></li>
+            <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2024-01-19</span></div><p class="rule-desc">Blastshot Pump's replacement effect causes the attacker to deal combat damage to an additional unit. Because this damage is also considered combat damage, it can trigger On Hit effects accordingly.</p></li>
+            <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2024-01-19</span></div><p class="rule-desc">If damage is reduced before the replacement effect happens, the additional unit will take the reduced damage instead of the full damage amount.</p></li>
+            <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2024-01-19</span></div><p class="rule-desc">The attacking player that controls Blastshot Pump will choose the additional unit for the replacement effect, if applicable.</p></li>
+            <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2024-01-19</span></div><p class="rule-desc">The unit that is receiving damage from Blastshop Pump's replacement effect can't retaliate because damage would already have been dealt by starting the resolution of the damage step.</p></li>
+          </ul>
+        </section>
+      </div>
+      <p class="annot">⚠️ ここが「長すぎる」と感じた部分（該当は <b>3件以上の31枚＝6.5%</b>）</p>
+    </div>
+  </div>
+  <div class="col">
+    <p class="cap cap-after">1.1（2段構え・既定の状態）</p>
+    <div class="frame gacd">
+      <div class="detail-info">
+        <section class="rules-block">
+          <h3>公式裁定（6件）</h3>
+          <p class="rules-warn">⚠️ エラッタがあります（上の効果文は印刷時のテキストのままです）</p>
+          <p class="rules-note">※裁定は英語原文です。</p>
+          <ul>
+            <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2026-08-16</span></div><p class="rule-desc">Must be loaded to use for an attack and can’t be used with an attack card. -&gt; Must be loaded to be wielded and can't be wielded with an attack card.</p></li>
+            <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2026-08-16</span></div><p class="rule-desc">by an attack using -&gt; by an attacker wielding</p></li>
+          </ul>
+          <details class="rules-fold">
+            <summary>ほかの裁定を表示（4件）</summary>
+            <ul>
+              <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2024-01-19</span></div><p class="rule-desc">Blastshot Pump's replacement effect causes the attacker to deal combat damage to an additional unit. Because this damage is also considered combat damage, it can trigger On Hit effects accordingly.</p></li>
+              <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2024-01-19</span></div><p class="rule-desc">If damage is reduced before the replacement effect happens, the additional unit will take the reduced damage instead of the full damage amount.</p></li>
+              <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2024-01-19</span></div><p class="rule-desc">The attacking player that controls Blastshot Pump will choose the additional unit for the replacement effect, if applicable.</p></li>
+              <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2024-01-19</span></div><p class="rule-desc">The unit that is receiving damage from Blastshop Pump's replacement effect can't retaliate because damage would already have been dealt by starting the resolution of the damage step.</p></li>
+            </ul>
+          </details>
+        </section>
+      </div>
+      <p class="annot" style="color:#7ee2a8">⭐ <b>▶ を押すと開きます</b>（このモックも本物と同じ <code>&lt;details&gt;</code> なので実際に動きます）</p>
+    </div>
   </div>
 </div>
 <p class="note" style="margin-top:8px">⭐ <b>同日付の中は description の昇順</b>で決着させます（API の配列順に依存しない＝全順序）。上の4件の 2024-01-19 は API の配列順と違う順に並んでいます。</p>
 
-<h3 class="sub">2-b. 最長 description＝447文字・裁定のみ4件（Ardus, Floodborne Deacon）／⭐ 警告行は出ない</h3>
+<h3 class="sub">2-b. <b>裁定のみ</b>4件・最長447文字（Ardus, Floodborne Deacon）／⭐ <b>全体が閉じる型（325枚）</b></h3>
 <div class="frame gacd">
   <div class="detail-info">
     <section class="rules-block">
       <h3>公式裁定（4件）</h3>
       <p class="rules-note">※裁定は英語原文です。</p>
-      <ul>
-        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2026-03-27</span></div><p class="rule-desc">For additionally gained deluge effects that target, that effect must be present at the time it is added to the effects stack as well as during resolution for it to resolve properly.</p></li>
-        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2026-03-27</span></div><p class="rule-desc">For cards that gain deluge effects that target, it is important to assign which target is for the base effect and which target is for the gained effect. For example, if Liquidation's activation targets unit A with its base effect and unit B with its gained effect, the removal of Ardus before this activation's resolution would result in unit B no longer being targeted by Liquidation.</p></li>
-        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2026-03-27</span></div><p class="rule-desc">If an additional gained effect while its source is on the effects stack is lost due to the removal of Ardus, that source will still resolve as though it didn't have the additionally gained effect.</p></li>
-        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2026-03-27</span></div><p class="rule-desc">If an effect that requires a target is gained after that effect is added to the effects stack, that source would fizzle due to not having the mandatory targets for resolution. For example, if Liquidation was activated, and Ardus was put onto the field at fast speed, Liquidation would now have two effects that each have a mandatory target. Because targets can no longer be assigned due to Liquidation already being activated, Liquidation fizzles.</p></li>
-      </ul>
+      <details class="rules-fold">
+        <summary>裁定を表示（4件）</summary>
+        <ul>
+          <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2026-03-27</span></div><p class="rule-desc">For additionally gained deluge effects that target, that effect must be present at the time it is added to the effects stack as well as during resolution for it to resolve properly.</p></li>
+          <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2026-03-27</span></div><p class="rule-desc">For cards that gain deluge effects that target, it is important to assign which target is for the base effect and which target is for the gained effect. For example, if Liquidation's activation targets unit A with its base effect and unit B with its gained effect, the removal of Ardus before this activation's resolution would result in unit B no longer being targeted by Liquidation.</p></li>
+          <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2026-03-27</span></div><p class="rule-desc">If an additional gained effect while its source is on the effects stack is lost due to the removal of Ardus, that source will still resolve as though it didn't have the additionally gained effect.</p></li>
+          <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2026-03-27</span></div><p class="rule-desc">If an effect that requires a target is gained after that effect is added to the effects stack, that source would fizzle due to not having the mandatory targets for resolution. For example, if Liquidation was activated, and Ardus was put onto the field at fast speed, Liquidation would now have two effects that each have a mandatory target. Because targets can no longer be assigned due to Liquidation already being activated, Liquidation fizzles.</p></li>
+        </ul>
+      </details>
     </section>
   </div>
 </div>
+<p class="note" style="margin-top:8px">⚠️ ⭐ <b>この型が 325枚（裁定を持つカードの68%）で一番多い。</b>
+警告行が無いので、見えているのは <b>見出し「公式裁定（4件）」</b> と <b>▶ 裁定を表示（4件）</b> の2行だけです。
+<b>これで「裁定があること」に気づけるかを U13 で見てもらいます</b>（判断9）。</p>
 
 <h3 class="sub">2-c. 複合タイトル＝<code>ERRATA, DTRSD, P25</code>（Backstep）／⭐ 余りのトークンは「対象版」として出す</h3>
 <div class="frame gacd">
@@ -199,14 +264,14 @@ h3.sub { font-size:.95rem; color:var(--muted); margin:22px 0 8px; }
     <section class="effect-block"><h3>効果（日本語訳）</h3><div class="effect">（略）</div></section>
     <section class="editions-block"><h3>収録</h3><ul><li>（略）</li></ul></section>
   </div>
-  <p class="annot" style="color:var(--muted)">⭐ <code>#d-rules-wrap</code> は <code>hidden</code> のまま＝<b>空の枠も見出しも出ない</b>（現状と1pxも変わらない）</p>
+  <p class="annot" style="color:var(--muted)">⭐ <code>#d-rules-wrap</code> は <code>hidden</code> のまま＝<b>空の枠も見出しも折りたたみも出ない</b>（現状と1pxも変わらない）</p>
 </div>
 
 <!-- ============================================================ -->
-<h2 class="sec">3. スマホ幅（375px）— 2-a と 2-c</h2>
+<h2 class="sec">3. スマホ幅（375px）— 2-a（閉じた状態）と 2-c</h2>
 <div class="cols">
   <div class="col">
-    <p class="cap">375px / エントリ6件</p>
+    <p class="cap">375px / 6件のカード（⭐ 既定で閉じているので2件ぶんの高さに収まる）</p>
     <div class="frame w375 gacd">
       <div class="detail-info">
         <section class="rules-block">
@@ -215,8 +280,14 @@ h3.sub { font-size:.95rem; color:var(--muted); margin:22px 0 8px; }
           <p class="rules-note">※裁定は英語原文です。</p>
           <ul>
             <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2026-08-16</span></div><p class="rule-desc">Must be loaded to use for an attack and can’t be used with an attack card. -&gt; Must be loaded to be wielded and can't be wielded with an attack card.</p></li>
-            <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2024-01-19</span></div><p class="rule-desc">Blastshot Pump's replacement effect causes the attacker to deal combat damage to an additional unit. Because this damage is also considered combat damage, it can trigger On Hit effects accordingly.</p></li>
+            <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2026-08-16</span></div><p class="rule-desc">by an attack using -&gt; by an attacker wielding</p></li>
           </ul>
+          <details class="rules-fold">
+            <summary>ほかの裁定を表示（4件）</summary>
+            <ul>
+              <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2024-01-19</span></div><p class="rule-desc">Blastshot Pump's replacement effect causes the attacker to deal combat damage to an additional unit. Because this damage is also considered combat damage, it can trigger On Hit effects accordingly.</p></li>
+            </ul>
+          </details>
         </section>
       </div>
     </div>
@@ -238,7 +309,7 @@ h3.sub { font-size:.95rem; color:var(--muted); margin:22px 0 8px; }
   </div>
 </div>
 <p class="note" style="margin-top:10px">⭐ <code>.rule-head</code> は <code>flex-wrap:wrap</code> なので、375px では <code>対象版</code> が2行目に折り返します。
-⚠️ <b>バッジ・日付・対象版の3つは左端が揃うこと</b>（検証項目 V7）。</p>
+⚠️ <b>バッジ・日付・対象版の3つは左端が揃うこと</b>（検証項目 V20・V21）。⚠️ <b>▶ の行が指で押しやすいか</b>は U11 で見てもらいます。</p>
 
 <!-- ============================================================ -->
 <h2 class="sec">4. 静的カードページ — 現状 vs 変更後（Necklace of Foresight＝エラッタ2件）</h2>
@@ -258,7 +329,7 @@ h3.sub { font-size:.95rem; color:var(--muted); margin:22px 0 8px; }
     </div></div>
   </div>
   <div class="col">
-    <p class="cap cap-after">変更後（after）— <b>効果文の直後</b>へ移動し、バッジを出す</p>
+    <p class="cap cap-after">変更後（after）— <b>効果文の直後</b>へ移動・バッジ・2段構え</p>
     <div class="frame"><div class="cp">
       <h2>効果（日本語）</h2>
       <p class="cp-effect">［クラスボーナス］このカードの実体化コストは1少なくなる。……</p>
@@ -271,11 +342,44 @@ h3.sub { font-size:.95rem; color:var(--muted); margin:22px 0 8px; }
       </ul>
       <h2>収録セットと版</h2>
       <p class="cp-muted">（表。ここでは省略）</p>
+      <p class="annot" style="color:var(--muted)">⭐ このカードは<b>エラッタのみ</b>なので折りたたみは出ません</p>
     </div></div>
   </div>
 </div>
 
-<h2 class="sec">5. 日付の正規化（Spirit Blade Ensoul）</h2>
+<h3 class="sub">4-b. 静的カードページで折りたたみが出る形（Blastshot Pump）</h3>
+<div class="frame"><div class="cp">
+  <h2>効果（日本語）</h2>
+  <p class="cp-effect">（ガン — 攻撃に使うには装填されている必要があり、攻撃カードとは併用できない。）……</p>
+  <h2>公式裁定（6件）</h2>
+  <p class="cp-rule-warn">⚠️ エラッタがあります（上の効果文は印刷時のテキストのままです）</p>
+  <p class="cp-muted">※裁定は英語原文です。</p>
+  <ul class="cp-rules">
+    <li class="cp-rule is-errata"><div class="cp-rule-head"><span class="cp-rule-tag">エラッタ</span><span class="cp-rule-date">2026-08-16</span></div><p class="cp-rule-desc">Must be loaded to use for an attack and can’t be used with an attack card. -&gt; Must be loaded to be wielded and can't be wielded with an attack card.</p></li>
+    <li class="cp-rule is-errata"><div class="cp-rule-head"><span class="cp-rule-tag">エラッタ</span><span class="cp-rule-date">2026-08-16</span></div><p class="cp-rule-desc">by an attack using -&gt; by an attacker wielding</p></li>
+  </ul>
+  <details class="cp-rules-fold">
+    <summary>ほかの裁定を表示（4件）</summary>
+    <ul class="cp-rules">
+      <li class="cp-rule"><div class="cp-rule-head"><span class="cp-rule-tag">裁定</span><span class="cp-rule-date">2024-01-19</span></div><p class="cp-rule-desc">Blastshot Pump's replacement effect causes the attacker to deal combat damage to an additional unit. Because this damage is also considered combat damage, it can trigger On Hit effects accordingly.</p></li>
+      <li class="cp-rule"><div class="cp-rule-head"><span class="cp-rule-tag">裁定</span><span class="cp-rule-date">2024-01-19</span></div><p class="cp-rule-desc">If damage is reduced before the replacement effect happens, the additional unit will take the reduced damage instead of the full damage amount.</p></li>
+      <li class="cp-rule"><div class="cp-rule-head"><span class="cp-rule-tag">裁定</span><span class="cp-rule-date">2024-01-19</span></div><p class="cp-rule-desc">The attacking player that controls Blastshot Pump will choose the additional unit for the replacement effect, if applicable.</p></li>
+      <li class="cp-rule"><div class="cp-rule-head"><span class="cp-rule-tag">裁定</span><span class="cp-rule-date">2024-01-19</span></div><p class="cp-rule-desc">The unit that is receiving damage from Blastshop Pump's replacement effect can't retaliate because damage would already have been dealt by starting the resolution of the damage step.</p></li>
+    </ul>
+  </details>
+  <h2>収録セットと版</h2>
+  <p class="cp-muted">（表。ここでは省略）</p>
+</div></div>
+<p class="note" style="margin-top:10px">
+⚠️ ⭐ <b>印刷（Ctrl+P）で確かめてください。</b> 閉じた <code>&lt;details&gt;</code> の中身は<b>そのままだと印刷に出ません</b>（Chromium 149 で実測）。
+このモックにも本番と同じ対策
+<code>@media print { details::details-content { content-visibility: visible; block-size: auto } }</code>
+を入れてあるので、<b>印刷プレビューでは閉じている4件も開いて出ます</b>（設計書 判断10・確認は <b>U14</b>）。<br>
+⭐ <b>SEO</b>: 折りたたんでも<b>本文はHTMLソースにそのまま残ります</b>（検証 V31）。折りたたむのは<b>英語原文の裁定だけ</b>で、
+検索流入の価値である<b>日本語の効果テキストは1文字も触りません</b>。
+</p>
+
+<h2 class="sec">5. 日付の正規化（Spirit Blade Ensoul）— ⭐ 両方持つ型（38枚）の例</h2>
 <p class="note">⚠️ <b>実データに <code>"2023-2-6"</code>（ゼロ埋めなし）が1件ある</b>（<code>spirit-blade-ensoul</code>）。
 現状はそのまま <code>2023-2-6</code> と表示され、<b>文字列比較では <code>2023-12-…</code> より後ろに並ぶ</b>。
 <code>rulesOf()</code> で <b><code>2023-02-06</code> に正規化</b>してから並べ替え・表示する。</p>
@@ -287,9 +391,14 @@ h3.sub { font-size:.95rem; color:var(--muted); margin:22px 0 8px; }
       <p class="rules-note">※裁定は英語原文です。</p>
       <ul>
         <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2023-04-15</span></div><p class="rule-desc">'At the beginning of your end phase, sacrifice all Sword weapons you control.' -&gt; 'At the beginning of your next end phase, sacrifice all Sword weapons you control.'</p></li>
-        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2023-02-06</span></div><p class="rule-desc">When a Sword weapon attacks as though it were an ally, a durability counter is removed from it upon dealing damage during the damage step.</p></li>
-        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2022-12-27</span></div><p class="rule-desc">The Sword weapons may attack as though they were allies, but are not actually allies. This means that they don't take retaliation damage, or damage in general.</p></li>
       </ul>
+      <details class="rules-fold">
+        <summary>ほかの裁定を表示（2件）</summary>
+        <ul>
+          <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2023-02-06</span></div><p class="rule-desc">When a Sword weapon attacks as though it were an ally, a durability counter is removed from it upon dealing damage during the damage step.</p></li>
+          <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2022-12-27</span></div><p class="rule-desc">The Sword weapons may attack as though they were allies, but are not actually allies. This means that they don't take retaliation damage, or damage in general.</p></li>
+        </ul>
+      </details>
     </section>
   </div>
 </div>
