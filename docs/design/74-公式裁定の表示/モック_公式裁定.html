@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#74 公式裁定の表示 — 画面モック</title>
+<style>
+/* ⚠ これは docs/ 配下の設計モックです（本番配信対象外・:root の検査対象外）。
+   値は shared/css/tokens.css / cards/cards.css の実値を写しています。 */
+:root {
+  --bg:#0f1115; --panel:#1b1f28; --panel-2:#232834; --border:rgba(255,255,255,.11);
+  --text:#e7e9ee; --muted:#9aa2b1; --accent:#d9a441; --accent-2:#6ea8fe; --accent-3:#e07bd0;
+  --radius:14px;
+  /* cards/cards.css 側（静的カードページ）の実値 */
+  --cp-bg:#12141a; --cp-panel:#171a21; --cp-line:#262b36; --cp-text:#e6e8ee;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font:15px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif; }
+.wrap { max-width:1280px; margin:0 auto; padding:24px 20px 80px; }
+h1 { font-size:1.4rem; }
+h2.sec { font-size:1.05rem; border-left:4px solid var(--accent); padding-left:10px; margin:40px 0 12px; }
+h3.sub { font-size:.95rem; color:var(--muted); margin:22px 0 8px; }
+.note { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:12px 14px; font-size:.88rem; }
+.note b { color:var(--accent); }
+.cols { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+@media (max-width:900px){ .cols { grid-template-columns:1fr; } }
+.col > .cap { font-size:.82rem; font-weight:700; margin:0 0 6px; }
+.cap-before { color:#fca5a5; }
+.cap-after { color:#7ee2a8; }
+.frame { border:1px solid var(--border); border-radius:12px; padding:14px; background:var(--panel); overflow:hidden; }
+.frame.w375 { width:375px; max-width:100%; }
+.annot { color:#fca5a5; font-size:.8rem; margin:8px 0 0; }
+
+/* ===== モーダル（shared/css/card-detail.css 相当。.gacd-modal 名前空間） ===== */
+.gacd .detail-info h2 { margin:8px 0 2px; font-size:1.15rem; }
+.gacd .name-en { color:var(--muted); font-size:.85rem; margin:0 0 10px; }
+.gacd .effect-block h3, .gacd .terms-block h3, .gacd .editions-block h3, .gacd .rules-block h3 {
+  font-size:.95rem; margin:18px 0 8px; color:var(--accent);
+}
+.gacd .effect { background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
+.gacd .effect strong { color:var(--accent); }
+.gacd .orig summary { cursor:pointer; color:var(--accent-2); font-size:.85rem; margin-top:8px; }
+.gacd .flavor-block .flavor { font-style:italic; color:var(--muted); border-left:3px solid var(--border); padding-left:12px; margin-top:14px; }
+.gacd .editions-block ul { margin:0; padding-left:18px; color:var(--muted); font-size:.9rem; }
+
+/* ▼ 追加するCSS（提案。⚠ --panel-2 / --accent / --muted は tokens.css と tournaments.css の両方にある） */
+.gacd .rules-warn { margin:0 0 6px; color:var(--accent); font-size:.85rem; font-weight:700; }
+.gacd .rules-note { margin:0 0 8px; color:var(--muted); font-size:.8rem; }
+.gacd .rules-block ul { list-style:none; padding:0; margin:0; display:grid; gap:8px; }
+.gacd .rule-item { background:var(--panel-2); border-left:3px solid color-mix(in srgb, var(--muted) 45%, transparent); border-radius:0 10px 10px 0; padding:8px 12px; }
+.gacd .rule-item.is-errata { border-left-color:var(--accent); }
+.gacd .rule-head { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:4px; }
+.gacd .rule-tag { font-size:.72rem; font-weight:700; border-radius:999px; padding:1px 8px; color:var(--muted); border:1px solid color-mix(in srgb, var(--muted) 45%, transparent); }
+.gacd .rule-item.is-errata .rule-tag { color:var(--accent); border-color:color-mix(in srgb, var(--accent) 60%, transparent); background:color-mix(in srgb, var(--accent) 16%, transparent); }
+.gacd .rule-date, .gacd .rule-scope { color:var(--muted); font-size:.78rem; }
+.gacd .rule-desc { margin:0; font-size:.88rem; overflow-wrap:anywhere; }
+
+/* ===== 静的カードページ（cards/cards.css 相当） ===== */
+.cp { background:var(--cp-bg); color:var(--cp-text); border-radius:12px; padding:14px 16px; }
+.cp h2 { font-size:1.02rem; border-left:3px solid var(--accent); padding-left:10px; margin:22px 0 10px; }
+.cp .cp-effect { background:var(--cp-panel); border:1px solid var(--cp-line); border-radius:10px; padding:12px 14px; margin:0; }
+.cp .cp-muted { color:var(--muted); font-size:.88rem; }
+.cp .cp-flavor { color:var(--muted); font-style:italic; }
+/* 現状（before）の裁定ブロック */
+.cp .old-rule { display:flex; gap:12px; padding:8px 0; border-bottom:1px dashed var(--cp-line); }
+.cp .old-rule-date { color:var(--muted); font-size:.8rem; white-space:nowrap; padding-top:2px; }
+.cp .old-rule p { margin:0; font-size:.9rem; }
+/* ▼ 追加するCSS（提案。cards.css の :root には --panel-2 が無いので --panel を使う） */
+.cp .cp-rule-warn { margin:0 0 6px; color:var(--accent); font-size:.85rem; font-weight:700; }
+.cp .cp-rules { list-style:none; padding:0; margin:0; display:grid; gap:8px; }
+.cp .cp-rule { background:var(--cp-panel); border-left:3px solid color-mix(in srgb, var(--muted) 45%, transparent); border-radius:0 10px 10px 0; padding:8px 12px; }
+.cp .cp-rule.is-errata { border-left-color:var(--accent); }
+.cp .cp-rule-head { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:4px; }
+.cp .cp-rule-tag { font-size:.72rem; font-weight:700; border-radius:999px; padding:1px 8px; color:var(--muted); border:1px solid color-mix(in srgb, var(--muted) 45%, transparent); }
+.cp .cp-rule.is-errata .cp-rule-tag { color:var(--accent); border-color:color-mix(in srgb, var(--accent) 60%, transparent); background:color-mix(in srgb, var(--accent) 16%, transparent); }
+.cp .cp-rule-date, .cp .cp-rule-scope { color:var(--muted); font-size:.78rem; white-space:nowrap; }
+.cp .cp-rule-desc { margin:0; font-size:.9rem; overflow-wrap:anywhere; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>#74 公式裁定（rule）の表示 — 画面モック</h1>
+<p class="note">
+データは <b>スナップショット <code>2026-09-24T13:38:59.574Z</code> の実データ</b>です（文字列は1文字も変えていません）。<br>
+対象: 裁定を持つカード <b>478枚</b> / エントリ <b>642件</b>（<code>ERRATA</code> 158件・複合8件・タイトル空 476件）。<br>
+⚠️ <b>エラッタ＝カードの挙動が変わる</b>ものなので、<code>エラッタ</code> バッジ（金・左罫線も金）と <code>裁定</code> バッジ（灰）で区別します。
+</p>
+
+<!-- ============================================================ -->
+<h2 class="sec">1. 詳細モーダル — 現状 vs 変更後（PC幅・Blightheart Penitent＝エラッタ1件）</h2>
+<div class="cols">
+  <div class="col">
+    <p class="cap cap-before">現状（before）</p>
+    <div class="frame gacd">
+      <div class="detail-info">
+        <h2>ブライトハート・ペニテント</h2>
+        <p class="name-en">Blightheart Penitent</p>
+        <section class="effect-block">
+          <h3>効果（日本語訳）</h3>
+          <div class="effect">[<strong>レスト</strong>]：あなたがエリシアンのオブジェクトをコントロールしているなら、<strong>カスケード</strong>—<br>・1— このターン、対象のユニットに与えられる次の2ダメージを軽減する。<br>・2と3— 対象の味方に<strong>バフ</strong>カウンターを1個置く。</div>
+          <details class="orig"><summary>英語原文を表示</summary></details>
+        </section>
+        <section class="editions-block">
+          <h3>収録</h3>
+          <ul><li>Primordial Dawn（PRD） #094 ・R ・絵：—</li></ul>
+        </section>
+      </div>
+      <p class="annot">⚠️ <b>裁定はどこにも出ない。</b>「起動できる条件が変わった」ことに気づけない<br>
+      （公式APIの <code>effect</code> はエラッタ<b>前</b>の印刷文のまま）</p>
+    </div>
+  </div>
+  <div class="col">
+    <p class="cap cap-after">変更後（after）</p>
+    <div class="frame gacd">
+      <div class="detail-info">
+        <h2>ブライトハート・ペニテント</h2>
+        <p class="name-en">Blightheart Penitent</p>
+        <section class="effect-block">
+          <h3>効果（日本語訳）</h3>
+          <div class="effect">[<strong>レスト</strong>]：あなたがエリシアンのオブジェクトをコントロールしているなら、<strong>カスケード</strong>—<br>・1— このターン、対象のユニットに与えられる次の2ダメージを軽減する。<br>・2と3— 対象の味方に<strong>バフ</strong>カウンターを1個置く。</div>
+          <details class="orig"><summary>英語原文を表示</summary></details>
+        </section>
+        <section class="rules-block">
+          <h3>公式裁定（1件）</h3>
+          <p class="rules-warn">⚠️ エラッタがあります（上の効果文は印刷時のテキストのままです）</p>
+          <p class="rules-note">※裁定は英語原文です。</p>
+          <ul>
+            <li class="rule-item is-errata">
+              <div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2026-08-16</span></div>
+              <p class="rule-desc">REST: If you control.. -&gt; REST: Activate this ability only if control..</p>
+            </li>
+          </ul>
+        </section>
+        <section class="editions-block">
+          <h3>収録</h3>
+          <ul><li>Primordial Dawn（PRD） #094 ・R ・絵：—</li></ul>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 class="sec">2. 最悪ケース（PC幅）</h2>
+
+<h3 class="sub">2-a. エントリ最多＝6件・エラッタと裁定が混在（Blastshot Pump）／⭐ エラッタを先頭に並べ替える</h3>
+<div class="frame gacd">
+  <div class="detail-info">
+    <section class="rules-block">
+      <h3>公式裁定（6件）</h3>
+      <p class="rules-warn">⚠️ エラッタがあります（上の効果文は印刷時のテキストのままです）</p>
+      <p class="rules-note">※裁定は英語原文です。</p>
+      <ul>
+        <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2026-08-16</span></div><p class="rule-desc">Must be loaded to use for an attack and can’t be used with an attack card. -&gt; Must be loaded to be wielded and can't be wielded with an attack card.</p></li>
+        <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2026-08-16</span></div><p class="rule-desc">by an attack using -&gt; by an attacker wielding</p></li>
+        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2024-01-19</span></div><p class="rule-desc">Blastshot Pump's replacement effect causes the attacker to deal combat damage to an additional unit. Because this damage is also considered combat damage, it can trigger On Hit effects accordingly.</p></li>
+        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2024-01-19</span></div><p class="rule-desc">If damage is reduced before the replacement effect happens, the additional unit will take the reduced damage instead of the full damage amount.</p></li>
+        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2024-01-19</span></div><p class="rule-desc">The attacking player that controls Blastshot Pump will choose the additional unit for the replacement effect, if applicable.</p></li>
+        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2024-01-19</span></div><p class="rule-desc">The unit that is receiving damage from Blastshop Pump's replacement effect can't retaliate because damage would already have been dealt by starting the resolution of the damage step.</p></li>
+      </ul>
+    </section>
+  </div>
+</div>
+<p class="note" style="margin-top:8px">⭐ <b>同日付の中は description の昇順</b>で決着させます（API の配列順に依存しない＝全順序）。上の4件の 2024-01-19 は API の配列順と違う順に並んでいます。</p>
+
+<h3 class="sub">2-b. 最長 description＝447文字・裁定のみ4件（Ardus, Floodborne Deacon）／⭐ 警告行は出ない</h3>
+<div class="frame gacd">
+  <div class="detail-info">
+    <section class="rules-block">
+      <h3>公式裁定（4件）</h3>
+      <p class="rules-note">※裁定は英語原文です。</p>
+      <ul>
+        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2026-03-27</span></div><p class="rule-desc">For additionally gained deluge effects that target, that effect must be present at the time it is added to the effects stack as well as during resolution for it to resolve properly.</p></li>
+        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2026-03-27</span></div><p class="rule-desc">For cards that gain deluge effects that target, it is important to assign which target is for the base effect and which target is for the gained effect. For example, if Liquidation's activation targets unit A with its base effect and unit B with its gained effect, the removal of Ardus before this activation's resolution would result in unit B no longer being targeted by Liquidation.</p></li>
+        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2026-03-27</span></div><p class="rule-desc">If an additional gained effect while its source is on the effects stack is lost due to the removal of Ardus, that source will still resolve as though it didn't have the additionally gained effect.</p></li>
+        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2026-03-27</span></div><p class="rule-desc">If an effect that requires a target is gained after that effect is added to the effects stack, that source would fizzle due to not having the mandatory targets for resolution. For example, if Liquidation was activated, and Ardus was put onto the field at fast speed, Liquidation would now have two effects that each have a mandatory target. Because targets can no longer be assigned due to Liquidation already being activated, Liquidation fizzles.</p></li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<h3 class="sub">2-c. 複合タイトル＝<code>ERRATA, DTRSD, P25</code>（Backstep）／⭐ 余りのトークンは「対象版」として出す</h3>
+<div class="frame gacd">
+  <div class="detail-info">
+    <section class="rules-block">
+      <h3>公式裁定（1件）</h3>
+      <p class="rules-warn">⚠️ エラッタがあります（上の効果文は印刷時のテキストのままです）</p>
+      <p class="rules-note">※裁定は英語原文です。</p>
+      <ul>
+        <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2026-04-09</span><span class="rule-scope">対象版: DTRSD・P25</span></div><p class="rule-desc">'Spell' -&gt; 'Skill'</p></li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<h3 class="sub">2-d. 裁定が無いカード（全2,495枚中 2,017枚）</h3>
+<div class="frame gacd">
+  <div class="detail-info">
+    <section class="effect-block"><h3>効果（日本語訳）</h3><div class="effect">（略）</div></section>
+    <section class="editions-block"><h3>収録</h3><ul><li>（略）</li></ul></section>
+  </div>
+  <p class="annot" style="color:var(--muted)">⭐ <code>#d-rules-wrap</code> は <code>hidden</code> のまま＝<b>空の枠も見出しも出ない</b>（現状と1pxも変わらない）</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 class="sec">3. スマホ幅（375px）— 2-a と 2-c</h2>
+<div class="cols">
+  <div class="col">
+    <p class="cap">375px / エントリ6件</p>
+    <div class="frame w375 gacd">
+      <div class="detail-info">
+        <section class="rules-block">
+          <h3>公式裁定（6件）</h3>
+          <p class="rules-warn">⚠️ エラッタがあります（上の効果文は印刷時のテキストのままです）</p>
+          <p class="rules-note">※裁定は英語原文です。</p>
+          <ul>
+            <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2026-08-16</span></div><p class="rule-desc">Must be loaded to use for an attack and can’t be used with an attack card. -&gt; Must be loaded to be wielded and can't be wielded with an attack card.</p></li>
+            <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2024-01-19</span></div><p class="rule-desc">Blastshot Pump's replacement effect causes the attacker to deal combat damage to an additional unit. Because this damage is also considered combat damage, it can trigger On Hit effects accordingly.</p></li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <p class="cap">375px / 複合タイトル（折り返しの最悪ケース）</p>
+    <div class="frame w375 gacd">
+      <div class="detail-info">
+        <section class="rules-block">
+          <h3>公式裁定（1件）</h3>
+          <p class="rules-warn">⚠️ エラッタがあります（上の効果文は印刷時のテキストのままです）</p>
+          <p class="rules-note">※裁定は英語原文です。</p>
+          <ul>
+            <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2026-04-09</span><span class="rule-scope">対象版: DTRSD・P25</span></div><p class="rule-desc">'Spell' -&gt; 'Skill'</p></li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="note" style="margin-top:10px">⭐ <code>.rule-head</code> は <code>flex-wrap:wrap</code> なので、375px では <code>対象版</code> が2行目に折り返します。
+⚠️ <b>バッジ・日付・対象版の3つは左端が揃うこと</b>（検証項目 V7）。</p>
+
+<!-- ============================================================ -->
+<h2 class="sec">4. 静的カードページ — 現状 vs 変更後（Necklace of Foresight＝エラッタ2件）</h2>
+<div class="cols">
+  <div class="col">
+    <p class="cap cap-before">現状（before）— <b>ページ末尾（収録セット表の後）</b>・タイトルを捨てている</p>
+    <div class="frame"><div class="cp">
+      <h2>効果（日本語）</h2>
+      <p class="cp-effect">［クラスボーナス］このカードの実体化コストは1少なくなる。……</p>
+      <h2>収録セットと版</h2>
+      <p class="cp-muted">（表。ここでは省略）</p>
+      <h2>公式裁定（2件）</h2>
+      <p class="cp-muted">※裁定は英語原文です。</p>
+      <div class="old-rule"><span class="old-rule-date">2025-07-18</span><p>Cost '0' -&gt; Cost '1'.</p></div>
+      <div class="old-rule"><span class="old-rule-date">2025-07-18</span><p>'Regalia Weapon' -&gt; 'Regalia Item'</p></div>
+      <p class="annot">⚠️ <b>エラッタなのか単なる補足なのか分からない</b>（<code>title</code> を捨てている）。しかも効果文から<b>2画面ぶん下</b></p>
+    </div></div>
+  </div>
+  <div class="col">
+    <p class="cap cap-after">変更後（after）— <b>効果文の直後</b>へ移動し、バッジを出す</p>
+    <div class="frame"><div class="cp">
+      <h2>効果（日本語）</h2>
+      <p class="cp-effect">［クラスボーナス］このカードの実体化コストは1少なくなる。……</p>
+      <h2>公式裁定（2件）</h2>
+      <p class="cp-rule-warn">⚠️ エラッタがあります（上の効果文は印刷時のテキストのままです）</p>
+      <p class="cp-muted">※裁定は英語原文です。</p>
+      <ul class="cp-rules">
+        <li class="cp-rule is-errata"><div class="cp-rule-head"><span class="cp-rule-tag">エラッタ</span><span class="cp-rule-date">2025-07-18</span><span class="cp-rule-scope">対象版: DTR</span></div><p class="cp-rule-desc">Cost '0' -&gt; Cost '1'.</p></li>
+        <li class="cp-rule is-errata"><div class="cp-rule-head"><span class="cp-rule-tag">エラッタ</span><span class="cp-rule-date">2025-07-18</span><span class="cp-rule-scope">対象版: DTR</span></div><p class="cp-rule-desc">'Regalia Weapon' -&gt; 'Regalia Item'</p></li>
+      </ul>
+      <h2>収録セットと版</h2>
+      <p class="cp-muted">（表。ここでは省略）</p>
+    </div></div>
+  </div>
+</div>
+
+<h2 class="sec">5. 日付の正規化（Spirit Blade Ensoul）</h2>
+<p class="note">⚠️ <b>実データに <code>"2023-2-6"</code>（ゼロ埋めなし）が1件ある</b>（<code>spirit-blade-ensoul</code>）。
+現状はそのまま <code>2023-2-6</code> と表示され、<b>文字列比較では <code>2023-12-…</code> より後ろに並ぶ</b>。
+<code>rulesOf()</code> で <b><code>2023-02-06</code> に正規化</b>してから並べ替え・表示する。</p>
+<div class="frame gacd">
+  <div class="detail-info">
+    <section class="rules-block">
+      <h3>公式裁定（3件）</h3>
+      <p class="rules-warn">⚠️ エラッタがあります（上の効果文は印刷時のテキストのままです）</p>
+      <p class="rules-note">※裁定は英語原文です。</p>
+      <ul>
+        <li class="rule-item is-errata"><div class="rule-head"><span class="rule-tag">エラッタ</span><span class="rule-date">2023-04-15</span></div><p class="rule-desc">'At the beginning of your end phase, sacrifice all Sword weapons you control.' -&gt; 'At the beginning of your next end phase, sacrifice all Sword weapons you control.'</p></li>
+        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2023-02-06</span></div><p class="rule-desc">When a Sword weapon attacks as though it were an ally, a durability counter is removed from it upon dealing damage during the damage step.</p></li>
+        <li class="rule-item"><div class="rule-head"><span class="rule-tag">裁定</span><span class="rule-date">2022-12-27</span></div><p class="rule-desc">The Sword weapons may attack as though they were allies, but are not actually allies. This means that they don't take retaliation damage, or damage in general.</p></li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+</div>
+</body>
+</html>
