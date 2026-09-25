@@ -75,7 +75,7 @@
 .gacd-modal .meta-row dt { color: var(--muted, #9aa2b1); min-width: 74px; }
 .gacd-modal .meta-row dd { margin: 0; }
 
-.gacd-modal .effect-block h3, .gacd-modal .terms-block h3, .gacd-modal .editions-block h3 {
+.gacd-modal .effect-block h3, .gacd-modal .terms-block h3, .gacd-modal .editions-block h3, .gacd-modal .rules-block h3 {
   font-size: .95rem; margin: 18px 0 8px; color: var(--accent, #d9a441);
 }
 .gacd-modal .effect { background: var(--panel-2, #1f232c); border: 1px solid var(--border, #2a2f3a); border-radius: 10px; padding: 12px 14px; }
@@ -87,6 +87,31 @@
 .gacd-modal .effect .card-name-hl { color: var(--accent-3, #e07bd0); font-weight: 600; background: color-mix(in srgb, var(--accent-3, #e07bd0) 14%, transparent); border-radius: 4px; padding: 0 2px; }
 .gacd-modal .orig { margin-top: 8px; }
 .gacd-modal .orig summary { cursor: pointer; color: var(--accent-2, #6ea8fe); font-size: .85rem; }
+
+/* 公式裁定（#74）。警告行だけを外に残し、裁定本体は <details> に畳む。
+   ⚠ このCSSは大会詳細ページ（/tournaments/<id>/）からも読まれるが、そちらは tokens.css を読まない。
+   使ってよいトークンは tokens.css と tournaments.css の両方にあるものだけ
+   （--accent / --accent-2 / --muted / --panel-2 / --text）。--border と --danger は tournaments.css に無いので使わない。 */
+.gacd-modal .rules-warn { margin: 14px 0 0; color: var(--accent); font-size: .85rem; font-weight: 700; }
+/* ⚠ 下の ul { display: grid } が UA の [hidden] に詳細度で勝つので、[hidden] を明示する */
+.gacd-modal .rules-warn[hidden] { display: none; }
+.gacd-modal .rules-note { margin: 0 0 8px; color: var(--muted); font-size: .8rem; }
+.gacd-modal .rules-block ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.gacd-modal .rules-block ul[hidden] { display: none; }
+/* ⚠ ネイティブの開閉マーカーを残すと見出しが右へずれる（他のブロックの見出しと左端が揃わない）。
+   消して見出しの後ろに ::after で記号を出す（filter-chips.css に前例あり）。 */
+.gacd-modal .rules-fold > summary { list-style: none; cursor: pointer; }
+.gacd-modal .rules-fold > summary::-webkit-details-marker { display: none; }
+.gacd-modal .rules-fold > summary > h3 { display: inline-block; }
+.gacd-modal .rules-fold > summary > h3::after { content: "  ▶"; color: var(--muted); font-size: .8rem; font-weight: 400; }
+.gacd-modal .rules-fold[open] > summary > h3::after { content: "  ▼"; }
+.gacd-modal .rule-item { background: var(--panel-2); border-left: 3px solid color-mix(in srgb, var(--muted) 45%, transparent); border-radius: 0 10px 10px 0; padding: 8px 12px; }
+.gacd-modal .rule-item.is-errata { border-left-color: var(--accent); }
+.gacd-modal .rule-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 4px; }
+.gacd-modal .rule-tag { font-size: .72rem; font-weight: 700; border-radius: 999px; padding: 1px 8px; color: var(--muted); border: 1px solid color-mix(in srgb, var(--muted) 45%, transparent); }
+.gacd-modal .rule-item.is-errata .rule-tag { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 60%, transparent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.gacd-modal .rule-date, .gacd-modal .rule-scope { color: var(--muted); font-size: .78rem; }
+.gacd-modal .rule-desc { margin: 0; font-size: .88rem; overflow-wrap: anywhere; }
 
 .gacd-modal .flavor-block .flavor { font-style: italic; color: var(--muted, #9aa2b1); border-left: 3px solid var(--border, #2a2f3a); padding-left: 12px; margin-top: 14px; }
 

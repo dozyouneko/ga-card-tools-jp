@@ -338,6 +338,47 @@ window.GA_CARD_I18N = (() => {
     return flavorPick(eds[0].flavor);
   }
 
+  // ---------- 公式裁定（rule / エラッタ） ----------
+  // 「どの裁定を・どういう順で・エラッタかどうか」という規則はここ1箇所だけに置く。
+  // ⚠ 消費側（詳細モーダル・静的カードページ）は自分で card を掘らずこの関数を呼ぶこと。
+  //   flavorOf() と同じ形。片方だけ直すと「画面によって別の裁定が出る」という気づきにくい
+  //   不具合になる（用語ハイライトが約125行ずつ二重定義になっている型＝#109 を新しく作らない）。
+  // ⚠ 公式APIの配列順は保証されない。並べ替えないと、APIが並べ替えた日に生成物が動いて
+  //   cronがノイズコミットを作る（版順序の非決定性＝#71 / #108 と同じ型）。
+  // ⚠ 日付はゼロ埋めされていない値が実在する（spirit-blade-ensoul の "2023-2-6"）ので正規化する。
+  // @returns {Array<{date:string,isErrata:boolean,scope:string,description:string}>}
+  function rulesOf(card) {
+    const list = (card && card.rule) || [];                 // ⚠ 生の配列を読むのはこの1行だけ
+    if (!Array.isArray(list)) return [];
+    const out = [];
+    for (const r of list) {
+      const description = (r && typeof r.description === "string") ? r.description.trim() : "";
+      if (!description) continue;                            // 空・空白のみは落とす（fail-safe）
+      const tokens = String((r && r.title) || "").split(",").map((s) => s.trim()).filter(Boolean);
+      const isErrata = tokens.some((s) => s.toUpperCase() === "ERRATA");
+      const scope = tokens.filter((s) => s.toUpperCase() !== "ERRATA").join("\u30fb");
+      out.push({ date: ruleYmd((r && r.date_added) || ""), isErrata, scope, description });
+    }
+    // 全順序。⚠ どの段も削らないこと（削ると公式APIの配列順が生成物に漏れる）。
+    // ①エラッタが先 ②日付の降順（空は末尾＝降順なら自然に末尾へ落ちる） ③本文の昇順 ④対象版の昇順
+    // ⚠ localeCompare ではなく素の比較（コード単位）で決着させる。
+    out.sort((a, b) => {
+      if (a.isErrata !== b.isErrata) return a.isErrata ? -1 : 1;
+      if (a.date !== b.date) return a.date > b.date ? -1 : 1;
+      if (a.description !== b.description) return a.description < b.description ? -1 : 1;
+      if (a.scope !== b.scope) return a.scope < b.scope ? -1 : 1;
+      return 0;
+    });
+    return out;
+  }
+
+  // 日付を YYYY-MM-DD に正規化する。形が違うものは "" を返す（並べ替えでは末尾・表示では出さない）。
+  function ruleYmd(v) {
+    const m = String(v || "").trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (!m) return "";
+    return m[1] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[3]).slice(-2);
+  }
+
   // ---------- 両面（flip）カード ----------
   // 公式APIは常に「表面」のカードを返し、裏面は edition.other_orientations[0] に格納する。
   // 画像は other_orientations[0].edition.image、裏面は独自の slug/name/effect を持つ。
@@ -381,6 +422,6 @@ window.GA_CARD_I18N = (() => {
     bannedFormats, legalFormats, exclusiveFormat, exclusiveNote, formatBadgeHtml,
     todayJst, setTodayForTest, setSeasonalBanlist, loadSeasonalBanlist, seasonalBanState,
     seasonalIcon, seasonalName, seasonalText, seasonalTitle, seasonalBannerText, seasonalBadgeHtml,
-    flipEdition, backFace, flavorOf,
+    flipEdition, backFace, flavorOf, rulesOf,
   };
 })();

@@ -1482,6 +1482,78 @@ const ART_FIXTURES_COMMON = [
   }
 }
 
+// --- 公式裁定の描画が1ヶ所由来であることの検査（#74） ----------------------
+// 「どの裁定を・どういう順で・エラッタかどうか」の規則は shared/js/card-i18n.js の
+// rulesOf() 1本だけに置く。モーダルと静的カードページの両方に裁定を出すので、
+// 放っておくと用語ハイライトと同じ型の二重定義（#109）を新しく作る。
+//
+// ⚠ コメントを剥がず生テキストで走査する（#117 の教訓：剥がすと剥がし方のバグで空回りする）。
+//   その代わり「コードのコメントにも生の参照を書かない」という規約が1つ増える。
+// ⚠ scripts/validate.mjs 自身を除外する（検査の正規表現が自分を拾って自己検出になる）。
+// ⚠ 双方向：許可外にヒットがあっても、許可リスト側のヒットが0でも exit 1（fail-closed）。
+// ⚠ 限界（承知のうえ）: card["rule"] と書かれたら素通りするし、rulesOf() の中身が壊れても緑。
+const RULEREAD_ROOTS = ["app.js", "shared/js", "tools", "functions", "scripts"];
+const RULEREAD_EXCLUDE = ["shared/vendor", "scripts/validate.mjs"];
+const RULEREAD_ALLOW = ["shared/js/card-i18n.js"];
+{
+  const bad = [];
+  const targets = [];
+  const excluded = (rel) => RULEREAD_EXCLUDE.some((x) => rel === x || rel.startsWith(`${x}/`));
+  const walk = (rel) => {
+    if (excluded(rel)) return;
+    let st;
+    try {
+      st = statSync(path.join(root, rel));
+    } catch (e) {
+      bad.push(`${rel} を読めません: ${e.message} — 走査対象の指定が陳腐化しています`);
+      return;
+    }
+    if (st.isDirectory()) {
+      for (const d of readdirSync(path.join(root, rel), { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+        walk(`${rel}/${d.name}`);
+      }
+    } else if (/\.(?:js|mjs)$/.test(rel)) {
+      targets.push(rel);
+    }
+  };
+  for (const r of RULEREAD_ROOTS) walk(r);
+  if (!targets.length) bad.push("走査対象の .js / .mjs が1つもありません — RULEREAD_ROOTS が陳腐化しています");
+
+  // ⚠ \b があるので .rules / .ruleset には当たらない
+  const READ_RE = /\.rule\b/g;
+  let refCount = 0;
+  const hitFiles = [];
+  for (const rel of targets) {
+    let text;
+    try {
+      text = readFileSync(path.join(root, rel), "utf8");
+    } catch (e) {
+      bad.push(`${rel} の読み込みに失敗: ${e.message}`);
+      continue;
+    }
+    const n = (text.match(READ_RE) || []).length;
+    if (!n) continue;
+    hitFiles.push(rel);
+    if (RULEREAD_ALLOW.includes(rel)) refCount += n;
+    else bad.push(`裁定の生データを読んでいます: ${rel}（${n}件）— 規則は ${RULEREAD_ALLOW.join(" / ")} の rulesOf() に集約してください`);
+  }
+  for (const f of RULEREAD_ALLOW) {
+    if (!hitFiles.includes(f)) {
+      bad.push(`許可リストにあるのに裁定の参照がありません: ${f} — rulesOf() の削除か、別の書き方（card["rule"] 等）への逃げの疑い（fail-closed）`);
+    }
+  }
+
+  if (bad.length) {
+    problems++;
+    console.error(`\nRULE RENDERING SINGLE SOURCE (${RULEREAD_ALLOW.join(" / ")}):`);
+    bad.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → 裁定の取り出し・並び・エラッタ判定は rulesOf() を呼んでください（ページ側に残すのはHTMLの字面だけ）`);
+    console.error(`    コメントも走査対象です（生テキストで見ています）。解説するときは rulesOf() のように関数名で書いてください`);
+  } else {
+    console.log(`rule rendering is single-sourced — 裁定の生データを読むのは ${RULEREAD_ALLOW.join(" / ")} だけ（${targets.length}ファイル走査 / 参照 ${refCount}件）`);
+  }
+}
+
 // --- 版の正規順序が全順序であることの検査（#108） ---------------------------
 // scripts/lib/edition-order.mjs の editionOrder() は5段の全順序で、1段でも削ると
 // 公式APIの editions 配列順が生成物に漏れる（中身が変わらない日に差分が出る＝#71 の正体）。

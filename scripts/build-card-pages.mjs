@@ -405,6 +405,11 @@ function cardPage(rawCard) {
   const imgs = CI.cardImages(card);
   const mainImg = imgs.length ? imgs[0].url : null;
 
+  // 公式裁定。⚠ 取り出しと並びの規則は card-i18n.js の rulesOf() に集約してある（詳細モーダルと共用）。
+  // 自分で card を掘らないこと（npm run validate の rule rendering is single-sourced が見張っている）。
+  const rules = CI.rulesOf(card);
+  const errataN = rules.filter((r) => r.isErrata).length;
+
   const title = jpNm
     ? `${jpNm} | ${enName} - Grand Archive 日本語カードDB`
     : `${enName} - Grand Archive 日本語カードDB`;
@@ -415,7 +420,7 @@ function cardPage(rawCard) {
   ].filter(Boolean).join(" / ");
   const effDesc = plainEffect((t && t.effect) || card.effect, enName);
   const description = truncate(
-    `Grand Archive「${enName}${jpNm ? `（${jpNm}）` : ""}」の日本語効果テキスト・収録セット${card.rule && card.rule.length ? "・裁定" : ""}。${kind}。${effDesc}`,
+    `Grand Archive「${enName}${jpNm ? `（${jpNm}）` : ""}」の日本語効果テキスト・収録セット${rules.length ? "・裁定" : ""}。${kind}。${effDesc}`,
     160
   );
 
@@ -441,10 +446,11 @@ function cardPage(rawCard) {
     ? `<section class="cp-block"><h2>収録セットと版</h2><div class="cp-scroll"><table class="cp-table"><thead><tr><th>セット</th><th>発売日</th><th>番号</th><th>レア</th><th>イラスト</th></tr></thead><tbody>${edRows}</tbody></table></div></section>`
     : "";
 
-  // 公式裁定
-  const rules = (card.rule || []).filter((r) => r && r.description);
+  // 公式裁定のブロック。警告行だけを外に残し、裁定本体は <details> に畳む（モーダルと同じ見せ方）。
+  // ⚠ 警告行を <details> の中に入れないこと。入れると「エラッタがある」ことごと畳まり、
+  //   このタスクの目的（モーダルだけ見ていてもエラッタに気づける）を失う。
   const ruleBlock = rules.length
-    ? `<section class="cp-block"><h2>公式裁定（${rules.length}件）</h2><p class="cp-muted">※裁定は英語原文です。</p>${rules.map((r) => `<div class="cp-rule"><span class="cp-rule-date">${day(r.date_added)}</span><p>${esc(r.description)}</p></div>`).join("")}</section>`
+    ? `<section class="cp-block">${errataN ? `<p class="cp-rule-warn">⚠️ エラッタがあります（効果文に反映されていないことがあります）</p>` : ""}<details class="cp-rules-fold"><summary><h2>公式裁定（${rules.length}件${errataN ? `・うちエラッタ${errataN}件` : ""}）</h2></summary><p class="cp-muted">※裁定は英語原文です。</p><ul class="cp-rules">${rules.map((r) => `<li class="cp-rule${r.isErrata ? " is-errata" : ""}"><div class="cp-rule-head"><span class="cp-rule-tag">${r.isErrata ? "エラッタ" : "裁定"}</span>${r.date ? `<span class="cp-rule-date">${esc(r.date)}</span>` : ""}${r.scope ? `<span class="cp-rule-scope">対象版: ${esc(r.scope)}</span>` : ""}</div><p class="cp-rule-desc">${esc(r.description)}</p></li>`).join("")}</ul></details></section>`
     : "";
 
   // 両面カードの裏面(モーダルと同様に表面と同じ体裁でスタック表示)
@@ -499,14 +505,13 @@ ${siteHeader()}
       ${translationBadge(card)}
       ${formatBanner(card)}${seasonalBanner(card)}
       ${infoTable(card)}
-      ${effectSections(card, terms)}
+      ${effectSections(card, terms)}${ruleBlock}
       ${flavorBlock}
     </div>
   </article>
   ${backBlock}
   ${termsBlock(allTerms)}
   ${editions}
-  ${ruleBlock}
   ${relBlock}
   <section class="cp-block cp-actions">
     <a class="cp-btn cp-btn-main" href="/#card/${card.slug}">カードDBの検索で詳細を開く</a>
@@ -692,9 +697,24 @@ h2 { font-size:1.02rem; border-left:3px solid var(--accent); padding-left:10px; 
 .cp-term-jp { display:block; font-weight:700; color:var(--accent-2); }
 .cp-term-desc { color:var(--muted); font-size:.88rem; }
 .cp-back-name { font-size:1.15rem; margin:.2em 0 .5em; }
-.cp-rule { display:flex; gap:12px; padding:8px 0; border-bottom:1px dashed var(--line); }
-.cp-rule-date { color:var(--muted); font-size:.8rem; white-space:nowrap; padding-top:2px; }
-.cp-rule p { margin:0; font-size:.9rem; }
+.cp-rule-warn { margin:22px 0 0; color:var(--accent); font-size:.85rem; font-weight:700; }
+.cp-rules { list-style:none; padding:0; margin:0; display:grid; gap:8px; }
+/* ⚠ ネイティブの開閉マーカーを残すと見出しが右へずれ、他の h2 と左端が揃わない */
+.cp-rules-fold > summary { list-style:none; cursor:pointer; }
+.cp-rules-fold > summary::-webkit-details-marker { display:none; }
+.cp-rules-fold > summary > h2 { display:inline-block; }
+.cp-rules-fold > summary > h2::after { content:"  ▶"; color:var(--muted); font-size:.8rem; font-weight:400; }
+.cp-rules-fold[open] > summary > h2::after { content:"  ▼"; }
+.cp-rule { background:var(--panel); border-left:3px solid color-mix(in srgb, var(--muted) 45%, transparent); border-radius:0 10px 10px 0; padding:8px 12px; }
+.cp-rule.is-errata { border-left-color:var(--accent); }
+.cp-rule-head { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:4px; }
+.cp-rule-tag { font-size:.72rem; font-weight:700; border-radius:999px; padding:1px 8px; color:var(--muted); border:1px solid color-mix(in srgb, var(--muted) 45%, transparent); }
+.cp-rule.is-errata .cp-rule-tag { color:var(--accent); border-color:color-mix(in srgb, var(--accent) 60%, transparent); background:color-mix(in srgb, var(--accent) 16%, transparent); }
+.cp-rule-date, .cp-rule-scope { color:var(--muted); font-size:.78rem; white-space:nowrap; }
+.cp-rule-desc { margin:0; font-size:.9rem; overflow-wrap:anywhere; }
+/* ⚠ 閉じた <details> の中身は印刷に出ない（Chromium 149 実測）。
+   印刷のときだけ開いた状態にする。⭐ 画面の振る舞いは変えない。 */
+@media print { details::details-content { content-visibility:visible; block-size:auto; } }
 .cp-links { list-style:none; padding:0; margin:0; display:flex; flex-wrap:wrap; gap:8px 16px; }
 .cp-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:28px; }
 .cp-btn { display:inline-block; padding:10px 18px; border-radius:10px; border:1px solid var(--line); background:var(--panel); color:var(--text); font-weight:600; }

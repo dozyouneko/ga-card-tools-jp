@@ -26,7 +26,7 @@ window.GA_CARD_DETAIL = (() => {
     tr, isTranslated, jpName, label, translationsReady,
     cardImages, rarityCode, speedLabel,
     FORMAT_JP, EXCLUSIVE_FORMAT_INFO, bannedFormats, exclusiveFormat, exclusiveNote,
-    backFace, flavorOf, loadNames, loadEffects,
+    backFace, flavorOf, rulesOf, loadNames, loadEffects,
     loadSeasonalBanlist, seasonalBanState, seasonalBannerText,
   } = window.GA_CARD_I18N;
   const I18N = window.GA_I18N || { meta: {}, terms: {}, cards: {} };
@@ -311,6 +311,7 @@ window.GA_CARD_DETAIL = (() => {
       flavorWrap.hidden = true;
     }
 
+    renderRules(card);
     renderTerms(card, terms);
     renderEditions(card);
     renderBackFace(card);
@@ -353,6 +354,34 @@ window.GA_CARD_DETAIL = (() => {
     btn.hidden = false;
     btn.textContent = opts.action.label ? opts.action.label(card) : "";
     btn.disabled = opts.action.disabled ? !!opts.action.disabled(card) : false;
+  }
+
+  // 公式裁定（エラッタ含む）。規則は card-i18n.js の rulesOf() に集約してあるので、
+  // ここは「受け取った配列をHTMLにする」だけにする。
+  // ⚠ 開閉のためのJSは書かない（<details> はネイティブに開閉する）。
+  function renderRules(card) {
+    const wrap = $("d-rules-wrap");
+    const fold = $("d-rules-fold");
+    const list = $("d-rules");
+    const warn = $("d-rules-warn");
+    const rules = rulesOf(card);
+    // ⚠ 毎回閉じた状態から始める。MODAL_HTML の <details> は使い回されるので、
+    //   前のカードで開いた open 属性が残る。
+    fold.removeAttribute("open");
+    if (!rules.length) {
+      // ⚠ 空にしないと、前に開いたカードの裁定がDOMに残る
+      list.innerHTML = "";
+      warn.hidden = true;
+      wrap.hidden = true;
+      return;
+    }
+    const eN = rules.filter((r) => r.isErrata).length;
+    $("d-rules-h").textContent = `公式裁定（${rules.length}件${eN ? `・うちエラッタ${eN}件` : ""}）`;
+    warn.hidden = eN === 0;
+    list.innerHTML = rules
+      .map((r) => `<li class="rule-item${r.isErrata ? " is-errata" : ""}"><div class="rule-head"><span class="rule-tag">${r.isErrata ? "エラッタ" : "裁定"}</span>${r.date ? `<span class="rule-date">${escapeHtml(r.date)}</span>` : ""}${r.scope ? `<span class="rule-scope">対象版: ${escapeHtml(r.scope)}</span>` : ""}</div><p class="rule-desc">${escapeHtml(r.description)}</p></li>`)
+      .join("");
+    wrap.hidden = false;
   }
 
   // 効果文中に登場するゲーム用語を検出して解説を並べる（日本語DBの付加価値）
@@ -463,6 +492,15 @@ window.GA_CARD_DETAIL = (() => {
           <details class="orig">
             <summary>英語原文を表示</summary>
             <div id="d-effect-en" class="effect effect-en"></div>
+          </details>
+        </section>
+
+        <section id="d-rules-wrap" class="rules-block" hidden>
+          <p id="d-rules-warn" class="rules-warn" hidden>⚠️ エラッタがあります（効果文に反映されていないことがあります）</p>
+          <details id="d-rules-fold" class="rules-fold">
+            <summary><h3 id="d-rules-h">公式裁定</h3></summary>
+            <p class="rules-note">※裁定は英語原文です。</p>
+            <ul id="d-rules"></ul>
           </details>
         </section>
 
