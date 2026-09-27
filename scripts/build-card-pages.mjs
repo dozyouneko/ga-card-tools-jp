@@ -28,6 +28,9 @@ const REFRESH = process.argv.includes("--refresh");
 // 実体は scripts/lib/page-i18n.mjs(build-tournament-pages.mjs と共用)
 
 const { I18N, CI } = loadPageI18n(ROOT);
+// 裁定ブロックの日本語は card-i18n.js の RULE_TEXT / ruleHeading() だけに置く。
+// ⚠ ここに文言を書かないこと（詳細モーダルとズレる。守っているのはこのコメントだけで自動検査は無い）。
+const RULE_TEXT = CI.RULE_TEXT;
 const esc = CI.escapeHtml;
 
 // ---------- シーズン禁止(#34) ----------
@@ -391,15 +394,6 @@ function termsBlock(terms) {
 
 // ---------- カード個別ページ ----------
 
-// 裁定ブロックの見出し。⭐ 在る種別だけを並記する（閉じたままでもどちらがあるカードか分かる）。
-// ⚠ 総件数は出さない（エラッタ件数と裁定件数の和で読める）。
-// ⚠ 詳細モーダル（card-detail.js の renderRules()）と文言を1文字も違えないこと。
-function ruleHeading(total, errataN) {
-  const pN = total - errataN;
-  if (errataN && pN) return `エラッタ/裁定（エラッタ${errataN}件・裁定${pN}件）`;
-  return errataN ? `エラッタ（${errataN}件）` : `裁定（${pN}件）`;
-}
-
 function cardPage(rawCard) {
   const card = newestFirst(rawCard); // 代表=最新セットの版
   const t = CI.tr(card);
@@ -459,7 +453,7 @@ function cardPage(rawCard) {
   // ⚠ 警告行を <details> の中に入れないこと。入れると「エラッタがある」ことごと畳まり、
   //   このタスクの目的（モーダルだけ見ていてもエラッタに気づける）を失う。
   const ruleBlock = rules.length
-    ? `<section class="cp-block">${errataN ? `<p class="cp-rule-warn">⚠️ エラッタは効果文に反映されていないことがあります</p>` : ""}<details class="cp-rules-fold"><summary><h2>${ruleHeading(rules.length, errataN)}</h2></summary><p class="cp-muted">※裁定は英語原文です。</p><ul class="cp-rules">${rules.map((r) => `<li class="cp-rule${r.isErrata ? " is-errata" : ""}"><div class="cp-rule-head"><span class="cp-rule-tag">${r.isErrata ? "エラッタ" : "裁定"}</span>${r.date ? `<span class="cp-rule-date">${esc(r.date)}</span>` : ""}${r.scope ? `<span class="cp-rule-scope">対象版: ${esc(r.scope)}</span>` : ""}</div><p class="cp-rule-desc">${esc(r.description)}</p></li>`).join("")}</ul></details></section>`
+    ? `<section class="cp-block">${errataN ? `<p class="cp-rule-warn">${RULE_TEXT.warn}</p>` : ""}<details class="cp-rules-fold"><summary><h2>${CI.ruleHeading(rules)}</h2></summary><p class="cp-muted">${RULE_TEXT.note}</p><ul class="cp-rules">${rules.map((r) => `<li class="cp-rule${r.isErrata ? " is-errata" : ""}"><div class="cp-rule-head"><span class="cp-rule-tag">${r.isErrata ? RULE_TEXT.errata : RULE_TEXT.plain}</span>${r.date ? `<span class="cp-rule-date">${esc(r.date)}</span>` : ""}${r.scope ? `<span class="cp-rule-scope">${RULE_TEXT.scopePrefix}${esc(r.scope)}</span>` : ""}</div><p class="cp-rule-desc">${esc(r.description)}</p></li>`).join("")}</ul></details></section>`
     : "";
 
   // 両面カードの裏面(モーダルと同様に表面と同じ体裁でスタック表示)

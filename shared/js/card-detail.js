@@ -26,7 +26,7 @@ window.GA_CARD_DETAIL = (() => {
     tr, isTranslated, jpName, label, translationsReady,
     cardImages, rarityCode, speedLabel,
     FORMAT_JP, EXCLUSIVE_FORMAT_INFO, bannedFormats, exclusiveFormat, exclusiveNote,
-    backFace, flavorOf, rulesOf, loadNames, loadEffects,
+    backFace, flavorOf, rulesOf, ruleHeading, RULE_TEXT, loadNames, loadEffects,
     loadSeasonalBanlist, seasonalBanState, seasonalBannerText,
   } = window.GA_CARD_I18N;
   const I18N = window.GA_I18N || { meta: {}, terms: {}, cards: {} };
@@ -358,6 +358,8 @@ window.GA_CARD_DETAIL = (() => {
 
   // 公式裁定（エラッタ含む）。規則は card-i18n.js の rulesOf() に集約してあるので、
   // ここは「受け取った配列をHTMLにする」だけにする。
+  // ⚠ 日本語の文言もここには書かない（card-i18n.js の RULE_TEXT / ruleHeading()）。
+  //   静的カードページと1文字も違えないための唯一の担保がこれ（自動検査は無い）。
   // ⚠ 開閉のためのJSは書かない（<details> はネイティブに開閉する）。
   function renderRules(card) {
     const wrap = $("d-rules-wrap");
@@ -365,6 +367,9 @@ window.GA_CARD_DETAIL = (() => {
     const list = $("d-rules");
     const warn = $("d-rules-warn");
     const rules = rulesOf(card);
+    // 固定文（警告行・注記）は textContent で入れる。MODAL_HTML 側は空にしてある。
+    warn.textContent = RULE_TEXT.warn;
+    $("d-rules-note").textContent = RULE_TEXT.note;
     // ⚠ 毎回閉じた状態から始める。MODAL_HTML の <details> は使い回されるので、
     //   前のカードで開いた open 属性が残る。
     fold.removeAttribute("open");
@@ -376,16 +381,10 @@ window.GA_CARD_DETAIL = (() => {
       return;
     }
     const eN = rules.filter((r) => r.isErrata).length;
-    // ⭐ 見出しは「在る種別だけ」を並記する（閉じたままでもどちらがあるカードか分かる）。
-    // ⚠ 総件数は出さない（エラッタ件数と裁定件数の和で読める）。
-    // ⚠ 静的カードページ（build-card-pages.mjs の ruleBlock）と文言を1文字も違えないこと。
-    const pN = rules.length - eN;
-    $("d-rules-h").textContent = eN && pN
-      ? `エラッタ/裁定（エラッタ${eN}件・裁定${pN}件）`
-      : eN ? `エラッタ（${eN}件）` : `裁定（${pN}件）`;
+    $("d-rules-h").textContent = ruleHeading(rules);
     warn.hidden = eN === 0;
     list.innerHTML = rules
-      .map((r) => `<li class="rule-item${r.isErrata ? " is-errata" : ""}"><div class="rule-head"><span class="rule-tag">${r.isErrata ? "エラッタ" : "裁定"}</span>${r.date ? `<span class="rule-date">${escapeHtml(r.date)}</span>` : ""}${r.scope ? `<span class="rule-scope">対象版: ${escapeHtml(r.scope)}</span>` : ""}</div><p class="rule-desc">${escapeHtml(r.description)}</p></li>`)
+      .map((r) => `<li class="rule-item${r.isErrata ? " is-errata" : ""}"><div class="rule-head"><span class="rule-tag">${r.isErrata ? RULE_TEXT.errata : RULE_TEXT.plain}</span>${r.date ? `<span class="rule-date">${escapeHtml(r.date)}</span>` : ""}${r.scope ? `<span class="rule-scope">${RULE_TEXT.scopePrefix}${escapeHtml(r.scope)}</span>` : ""}</div><p class="rule-desc">${escapeHtml(r.description)}</p></li>`)
       .join("");
     wrap.hidden = false;
   }
@@ -502,10 +501,10 @@ window.GA_CARD_DETAIL = (() => {
         </section>
 
         <section id="d-rules-wrap" class="rules-block" hidden>
-          <p id="d-rules-warn" class="rules-warn" hidden>⚠️ エラッタは効果文に反映されていないことがあります</p>
+          <p id="d-rules-warn" class="rules-warn" hidden></p>
           <details id="d-rules-fold" class="rules-fold">
-            <summary><h3 id="d-rules-h">裁定</h3></summary>
-            <p class="rules-note">※裁定は英語原文です。</p>
+            <summary><h3 id="d-rules-h"></h3></summary>
+            <p id="d-rules-note" class="rules-note"></p>
             <ul id="d-rules"></ul>
           </details>
         </section>

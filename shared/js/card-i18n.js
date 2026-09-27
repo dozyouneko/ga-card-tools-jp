@@ -372,6 +372,29 @@ window.GA_CARD_I18N = (() => {
     return out;
   }
 
+  // 裁定ブロックに出る日本語は、この2つ（RULE_TEXT と ruleHeading()）だけに置く。
+  // ⚠ 消費側（詳細モーダル・静的カードページ）に文言を書かないこと。片方だけ直すと
+  //   「画面によって見出しの文言が違う」という気づきにくい不具合になる（#109 と同じ型）。
+  // ⚠ ページ側に残してよいのはクラス名とHTMLの構造だけ。
+  const RULE_TEXT = {
+    warn: "⚠️ エラッタは効果文に反映されていないことがあります",
+    note: "※裁定は英語原文です。",
+    errata: "エラッタ",
+    plain: "裁定",
+    scopePrefix: "対象版: ",
+  };
+
+  // 裁定ブロックの見出し。rulesOf() の戻り値をそのまま渡す。
+  // ⭐ 在る種別だけを並記する（閉じたままでもどちらがあるカードか分かる）。
+  // ⚠ 総件数は出さない（エラッタ件数と裁定件数の和で読める）。
+  function ruleHeading(rules) {
+    const list = Array.isArray(rules) ? rules : [];
+    const eN = list.filter((r) => r && r.isErrata).length;
+    const pN = list.length - eN;
+    if (eN && pN) return `エラッタ/裁定（エラッタ${eN}件・裁定${pN}件）`;
+    return eN ? `エラッタ（${eN}件）` : `裁定（${pN}件）`;
+  }
+
   // 日付を YYYY-MM-DD に正規化する。形が違うものは "" を返す（並べ替えでは末尾・表示では出さない）。
   function ruleYmd(v) {
     const m = String(v || "").trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
@@ -422,6 +445,6 @@ window.GA_CARD_I18N = (() => {
     bannedFormats, legalFormats, exclusiveFormat, exclusiveNote, formatBadgeHtml,
     todayJst, setTodayForTest, setSeasonalBanlist, loadSeasonalBanlist, seasonalBanState,
     seasonalIcon, seasonalName, seasonalText, seasonalTitle, seasonalBannerText, seasonalBadgeHtml,
-    flipEdition, backFace, flavorOf, rulesOf,
+    flipEdition, backFace, flavorOf, rulesOf, ruleHeading, RULE_TEXT,
   };
 })();
