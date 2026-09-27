@@ -1472,11 +1472,18 @@ const INDEX_BLIND_FIXTURES = {
 //
 // ⚠ #101（0件文言）のような字面検査は使えない。文言ではなく規則なので、同じ字面で
 //   書き直すとは限らない。だから3段にする:
-//   (a) 定義の一意性  … 走査範囲の .js/.mjs に function preferredArtIndex が現れるファイルの集合
-//                       ↔ 許可リスト（双方向。足しても・消しても・改名しても落ちる）
+//   (a) 定義の一意性  … 走査範囲の .js/.mjs に「定義らしい形」（ART_DEFINE_RES の3パターン）が
+//                       現れるファイルの集合 ↔ 許可リスト（双方向。足しても・消しても・改名しても落ちる）
 //   (b) 条件キーの一致 … vm で本物を読んだ ART_COND_KEYS ↔ 許可リスト（双方向）
 //   (c) 行動フィクスチャ … 本物の preferredArtIndex() に合成 imgs[] を通した結果 ↔ 期待値
 //                       （(a)(b) を通しても中身を骨抜きにできないようにする）
+//   (d) 条件取り出しフィクスチャ（#116）… 本物の artCondOf() に「絞り込みUIと同じ形の els」を通し、
+//                       preferredArtIndex(imgs, artCondOf(els)) の端から端までを測る。
+//                       ⚠ (c) は cond を直接渡すので、els から条件を取り出す経路が壊れても素通りした
+//                       （画面4箇所が同時に古い絵柄のままになるのに exit 0 だった＝#116 の穴A）
+//   (e) 定義形フィクスチャ（#116）… (a) の射程そのものを行動で測る。⚠ これが無いと「D1 に戻して
+//                       簡略化」した瞬間に穴が元どおり開く（かつては function 宣言だけを見ていたため、
+//                       const preferredArtIndex = (…) => … 等の代入形が丸ごと素通りした＝穴B）
 //
 // ⚠ ⭐ (a) は生テキストに当てる。コメント除去を足さないこと——かつて UI規約検査が使っていた
 //   除去は、行コメント中の data/tl/*.js の /* をブロックコメントの開始と誤認して後方の */ と
@@ -1485,6 +1492,48 @@ const INDEX_BLIND_FIXTURES = {
 //   ⭐ 生テキストで誤検出が無いことは実測済み（現在のヒットは削除対象の2箇所だけだった）。
 // ⚠ 走査範囲は①（onRemoveOne）と同じ定数を使い回す。成功行のファイル数が一致するのはそのため。
 const ART_DEFINE_ALLOW = ["shared/js/card-search.js"];
+// ⚠ ⭐ 「定義らしい形」を列挙する（#116）。生テキストに当てる（コメントを剥がさない＝#117 の教訓）。
+//   かつては function 宣言だけを見ていたため、代入形（アロー・function 式・window.X =・export const・
+//   クラスフィールド・let 後の代入）とメソッド短縮形が丸ごと素通りしていた（実測: 二重定義を足しても exit 0）。
+// ⭐ D2 の (?!=) は === を除けるため。D3 の [^()]* は「引数に括弧が無い」形だけを拾うので、
+//   GA_CARD_SEARCH.preferredArtIndex(imgs, artCondOf(artEls())) のような呼び出しには当たらない。
+// ⚠ 増減させたら下の定義形フィクスチャもセットで直すこと（各パターンは「単独で拾う組」を1つ以上持つ）。
+// ⚠ ⭐ 増える規約が1つある: この名前を「代入の形」「function 宣言の形」「(…) { が続く形」でコメントに
+//   書かないこと（JSDoc の「名前(引数),」の形は当たらないので今のまま書ける）。
+const ART_DEFINE_RES = [
+  ["D1 function 宣言", /function\s+preferredArtIndex\s*\(/],
+  ["D2 代入", /\bpreferredArtIndex\s*=\s*(?!=)/],
+  ["D3 メソッド短縮", /\bpreferredArtIndex\s*\([^()]*\)\s*\{/],
+];
+// 定義形フィクスチャ（#116）。⭐ (a) の「射程そのもの」を行動で測る。
+// ⚠ 組数を増減させたら成功行の期待値も同じコミットで直すこと。
+// ⚠ hit: true は「検出すべき形」、false は「検出してはいけない形」。
+//   後者が無いと、射程を広げすぎた誤検出に誰も気づけない（誤検出は「うるさいから緩める」方向へ人を押し出す）。
+const ART_DEFINE_FIXTURES = [
+  { id: "P1 function 宣言", hit: true, src: "function preferredArtIndex(imgs, cond) { return 0; }" },
+  // ⭐ P2 は D1 を単独で拾う組（引数に括弧があるので D3 には当たらない）
+  { id: "P2 function 宣言（既定値に関数呼び出し）", hit: true, src: "function preferredArtIndex(imgs = pick(0), cond) { return 0; }" },
+  { id: "P3 const ＋ アロー", hit: true, src: "const preferredArtIndex = (imgs, cond) => 0;" },
+  { id: "P4 const ＋ function 式", hit: true, src: "const preferredArtIndex = function (imgs, cond) { return 0; };" },
+  { id: "P5 export const", hit: true, src: "export const preferredArtIndex = (i, c) => 0;" },
+  { id: "P6 プロパティへ代入", hit: true, src: "window.preferredArtIndex = (imgs, cond) => 0;" },
+  { id: "P7 宣言のあとで代入", hit: true, src: "let preferredArtIndex;\npreferredArtIndex = (i, c) => 0;" },
+  // ⭐ P8 / P9 は D3 を単独で拾う組
+  { id: "P8 オブジェクトのメソッド短縮", hit: true, src: "const M = { preferredArtIndex(imgs, cond) { return 0; } };" },
+  { id: "P9 クラスのメソッド", hit: true, src: "class C { preferredArtIndex(imgs, cond) { return 0; } }" },
+  { id: "P10 クラスのフィールド", hit: true, src: "class C { preferredArtIndex = (imgs, cond) => 0; }" },
+  { id: "N1 名前空間経由の呼び出し", hit: false, src: "return GA_CARD_SEARCH.preferredArtIndex(imgs, cond);" },
+  { id: "N2 オプションとして渡す", hit: false, src: "{ preferredArtIndex: artIndexOf, }" },
+  { id: "N3 オプションとして渡す（包む）", hit: false, src: "{ preferredArtIndex: (imgs) => GA_CARD_SEARCH.preferredArtIndex(imgs, c) }" },
+  { id: "N4 受け取り側で読む", hit: false, src: "opts.preferredArtIndex ? opts.preferredArtIndex(imgs) : 0" },
+  // ⚠ ⭐ N5（分割代入）は意図的に落とさない。共有モジュールから取り出す正当な形と区別が付かず、
+  //   赤くするとこの repo に実在する書き方（card-detail.js の GA_CARD_I18N）を禁じることになる（設計 §8-(b)）。
+  { id: "N5 分割代入で取り出す", hit: false, src: "const { preferredArtIndex, artCondOf } = GA_CARD_SEARCH;" },
+  // ⭐ N6 は shared/js/card-detail.js に実在する JSDoc の形
+  { id: "N6 JSDoc コメント", hit: false, src: " *     preferredArtIndex(imgs),  // 初期表示するイラスト番号(省略時は0)" },
+  { id: "N7 条件式の中で呼ぶ", hit: false, src: "if (preferredArtIndex(imgs)) { doit(); }" },
+  { id: "N8 等価比較", hit: false, src: "if (fn === preferredArtIndex) { }" },
+];
 // ⚠ 増やすときは ART_COND の表と、下の行動フィクスチャをセットで足す。
 //   表だけ足すと「その項目では絵柄が追従しない」状態に無言でなる（#93 と同じ型）。
 const ART_COND_ALLOW = ["set", "rarity"];
@@ -1501,6 +1550,34 @@ const ART_FIXTURES_BY_KEY = {
     { label: "F6（rarity が null の版は選ばない）", imgs: [{ prefix: "A", rarity: null }, { prefix: "B", rarity: 2 }], cond: { rarities: ["2"] }, expect: 1 },
   ],
 };
+// ⭐ 条件取り出しフィクスチャ用の合成セット。els.set.value は SETS の添字（本物と同じ）。
+// ⚠ 実データを読まない（validate はオフライン前提）。2件あれば「添字1 → BBB」で判別できる。
+// ⚠ ここを空に戻すと set キーの取り出しを測れなくなる（setPrefixes() が SETS[添字] を引くため）。
+const ART_ELS_SETS = [{ label: "合成セットA", prefixes: ["AAA"] }, { label: "合成セットB", prefixes: ["BBB"] }];
+// 条件取り出しフィクスチャ（#116）。⭐ 測るのは端から端まで＝preferredArtIndex(imgs, artCondOf(els))。
+// ⚠ els は本物の絞り込みUIと同じ形にする（エキスパンションは <select> の value、レアリティは
+//   getValues() を持つチップ群）。valuesOf() が getValues() を優先する経路を通すため。
+// ⚠ 組数を増減させたら成功行の期待値も同じコミットで直すこと。
+// ⚠ ⭐ 4組それぞれが別の壊し方を捕まえる（1組では足りない）:
+//   E1 = artCondOf から prefixes が落ちる / E2 = rarities が落ちる /
+//   E3 = setPrefixes() の Number("") ガード除去（絞っていないのに絵柄が勝手に切り替わる）/
+//   E4 = artCondOf の els フォールバック除去（els 無しの呼び出しで例外）
+const ART_ELS_FIXTURES_BY_KEY = {
+  set: [
+    { label: "E1（set の els を読める）", els: { set: { value: "1" }, rarity: { getValues: () => [] } },
+      imgs: [{ prefix: "AAA", rarity: 1 }, { prefix: "BBB", rarity: 1 }], expect: 1 },
+  ],
+  rarity: [
+    { label: "E2（rarity の els を読める）", els: { set: { value: "" }, rarity: { getValues: () => ["8"] } },
+      imgs: [{ prefix: "AAA", rarity: 1 }, { prefix: "AAA", rarity: 8 }], expect: 1 },
+  ],
+};
+const ART_ELS_FIXTURES_COMMON = [
+  { label: "E3（「全て」＝条件なし → 先頭）", els: { set: { value: "" }, rarity: { getValues: () => [] } },
+    imgs: [{ prefix: "BBB", rarity: 1 }, { prefix: "AAA", rarity: 2 }], expect: 0 },
+  { label: "E4（els 無しでも例外を投げない）", els: undefined,
+    imgs: [{ prefix: "AAA", rarity: 1 }, { prefix: "BBB", rarity: 8 }], expect: 0 },
+];
 const ART_FIXTURES_COMMON = [
   { label: "F1（条件なし → 先頭）", imgs: [{ prefix: "A", rarity: 1 }, { prefix: "B", rarity: 2 }], cond: {}, expect: 0 },
   // ⚠ F4 は「AND が OR に退化していないか」を見る唯一のケース（every → some にすると 0 を返す）
@@ -1535,8 +1612,16 @@ const ART_FIXTURES_COMMON = [
   for (const r of REMOVEONE_ROOTS) artWalk(r);
   if (!artTargets.length) bad.push("走査対象の .js が1つもありません — REMOVEONE_ROOTS が陳腐化しています");
 
-  const DEFINE_RE = /function\s+preferredArtIndex\s*\(/;
-  const definers = artTargets.filter((rel) => DEFINE_RE.test(readFileSync(path.join(root, rel), "utf8")));
+  // ⭐ 3パターンのどれかに当たったファイルを「定義しているファイル」とみなす（#116）。
+  const artDefHitIdx = (src) => {
+    const out = [];
+    ART_DEFINE_RES.forEach(([, re], i) => { if (re.test(src)) out.push(i); });
+    return out;
+  };
+  if (!ART_DEFINE_RES.length) {
+    bad.push("定義形パターンが0本です — ART_DEFINE_RES を空にすると、どこに再定義されても素通りします（fail-closed・#116）");
+  }
+  const definers = artTargets.filter((rel) => artDefHitIdx(readFileSync(path.join(root, rel), "utf8")).length > 0);
   const defAllow = [...ART_DEFINE_ALLOW].sort();
   const defFound = [...definers].sort();
   for (const f of defFound) {
@@ -1550,14 +1635,48 @@ const ART_FIXTURES_COMMON = [
     }
   }
 
-  // ---- (b)(c) 本物のモジュールを vm で読んで確かめる ----
+  // ---- (e) 定義形フィクスチャ: (a) の射程そのものを行動で測る（#116） ----
+  // ⚠ ⭐ これが無いと、誰かが「function 宣言だけ見る形に戻して簡略化」した瞬間に穴が元どおり開く（無言）。
+  if (!ART_DEFINE_FIXTURES.some((f) => f.hit)) {
+    bad.push("定義形フィクスチャに「検出すべき組」がありません — 空にすると射程の縮小に誰も気づけません（fail-closed・#116）");
+  }
+  if (!ART_DEFINE_FIXTURES.some((f) => !f.hit)) {
+    bad.push("定義形フィクスチャに「検出してはいけない組」がありません — 空にすると誤検出に誰も気づけません（fail-closed・#116）");
+  }
+  {
+    const soleOf = ART_DEFINE_RES.map(() => []);
+    for (const f of ART_DEFINE_FIXTURES) {
+      const idx = artDefHitIdx(f.src);
+      const names = idx.map((i) => ART_DEFINE_RES[i][0]);
+      if (idx.length > 0 !== !!f.hit) {
+        bad.push(
+          `定義形フィクスチャ ${f.id} の判定が食い違います（期待 ${f.hit ? "検出" : "非検出"} / 実際 `
+          + `${idx.length ? `検出（${names.join(" / ")}）` : "非検出"}）— ART_DEFINE_RES の射程が変わっています（#116）`
+        );
+      }
+      if (f.hit && idx.length === 1) soleOf[idx[0]].push(f.id);
+    }
+    // ⚠ ⭐ どのパターンも「単独で拾う組」を1つ以上持つこと。これが「どのパターンを削っても
+    //   必ず赤くなる」ことの担保で、同時に「既存に包含される＝射程を増やさないパターンの追加」も止める。
+    ART_DEFINE_RES.forEach(([name], i) => {
+      if (!soleOf[i].length) {
+        bad.push(
+          `定義形パターン「${name}」を単独で拾う組がありません — このパターンを削っても定義形フィクスチャが`
+          + `1組も赤くならない（＝射程を守れていない）ので、そのパターンだけが拾う組を足すか、パターンを消してください（fail-closed・#116）`
+        );
+      }
+    });
+  }
+
+  // ---- (b)(c)(d) 本物のモジュールを vm で読んで確かめる ----
   // ⚠ 字句検査にしない（#93・#108 と同じ「実物を動かして測る」方針。整形では壊れない）。
   // ⚠ ネットワークは使わない。create() を呼ばないので fetch も要らない。
   let artSearch = null;
   try {
     const sb = { console, setTimeout, clearTimeout, URLSearchParams };
     sb.window = sb;
-    sb.GA_I18N = { meta: { sets: [] }, terms: {}, cards: {} };
+    // ⚠ sets は空にしない（条件取り出しフィクスチャの set キーは setPrefixes() → SETS[添字] を通る）。
+    sb.GA_I18N = { meta: { sets: ART_ELS_SETS }, terms: {}, cards: {} };
     sb.GA_CARD_I18N = {
       hasJapanese: () => false,
       bannedFormats: () => [],
@@ -1632,6 +1751,43 @@ const ART_FIXTURES_COMMON = [
     ART_FIXTURES_COMMON.forEach(runOne);
   }
 
+  // (d) 条件取り出しフィクスチャ（#116）。⭐ 本物の artCondOf() を通して端から端まで測る。
+  // ⚠ artCondOf() の戻り値の形だけを見る検査にしない——形が合っていても値が空なら画面は壊れる。
+  let artElsFixtureCount = 0;
+  if (artSearch) {
+    const runEls = (f) => {
+      artElsFixtureCount++;
+      let got;
+      try {
+        got = artSearch.preferredArtIndex(f.imgs, artSearch.artCondOf(f.els));
+      } catch (e) {
+        bad.push(`条件取り出しフィクスチャ ${f.label} が例外で失敗しました: ${e.message} — els を読む経路が壊れています（#116）`);
+        return;
+      }
+      if (got !== f.expect) {
+        bad.push(
+          `条件取り出しフィクスチャ ${f.label} が期待どおりの版を選んでいません（期待 ${f.expect} / 実際 ${got}）`
+          + ` — artCondOf() が els からその条件を取り出せていません。画面4箇所（トップ／デッキ構築のタイルと詳細モーダル）が`
+          + `同時に古い絵柄のままになります（#116）`
+        );
+      }
+    };
+    // ⚠ 許可リストのキーに専用の組が無ければ exit 1（fail-closed）。
+    //   これが無いと、3つ目の版レベル項目を足した日に「表と行動フィクスチャは足したが取り出しは無検査」になる。
+    for (const key of ART_COND_ALLOW) {
+      const fixtures = ART_ELS_FIXTURES_BY_KEY[key];
+      if (!Array.isArray(fixtures) || !fixtures.length) {
+        bad.push(`${key} の条件取り出しフィクスチャがありません — その項目の els を artCondOf() が読めているかを検査できません（fail-closed・#116）`);
+        continue;
+      }
+      if (!fixtures.some((f) => f.expect !== 0)) {
+        bad.push(`${key} の条件取り出しフィクスチャが「先頭以外が選ばれる」組を持っていません（fail-closed・#116）`);
+      }
+      fixtures.forEach(runEls);
+    }
+    ART_ELS_FIXTURES_COMMON.forEach(runEls);
+  }
+
   if (bad.length) {
     problems++;
     console.error(`\nPREFERRED ART INDEX SINGLE SOURCE (${CS_FILE}):`);
@@ -1643,7 +1799,8 @@ const ART_FIXTURES_COMMON = [
     console.log(
       `preferredArtIndex is single-sourced — 定義 ${definers.length}ファイル（${definers.join(" / ") || "なし"}）`
       + `／条件キー ${condKeys ? condKeys.length : 0}項目（${condKeys ? condKeys.join(" / ") : "不明"}）`
-      + `／行動フィクスチャ ${artFixtureCount}組／${artTargets.length}ファイル走査`
+      + `／行動フィクスチャ ${artFixtureCount}組・条件取り出し ${artElsFixtureCount}組`
+      + `・定義形 ${ART_DEFINE_FIXTURES.length}組／${artTargets.length}ファイル走査`
     );
   }
 }
