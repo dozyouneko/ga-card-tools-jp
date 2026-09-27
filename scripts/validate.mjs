@@ -949,13 +949,102 @@ const REMOVEONE_EXCLUDE = ["shared/vendor"];
 const REMOVEONE_ALLOW = [];
 // ③のマーカー。⚠ この文字列は style.css 側にも同じ形で書いてある（片方だけ変えると exit 1）。
 const MOBILE_BAND_MARKER = "MOBILE-BAND:START";
+// ⭐ ①②③の「読んでいる範囲」を守る2段（#117）。⚠ 片方だけでは足りない:
+//   G1 被覆フィクスチャ … 「コメントの形のせいでコードが見えなくなる」合成入力を SCAN に通し、
+//      ①②③が期待どおり拾う／拾わないことを見る。⭐ 後から誰かが SCAN に除去を足した瞬間に
+//      落ちるのが唯一の目的。⚠ 0組（どれかの検査の分が0組でも）なら exit 1＝fail-closed。
+//   G2 被覆センチネル … ①②③が「実際に読んだテキスト」に、かつて除去で消えていた範囲の内側の
+//      字面が在ることを見る（手書きの一覧 ↔ 実ファイルの中身なので空回りしない）。
+//   ⚠ G1 だけだと、ファイル単位の前処理（先頭N行を捨てる等）を足されたときに合成入力だけが通る。
+//   ⚠ G2 だけだと、app.js の行コメントが書き換わった瞬間に守り自身が無言で fail-open になる。
+// #117 の形（行コメントの中の /* が、ずっと後方の */ と対になって間を丸ごと消す）を作る。
+// ⚠ 見せたい行は必ずその「間」に置く。外に置くと、除去を足しても落ちないフィクスチャになる。
+const fx117 = (line) => `// 説明: 訳データ（data/tl/*.js）を読む\n${line}\ntry { restore(); } catch { /* 保存不可でも継続 */ }\n`;
+// ⚠ 組数を増減させたら成功行の期待値（被覆フィクスチャ N組）も同じコミットで直すこと。
+const SCAN_FIXTURES = [
+  { id: "H1", why: "#117 の形（行コメント中の /* が後方の */ と対になる）", src: fx117("const o = { onRemoveOne: 1 };"), hit: true },
+  { id: "H2", why: 'コード中の文字列リテラルの "//"（functions/ の open-redirect ガードと同じ形）', src: 'if (!s.startsWith("//")) { const o = { onRemoveOne: 1 }; }\n', hit: true },
+  { id: "H3", why: "素の違反（コメントなし）", src: "const o = { onRemoveOne: fn };\n", hit: true },
+  // ⚠ H4 を落とさないこと。①の条件を「onRemoveOne が出てきたら」に緩めると受け取り側の
+  //   shared/js/card-search.js が常に1件になり、許可リストに足して黙らせる逃げ道が開く。
+  {
+    id: "H4",
+    why: "受け取り側・コロン無しの列挙（shared/js/card-search.js が0件である根拠）",
+    src: 'const onRemoveOne = opts.onRemoveOne || (() => {});\ncreateSelectedFilters({ container, list, groups, onChange, onRemoveOne });\n',
+    hit: false,
+  },
+  { id: "H5", why: "②が #117 の形の中にある定義を見つけられるか", src: fx117("const PANE_MIN_WIDTH = 1200;"), pane: 1200 },
+  { id: "H6", why: "③が #117 の形の中にある帯を見つけられるか", src: fx117('window.matchMedia("(max-width: 1199px)");'), mq: 1199 },
+];
+// G2。⭐ 4語とも実ファイルで一意で、すべて「かつて消えていた範囲」の内側にある。
+// ⭐ GA_CARD_SEARCH.create({ は必須——「検索を作っている所に onRemoveOne を配線する」という
+//   もっともらしい間違え方が、検査の視界に入っていることをこれが直接主張する。
+// ⚠ 行番号は書かない（腐る）。⚠ アプリ側でこの字面が無くなったらここも同時に直す。
+//   ⭐ ただし緩める方向に直さないこと（減らすと守りが薄くなるだけ）。
+const SCAN_SENTINELS = [
+  { file: "app.js", needle: "GA_CARD_SEARCH.create({" },
+  { file: "app.js", needle: "metaIndexUrl:" },
+  { file: "tools/deck-builder/app.js", needle: "const ZONES = [" },
+  { file: "tools/deck-builder/app.js", needle: "function isLevelZeroChampion(" },
+];
 {
   const bad = [];
-  // JS も CSS もコメントを剥いでから見る。コメントの中に規約の説明として同じ字面が書いてある
-  // （実測: 両ページの style.css は注意書きの中に @media (max-width: 640px) と書いている）。
-  const stripJs = (s) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+  // ⚠ ⭐ JS は生テキストで走査する。剥ぐのは CSS だけ（#117 の非対称）。
+  //   かつては JS もコメントを剥いでいたが、その除去はブロックコメントを先に落とすため、
+  //   行コメントの中に書かれた /* を「ブロックコメントの開始」と誤認し、ずっと後方の */ と
+  //   対にして間のコードを丸ごと消していた。両ページ冒頭の「訳データ（data/tl/*.js）」の
+  //   行コメントが引き金で、app.js と tools/deck-builder/app.js の計609行が検査から消えていた
+  //   （#117。⚠ 消える範囲は編集ごとに黙って動くので、どこかに焼き付けてはいけない）。
+  //   さらに文字列リテラル中の "//" も守れず、functions/ の open-redirect ガード3行は
+  //   行末以降が消えていた。⭐ だから壊れうる部品を直すのではなく無くした（#74 / #97 / #105 と同じ流儀）。
+  //   ⭐ 代わりに規約が1つ増える: ①②③が拾う字面（onRemoveOne に続くコロン・PANE_MIN_WIDTH への
+  //   代入・matchMedia の max-width）はコメントにも書かない。⚠ 破ったときは exit 1 で、無言ではない。
+  // ⚠ CSS 側は剥ぐ。style.css の注意書きには @media (max-width: 640px) 等が実際に書いてあり、
+  //   ②の max-width 重なり判定に当たる。⭐ CSS に // 行コメントは無いので #117 の型は起きない。
   const stripCss = (s) => s.replace(/\/\*[\s\S]*?\*\//g, " ");
   const read = (rel) => readFileSync(path.join(root, rel), "utf8");
+  // ⭐ ①②③が読むテキストの唯一の入口。⚠ ここにコメント除去・前処理を足さないこと
+  //   （足した瞬間に G1 のフィクスチャと G2 のセンチネルが落ちる＝わざとそう作ってある）。
+  const SCAN = (s) => s;
+  const scanned = new Map();
+  const readScan = (rel) => {
+    const t = SCAN(read(rel));
+    scanned.set(rel, t);
+    return t;
+  };
+  // ①②③が使う規則。⭐ G1 のフィクスチャにも同じ定数を当てる（別物を書くと空回りする）。
+  // オプションとして渡している形（プロパティ名）だけを拾う。呼び出し・受け取りは対象外。
+  const PASS_RE = /\bonRemoveOne\s*:/;
+  const PANE_DEF_RE = /\bPANE_MIN_WIDTH\s*=\s*(\d+)\b/g;
+  const MQ_RE = /matchMedia\(\s*["'`]\s*\(\s*max-width\s*:\s*(\d+)px\s*\)\s*["'`]\s*\)/g;
+
+  // ---- G1 被覆フィクスチャ（#117・fail-closed） ----
+  if (!SCAN_FIXTURES.length) {
+    bad.push("①②③の被覆フィクスチャが0組です — SCAN_FIXTURES を空にすると「検査が読むのはファイルの全部」を誰も守れません（#117）");
+  } else {
+    if (!SCAN_FIXTURES.some((f) => "hit" in f)) bad.push("①の被覆フィクスチャが0組です（hit を持つ組が必要）— #117");
+    if (!SCAN_FIXTURES.some((f) => "pane" in f)) bad.push("②の被覆フィクスチャが0組です（pane を持つ組が必要）— #117");
+    if (!SCAN_FIXTURES.some((f) => "mq" in f)) bad.push("③の被覆フィクスチャが0組です（mq を持つ組が必要）— #117");
+  }
+  for (const f of SCAN_FIXTURES) {
+    const t = SCAN(f.src);
+    const head = `被覆フィクスチャ ${f.id}（${f.why}）`;
+    const tail = "走査テキストからコードが消えています — SCAN に前処理を足していませんか（#117）";
+    if ("hit" in f) {
+      const got = PASS_RE.test(t);
+      if (got !== f.hit) {
+        bad.push(`${head}: ①は${f.hit ? "拾わなければならない" : "拾ってはいけない"}入力を${got ? "拾いました" : "拾えませんでした"} — ${f.hit ? tail : "①のヒット条件が緩すぎます（受け取り側まで拾うと許可リストで黙らせる逃げ道が開きます）"}`);
+      }
+    }
+    if ("pane" in f) {
+      const vals = [...new Set([...t.matchAll(PANE_DEF_RE)].map((m) => Number(m[1])))];
+      if (vals.length !== 1 || vals[0] !== f.pane) bad.push(`${head}: ②が読んだ PANE_MIN_WIDTH は [${vals.join(", ") || "なし"}] で、${f.pane} ただ1つではありません — ${tail}`);
+    }
+    if ("mq" in f) {
+      const vals = [...new Set([...t.matchAll(MQ_RE)].map((m) => Number(m[1])))];
+      if (vals.length !== 1 || vals[0] !== f.mq) bad.push(`${head}: ③が読んだ matchMedia(max-width) は [${vals.join(", ") || "なし"}] で、${f.mq} ただ1つではありません — ${tail}`);
+    }
+  }
 
   // ---- ① onRemoveOne を渡している呼び出しが許可リストと一致するか（双方向） ----
   const jsTargets = [];
@@ -980,9 +1069,7 @@ const MOBILE_BAND_MARKER = "MOBILE-BAND:START";
   for (const r of REMOVEONE_ROOTS) walkJs(r);
   if (!jsTargets.length) bad.push("①の走査対象の .js が1つもありません — REMOVEONE_ROOTS が陳腐化しています");
 
-  // オプションとして渡している形（プロパティ名）だけを拾う。呼び出し・受け取りは対象外。
-  const PASS_RE = /\bonRemoveOne\s*:/;
-  const passers = jsTargets.filter((rel) => PASS_RE.test(stripJs(read(rel))));
+  const passers = jsTargets.filter((rel) => PASS_RE.test(readScan(rel)));
   const allowSorted = [...REMOVEONE_ALLOW].sort();
   const passSorted = [...passers].sort();
   const passExtra = passSorted.filter((f) => !allowSorted.includes(f));
@@ -1004,7 +1091,7 @@ const MOBILE_BAND_MARKER = "MOBILE-BAND:START";
   for (const page of UI_PAGES) {
     let js, css;
     try {
-      js = stripJs(read(page.js));
+      js = readScan(page.js);
     } catch (e) {
       bad.push(`${page.js} を読めません: ${e.message} — UI_PAGES が陳腐化しています`);
       continue;
@@ -1018,7 +1105,7 @@ const MOBILE_BAND_MARKER = "MOBILE-BAND:START";
     const cssNoComment = stripCss(css);
 
     // ② JS 側の PANE_MIN_WIDTH（定義はちょうど1つであること）
-    const paneDefs = [...js.matchAll(/\bPANE_MIN_WIDTH\s*=\s*(\d+)\b/g)].map((m) => Number(m[1]));
+    const paneDefs = [...js.matchAll(PANE_DEF_RE)].map((m) => Number(m[1]));
     const paneUniq = [...new Set(paneDefs)];
     if (paneUniq.length !== 1) {
       bad.push(
@@ -1051,9 +1138,7 @@ const MOBILE_BAND_MARKER = "MOBILE-BAND:START";
     paneLog.push(`${page.name} ${pane}px`);
 
     // ③ JS 側の matchMedia(max-width) → マーカー直後の @media と一致するか
-    const mqVals = [
-      ...new Set([...js.matchAll(/matchMedia\(\s*["'`]\s*\(\s*max-width\s*:\s*(\d+)px\s*\)\s*["'`]\s*\)/g)].map((m) => Number(m[1]))),
-    ];
+    const mqVals = [...new Set([...js.matchAll(MQ_RE)].map((m) => Number(m[1])))];
     const markerCount = css.split(MOBILE_BAND_MARKER).length - 1;
     if (mqVals.length > 1) {
       bad.push(
@@ -1129,6 +1214,23 @@ const MOBILE_BAND_MARKER = "MOBILE-BAND:START";
     }
   }
 
+  // ---- G2 被覆センチネル（#117・fail-closed） ----
+  // ⭐ scanned は readScan が実際に返したテキストそのもの。ここを別途 read し直すと
+  //   「検査が読んだもの」ではなく「ファイルの中身」を見ることになり、守りが空回りする。
+  {
+    if (!SCAN_SENTINELS.length) bad.push("被覆センチネルが0語です — SCAN_SENTINELS を空にすると、実ファイル側の欠落を誰も見なくなります（#117）");
+    for (const s of SCAN_SENTINELS) {
+      const t = scanned.get(s.file);
+      if (t === undefined) {
+        bad.push(`被覆センチネル: ①②③は ${s.file} を読んでいません — 走査範囲（REMOVEONE_ROOTS / REMOVEONE_EXCLUDE / UI_PAGES）が陳腐化しています`);
+        continue;
+      }
+      if (!t.includes(s.needle)) {
+        bad.push(`被覆センチネル: ①②③が読んだ ${s.file} に「${s.needle}」がありません — 走査テキストからコードが消えています（SCAN に前処理を足していませんか＝#117）。アプリ側でこの字面が無くなったのなら SCAN_SENTINELS も同じコミットで直してください`);
+      }
+    }
+  }
+
   if (bad.length) {
     problems++;
     console.error(`\nUI CONTRACTS (左ペイン化_設計 §11-9):`);
@@ -1142,7 +1244,9 @@ const MOBILE_BAND_MARKER = "MOBILE-BAND:START";
     console.error(`    検査を消して通さないこと。将来2つ目の min-width が本当に必要になったら、`);
     console.error(`    scripts/validate.mjs の UI_PAGES / REMOVEONE_ALLOW に「なぜ要るのか」を書いて足してください`);
   } else {
-    console.log(`onRemoveOne wiring in sync — 渡しているのは ${passers.length}ファイル（${passers.join(" / ") || "なし"}）／${jsTargets.length}ファイル走査`);
+    console.log(
+      `onRemoveOne wiring in sync — 渡しているのは ${passers.length}ファイル（${passers.join(" / ") || "なし"}）／${jsTargets.length}ファイル走査／被覆フィクスチャ ${SCAN_FIXTURES.length}組・センチネル ${SCAN_SENTINELS.length}語`
+    );
     console.log(`pane threshold in sync — ${paneLog.length}ページ（${paneLog.join(" / ")}）`);
     console.log(`mobile band marker in sync — ${bandLog.length}組（${bandLog.join(" / ")}）`);
   }
@@ -1313,9 +1417,10 @@ const INDEX_BLIND_FIXTURES = {
 //   (c) 行動フィクスチャ … 本物の preferredArtIndex() に合成 imgs[] を通した結果 ↔ 期待値
 //                       （(a)(b) を通しても中身を骨抜きにできないようにする）
 //
-// ⚠ ⭐ (a) は生テキストに当てる。stripJs を再利用しないこと——あれは app.js の
-//   60〜335行（行コメント中の data/tl/*.js の /* が 335行目の */ と対になる）を丸ごと
-//   消すので、その範囲に再定義されても見逃す（#97 設計書 §2-4）。
+// ⚠ ⭐ (a) は生テキストに当てる。コメント除去を足さないこと——かつて UI規約検査が使っていた
+//   除去は、行コメント中の data/tl/*.js の /* をブロックコメントの開始と誤認して後方の */ と
+//   対にし、app.js の数百行を丸ごと消していた。その範囲に再定義されても見逃す（#97 設計書 §2-4）。
+//   ⭐ その除去自体は #117 で撤去した（UI規約検査①②③も生テキストを読む）。
 //   ⭐ 生テキストで誤検出が無いことは実測済み（現在のヒットは削除対象の2箇所だけだった）。
 // ⚠ 走査範囲は①（onRemoveOne）と同じ定数を使い回す。成功行のファイル数が一致するのはそのため。
 const ART_DEFINE_ALLOW = ["shared/js/card-search.js"];
