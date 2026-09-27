@@ -2067,7 +2067,7 @@ function updateElementWarn(info) {
 }
 
 
-// デッキ全体(全ゾーン)での投入枚数(ダイアログのバッジ用)
+// デッキ全体(全ゾーン)での投入枚数（結果カードの「n枚」バッジ .in-deck 用・updateResultBadge()）
 function totalQtyInDeck(slug) {
   return deckData.cards.filter((c) => c.card_slug === slug).reduce((s, c) => s + c.qty, 0);
 }
@@ -2187,7 +2187,8 @@ function appendResults(cards, info, artCond) {
   el.resultGrid.appendChild(frag);
 }
 
-// ダイアログ内の操作(追加/減算/詳細)はイベント委譲。🎨/🔄はappendResults内の個別リスナーが処理
+// 結果カード内の操作(追加/減算/詳細)はイベント委譲（検索結果パネル #ed-pane-search の #result-grid）。
+// 🎨/🔄はappendResults内の個別リスナーが処理
 el.resultGrid.addEventListener("click", async (e) => {
   const item = e.target.closest(".result");
   if (!item) return;
@@ -3468,7 +3469,7 @@ window.addEventListener("hashchange", route);
 
 (async function init() {
   // カード詳細モーダル(共通コンポーネント)。カード取得はこのページのキャッシュを使う。
-  // 詳細を閉じたとき、下に検索結果等のモーダルが開いたままならスクロールロックを維持する
+  // 詳細を閉じたとき、下に別のモーダル（#omni-modal）が開いたままならスクロールロックを維持する
   GA_CARD_DETAIL.init({
     fetchCard: getCard,
     // ⭐ 開いたタイルの条件で絵柄を選ぶ（#97・D-3）。検索結果タイル以外は detailArtCond が
