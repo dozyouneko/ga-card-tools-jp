@@ -955,11 +955,20 @@ const MOBILE_BAND_MARKER = "MOBILE-BAND:START";
 //      落ちるのが唯一の目的。⚠ 0組（どれかの検査の分が0組でも）なら exit 1＝fail-closed。
 //   G2 被覆センチネル … ①②③が「実際に読んだテキスト」に、かつて除去で消えていた範囲の内側の
 //      字面が在ることを見る（手書きの一覧 ↔ 実ファイルの中身なので空回りしない）。
+//      ⭐ 経路ごと（SCAN_READERS）に照合する。⚠ まとめると片方の迂回を見逃す（設計 §11-1）。
 //   ⚠ G1 だけだと、ファイル単位の前処理（先頭N行を捨てる等）を足されたときに合成入力だけが通る。
 //   ⚠ G2 だけだと、app.js の行コメントが書き換わった瞬間に守り自身が無言で fail-open になる。
 // #117 の形（行コメントの中の /* が、ずっと後方の */ と対になって間を丸ごと消す）を作る。
 // ⚠ 見せたい行は必ずその「間」に置く。外に置くと、除去を足しても落ちないフィクスチャになる。
-const fx117 = (line) => `// 説明: 訳データ（data/tl/*.js）を読む\n${line}\ntry { restore(); } catch { /* 保存不可でも継続 */ }\n`;
+// ⭐ 作った実体を FX117 に自分で登録する（P2-2）。これで「#117 の形を実際に作った実体」しか
+//   集合に入らない。⚠ 手書きのフラグ（f117: true）にしないこと——フラグだけ立てて中身を
+//   素の違反にする空回りが起きる（偽に立てられるものを不変条件の根拠にしない）。
+const FX117 = new Set();
+const fx117 = (line) => {
+  const src = `// 説明: 訳データ（data/tl/*.js）を読む\n${line}\ntry { restore(); } catch { /* 保存不可でも継続 */ }\n`;
+  FX117.add(src);
+  return src;
+};
 // ⚠ 組数を増減させたら成功行の期待値（被覆フィクスチャ N組）も同じコミットで直すこと。
 const SCAN_FIXTURES = [
   { id: "H1", why: "#117 の形（行コメント中の /* が後方の */ と対になる）", src: fx117("const o = { onRemoveOne: 1 };"), hit: true },
@@ -987,6 +996,17 @@ const SCAN_SENTINELS = [
   { file: "tools/deck-builder/app.js", needle: "const ZONES = [" },
   { file: "tools/deck-builder/app.js", needle: "function isLevelZeroChampion(" },
 ];
+// G2 の経路（P2-1）。⭐ センチネルは「経路ごと」に全語を照合する。
+// ⚠ 1つにまとめてはいけない: センチネルの2ファイルは①の走査対象（REMOVEONE_ROOTS）にも
+//   ②③の対象（UI_PAGES）にも入っているので、①だけ（または②③だけ）が readScan を迂回しても
+//   もう片方の記録でセンチネルが満たされ、違反が実在するのに exit 0 のまま成功行が
+//   「in sync」と名乗る——#117 が直した症状がそのまま再現する（設計 §11-1 の X1 / X2）。
+// ⭐ この一覧は「実際に readScan を呼んだ経路名の集合」と双方向照合する（増えても減っても exit 1）。
+//   減らして骨抜きにできないのと同時に、⭐ 4本目の検査を足す人にもセンチネル被覆を要求する。
+// ⚠ 経路名を変えるときは readScan の呼び出し側も同じコミットで直すこと。
+// ⭐ 今は「全経路 × 全センチネル」でよい（2ファイルとも両経路が読む）。functions/ の
+//   ファイルをセンチネルに足すときだけ、語ごとに readers を持たせる必要が出る（②③は読まない）。
+const SCAN_READERS = ["①", "②③"];
 {
   const bad = [];
   // ⚠ ⭐ JS は生テキストで走査する。剥ぐのは CSS だけ（#117 の非対称）。
@@ -1006,10 +1026,14 @@ const SCAN_SENTINELS = [
   // ⭐ ①②③が読むテキストの唯一の入口。⚠ ここにコメント除去・前処理を足さないこと
   //   （足した瞬間に G1 のフィクスチャと G2 のセンチネルが落ちる＝わざとそう作ってある）。
   const SCAN = (s) => s;
+  // ⭐ 経路（who）ごとに「その検査が実際に読んだテキスト」を持つ（P2-1）。
+  //   ⚠ 1つの Map に混ぜないこと——片方の検査が readScan を迂回しても、もう片方の記録で
+  //   G2 が満たされてしまう（設計 §11-1 の X1 / X2）。who は SCAN_READERS と双方向照合する。
   const scanned = new Map();
-  const readScan = (rel) => {
+  const readScan = (rel, who) => {
     const t = SCAN(read(rel));
-    scanned.set(rel, t);
+    if (!scanned.has(who)) scanned.set(who, new Map());
+    scanned.get(who).set(rel, t);
     return t;
   };
   // ①②③が使う規則。⭐ G1 のフィクスチャにも同じ定数を当てる（別物を書くと空回りする）。
@@ -1025,6 +1049,18 @@ const SCAN_SENTINELS = [
     if (!SCAN_FIXTURES.some((f) => "hit" in f)) bad.push("①の被覆フィクスチャが0組です（hit を持つ組が必要）— #117");
     if (!SCAN_FIXTURES.some((f) => "pane" in f)) bad.push("②の被覆フィクスチャが0組です（pane を持つ組が必要）— #117");
     if (!SCAN_FIXTURES.some((f) => "mq" in f)) bad.push("③の被覆フィクスチャが0組です（mq を持つ組が必要）— #117");
+    // ⭐ P2-2: 検査ごとに「#117 の形」（fx117() で作った組）を1つ以上要求する。
+    //   ⚠ これが無いと2手で無言に穴が開く: ① H1 を「H2/H3 と重複だから」と削る →
+    //   ② app.js の行コメントを言い換える。②が済むと除去を足しても消えるものが無くなり
+    //   G2 も通るので、①の #117 被覆が H1 しか無かったことはそこで初めて分かる（設計 §11-2）。
+    //   ⚠ どちらの手も単独では「掃除」に見える。
+    for (const [key, label] of [["hit", "①"], ["pane", "②"], ["mq", "③"]]) {
+      if (!SCAN_FIXTURES.some((f) => key in f && FX117.has(f.src))) {
+        bad.push(
+          `${label}の被覆フィクスチャに #117 の形が1組もありません（fx117() で作った組が必要）— 素の違反だけでは、SCAN に除去を足しても落ちません（#117）`
+        );
+      }
+    }
   }
   for (const f of SCAN_FIXTURES) {
     const t = SCAN(f.src);
@@ -1069,7 +1105,7 @@ const SCAN_SENTINELS = [
   for (const r of REMOVEONE_ROOTS) walkJs(r);
   if (!jsTargets.length) bad.push("①の走査対象の .js が1つもありません — REMOVEONE_ROOTS が陳腐化しています");
 
-  const passers = jsTargets.filter((rel) => PASS_RE.test(readScan(rel)));
+  const passers = jsTargets.filter((rel) => PASS_RE.test(readScan(rel, "①")));
   const allowSorted = [...REMOVEONE_ALLOW].sort();
   const passSorted = [...passers].sort();
   const passExtra = passSorted.filter((f) => !allowSorted.includes(f));
@@ -1091,7 +1127,7 @@ const SCAN_SENTINELS = [
   for (const page of UI_PAGES) {
     let js, css;
     try {
-      js = readScan(page.js);
+      js = readScan(page.js, "②③");
     } catch (e) {
       bad.push(`${page.js} を読めません: ${e.message} — UI_PAGES が陳腐化しています`);
       continue;
@@ -1214,19 +1250,44 @@ const SCAN_SENTINELS = [
     }
   }
 
-  // ---- G2 被覆センチネル（#117・fail-closed） ----
+  // ---- G2 被覆センチネル（#117・fail-closed。⭐ 経路ごとに見る＝P2-1） ----
   // ⭐ scanned は readScan が実際に返したテキストそのもの。ここを別途 read し直すと
   //   「検査が読んだもの」ではなく「ファイルの中身」を見ることになり、守りが空回りする。
+  // ⚠ 経路ごとに分けるのが要点。1つにまとめると、①だけ（または②③だけ）readScan を迂回しても
+  //   もう片方の記録で満たされ、#117 の症状が exit 0 で通る（設計 §11-1 の X1 / X2）。
   {
+    if (!SCAN_READERS.length) bad.push("被覆センチネルの経路が0件です — SCAN_READERS を空にすると、経路ごとの被覆を誰も見なくなります（#117）");
     if (!SCAN_SENTINELS.length) bad.push("被覆センチネルが0語です — SCAN_SENTINELS を空にすると、実ファイル側の欠落を誰も見なくなります（#117）");
-    for (const s of SCAN_SENTINELS) {
-      const t = scanned.get(s.file);
-      if (t === undefined) {
-        bad.push(`被覆センチネル: ①②③は ${s.file} を読んでいません — 走査範囲（REMOVEONE_ROOTS / REMOVEONE_EXCLUDE / UI_PAGES）が陳腐化しています`);
-        continue;
-      }
-      if (!t.includes(s.needle)) {
-        bad.push(`被覆センチネル: ①②③が読んだ ${s.file} に「${s.needle}」がありません — 走査テキストからコードが消えています（SCAN に前処理を足していませんか＝#117）。アプリ側でこの字面が無くなったのなら SCAN_SENTINELS も同じコミットで直してください`);
+    // ⭐ P2-1d（本体）: 実際に readScan を呼んだ経路名 ↔ SCAN_READERS の双方向照合。
+    //   左辺は「実行」・右辺は「宣言」で出どころが別なので空回りしない。呼び出しを1つ消せば
+    //   左辺が縮んで exit 1／4本目の検査が新しい経路名で呼べば左辺が増えて exit 1。
+    const calledSorted = [...scanned.keys()].sort();
+    const declSorted = [...SCAN_READERS].sort();
+    const undeclared = calledSorted.filter((w) => !declSorted.includes(w));
+    const uncalled = declSorted.filter((w) => !calledSorted.includes(w));
+    if (undeclared.length) {
+      bad.push(
+        `readScan を呼んだのに SCAN_READERS に無い経路: ${undeclared.join(" / ")} — 新しい検査を足したら SCAN_READERS にも足して、その経路にも被覆センチネルを要求してください（#117）`
+      );
+    }
+    if (uncalled.length) {
+      bad.push(
+        `SCAN_READERS にあるのに readScan を呼んでいない経路: ${uncalled.join(" / ")} — その検査が走査の入口（readScan）を迂回していませんか（#117）`
+      );
+    }
+    for (const who of SCAN_READERS) {
+      const byFile = scanned.get(who);
+      for (const s of SCAN_SENTINELS) {
+        const t = byFile && byFile.get(s.file);
+        if (t === undefined) {
+          bad.push(
+            `被覆センチネル: ${who} は ${s.file} を読んでいません — その検査が readScan を迂回しているか、走査範囲（REMOVEONE_ROOTS / REMOVEONE_EXCLUDE / UI_PAGES）が陳腐化しています（#117）`
+          );
+          continue;
+        }
+        if (!t.includes(s.needle)) {
+          bad.push(`被覆センチネル: ${who} が読んだ ${s.file} に「${s.needle}」がありません — 走査テキストからコードが消えています（SCAN に前処理を足していませんか＝#117）。アプリ側でこの字面が無くなったのなら SCAN_SENTINELS も同じコミットで直してください`);
+        }
       }
     }
   }
@@ -1245,7 +1306,7 @@ const SCAN_SENTINELS = [
     console.error(`    scripts/validate.mjs の UI_PAGES / REMOVEONE_ALLOW に「なぜ要るのか」を書いて足してください`);
   } else {
     console.log(
-      `onRemoveOne wiring in sync — 渡しているのは ${passers.length}ファイル（${passers.join(" / ") || "なし"}）／${jsTargets.length}ファイル走査／被覆フィクスチャ ${SCAN_FIXTURES.length}組・センチネル ${SCAN_SENTINELS.length}語`
+      `onRemoveOne wiring in sync — 渡しているのは ${passers.length}ファイル（${passers.join(" / ") || "なし"}）／${jsTargets.length}ファイル走査／被覆フィクスチャ ${SCAN_FIXTURES.length}組・センチネル ${SCAN_SENTINELS.length}語×${SCAN_READERS.length}経路`
     );
     console.log(`pane threshold in sync — ${paneLog.length}ページ（${paneLog.join(" / ")}）`);
     console.log(`mobile band marker in sync — ${bandLog.length}組（${bandLog.join(" / ")}）`);
