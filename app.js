@@ -119,6 +119,17 @@ const searchCtl = GA_CARD_SEARCH.create({
     el.loadMore.disabled = true;
     if (reset) {
       shownSlugs.clear();
+      // #94: グリッドを空にするとページが縮み、ブラウザがスクロール位置を上限へ丸める
+      //   （見ていたカードが消えて一覧の先頭へ飛ぶ）。空にする直前に今の高さを退避して
+      //   縮ませない＝丸めを起こさせない。位置を復元するのではなく原因を断つ。
+      // ⚠ PC幅ではページではなく #results が縮む。どちらのスクロールコンテナにも効くよう
+      //   #grid 側に置く（幅で分岐しない）。
+      // ⚠ すでに退避中なら上書きしない。絞り込みを連続で変えると onStart が続けて走り、
+      //   2回目は「空になったグリッド」を測ってしまうため、1回目の退避を守る。
+      // ⚠ 書き方は CSSOM。CSP が style-src 'self' なので style 属性は使えない。
+      if (!el.grid.style.minHeight) {
+        el.grid.style.setProperty("min-height", `${Math.ceil(el.grid.getBoundingClientRect().height)}px`);
+      }
       el.grid.innerHTML = "";
       el.loadMore.hidden = true;
     }
@@ -133,11 +144,22 @@ const searchCtl = GA_CARD_SEARCH.create({
     updateElementWarn(info);
     updateSearchStatus(info);
     el.loadMore.disabled = false;
+    // #94: onStart で退避した高さを解放する。
+    // ⚠ appendGrid より後（＝埋め終わってから）解放する。先に解放すると一瞬縮んで
+    //   そこで丸めが起きるので、退避そのものが無意味になる。
+    // ⚠ appendGrid の中には書かないこと。あちらは件数0で早期 return するため、
+    //   0件検索のあと退避が永久に残り、下端まで送っても何も無い縦長の空白になる
+    //   （警告もエラーも出ないので気づけない）。件数に関わらずここで必ず解放する。
+    el.grid.style.removeProperty("min-height");
   },
   onError: (err, { reset }) => {
     el.status.textContent = `読み込みに失敗しました（${err.message}）。時間をおいて再度お試しください。`;
     if (reset) { el.grid.innerHTML = ""; el.loadMore.hidden = true; }
     el.loadMore.disabled = false;
+    // #94: 取得に失敗したときは「縮ませて先頭へ戻す」のが正しい。エラー文はグリッドより
+    //   上の #status に出るので、高さを保つと空白しか見えず失敗に気づけない。
+    // ⚠ ここで退避はしない（onStart が既に退避しており、測り直すと退避後の高さを測る）。
+    el.grid.style.removeProperty("min-height");
   },
 });
 
