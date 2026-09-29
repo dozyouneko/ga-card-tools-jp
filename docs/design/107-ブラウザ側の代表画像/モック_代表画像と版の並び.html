@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#107 モック — ブラウザ側の代表画像と版の並び（現状 ↔ 変更後）</title>
+<style>
+  :root { --bg:#12141a; --panel:#1b1f27; --line:#2c3240; --fg:#e8eaf0; --muted:#98a0b0;
+          --ng:#c0616b; --ok:#4f9d6a; --accent:#d9a441; }
+  * { box-sizing:border-box }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+         line-height:1.6; }
+  .wrap { max-width:1180px; margin:0 auto; padding:16px; }
+  h1 { font-size:20px; margin:8px 0 4px }
+  h2 { font-size:16px; margin:28px 0 8px; border-left:4px solid var(--accent); padding-left:8px }
+  .lead { color:var(--muted); font-size:13px; margin:0 0 12px }
+  .bar { position:sticky; top:0; z-index:5; background:var(--panel); border:1px solid var(--line);
+         border-radius:8px; padding:10px 12px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;
+         margin-bottom:16px; }
+  .bar label { font-size:13px; display:flex; gap:5px; align-items:center }
+  button { font:inherit; font-size:13px; background:#242a35; color:var(--fg); border:1px solid var(--line);
+           border-radius:6px; padding:5px 11px; cursor:pointer }
+  button[aria-pressed="true"] { background:var(--accent); color:#1a1a1a; border-color:var(--accent); font-weight:600 }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:18px }
+  .cardhead { display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; margin-bottom:4px }
+  .cardhead b { font-size:15px }
+  .cardhead code { font-size:12px; color:var(--muted) }
+  .pair { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:10px }
+  .side { border:1px solid var(--line); border-radius:8px; padding:10px; background:#171b22; min-width:0 }
+  .side h3 { margin:0 0 8px; font-size:13px; display:flex; gap:6px; align-items:center }
+  .tag { font-size:11px; padding:1px 7px; border-radius:99px; font-weight:700 }
+  .tag.now { background:var(--ng); color:#fff }
+  .tag.neo { background:var(--ok); color:#fff }
+  .tag.page { background:#3c4a63; color:#fff }
+  .hero { display:flex; gap:10px; align-items:flex-start }
+  .hero img { width:132px; border-radius:6px; background:#0d0f13; display:block }
+  .hero .meta { font-size:12px; color:var(--muted); min-width:0 }
+  .hero .meta .big { color:var(--fg); font-weight:700; font-size:13px }
+  .strip { display:flex; gap:6px; overflow-x:auto; padding:8px 0 4px; }
+  .strip figure { margin:0; flex:0 0 auto; width:66px; text-align:center }
+  .strip img { width:66px; border-radius:4px; display:block; background:#0d0f13 }
+  .strip figcaption { font-size:10px; color:var(--muted); word-break:break-all; margin-top:2px }
+  .strip figure.sel img { outline:2px solid var(--accent); outline-offset:1px }
+  .strip figure.sel figcaption { color:var(--accent); font-weight:700 }
+  ol.eds { margin:6px 0 0; padding-left:20px; font-size:12px }
+  ol.eds li { margin:1px 0 }
+  ol.eds li.moved { color:var(--accent) }
+  .note { font-size:12px; color:var(--muted); margin-top:8px; border-top:1px dashed var(--line); padding-top:8px }
+  .diff { font-size:12px; margin-top:8px; padding:7px 9px; border-radius:6px; background:#221a1a; border:1px solid #4a2a2e }
+  .diff.same { background:#1a2219; border-color:#2a4a2e }
+  body.narrow .wrap { max-width:375px }
+  body.narrow .pair { grid-template-columns:1fr }
+  body.narrow .hero img { width:104px }
+  .warn { background:#2a2115; border:1px solid #5a4520; border-radius:8px; padding:10px 12px; font-size:13px; margin:12px 0 }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>#107 モック — 同じカードなのに画面によって別の絵柄が出る</h1>
+  <p class="lead">
+    実データ（公式APIスナップショット <b>2026-09-27 03:14 取得・2,495枚</b>／測定 <b>2026-09-29</b>）。
+    <b class="ng">現状</b> はブラウザが今出しているもの（公式APIの <code>editions</code> 配列順そのまま）、
+    <b>変更後</b> は <code>editionOrder()</code> の5段の全順序（＝カード個別ページと同じ）。
+  </p>
+
+  <div class="warn">
+    <b>⚠️ これは設計工程のモックです。</b>実物はレビュー合格後にローカルサーバー（3000番）で操作して確認します。
+    画像は公式API（api.gatcg.com）から直接読み込むため、表示にはネットワークが必要です。
+  </div>
+
+  <div class="bar">
+    <label>幅:
+      <button id="w-pc" aria-pressed="true">PC</button>
+      <button id="w-sp" aria-pressed="false">375px</button>
+    </label>
+    <label>レアリティ絞り込み（版レベル）:
+      <button id="f-off" aria-pressed="true">なし</button>
+      <button id="f-on" aria-pressed="false">絞り込み中</button>
+    </label>
+    <span class="lead" style="margin:0">
+      ⭐「絞り込み中」は <code>preferredArtIndex()</code> が選ぶ版が前後で変わる様子（実測: レアリティ <b>421組</b>・うち先頭以外が絡むもの <b>76組</b> ／ エキスパンション <b>26組</b>・うち <b>24組</b>）
+    </span>
+  </div>
+
+  <div id="out"></div>
+
+  <h2>この画面で見てほしいこと</h2>
+  <ol style="font-size:13px">
+    <li><b>①代表画像</b>（左上の大きい画像）が、現状と変更後で違うこと。変更後は <b>カードページの og:image と一致</b>する</li>
+    <li><b>②イラスト切替の並び</b>（サムネイルの帯）の順序が変わること。<code>spirit-of-fire</code> は16版の最悪ケース</li>
+    <li><b>③収録一覧の行順</b>が、変更後は <b>カードページの収録セット表と完全一致</b>すること</li>
+    <li><b>④flip版の裏面画像</b>（<code>fabled-azurite-fatestone</code>）が変わること — 実測で該当は <b>1枚だけ</b></li>
+    <li>「絞り込み中」に切り替えると、<b>絞り込みに追従して選ばれる版</b>も変わること（副作用・意図した挙動）</li>
+  </ol>
+</div>
+
+<script id="data" type="application/json">{"break-apart":{"slug":"break-apart","jp":"打ち砕く","en":"Break Apart","before":[{"label":"HVN #035","rar":"C","url":"https://api.gatcg.com/cards/images/1nis8uaztx.jpg","rel":"2025-03-07","illus":"木叶","setname":"Abyssal Heaven"},{"label":"RDOPD #048C","rar":"C","url":"https://api.gatcg.com/cards/images/8agie38DnA.jpg","rel":"2026-04-03","illus":"木叶","setname":"Radiant Origins Pantheon Decks"},{"label":"RDOPD #048A","rar":"C","url":"https://api.gatcg.com/cards/images/yd79dlDot4.jpg","rel":"2026-04-03","illus":"木叶","setname":"Radiant Origins Pantheon Decks"},{"label":"RDOPD #048B","rar":"C","url":"https://api.gatcg.com/cards/images/45DMG2qkpx.jpg","rel":"2026-04-03","illus":"木叶","setname":"Radiant Origins Pantheon Decks"},{"label":"P26 #014","rar":"PR","url":"https://api.gatcg.com/cards/images/pJJckOK8Cr.jpg","rel":"1970-01-01","illus":"Sineia","setname":"Promotional 2026"}],"after":[{"label":"RDOPD #048A","rar":"C","url":"https://api.gatcg.com/cards/images/yd79dlDot4.jpg","rel":"2026-04-03","illus":"木叶","setname":"Radiant Origins Pantheon Decks"},{"label":"RDOPD #048B","rar":"C","url":"https://api.gatcg.com/cards/images/45DMG2qkpx.jpg","rel":"2026-04-03","illus":"木叶","setname":"Radiant Origins Pantheon Decks"},{"label":"RDOPD #048C","rar":"C","url":"https://api.gatcg.com/cards/images/8agie38DnA.jpg","rel":"2026-04-03","illus":"木叶","setname":"Radiant Origins Pantheon Decks"},{"label":"HVN #035","rar":"C","url":"https://api.gatcg.com/cards/images/1nis8uaztx.jpg","rel":"2025-03-07","illus":"木叶","setname":"Abyssal Heaven"},{"label":"P26 #014","rar":"PR","url":"https://api.gatcg.com/cards/images/pJJckOK8Cr.jpg","rel":"1970-01-01","illus":"Sineia","setname":"Promotional 2026"}],"rarEx":1},"accepted-contract":{"slug":"accepted-contract","jp":"受託した契約","en":"Accepted Contract","before":[{"label":"DOA Alter #069","rar":"C","url":"https://api.gatcg.com/cards/images/gvcgdmoyde.jpg","rel":"2023-04-28","illus":"道漫","setname":"Dawn of Ashes Alter Edition"},{"label":"DOA 1st #069","rar":"C","url":"https://api.gatcg.com/cards/images/G3J2VtbbvH.jpg","rel":"2023-01-01","illus":"道漫","setname":"Dawn of Ashes First Edition"},{"label":"RDOPD #039","rar":"C","url":"https://api.gatcg.com/cards/images/zC0yaj7QQ9.jpg","rel":"2026-04-03","illus":"道漫","setname":"Radiant Origins Pantheon Decks"}],"after":[{"label":"RDOPD #039","rar":"C","url":"https://api.gatcg.com/cards/images/zC0yaj7QQ9.jpg","rel":"2026-04-03","illus":"道漫","setname":"Radiant Origins Pantheon Decks"},{"label":"DOA Alter #069","rar":"C","url":"https://api.gatcg.com/cards/images/gvcgdmoyde.jpg","rel":"2023-04-28","illus":"道漫","setname":"Dawn of Ashes Alter Edition"},{"label":"DOA 1st #069","rar":"C","url":"https://api.gatcg.com/cards/images/G3J2VtbbvH.jpg","rel":"2023-01-01","illus":"道漫","setname":"Dawn of Ashes First Edition"}],"rarEx":1},"aithne-spirit-of-fire":{"slug":"aithne-spirit-of-fire","jp":"アスネ、火の精霊","en":"Aithne, Spirit of Fire","before":[{"label":"P23 #009","rar":"CPR","url":"https://api.gatcg.com/cards/images/h7q6eocoeh.jpg","rel":"2023-07-01","illus":"Hanh Chu","setname":"Promotional 2023"},{"label":"P25 #012","rar":"CPR","url":"https://api.gatcg.com/cards/images/jOJjXUZ0VU.jpg","rel":"2025-02-06","illus":"Hanh Chu","setname":"Promotional 2025"}],"after":[{"label":"P25 #012","rar":"CPR","url":"https://api.gatcg.com/cards/images/jOJjXUZ0VU.jpg","rel":"2025-02-06","illus":"Hanh Chu","setname":"Promotional 2025"},{"label":"P23 #009","rar":"CPR","url":"https://api.gatcg.com/cards/images/h7q6eocoeh.jpg","rel":"2023-07-01","illus":"Hanh Chu","setname":"Promotional 2023"}],"rarEx":9},"advent-of-the-stormcaller":{"slug":"advent-of-the-stormcaller","jp":"嵐呼びの到来","en":"Advent of the Stormcaller","before":[{"label":"DOA Alter #237","rar":"SR","url":"https://api.gatcg.com/cards/images/o8jwanjcy4.jpg","rel":"2023-04-28","illus":"道漫","setname":"Dawn of Ashes Alter Edition"},{"label":"DOA 1st #237","rar":"SR","url":"https://api.gatcg.com/cards/images/Io93lyvSyg.jpg","rel":"2023-01-01","illus":"道漫","setname":"Dawn of Ashes First Edition"},{"label":"RDO #297","rar":"SR","url":"https://api.gatcg.com/cards/images/4ymOAWOC49.jpg","rel":"2026-04-03","illus":"道漫","setname":"Radiant Origins"}],"after":[{"label":"RDO #297","rar":"SR","url":"https://api.gatcg.com/cards/images/4ymOAWOC49.jpg","rel":"2026-04-03","illus":"道漫","setname":"Radiant Origins"},{"label":"DOA Alter #237","rar":"SR","url":"https://api.gatcg.com/cards/images/o8jwanjcy4.jpg","rel":"2023-04-28","illus":"道漫","setname":"Dawn of Ashes Alter Edition"},{"label":"DOA 1st #237","rar":"SR","url":"https://api.gatcg.com/cards/images/Io93lyvSyg.jpg","rel":"2023-01-01","illus":"道漫","setname":"Dawn of Ashes First Edition"}],"rarEx":4},"fabled-azurite-fatestone":{"slug":"fabled-azurite-fatestone","jp":"伝説の瑠璃運命石","en":"Fabled Azurite Fatestone","before":[{"label":"ReC-HVF #011","rar":"UR","url":"https://api.gatcg.com/cards/images/o1yp6dnpyk.jpg","rel":"2025-03-07","illus":"Parhelion Studio Co.","setname":"Re:Collection Heaven's Favored"},{"label":"P25 #044","rar":"PR","url":"https://api.gatcg.com/cards/images/Wtx1yaLXi0.jpg","rel":"2025-02-06","illus":"Parhelion Studio Co.","setname":"Promotional 2025"},{"label":"HVN 1st #027","rar":"CSR","url":"https://api.gatcg.com/cards/images/6ce5rzrjd9.jpg","rel":"2025-03-07","illus":"Parhelion Studio Co.","setname":"Abyssal Heaven First Edition"}],"after":[{"label":"HVN 1st #027","rar":"CSR","url":"https://api.gatcg.com/cards/images/6ce5rzrjd9.jpg","rel":"2025-03-07","illus":"Parhelion Studio Co.","setname":"Abyssal Heaven First Edition"},{"label":"ReC-HVF #011","rar":"UR","url":"https://api.gatcg.com/cards/images/o1yp6dnpyk.jpg","rel":"2025-03-07","illus":"Parhelion Studio Co.","setname":"Re:Collection Heaven's Favored"},{"label":"P25 #044","rar":"PR","url":"https://api.gatcg.com/cards/images/Wtx1yaLXi0.jpg","rel":"2025-02-06","illus":"Parhelion Studio Co.","setname":"Promotional 2025"}],"rarEx":null},"spirit-of-fire":{"slug":"spirit-of-fire","jp":"火の精霊","en":"Spirit of Fire","before":[{"label":"ALC #001","rar":"C","url":"https://api.gatcg.com/cards/images/gx83sfhvfi.jpg","rel":"2024-01-26","illus":"道漫","setname":"Alchemical Revolution"},{"label":"ALCSD #001","rar":"C","url":"https://api.gatcg.com/cards/images/0isnc01fz2.jpg","rel":"2024-01-26","illus":"道漫","setname":"Alchemical Revolution Starter Decks"},{"label":"PRD #001","rar":"C","url":"https://api.gatcg.com/cards/images/wgBP5Hz6gi.jpg","rel":"2026-08-21","illus":"Primea Studio","setname":".asphodel/paradise"},{"label":"PRDSD #001","rar":"C","url":"https://api.gatcg.com/cards/images/IxwwD92kbp.jpg","rel":"2026-08-21","illus":"Primea Studio","setname":".asphodel/paradise Starter Decks"},{"label":"DOA Alter #001","rar":"C","url":"https://api.gatcg.com/cards/images/eslfpwkkbb.jpg","rel":"2023-04-28","illus":"道漫","setname":"Dawn of Ashes Alter Edition"},{"label":"DOA 1st #001","rar":"C","url":"https://api.gatcg.com/cards/images/zqHccKpk8L.jpg","rel":"2023-01-01","illus":"道漫","setname":"Dawn of Ashes First Edition"},{"label":"DOAp #001","rar":"C","url":"https://api.gatcg.com/cards/images/1tisZwrn8k.jpg","rel":"2023-01-01","illus":"道漫","setname":"Dawn of Ashes Prelude"},{"label":"DOASD #001","rar":"C","url":"https://api.gatcg.com/cards/images/tqiwqjt0oo.jpg","rel":"2023-04-28","illus":"道漫","setname":"Dawn of Ashes Starter Decks"},{"label":"DTR #001","rar":"C","url":"https://api.gatcg.com/cards/images/APwjbP7G8O.jpg","rel":"2025-07-25","illus":"木叶","setname":"Distorted Reflections"},{"label":"DTRSD #001","rar":"C","url":"https://api.gatcg.com/cards/images/P22gQCAkWj.jpg","rel":"2025-07-25","illus":"木叶","setname":"Distorted Reflections Starter Decks"},{"label":"DEMO23 #001","rar":"C","url":"https://api.gatcg.com/cards/images/if7le8ipdd.jpg","rel":"2023-08-01","illus":"道漫","setname":"LGS Demo 2023"},{"label":"AMB #001","rar":"C","url":"https://api.gatcg.com/cards/images/5uhxrxpnnc.jpg","rel":"2024-10-11","illus":"木叶","setname":"Mortal Ambition"},{"label":"RDOPD #001A","rar":"C","url":"https://api.gatcg.com/cards/images/YxpayTbeKx.jpg","rel":"2026-04-03","illus":"道漫","setname":"Radiant Origins Pantheon Decks"},{"label":"RDOPD #001B","rar":"C","url":"https://api.gatcg.com/cards/images/GITHqQ1Ikv.jpg","rel":"2026-04-03","illus":"木叶","setname":"Radiant Origins Pantheon Decks"},{"label":"ReC-HVF #001","rar":"C","url":"https://api.gatcg.com/cards/images/no4wcw25h3.jpg","rel":"2025-03-07","illus":"木叶","setname":"Re:Collection Heaven's Favored"},{"label":"SP2 #039","rar":"PR","url":"https://api.gatcg.com/cards/images/fw71qegueh.jpg","rel":"2024-07-01","illus":"","setname":"Supporter Pack 2"}],"after":[{"label":"PRD #001","rar":"C","url":"https://api.gatcg.com/cards/images/wgBP5Hz6gi.jpg","rel":"2026-08-21","illus":"Primea Studio","setname":".asphodel/paradise"},{"label":"PRDSD #001","rar":"C","url":"https://api.gatcg.com/cards/images/IxwwD92kbp.jpg","rel":"2026-08-21","illus":"Primea Studio","setname":".asphodel/paradise Starter Decks"},{"label":"RDOPD #001A","rar":"C","url":"https://api.gatcg.com/cards/images/YxpayTbeKx.jpg","rel":"2026-04-03","illus":"道漫","setname":"Radiant Origins Pantheon Decks"},{"label":"RDOPD #001B","rar":"C","url":"https://api.gatcg.com/cards/images/GITHqQ1Ikv.jpg","rel":"2026-04-03","illus":"木叶","setname":"Radiant Origins Pantheon Decks"},{"label":"DTR #001","rar":"C","url":"https://api.gatcg.com/cards/images/APwjbP7G8O.jpg","rel":"2025-07-25","illus":"木叶","setname":"Distorted Reflections"},{"label":"DTRSD #001","rar":"C","url":"https://api.gatcg.com/cards/images/P22gQCAkWj.jpg","rel":"2025-07-25","illus":"木叶","setname":"Distorted Reflections Starter Decks"},{"label":"ReC-HVF #001","rar":"C","url":"https://api.gatcg.com/cards/images/no4wcw25h3.jpg","rel":"2025-03-07","illus":"木叶","setname":"Re:Collection Heaven's Favored"},{"label":"AMB #001","rar":"C","url":"https://api.gatcg.com/cards/images/5uhxrxpnnc.jpg","rel":"2024-10-11","illus":"木叶","setname":"Mortal Ambition"},{"label":"SP2 #039","rar":"PR","url":"https://api.gatcg.com/cards/images/fw71qegueh.jpg","rel":"2024-07-01","illus":"","setname":"Supporter Pack 2"},{"label":"ALC #001","rar":"C","url":"https://api.gatcg.com/cards/images/gx83sfhvfi.jpg","rel":"2024-01-26","illus":"道漫","setname":"Alchemical Revolution"},{"label":"ALCSD #001","rar":"C","url":"https://api.gatcg.com/cards/images/0isnc01fz2.jpg","rel":"2024-01-26","illus":"道漫","setname":"Alchemical Revolution Starter Decks"},{"label":"DEMO23 #001","rar":"C","url":"https://api.gatcg.com/cards/images/if7le8ipdd.jpg","rel":"2023-08-01","illus":"道漫","setname":"LGS Demo 2023"},{"label":"DOA Alter #001","rar":"C","url":"https://api.gatcg.com/cards/images/eslfpwkkbb.jpg","rel":"2023-04-28","illus":"道漫","setname":"Dawn of Ashes Alter Edition"},{"label":"DOASD #001","rar":"C","url":"https://api.gatcg.com/cards/images/tqiwqjt0oo.jpg","rel":"2023-04-28","illus":"道漫","setname":"Dawn of Ashes Starter Decks"},{"label":"DOA 1st #001","rar":"C","url":"https://api.gatcg.com/cards/images/zqHccKpk8L.jpg","rel":"2023-01-01","illus":"道漫","setname":"Dawn of Ashes First Edition"},{"label":"DOAp #001","rar":"C","url":"https://api.gatcg.com/cards/images/1tisZwrn8k.jpg","rel":"2023-01-01","illus":"道漫","setname":"Dawn of Ashes Prelude"}],"rarEx":1},"backstep":{"slug":"backstep","jp":"バックステップ","en":"Backstep","before":[{"label":"ALCSD #039","rar":"C","url":"https://api.gatcg.com/cards/images/jfrp5u153b.jpg","rel":"2024-01-26","illus":"道漫","setname":"Alchemical Revolution Starter Decks"},{"label":"DTRSD #024","rar":"C","url":"https://api.gatcg.com/cards/images/WIzdzlFX09.jpg","rel":"2025-07-25","illus":"Primea Studio","setname":"Distorted Reflections Starter Decks"},{"label":"AMB #031","rar":"C","url":"https://api.gatcg.com/cards/images/mgw0mewmbo.jpg","rel":"2024-10-11","illus":"Primea Studio","setname":"Mortal Ambition"},{"label":"P24 #025","rar":"PR","url":"https://api.gatcg.com/cards/images/z4gyy924yf.jpg","rel":"2024-01-24","illus":"道漫","setname":"Promotional 2024"},{"label":"P25 #095","rar":"PR","url":"https://api.gatcg.com/cards/images/iokiIfSQ1a.jpg","rel":"2025-02-06","illus":"Primea Studio","setname":"Promotional 2025"},{"label":"SLC #002","rar":"PR","url":"https://api.gatcg.com/cards/images/j9s8gqdpgj.jpg","rel":"2024-02-01","illus":"Primea Studio","setname":"SquareLive Collaboration"}],"after":[{"label":"DTRSD #024","rar":"C","url":"https://api.gatcg.com/cards/images/WIzdzlFX09.jpg","rel":"2025-07-25","illus":"Primea Studio","setname":"Distorted Reflections Starter Decks"},{"label":"P25 #095","rar":"PR","url":"https://api.gatcg.com/cards/images/iokiIfSQ1a.jpg","rel":"2025-02-06","illus":"Primea Studio","setname":"Promotional 2025"},{"label":"AMB #031","rar":"C","url":"https://api.gatcg.com/cards/images/mgw0mewmbo.jpg","rel":"2024-10-11","illus":"Primea Studio","setname":"Mortal Ambition"},{"label":"SLC #002","rar":"PR","url":"https://api.gatcg.com/cards/images/j9s8gqdpgj.jpg","rel":"2024-02-01","illus":"Primea Studio","setname":"SquareLive Collaboration"},{"label":"ALCSD #039","rar":"C","url":"https://api.gatcg.com/cards/images/jfrp5u153b.jpg","rel":"2024-01-26","illus":"道漫","setname":"Alchemical Revolution Starter Decks"},{"label":"P24 #025","rar":"PR","url":"https://api.gatcg.com/cards/images/z4gyy924yf.jpg","rel":"2024-01-24","illus":"道漫","setname":"Promotional 2024"}],"rarEx":1},"arcane-blast":{"slug":"arcane-blast","jp":"アーケインの爆発","en":"Arcane Blast","before":[{"label":"HVN #184","rar":"C","url":"https://api.gatcg.com/cards/images/oydcc8dbgf.jpg","rel":"2025-03-07","illus":"Primea Studio","setname":"Abyssal Heaven"},{"label":"ReC-HVF #027","rar":"C","url":"https://api.gatcg.com/cards/images/cddabb5ax4.jpg","rel":"2025-03-07","illus":"Primea Studio","setname":"Re:Collection Heaven's Favored"},{"label":"PRDEVP #001","rar":"U","url":"https://api.gatcg.com/cards/images/n0tGzOokhJ.jpg","rel":"1970-01-01","illus":"Primea Studio","setname":".asphodel/paradise Event Pack"},{"label":"DOA Alter #239","rar":"U","url":"https://api.gatcg.com/cards/images/z2bix6xo7m.jpg","rel":"2023-04-28","illus":"道漫","setname":"Dawn of Ashes Alter Edition"},{"label":"DOA 1st #239","rar":"U","url":"https://api.gatcg.com/cards/images/ECgzwDZo2N.jpg","rel":"2023-01-01","illus":"道漫","setname":"Dawn of Ashes First Edition"},{"label":"DOAp #102","rar":"U","url":"https://api.gatcg.com/cards/images/0dQdTTkzj5.jpg","rel":"2023-01-01","illus":"道漫","setname":"Dawn of Ashes Prelude"},{"label":"DOASD #091","rar":"U","url":"https://api.gatcg.com/cards/images/uge2u81v4c.jpg","rel":"2023-04-28","illus":"道漫","setname":"Dawn of Ashes Starter Decks"},{"label":"SP1 #001","rar":"SR","url":"https://api.gatcg.com/cards/images/if7mf9ipdd.jpg","rel":"2023-05-01","illus":"Dragonart Chu","setname":"Supporter Pack 1"},{"label":"ReC-HVF #027","rar":"CSR","url":"https://api.gatcg.com/cards/images/2iutqs52yn.jpg","rel":"2025-03-07","illus":"Primea Studio","setname":"Re:Collection Heaven's Favored"}],"after":[{"label":"HVN #184","rar":"C","url":"https://api.gatcg.com/cards/images/oydcc8dbgf.jpg","rel":"2025-03-07","illus":"Primea Studio","setname":"Abyssal Heaven"},{"label":"ReC-HVF #027","rar":"C","url":"https://api.gatcg.com/cards/images/cddabb5ax4.jpg","rel":"2025-03-07","illus":"Primea Studio","setname":"Re:Collection Heaven's Favored"},{"label":"ReC-HVF #027","rar":"CSR","url":"https://api.gatcg.com/cards/images/2iutqs52yn.jpg","rel":"2025-03-07","illus":"Primea Studio","setname":"Re:Collection Heaven's Favored"},{"label":"SP1 #001","rar":"SR","url":"https://api.gatcg.com/cards/images/if7mf9ipdd.jpg","rel":"2023-05-01","illus":"Dragonart Chu","setname":"Supporter Pack 1"},{"label":"DOA Alter #239","rar":"U","url":"https://api.gatcg.com/cards/images/z2bix6xo7m.jpg","rel":"2023-04-28","illus":"道漫","setname":"Dawn of Ashes Alter Edition"},{"label":"DOASD #091","rar":"U","url":"https://api.gatcg.com/cards/images/uge2u81v4c.jpg","rel":"2023-04-28","illus":"道漫","setname":"Dawn of Ashes Starter Decks"},{"label":"DOA 1st #239","rar":"U","url":"https://api.gatcg.com/cards/images/ECgzwDZo2N.jpg","rel":"2023-01-01","illus":"道漫","setname":"Dawn of Ashes First Edition"},{"label":"DOAp #102","rar":"U","url":"https://api.gatcg.com/cards/images/0dQdTTkzj5.jpg","rel":"2023-01-01","illus":"道漫","setname":"Dawn of Ashes Prelude"},{"label":"PRDEVP #001","rar":"U","url":"https://api.gatcg.com/cards/images/n0tGzOokhJ.jpg","rel":"1970-01-01","illus":"Primea Studio","setname":".asphodel/paradise Event Pack"}],"rarEx":2}}</script>
+<script>
+(() => {
+  const DATA = JSON.parse(document.getElementById("data").textContent);
+  const RCJP = { C:"コモン", U:"アンコモン", R:"レア", SR:"スーパーレア", UR:"ウルトラレア",
+                 PR:"プロモ", CSR:"コレクターSR", CUR:"コレクターUR", CPR:"コレクターPR" };
+  const ORDER = ["break-apart","accepted-contract","aithne-spirit-of-fire","advent-of-the-stormcaller","fabled-azurite-fatestone","backstep","arcane-blast","spirit-of-fire"];
+  const CAPTION = {
+    "break-apart": "起票案の例。カードページは og:image = RDOPD #048A、ブラウザは HVN #035 を出している",
+    "accepted-contract": "投函前の実測（2026-09-21）で挙げた例（DOA Alter/069 ↔ RDOPD/039）",
+    "aithne-spirit-of-fire": "版が2つだけの最小ケース（P23/009 ↔ P25/012）",
+    "advent-of-the-stormcaller": "⚠️ gen-element-orbs.mjs が ARCANE の属性玉を切り出す元のカード（設計書 §7-3）",
+    "fabled-azurite-fatestone": "④ flip版が2つ以上あり、裏面画像が実際に変わる唯一のカード（実測1枚）",
+    "backstep": "⭐ 絞り込みの副作用：レアリティ「PR」で絞ると選ばれる版が idx 3 → idx 1 に動く",
+    "arcane-blast": "⭐ 絞り込みの副作用：レアリティ「U」で絞ると選ばれる版が idx 2 → idx 4 に動く",
+    "spirit-of-fire": "最悪ケース：16版。サムネイル帯の横スクロールと375px幅の確認用",
+  };
+  // 版レベル絞り込みのデモ。{kind:"rar"|"set", value} —— ⭐ 先頭以外が選ばれる実在の組だけを入れてある
+  const FILT = {
+    "break-apart": { kind:"set", value:"RDOPD" },
+    "backstep": { kind:"rar", value:"PR" },
+    "arcane-blast": { kind:"rar", value:"U" },
+    "advent-of-the-stormcaller": { kind:"rar", value:"SR" },
+    "accepted-contract": { kind:"rar", value:"C" },
+    "aithne-spirit-of-fire": { kind:"rar", value:"CPR" },
+  };
+  let narrow = false, filt = false;
+
+  const pick = (list, f) => {
+    if (!f) return 0;
+    const i = f.kind === "rar"
+      ? list.findIndex((e) => e.rar === f.value)
+      : list.findIndex((e) => e.label.split(" ")[0] === f.value);
+    return i >= 0 ? i : 0;
+  };
+  const edLine = (e) => `${e.setname}（${e.label.split(" ")[0]}） ${e.label.split(" ")[1] || ""} ・${e.rar}${e.illus ? " ・絵：" + e.illus : ""}`;
+
+  function side(kind, rec, list, other, f) {
+    const ai = pick(list, f);
+    const hero = list[ai] || list[0];
+    const tag = kind === "now" ? '<span class="tag now">現状</span>' : '<span class="tag neo">変更後</span>';
+    const title = kind === "now" ? "ブラウザ（トップ／モーダル／デッキ構築）" : "変更後＝カード個別ページと同じ";
+    return `<div class="side">
+      <h3>${tag}${title}</h3>
+      <div class="hero">
+        <img loading="lazy" src="${hero.url}" alt="">
+        <div class="meta">
+          <div class="big">① 代表画像${f ? "（絞り込み追従）" : ""}</div>
+          <div>${hero.label} ・${hero.rar}${RCJP[hero.rar] ? "（" + RCJP[hero.rar] + "）" : ""}</div>
+          <div>${hero.setname}</div>
+          <div>発売 ${hero.rel || "—"}</div>
+          ${hero.illus ? "<div>絵：" + hero.illus + "</div>" : ""}
+        </div>
+      </div>
+      <div class="big" style="font-size:12px;color:var(--muted);margin-top:8px">② イラスト切替の並び（${list.length}版）</div>
+      <div class="strip">${list.map((e, i) => `<figure class="${i === ai ? "sel" : ""}"><img loading="lazy" src="${e.url}" alt=""><figcaption>${e.label}</figcaption></figure>`).join("")}</div>
+      <div class="big" style="font-size:12px;color:var(--muted);margin-top:4px">③ 収録一覧の行順</div>
+      <ol class="eds">${list.map((e, i) => `<li class="${other[i] && other[i].label !== e.label ? "moved" : ""}">${edLine(e)}</li>`).join("")}</ol>
+    </div>`;
+  }
+
+  function render() {
+    const out = document.getElementById("out");
+    out.innerHTML = ORDER.filter((s) => DATA[s]).map((s) => {
+      const rec = DATA[s];
+      const f = filt ? (FILT[s] || null) : null;
+      const bi = pick(rec.before, f), ai = pick(rec.after, f);
+      const sameHero = rec.before[bi].url === rec.after[ai].url;
+      const sameOrder = rec.before.map(e=>e.label).join("|") === rec.after.map(e=>e.label).join("|");
+      return `<div class="card">
+        <div class="cardhead"><b>${rec.jp || rec.en}</b><code>${rec.en} / ${rec.slug}</code>
+          <a style="font-size:12px" href="https://ga-card-tools-jp.pages.dev/cards/${rec.slug}/" target="_blank" rel="noreferrer">カードページを開く ↗</a></div>
+        <div class="lead" style="margin:0">${CAPTION[s] || ""}${f ? ` ／ <b>${f.kind === "rar" ? "レアリティ" : "エキスパンション"}「${f.value}」で絞り込み中（選ばれる版 idx ${bi} → ${ai}）</b>` : (filt ? " ／ <span style=\"color:var(--muted)\">この例は絞り込みのデモ対象外</span>" : "")}</div>
+        <div class="pair">${side("now", rec, rec.before, rec.after, f)}${side("neo", rec, rec.after, rec.before, f)}</div>
+        <div class="diff ${sameHero && sameOrder ? "same" : ""}">
+          ${sameHero ? "✅ ① 代表画像は同じ" : "⚠️ ① 代表画像が違う（" + rec.before[bi].label + " → " + rec.after[ai].label + "）"}
+          ／ ${sameOrder ? "✅ ②③ 並びも同じ" : "⚠️ ②③ 並びが違う"}
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  const set = (onId, offId, val) => { document.getElementById(onId).setAttribute("aria-pressed", String(val)); document.getElementById(offId).setAttribute("aria-pressed", String(!val)); };
+  document.getElementById("w-pc").onclick = () => { narrow = false; document.body.classList.remove("narrow"); set("w-pc","w-sp",true); };
+  document.getElementById("w-sp").onclick = () => { narrow = true; document.body.classList.add("narrow"); set("w-sp","w-pc",true); };
+  document.getElementById("f-off").onclick = () => { filt = false; set("f-off","f-on",true); render(); };
+  document.getElementById("f-on").onclick = () => { filt = true; set("f-on","f-off",true); render(); };
+  render();
+})();
+</script>
+</body>
+</html>
