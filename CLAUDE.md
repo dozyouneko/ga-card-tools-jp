@@ -772,11 +772,18 @@ CONFIRM=publish npm run deploy:prod     # ⚠️ 本番公開。ユーザーの�
 
     | 段 | 何を見るか | 壊すと |
     |---|---|---|
-    | **案A**(常時) | `scripts/lib/edition-order.mjs` の `editionOrder()` に**5段のキーを1つずつ突く手書きフィクスチャ**を通し、**差がつくこと・符号の向き・反対称性**を見る | ⭐ **1段でも削ると exit 1**。⚠️ **`numeric: true` を外すだけでも「向きが逆です」で止まる** |
+    | **案A**(常時) | `shared/js/card-i18n.js` の `editionOrder()` に**5段のキーを1つずつ突く手書きフィクスチャ**を通し、**差がつくこと・符号の向き・反対称性**を見る | ⭐ **1段でも削ると exit 1**。⚠️ **`numeric: true` を外すだけでも「向きが逆です」で止まる** |
     | **案B**(スナップショットがあるときだけ) | 実データの**同一カード内の全ペア**に同値(比較結果 0)が無いか | 同値ペアの件数と例を出す。⚠️ **無いときは成功行に「スキップ」と明記**して緑になる |
 
-    - ⚠️ ⭐ **比較器は `scripts/lib/edition-order.mjs` に切り出してある**。**`build-card-pages.mjs` から import してはいけない**
-      (import しただけでカード2,495ページのビルドが走る)。⭐ **lib はトップレベル副作用ゼロを保つこと**
+    - ⚠️ ⭐ **比較器の唯一の出所は `shared/js/card-i18n.js` の `editionOrder()`**
+      (2026-09-30 に `scripts/lib/edition-order.mjs` から移し、そのファイルは撤去した＝#107・`fa255223`)。
+      ⭐ **ブラウザ・ビルド・`validate` が同じ1本を使う**
+    - ⚠️ ⭐ **`card-i18n.js` を Node 側から直接 import しない**——**取得は `scripts/lib/page-i18n.mjs` の
+      `loadPageI18n(root)`**(`vm` で評価して `CI` を返す)。⭐ **切り出しの理由は移した後も満たされている**——
+      **`card-i18n.js` は副作用のない IIFE なので、評価してもカード2,495ページのビルドは走らない**
+      (⚠️ **`build-card-pages.mjs` を import するとビルドが走る**という元の危険はそのまま。比較器をそこへ戻さないこと)
+    - ⚠️ ⭐ **`CI.SET_LABELS` は `instanceof Map` が false になる**(`vm` の別realmで作られるため。
+      `.has()` / `.get()` / `.size` は正常)。**Node 側で `instanceof Map` による判定を足すと無言で壊れる**
     - ⚠️ ⭐ **合成フィクスチャの組数は固定値**。増減させたら成功行の期待値も直す
     - ⚠️ ⭐ **緑は「ビルドがこの比較器を使っている」ことを証明しない**——**`build-card-pages.mjs` 側で再インライン化しても
       緑のまま、生成物は86ファイル変わる**(2026-09-23 実測)。⭐ **守っているのは `makeSetOrder` 呼び出しの上のコメント1行だけ**
@@ -1100,19 +1107,28 @@ CONFIRM=publish npm run deploy:prod     # ⚠️ 本番公開。ユーザーの�
       かつては `newestFirst()` が `release_date` **だけ**で比較し**同着の第2キーを持たなかった**ため、
       公式APIが `editions` を並べ替えた日に **代表画像・`og:image`・収録セット表の行順**が
       中身と無関係に変わった(⭐ **#71 の「無関係な差分」の発生源はこれ**)。
-      今は **`editionOrder()`(`build-card-pages.mjs`)の5段の全順序**で決着する:
+      今は **`editionOrder()`(`shared/js/card-i18n.js`)の5段の全順序**で決着する:
       **①所属セットの発売日 降順 → ②`meta.sets` の並び → ③レアリティ → ④カード番号(数値考慮) → ⑤版slug**
       - ⚠️ ⭐ **第2キー以降を削ると非決定に戻る。整形目的で簡略化しないこと**
-        (実測: キー⑤を潰すだけで7ファイルが非決定に戻る)。⚠️ **守っているのはコメント4行だけで
-        自動検査はまだ無い**——気づける経路は「cronがノイズコミットを作り始めること」だけで、
-        **API由来のドリフトと区別が付かない**(起票案 `起票案_2026-08-30_決定性の自動検査.md`)
+        (実測: キー⑤を潰すだけで7ファイルが非決定に戻る)。
+        ✅ **2026-09-23(#108)から `npm run validate` の `edition order is a total order` が
+        1段でも削ると exit 1 で止める**(⚠️ **限界は「開発コマンド」の #108 の節**)
       - ⚠️ **「同じキャッシュで2回回してバイト一致」は決定性の証明にならない**
         (入力配列が同じなら同じ結果になるのは当然)。**入力の並び順を変えても一致すること**まで見る
         (⭐ **逆順は置換の1つに過ぎないのでシャッフルも併用する**)
-      - ⚠️ **ブラウザ側(`shared/js/card-i18n.js` の `firstEdition()` 等)は直っていない**。
+      - ✅ ⭐ **ブラウザ側も同じ順序に揃えた**(2026-09-30 実装・#107・`fa255223` ＋ `c737d1d5`)。
+        かつては `firstEdition()` 等が**公式APIが返した `editions` 配列の先頭**を採っていたため、
         **同じカードの代表画像が、トップの検索タイル・詳細モーダル・デッキ構築と
-        カードページとで食い違う(487枚)**(起票案 `起票案_2026-08-30_ブラウザ側の代表画像.md`)
-      - 記録は `docs/design/未採番-版順序の非決定性/`
+        カードページとで食い違っていた(487枚)**
+        - ⭐ **いまの出所は `shared/js/card-i18n.js` の `orderedEditions(card)` 1本**。
+          `firstEdition()` / `cardImages()` / `flipEdition()` / `card-detail.js` の `renderEditions()` と、
+          **`build-tournament-pages.mjs` の `cardTile()`** が全部そこを通る
+        - ⚠️ ⭐ **新しい表示面を足すときは `card.editions` を直読みせず `orderedEditions()` を呼ぶ**
+          (`flavorOf()` / `rulesOf()` と同じ流儀)。⚠️ ⭐ **これを守る自動検査は無い**
+        - ⚠️ ⭐ **`flavorOf()` だけは別の順序を意図的に持つ**(初出＝`release_date` 昇順)。**混ぜない**
+        - ⚠️ ⭐ **元の `card.editions` を破壊しない**(`orderedEditions()` は複製してから並べる)。
+          **`card-cache.js` が同じオブジェクトを持ち回る**ので、`eds.sort()` に潰すと実測 578枚が壊れる
+      - 記録は `docs/design/未採番-版順序の非決定性/` と `docs/design/107-ブラウザ側の代表画像/`
 - **シーズン禁止(Seasonal Banlist・#34)は `data/seasonal-banlist.json` で手動管理する**。
   公式APIは季節禁止を持たない(対象カードの `legality` は `null`・`/banlist` 等のエンドポイントも無い)ため、
   **cronでは自動更新できない**。判定は `shared/js/card-i18n.js` の `seasonalBanState()` 1箇所で、
@@ -1237,6 +1253,11 @@ CONFIRM=publish npm run deploy:prod     # ⚠️ 本番公開。ユーザーの�
     - `node scripts/gen-element-orbs-css.mjs` — 上記JSONから `shared/css/element-orbs.css`
       を出力(#19のカード検索がブラウザから使う。**JSONを読むだけでオフライン実行できる**)
     - ⚠️ **新しい属性が増えたときは2つとも実行し、出力(JSON・CSS)を両方コミットする**
+    - ⚠️ ⭐ **`gen-element-orbs.mjs` は「どの版から切るか」を明示していない**(`CI.cardImages(card)` の `imgs[0]` 任せ)。
+      **玉は画像の固定座標を切り抜く**ので、**レイアウトが違う版(Alter・フルアート等)に当たると別のものが写る**。
+      ⚠️ ⭐ **次に回す人には、無関係な ARCANE 玉の差分が1件出る**
+      (`advent-of-the-stormcaller` の切り出し元が **DOA Alter #237 → RDO #297**。2026-09-30 実測)。
+      ⭐ **回したら切り出し結果を必ず目で見る**。恒久の手当ては **#125**
   - ⚠️ ⭐ **日次cronは 2026-09-18 に停止した**(`gh workflow disable build-tournaments.yml`。
     ⭐ **アカウント停止の再発を避けるためのユーザー判断**)。GitHub側の状態が `disabled_manually` で、
     ⚠️ **ワークフローのファイルは無変更**＝**リポジトリを見ても止まっていることは分からない**(正はGitHub側の状態)。
@@ -1500,7 +1521,9 @@ CONFIRM=publish npm run deploy:prod     # ⚠️ 本番公開。ユーザーの�
     版テーブルと **`og:image`(代表画像)が `editions` の配列順に依存していた**
     (⭐ **#71 で観測された「無関係な差分」の正体**)。今は **`editionOrder()` の5段の全順序**で決着する
     (詳細と ⚠️ **簡略化するなの警告**は「開発コマンド」の `build:cards` の節)。
-    → `docs/design/未採番-版順序の非決定性/`
+    ✅ ⭐ **ブラウザ側も 2026-09-30 に同じ順序へ揃えた**(#107・`fa255223`)——
+    **比較器は `shared/js/card-i18n.js` に1本だけ**で、代表画像を採るのは `orderedEditions(card)`。
+    → `docs/design/未採番-版順序の非決定性/` と `docs/design/107-ブラウザ側の代表画像/`
   - 設計・検証の記録は `docs/design/未採番-フレーバー表示経路/`
 
 ## 環境の注意
