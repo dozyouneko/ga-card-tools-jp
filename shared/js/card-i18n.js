@@ -118,11 +118,83 @@ window.GA_CARD_I18N = (() => {
     return effectsPromise;
   }
 
+  // ---------- 版の正規順序（#107 / 親タスク「版順序の非決定性」#71 / 検査 #108） ----------
+  // ⚠ ここが「版をどう並べるか」を決める唯一の場所。ブラウザ側（代表画像・イラスト切替・
+  //   収録一覧・裏面画像）とカード個別ページ／大会デッキページの生成（Node）が同じ比較器を使う。
+  //   Node 側は scripts/lib/page-i18n.mjs の loadPageI18n() が返す CI から
+  //   CI.editionOrder / CI.setOrder / CI.setLabel / CI.day / CI.SET_LABELS を取る。
+  // ⚠ 中身は撤去した scripts/lib/edition-order.mjs からの移動で、ロジックは1文字も変えていない
+  //   （変えるとカード2,495ページの生成物が動く）。ここに二重定義を作らないこと（#107 の原因そのもの）。
+
+  // API側で日付が未設定のセットは epoch 0 が返るため、日付なし("")として扱う。
+  // 空文字は降順ソートで末尾に来るので、並び順は従来(1970-01-01)と変わらない。
+  const day = (iso) => {
+    const d = (iso || "").slice(0, 10);
+    return d === "1970-01-01" ? "" : d;
+  };
+
+  // meta.sets(発売日の新しい順)から prefix → {label, order} を引く
+  // ⚠ setLabel() と SET_LABELS も一緒にここへ置く。setOrder() だけを切り出すと SET_LABELS の
+  //   構築が呼び出し側に写され、そこが新しい二重定義になる(片方だけ壊れても誰も気づかない)。
+  function makeSetOrder(metaSets) {
+    const labels = new Map();
+    (metaSets || []).forEach((s, i) => {
+      (s.prefixes || []).forEach((p) => { if (!labels.has(p)) labels.set(p, { label: s.label, order: i }); });
+    });
+    return {
+      SET_LABELS: labels,
+      setLabel: (prefix) => (labels.get(prefix) || {}).label || prefix,
+      setOrder: (prefix) => labels.has(prefix) ? labels.get(prefix).order : 9999,
+    };
+  }
+
+  // 版の正規順序。⚠ この比較器の出力順が、次の5つを支配する:
+  //   ① 代表画像(og:image / twitter:image / 本文の画像・検索タイル・大会デッキのタイル)
+  //   ② イラスト切替サムネイルの並び ③ 収録セット表／モーダルの収録一覧の行順
+  //   ④ 両面カードの裏面画像 ⑤ セットページが各セットで採る版(main() のグルーピング)
+  // ⚠ 公式APIの editions 配列順は予告なく入れ替わる。第2キー以降を削ると出力が非決定的になり、
+  //   中身が変わらない日に日次cronがノイズコミットを作る(#71)。整形目的で簡略化しないこと。
+  //   1. 所属セットの発売日 降順   … 代表は最新セットの版(既存の主キー。最古版だと旧セットの絵柄になる)
+  //   2. meta.sets の並び 昇順     … 同日なら本編セット→サプリメント→プロモ(未登録セットは 9999 で末尾)
+  //   3. レアリティ 昇順           … 通常版を特殊仕様(PR/CSR/CUR/CPR)より優先
+  //   4. カード番号 昇順(数値考慮) … 同一セット内が #048A → #048B → #048C の自然順になる
+  //   5. 版slug 昇順               … 最終決着キー(カード内で一意。実測: 4,940版で重複0)
+  // ⚠ この5段は npm run validate の「edition order is a total order」が検査している(#108)。
+  function makeEditionOrder(setOrderFn) {
+    return function editionOrder(a, b) {
+      const byDate = day(b.set && b.set.release_date).localeCompare(day(a.set && a.set.release_date));
+      if (byDate) return byDate;
+      const bySet = setOrderFn((a.set && a.set.prefix) || "") - setOrderFn((b.set && b.set.prefix) || "");
+      if (bySet) return bySet;
+      const byRarity = (a.rarity == null ? 99 : a.rarity) - (b.rarity == null ? 99 : b.rarity);
+      if (byRarity) return byRarity;
+      const byNumber = String(a.collector_number || "")
+        .localeCompare(String(b.collector_number || ""), "en", { numeric: true });
+      if (byNumber) return byNumber;
+      return String(a.slug || "").localeCompare(String(b.slug || ""));
+    };
+  }
+
+  // ⚠ meta.sets が無い/空でも例外にしない。setOrder() が全部 9999 を返し、キー③④⑤で決着する
+  //   ＝ 順序は依然として決定的（card-i18n.js を data/translations.js より先に読むページが
+  //   将来できたときに、例外ではなく劣化で済ませるため）。
+  const { SET_LABELS, setLabel, setOrder } = makeSetOrder(I18N.meta && I18N.meta.sets);
+  const editionOrder = makeEditionOrder(setOrder);
+
+  // 版の並びの唯一の入口。①②③④のすべてがこれを通る（flavorOf() / rulesOf() と同じ一本化の型）。
+  // ⚠ 元の配列を破壊しないこと。card オブジェクトは card-cache.js が共有キャッシュとして
+  //   持ち回るため、sort() を直に当てると別の画面が見ている並びが静かに入れ替わる。
+  // ⚠ フォールバック（editions || result_editions || []）は今の形を保つ。card-search.js の
+  //   全件取得経路は result_editions だけを delete する（#44）。
+  function orderedEditions(card) {
+    const eds = (card && (card.editions || card.result_editions)) || [];
+    return [...eds].sort(editionOrder);
+  }
+
   // ---------- 画像・収録 ----------
 
   function firstEdition(card) {
-    const eds = card.editions || card.result_editions || [];
-    return eds[0] || null;
+    return orderedEditions(card)[0] || null;
   }
 
   function imageUrl(card) {
@@ -133,7 +205,7 @@ window.GA_CARD_I18N = (() => {
   // カードの全イラスト/版を {url, prefix, label, back} で返す（画像URLで重複排除）。
   // back は両面カードで、その版に対応する裏面画像URL（無ければ null）。
   function cardImages(card) {
-    const eds = card.editions || card.result_editions || [];
+    const eds = orderedEditions(card);
     const seen = new Set();
     const out = [];
     eds.forEach((ed) => {
@@ -408,8 +480,8 @@ window.GA_CARD_I18N = (() => {
 
   // flip 構成（表面）を持つ edition を返す。無ければ null。
   function flipEdition(card) {
-    const eds = card.editions || card.result_editions || [];
-    return eds.find((ed) => ed.configuration === "flip" && ed.other_orientations && ed.other_orientations.length) || null;
+    return orderedEditions(card)
+      .find((ed) => ed.configuration === "flip" && ed.other_orientations && ed.other_orientations.length) || null;
   }
 
   // 裏面を card 形状に正規化して返す（tr/jpName 等をそのまま流用可能にする）。
@@ -441,6 +513,9 @@ window.GA_CARD_I18N = (() => {
     escapeHtml, hasJapanese, renderEffect,
     tr, isTranslated, jpName, label, loadNames, loadEffects, translationsReady,
     firstEdition, imageUrl, cardImages, rarityCode, speedLabel,
+    // 版の正規順序（#107 で scripts/lib/edition-order.mjs から移動・唯一の出所）。
+    // day / setLabel / setOrder / SET_LABELS / editionOrder は Node 側のビルドと validate も使う。
+    orderedEditions, editionOrder, day, setLabel, setOrder, SET_LABELS,
     ALL_FORMATS, FORMAT_JP, FORMAT_SHORT, EXCLUSIVE_FORMAT_INFO,
     bannedFormats, legalFormats, exclusiveFormat, exclusiveNote, formatBadgeHtml,
     todayJst, setTodayForTest, setSeasonalBanlist, loadSeasonalBanlist, seasonalBanState,

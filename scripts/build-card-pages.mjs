@@ -15,7 +15,6 @@ import { fileURLToPath } from "node:url";
 import { loadCards, fetchJson, lastFetchedIso, relativeAge, maxAgeMinutes } from "./lib/cards-snapshot.mjs";
 import { writeJsonAtomic, readJsonSafe } from "./lib/api-cache.mjs";
 import { loadPageI18n } from "./lib/page-i18n.mjs";
-import { day, makeSetOrder, makeEditionOrder } from "./lib/edition-order.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = "https://ga-card-tools-jp.pages.dev";
@@ -125,10 +124,11 @@ async function loadFeaturedSets() {
 
 const setSlug = (prefix) => prefix.toLowerCase().replace(/\s+/g, "-");
 
-// meta.sets(発売日の新しい順)から prefix → {label, order} を引く
-// ⚠ 実体は scripts/lib/edition-order.mjs。npm run validate が同じ比較器を検査するため切り出してある(#108)
-const { SET_LABELS, setLabel, setOrder } = makeSetOrder(I18N.meta.sets);
-const editionOrder = makeEditionOrder(setOrder);
+// meta.sets(発売日の新しい順)から prefix → {label, order} を引く／版の正規順序の比較器
+// ⚠ 実体は shared/js/card-i18n.js。ブラウザ側(代表画像・イラスト切替・収録一覧・裏面画像)と
+//   同じ1本を使うため、ここで再実装しないこと(#107。以前は scripts/lib/edition-order.mjs にあった)。
+//   npm run validate の「edition order is a total order」が同じ比較器を検査している(#108)。
+const { SET_LABELS, setLabel, setOrder, editionOrder, day } = CI;
 
 // 効果テキストのプレーン化(description用): マークダウン記号を除去
 function plainEffect(text, name) {

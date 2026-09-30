@@ -31,6 +31,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { loadI18n } from "./lib/load-i18n.mjs";
+import { loadPageI18n } from "./lib/page-i18n.mjs";
 import { buildTlJson, serialize, NAMES_FILE, EFFECTS_FILE } from "./gen-tl-json.mjs";
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
@@ -1878,12 +1879,14 @@ const RULEREAD_ALLOW = ["shared/js/card-i18n.js"];
 }
 
 // --- 版の正規順序が全順序であることの検査（#108） ---------------------------
-// scripts/lib/edition-order.mjs の editionOrder() は5段の全順序で、1段でも削ると
+// shared/js/card-i18n.js の editionOrder() は5段の全順序で、1段でも削ると
 // 公式APIの editions 配列順が生成物に漏れる（中身が変わらない日に差分が出る＝#71 の正体）。
 // 守っていたのはコメントだけだったので、ここで止める。
 //
 // ⚠ 比較器は build-card-pages.mjs から import しないこと。あれは import しただけで
-//   カード2,495ページのビルドが走る（だから scripts/lib/edition-order.mjs へ切り出した）。
+//   カード2,495ページのビルドが走る。比較器の唯一の出所は shared/js/card-i18n.js で、
+//   ブラウザ側（代表画像・イラスト切替・収録一覧・裏面画像）と同じ1本を検査している（#107）。
+//   loadPageI18n() は card-i18n.js を vm で評価して CI を返すだけで、ビルドは走らない。
 // ⚠ fail-open にしない。合成フィクスチャ（案A）はスナップショットが無くても必ず走る。
 //   スナップショットを使う実データ走査（案B）だけがスキップされ、それは成功行に明記する。
 // ⭐ 案A と案B は目的が違う: 案A は「人が比較器を簡略化した」、案B は「データが最終決着キー
@@ -1896,10 +1899,11 @@ if (loaded) {
   let editionOrder = null;
   let setOrder = null;
   try {
-    const mod = await import("./lib/edition-order.mjs");
-    setOrder = mod.makeSetOrder((loaded.meta && loaded.meta.sets) || []).setOrder;
-    editionOrder = mod.makeEditionOrder(setOrder);
-    if (typeof editionOrder !== "function") throw new Error("makeEditionOrder() が関数を返しません");
+    const { CI } = loadPageI18n(root);
+    setOrder = CI && CI.setOrder;
+    editionOrder = CI && CI.editionOrder;
+    if (typeof setOrder !== "function") throw new Error("card-i18n.js が setOrder を返しません");
+    if (typeof editionOrder !== "function") throw new Error("card-i18n.js が editionOrder を返しません");
   } catch (e) {
     // ⚠ 素の例外でクラッシュさせない。原因が分かる1行を出してから problems に数える
     bad.push(`比較器を読み込めません: ${e.message}`);
@@ -2020,14 +2024,14 @@ if (loaded) {
 
   if (bad.length || dataBad.length) {
     problems++;
-    console.error(`\nNON-DETERMINISTIC EDITION ORDER (scripts/lib/edition-order.mjs):`);
+    console.error(`\nNON-DETERMINISTIC EDITION ORDER (shared/js/card-i18n.js):`);
     bad.forEach((m) => console.error(`  - ${m}`));
     dataBad.forEach((m) => console.error(`  - ${m}`));
     dataExamples.forEach((m) => console.error(`    ${m}`));
     // ⚠ 案A の失敗（人がコードを削った）と案B の失敗（データが変わった）は原因も対処も違う。
     //   同じ誘導文を出さないこと。
     if (bad.length) {
-      console.error(`  → editionOrder() は5段すべてが必要です。1段でも削ると公式APIの editions 配列順が`);
+      console.error(`  → shared/js/card-i18n.js の editionOrder() は5段すべてが必要です。1段でも削ると公式APIの editions 配列順が`);
       console.error(`    生成物に漏れ、中身が変わらない日に差分が出ます（#108 / 親タスク: 版順序の非決定性）`);
     }
     if (dataBad.length) {

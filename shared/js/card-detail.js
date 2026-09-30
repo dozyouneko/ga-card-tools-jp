@@ -24,7 +24,7 @@ window.GA_CARD_DETAIL = (() => {
   const {
     escapeHtml, hasJapanese, renderEffect,
     tr, isTranslated, jpName, label, translationsReady,
-    cardImages, rarityCode, speedLabel,
+    cardImages, orderedEditions, rarityCode, speedLabel,
     FORMAT_JP, EXCLUSIVE_FORMAT_INFO, bannedFormats, exclusiveFormat, exclusiveNote,
     backFace, flavorOf, rulesOf, ruleHeading, RULE_TEXT, loadNames, loadEffects,
     loadSeasonalBanlist, seasonalBanState, seasonalBannerText,
@@ -405,7 +405,9 @@ window.GA_CARD_DETAIL = (() => {
   }
 
   function renderEditions(card) {
-    const eds = card.editions || card.result_editions || [];
+    // ⚠ card.editions を直読みしないこと。公式APIの配列順は予告なく入れ替わるため、
+    //   行順がカード個別ページの収録セット表と食い違う（#107）。並びの出所は orderedEditions() だけ。
+    const eds = orderedEditions(card);
     const list = $("d-editions");
     if (!eds.length) {
       list.innerHTML = '<li class="muted">情報なし</li>';
