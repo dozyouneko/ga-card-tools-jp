@@ -912,6 +912,11 @@ async function renderZones() {
       tile.dataset.slug = row.card_slug;
       tile.dataset.board = row.board;
       const url = rowImageUrl(row, card);
+      // ⭐ このタイルが表示している絵柄のURLをそのまま持たせる(#124 §4-4)。詳細モーダルは
+      //    tileArtPick() でこの値を読み戻す。⚠️ ⭐ rowImageUrl() を別途呼び直さないこと——
+      //    呼び直すと「タイルの規則」と「モーダルの規則」の2本になり、#124 と同じ食い違いを作り直す。
+      // ⚠️ 画像が無い行(.noimg)では付けない＝従来どおり先頭の版で開く。
+      if (url) tile.dataset.artUrl = url;
       const name = card ? jpName(card) : row.card_slug;
       tile.innerHTML = `
         ${url ? `<img loading="lazy" src="${escapeHtml(url)}" alt="${escapeHtml(name)}" title="${escapeHtml(name)}">`
@@ -1137,7 +1142,8 @@ document.addEventListener("click", (e) => {
   const btn = e.target.closest(".ctrl-strip button");
   if (!btn) {
     if (e.target.closest(".ctrl-strip")) return; // 数値入力など操作バー内のクリックは無視
-    openDetail(slug); // 操作バー以外のクリック → カード詳細
+    // 操作バー以外のクリック → カード詳細。⭐ そのタイルが表示している版で開く(#124)
+    openDetail(slug, tileArtPick(tile));
     return;
   }
   if (btn.dataset.menu !== undefined) { openTileMenu(btn, slug, board); return; }
@@ -1417,15 +1423,25 @@ async function saveMemo() {
 // ---------- カード詳細 ----------
 // 本体は shared/js/card-detail.js (GA_CARD_DETAIL) に共通化。openDetail はその薄いラッパー。
 
-// 詳細モーダルを開いたときの「版の絞り込み条件」(#97)。
-// ⚠️ ⭐ 検索結果タイルから開いたときだけ入る。デッキゾーン(.gtile)と共有画面(#v-zones)は
-//    null のまま＝従来どおり先頭の版で開く。ここに「いまの左ペイン」を読む処理を足さないこと——
-//    デッキに入っているカードの絵柄まで検索条件で変わってしまう(設計 §2-2 の A・C)。
-let detailArtCond = null;
+// 詳細モーダルを「どの版で開くか」の指定(#97・#124 §4-3)。⚠️ 次の3つのいずれかで、2つを同時に渡さない。
+//   null     … 先頭の版で開く
+//   { cond } … 版レベルの絞り込み条件。⚠️ ⭐ 渡してよいのは検索結果タイルから開いたときだけ(#97・D-3)。
+//              ⚠️ ⭐ デッキゾーン(.gtile)と共有画面(#v-zones)に「いまの左ペイン」を読む処理を足さないこと——
+//              デッキに入っているカードの絵柄まで検索条件で変わってしまう(#97 の検証 V4 がこれを禁じている)。
+//   { url }  … そのタイルが表示している絵柄のURL。デッキゾーンと共有画面はこちら(#124)。
+//              ⚠️ ⭐ 解決に失敗しても cond へは落ちない。落ちる先は先頭の版だけ(#124 §5)。
+let detailArtPick = null;
 
-function openDetail(slug, artCond) {
-  detailArtCond = artCond || null;
+function openDetail(slug, pick) {
+  detailArtPick = pick || null;
   GA_CARD_DETAIL.openBySlug(slug);
+}
+
+// タイルが表示している絵柄で詳細モーダルを開くための pick(#124 §4-4)。
+// ⚠️ ⭐ ここで rowImageUrl() を呼び直さない——タイルを描いたときの値をそのまま読み戻す。
+function tileArtPick(tile) {
+  const url = tile && tile.dataset ? tile.dataset.artUrl : "";
+  return url ? { url } : null;
 }
 
 // ---------- カード検索(編集画面) ----------
@@ -2242,7 +2258,7 @@ el.resultGrid.addEventListener("click", async (e) => {
   // ⭐ 検索結果タイルは「そのタブの条件」で開く＝タイルと同じ絵柄になる（#97・D-3）。
   //    ⚠️ 左ペインの現在値ではない（🔍 を押すまで反映しない＝タイルの側と揃える）。
   if (e.target.closest(".cardph") || e.target.closest(".rname")) {
-    openDetail(slug, activeSearchTab && activeSearchTab.artCond);
+    openDetail(slug, activeSearchTab && { cond: activeSearchTab.artCond });
   }
 });
 
@@ -2874,6 +2890,8 @@ async function renderDeckView() {
       tile.className = "cardph clickable";
       tile.tabIndex = 0;
       tile.dataset.slug = row.card_slug;
+      // ⭐ .gtile と同じ(#124 §4-4)。描画に使った url をそのまま持たせ、呼び直さない。
+      if (url) tile.dataset.artUrl = url;
       tile.setAttribute("role", "button");
       tile.setAttribute("aria-label", name);
       tile.innerHTML = `
@@ -2892,15 +2910,16 @@ async function renderDeckView() {
   if (viewTabs && viewTabs.isStats()) renderStatsInto(el.vPaneStats, cards, bySlug, format);
 }
 
-// 共有画面のカードクリック → 詳細
+// 共有画面のカードクリック → 詳細。⭐ そのタイルが表示している版で開く(#124)。
+// ⚠️ 呼び出し元は click と keydown の2箇所ある。片方だけ直さないこと。
 el.vZones.addEventListener("click", (e) => {
   const tile = e.target.closest(".cardph[data-slug]");
-  if (tile) openDetail(tile.dataset.slug);
+  if (tile) openDetail(tile.dataset.slug, tileArtPick(tile));
 });
 el.vZones.addEventListener("keydown", (e) => {
   if (e.key !== "Enter" && e.key !== " ") return;
   const tile = e.target.closest(".cardph[data-slug]");
-  if (tile) { e.preventDefault(); openDetail(tile.dataset.slug); }
+  if (tile) { e.preventDefault(); openDetail(tile.dataset.slug, tileArtPick(tile)); }
 });
 
 // ---------- 自分のデッキ一覧にコピー ----------
@@ -3472,9 +3491,14 @@ window.addEventListener("hashchange", route);
   // 詳細を閉じたとき、下に別のモーダル（#omni-modal）が開いたままならスクロールロックを維持する
   GA_CARD_DETAIL.init({
     fetchCard: getCard,
-    // ⭐ 開いたタイルの条件で絵柄を選ぶ（#97・D-3）。検索結果タイル以外は detailArtCond が
-    //    null なので先頭の版＝従来どおり。⚠️ 規則は shared/js/card-search.js の1本だけ
-    preferredArtIndex: (imgs) => GA_CARD_SEARCH.preferredArtIndex(imgs, detailArtCond),
+    // ⭐ 開いたタイルに合わせて絵柄を選ぶ（#97・D-3 ／ #124 §4-3）。detailArtPick が
+    //    null なら先頭の版＝従来どおり。⚠️ 絞り込み条件の規則は shared/js/card-search.js の1本だけ。
+    preferredArtIndex: (imgs) => {
+      const pick = detailArtPick || {};
+      // ⚠️ ⭐ url を指定された経路は cond を見ない。落ちる先は先頭の版だけ（#124 §5-1）
+      if (pick.url) { const i = (imgs || []).findIndex((im) => im.url === pick.url); return i >= 0 ? i : 0; }
+      return GA_CARD_SEARCH.preferredArtIndex(imgs, pick.cond);
+    },
     namesUrl: TL_NAMES_URL,
     effectsUrl: TL_EFFECTS_URL, // 日本語の効果・フレーバーはダイアログを開くときに取得する(#22)
     seasonalUrl: SEASONAL_URL, // シーズン禁止(#34)。init() で取得済みのためここでは待たずに解決する
