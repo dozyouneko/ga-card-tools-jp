@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#124 モック — デッキが覚えている版とモーダル</title>
+<style>
+:root {
+  --bg: #11141a; --panel: #1a1f28; --panel2: #222935; --line: #2e3744;
+  --fg: #e7ecf3; --dim: #9aa7b8; --ok: #4ade80; --ng: #f87171; --warn: #fbbf24;
+  --accent: #7dd3fc;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg);
+  font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif; line-height: 1.7; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 24px 16px 80px; }
+h1 { font-size: 1.5rem; margin: 0 0 4px; }
+h2 { font-size: 1.15rem; margin: 40px 0 8px; padding-bottom: 6px; border-bottom: 2px solid var(--line); }
+h3 { font-size: 1rem; margin: 24px 0 6px; color: var(--accent); }
+p, li { font-size: .92rem; }
+.lead { color: var(--dim); margin: 0 0 24px; }
+.note { background: var(--panel); border-left: 4px solid var(--warn); padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; }
+.note.ok { border-left-color: var(--ok); }
+.note.ng { border-left-color: var(--ng); }
+code { background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-size: .86em; }
+
+/* 2段組（現状 / 変更後）。375px では縦積み */
+.ba { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-width: 0; }
+.col > h4 { margin: 0 0 10px; font-size: .9rem; display: flex; align-items: center; gap: 6px; }
+.tag { font-size: .72rem; padding: 2px 7px; border-radius: 999px; font-weight: 700; }
+.tag.now { background: #3a2730; color: #ffc9c9; }
+.tag.next { background: #1d3328; color: #bbf7d0; }
+
+/* タイル＋モーダルの並び */
+.pair { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.slot { min-width: 0; }
+.slot > span { display: block; font-size: .74rem; color: var(--dim); margin-bottom: 4px; }
+.tile { width: 104px; border-radius: 7px; overflow: hidden; background: var(--panel2); position: relative; border: 1px solid var(--line); }
+.tile img { width: 100%; display: block; }
+.tile .qty { position: absolute; right: 3px; bottom: 3px; background: rgba(0,0,0,.72); color: #fff;
+  font-size: .68rem; padding: 1px 5px; border-radius: 4px; }
+.modal { width: 148px; border-radius: 7px; overflow: hidden; background: var(--panel2); border: 2px solid var(--accent); }
+.modal img { width: 100%; display: block; }
+.modal .cap { font-size: .7rem; padding: 3px 6px; color: var(--dim); }
+.verdict { font-size: .82rem; font-weight: 700; margin-top: 8px; }
+.verdict.bad { color: var(--ng); }
+.verdict.good { color: var(--ok); }
+.ver { font-size: .72rem; color: var(--dim); font-family: ui-monospace, monospace; word-break: break-all; }
+
+/* 17版の最悪ケース */
+.strip { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 6px; }
+.strip .th { flex: 0 0 auto; width: 58px; }
+.strip .th img { width: 100%; display: block; border-radius: 4px; border: 1px solid var(--line); }
+.strip .th.sel img { border-color: var(--ok); border-width: 2px; }
+.strip .th span { display: block; font-size: .6rem; color: var(--dim); text-align: center; }
+
+table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .84rem; }
+th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+th { background: var(--panel2); }
+.ph { width: 100%; aspect-ratio: 5/7; background: var(--panel2); display: grid; place-items: center;
+  color: var(--dim); font-size: .7rem; text-align: center; padding: 6px; }
+
+@media (max-width: 760px) {
+  .ba { grid-template-columns: 1fr; }
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f7f9fc; --panel: #fff; --panel2: #eef2f7; --line: #d6dee8;
+    --fg: #1b2330; --dim: #5a6980; --accent: #0369a1;
+  }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>#124 モック — デッキが覚えている版と詳細モーダル</h1>
+<p class="lead">
+  実データ（公式APIの実画像URL）。PC幅と 375px 幅の両方で見てください（760px 以下で縦積みになります）。<br>
+  ⭐ <b>変わるのは「モーダルを開いた瞬間にどの絵柄が出るか」だけ</b>です。レイアウト・文言・バッジは1つも変わりません（ユーザー決定 U2）。
+</p>
+
+<h2>ケース1 — 保存版が imgs[0] ではない（⭐ 本件そのもの・本番 117行）</h2>
+<p><b>嵐呼びの到来</b>（<code>advent-of-the-stormcaller</code>・版3つ）で <code>art_image = /cards/images/Io93lyvSyg.jpg</code>（DOA 1st #237）を保存した行。</p>
+
+<div class="ba">
+  <div class="col">
+    <h4><span class="tag now">現状</span> デッキゾーン</h4>
+    <div class="pair">
+      <div class="slot"><span>タイル <code>.gtile</code></span>
+        <div class="tile"><img src="https://api.gatcg.com/cards/images/Io93lyvSyg.jpg" alt="DOA 1st #237"><span class="qty">×1</span></div>
+        <div class="ver">DOA 1st #237</div>
+      </div>
+      <div class="slot"><span>そのタイルから開いたモーダル</span>
+        <div class="modal"><img src="https://api.gatcg.com/cards/images/4ymOAWOC49.jpg" alt="RDO #297"><div class="cap">RDO #297</div></div>
+      </div>
+    </div>
+    <p class="verdict bad">⚠ 食い違う（保存した版が無視される）</p>
+  </div>
+  <div class="col">
+    <h4><span class="tag next">変更後</span> デッキゾーン</h4>
+    <div class="pair">
+      <div class="slot"><span>タイル <code>.gtile</code></span>
+        <div class="tile"><img src="https://api.gatcg.com/cards/images/Io93lyvSyg.jpg" alt="DOA 1st #237"><span class="qty">×1</span></div>
+        <div class="ver">DOA 1st #237</div>
+      </div>
+      <div class="slot"><span>そのタイルから開いたモーダル</span>
+        <div class="modal"><img src="https://api.gatcg.com/cards/images/Io93lyvSyg.jpg" alt="DOA 1st #237"><div class="cap">DOA 1st #237（選択中サムネも同じ）</div></div>
+      </div>
+    </div>
+    <p class="verdict good">⭕ 一致する（タイルの <code>img.src</code> とモーダルの <code>#d-img.src</code> が同一文字列）</p>
+  </div>
+</div>
+
+<p>共有画面 <code>#v-zones</code> も同じです（同じ <code>openDetail()</code> を通ります）。</p>
+
+<h2>ケース2 — 保存版が無い行（⭐ 本番 6,264行。変わってはいけない）</h2>
+<div class="ba">
+  <div class="col">
+    <h4><span class="tag now">現状</span></h4>
+    <div class="pair">
+      <div class="slot"><span>タイル</span>
+        <div class="tile"><img src="https://api.gatcg.com/cards/images/4ymOAWOC49.jpg" alt="RDO #297"><span class="qty">×2</span></div>
+        <div class="ver">RDO #297（= imgs[0]）</div>
+      </div>
+      <div class="slot"><span>モーダル</span>
+        <div class="modal"><img src="https://api.gatcg.com/cards/images/4ymOAWOC49.jpg" alt="RDO #297"><div class="cap">RDO #297</div></div>
+      </div>
+    </div>
+    <p class="verdict good">⭕ もともと一致している</p>
+  </div>
+  <div class="col">
+    <h4><span class="tag next">変更後</span></h4>
+    <div class="pair">
+      <div class="slot"><span>タイル</span>
+        <div class="tile"><img src="https://api.gatcg.com/cards/images/4ymOAWOC49.jpg" alt="RDO #297"><span class="qty">×2</span></div>
+        <div class="ver">RDO #297（= imgs[0]）</div>
+      </div>
+      <div class="slot"><span>モーダル</span>
+        <div class="modal"><img src="https://api.gatcg.com/cards/images/4ymOAWOC49.jpg" alt="RDO #297"><div class="cap">RDO #297</div></div>
+      </div>
+    </div>
+    <p class="verdict good">⭕ 変化なし（1ピクセルも動かないのが正）</p>
+  </div>
+</div>
+<div class="note ok">⭐ <b>実測の根拠</b>: スナップショット 2,495枚すべてで <code>imageUrl(card) === cardImages(card)[0].url</code>。
+  保存版の無い行は <code>rowImageUrl()</code> が <code>imageUrl(card)</code> を返すので、渡した URL は必ず <code>imgs[0]</code> に解決します。</div>
+
+<h2>ケース3 — 最悪ケース: 版が最多（17版）</h2>
+<p><b>生命精気の護符</b>（<code>life-essence-amulet</code>）。保存版が <code>DEMO22 #005</code>（= imgs[16]・いちばん後ろ）の場合。</p>
+<div class="ba">
+  <div class="col">
+    <h4><span class="tag now">現状</span></h4>
+    <div class="pair">
+      <div class="slot"><span>タイル</span>
+        <div class="tile"><img src="https://api.gatcg.com/cards/images/XztBsVXFLP.jpg" alt="DEMO22 #005"><span class="qty">×1</span></div>
+        <div class="ver">DEMO22 #005</div>
+      </div>
+      <div class="slot"><span>モーダル</span>
+        <div class="modal"><img src="https://api.gatcg.com/cards/images/JoSPXua5Bf.jpg" alt="PRDSD #012"><div class="cap">PRDSD #012（imgs[0]）</div></div>
+      </div>
+    </div>
+    <p class="verdict bad">⚠ 食い違う</p>
+  </div>
+  <div class="col">
+    <h4><span class="tag next">変更後</span></h4>
+    <div class="pair">
+      <div class="slot"><span>タイル</span>
+        <div class="tile"><img src="https://api.gatcg.com/cards/images/XztBsVXFLP.jpg" alt="DEMO22 #005"><span class="qty">×1</span></div>
+        <div class="ver">DEMO22 #005</div>
+      </div>
+      <div class="slot"><span>モーダル</span>
+        <div class="modal"><img src="https://api.gatcg.com/cards/images/XztBsVXFLP.jpg" alt="DEMO22 #005"><div class="cap">DEMO22 #005（imgs[16]）</div></div>
+      </div>
+    </div>
+    <p class="verdict good">⭕ 一致する</p>
+  </div>
+</div>
+<h3>⭐ モーダルのサムネイル列（17個）— 選択中が末尾に付く</h3>
+<div class="strip">
+  <div class="th"><img src="https://api.gatcg.com/cards/images/JoSPXua5Bf.jpg" alt=""><span>PRDSD</span></div>
+  <div class="th"><img src="https://api.gatcg.com/cards/images/gu74T6xW0Q.jpg" alt=""><span>ReC-BRV</span></div>
+  <div class="th"><img src="https://api.gatcg.com/cards/images/zY6KgQmQ04.jpg" alt=""><span>DTRSD</span></div>
+  <div class="th"><img src="https://api.gatcg.com/cards/images/2aringyntk.jpg" alt=""><span>ReC-HVF</span></div>
+  <div class="th"><img src="https://api.gatcg.com/cards/images/ZLmMJ83gtT.jpg" alt=""><span>P25</span></div>
+  <div class="th"><img src="https://api.gatcg.com/cards/images/4g6kz00rl9.jpg" alt=""><span>AMBSD</span></div>
+  <div class="th"><img src="https://api.gatcg.com/cards/images/talg5su8sv.jpg" alt=""><span>ReC-SLM</span></div>
+  <div class="th"><img src="https://api.gatcg.com/cards/images/k2c7wjlzjm.jpg" alt=""><span>ReC-SHD</span></div>
+  <div class="th"><img src="https://api.gatcg.com/cards/images/31hwdhemoz.jpg" alt=""><span>ALCSD</span></div>
+  <div class="th"><img src="https://api.gatcg.com/cards/images/5m7sqe6kd7.jpg" alt=""><span>P24</span></div>
+  <div class="th"><img src="https://api.gatcg.com/cards/images/o1cyvjd9kj.jpg" alt=""><span>P24</span></div>
+  <div class="th"><img src="https://api.gatcg.com/cards/images/1er51ufmml.jpg" alt=""><span>DEMO23</span></div>
+  <div class="th"><img src="https://api.gatcg.com/cards/images/w9r9hcpdti.jpg" alt=""><span>DOA Alt</span></div>
+  <div class="th"><img src="https://api.gatcg.com/cards/images/95i6mbimks.jpg" alt=""><span>DOASD</span></div>
+  <div class="th"><img src="https://api.gatcg.com/cards/images/9nTBzOJBxt.jpg" alt=""><span>DOA 1st</span></div>
+  <div class="th"><img src="https://api.gatcg.com/cards/images/DegP154SpL.jpg" alt=""><span>DOAp</span></div>
+  <div class="th sel"><img src="https://api.gatcg.com/cards/images/XztBsVXFLP.jpg" alt=""><span>DEMO22</span></div>
+</div>
+<div class="note">⚠ <b>サムネイル列は既存のまま横スクロールします</b>（<code>#d-arts</code>）。変更後は <b>選択中の枠が末尾（17個目）に付く</b>ので、
+  375px 幅では <b>最初は画面外</b>です。⭐ 列を自動スクロールさせる手当ては<b>本件の範囲に含めません</b>（U2「モーダル内に表示を足さない」）。
+  ⚠ 実物確認②の項目 <b>U4'</b> でここを見てもらいます。</div>
+
+<h2>ケース4 — 両面（flip）カード（⭐ 本番 0行・範囲外の論点つき）</h2>
+<p><b>伝説の瑠璃運命石</b>（<code>fabled-azurite-fatestone</code>）で <code>P25 #044</code>（= imgs[2]）を保存した場合。</p>
+<div class="ba">
+  <div class="col">
+    <h4><span class="tag now">現状</span></h4>
+    <div class="pair">
+      <div class="slot"><span>タイル</span>
+        <div class="tile"><img src="https://api.gatcg.com/cards/images/Wtx1yaLXi0.jpg" alt="P25 表"><span class="qty">×1</span></div>
+        <div class="ver">P25 #044（表）</div>
+      </div>
+      <div class="slot"><span>モーダル 表面</span>
+        <div class="modal"><img src="https://api.gatcg.com/cards/images/6ce5rzrjd9.jpg" alt="HVN 1st 表"><div class="cap">HVN 1st #027</div></div>
+      </div>
+      <div class="slot"><span>モーダル 🔄 裏面</span>
+        <div class="modal"><img src="https://api.gatcg.com/cards/images/fcfxhkqda6.jpg" alt="HVN 1st 裏"><div class="cap">HVN 1st #027 の裏</div></div>
+      </div>
+    </div>
+    <p class="verdict bad">⚠ タイルと食い違う（表裏はモーダル内で揃っている）</p>
+  </div>
+  <div class="col">
+    <h4><span class="tag next">変更後</span></h4>
+    <div class="pair">
+      <div class="slot"><span>タイル</span>
+        <div class="tile"><img src="https://api.gatcg.com/cards/images/Wtx1yaLXi0.jpg" alt="P25 表"><span class="qty">×1</span></div>
+        <div class="ver">P25 #044（表）</div>
+      </div>
+      <div class="slot"><span>モーダル 表面</span>
+        <div class="modal"><img src="https://api.gatcg.com/cards/images/Wtx1yaLXi0.jpg" alt="P25 表"><div class="cap">P25 #044 ⭕ 一致</div></div>
+      </div>
+      <div class="slot"><span>モーダル 🔄 裏面</span>
+        <div class="modal" style="border-color: var(--warn)"><img src="https://api.gatcg.com/cards/images/fcfxhkqda6.jpg" alt="HVN 1st 裏"><div class="cap">⚠ HVN 1st #027 の裏のまま</div></div>
+      </div>
+    </div>
+    <p class="verdict bad">⚠ 表面は直るが、裏面が追従しない（表裏が別の版になる）</p>
+  </div>
+</div>
+<div class="note ng">
+  ⚠ ⭐ <b>この裏面の追従漏れは #124 とは独立に今日すでに起きています</b>。トップページで
+  <code>/?q=Fabled+Azurite+Fatestone&amp;set=P25</code> を開いてモーダルを出すと、
+  <b>表面 <code>Wtx1yaLXi0.jpg</code>（P25）／裏面 <code>fcfxhkqda6.jpg</code>（HVN 1st）</b>になります（2026-10-01 実測）。<br>
+  ⭐ 原因は <code>shared/js/card-detail.js</code> が初期の裏面画像を <code>backFace(card)</code>（＝先頭の flip 版の裏）から取っていること。
+  <b>選んだ版の裏（<code>imgs[initialAi].back</code>）を見ていません</b>（🔄 サムネイルを押したときだけ追従します）。<br>
+  ⚠ <b>本番の該当行は 0行</b>（保存版を持つ124行に両面カードは1枚も無い＝実測）。⭐ <b>派生issueの候補として承認工程に出します</b>（→ 設計書 §6・§14 の N3）。
+</div>
+
+<h2>ケース5 — 保存版が imgs[] のどれにも一致しない（本番 0行・fail-open）</h2>
+<table>
+  <tr><th>状況</th><th>タイル</th><th>変更後のモーダル</th></tr>
+  <tr>
+    <td>公式APIから版が消えた／差し替わった<br>（<code>art_image</code> が古い画像を指す）</td>
+    <td>⚠ <code>art_image</code> をそのまま出す（<b>現状どおり</b>・404 になりうる）</td>
+    <td>⭐ <b><code>imgs[0]</code> に倒す</b>（＝いまの挙動と同じ）。<br>⚠ <b>左ペインの絞り込みへは落ちない</b>（#97 V4 を構造で守る）</td>
+  </tr>
+</table>
+<div class="note">⚠ <b>タイル側は直しません</b>（<code>rowImageUrl()</code> は無変更）。⭐ この状況では「タイルが壊れた画像・モーダルは代表画像」になりますが、
+  <b>これは今日の 124行すべての挙動と同じ</b>なので悪化しません。</div>
+
+<h2>375px 幅で見るときのチェックポイント</h2>
+<ul>
+  <li>上の各ケースが<b>縦積み</b>になり、タイルとモーダルが横並びのまま収まること（横スクロールが出ないこと）</li>
+  <li>ケース3 のサムネイル列（17個）が<b>横スクロール</b>で、<b>選択中の枠は最初画面外</b>にあること（⭐ 既存挙動・本件では直さない）</li>
+  <li>ケース4 で表面・裏面が縦に2つ並ぶこと</li>
+</ul>
+
+</div>
+</body>
+</html>
