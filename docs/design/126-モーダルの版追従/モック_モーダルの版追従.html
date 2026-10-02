@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>モック: 詳細モーダルの版追従（#126 / #127）</title>
+<style>
+:root{
+  --bg:#11131a; --panel:#181b24; --panel2:#1e222d; --line:#2b3140; --text:#e8eaf0;
+  --muted:#9aa3b5; --accent:#d4a441; --bad:#e26b6b; --good:#5fbf7f;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f6f7fa; --panel:#fff; --panel2:#eef0f5; --line:#d6dae4; --text:#1b1f29;
+    --muted:#5a6376; --accent:#9a6f10; --bad:#b03636; --good:#2b7a4b;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+  line-height:1.65;padding:0 16px 80px}
+.wrap{max-width:1180px;margin:0 auto;overflow-wrap:anywhere}
+h1{font-size:1.5rem;margin:28px 0 6px}
+h2{font-size:1.15rem;margin:40px 0 4px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+h3{font-size:.98rem;margin:22px 0 6px;color:var(--accent)}
+p,li{font-size:.9rem}
+.lead{color:var(--muted);font-size:.85rem;margin:0 0 10px}
+code{background:var(--panel2);padding:.1em .35em;border-radius:4px;font-size:.85em}
+.meta{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:14px 0}
+.meta p{margin:.25em 0;font-size:.82rem;color:var(--muted)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:10px 0 4px}
+@media (max-width:760px){.pair{grid-template-columns:1fr}}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+.box.now{border-color:color-mix(in srgb, var(--bad) 55%, var(--line))}
+.box.next{border-color:color-mix(in srgb, var(--good) 55%, var(--line))}
+.tag{display:inline-block;font-size:.72rem;font-weight:700;padding:.15em .5em;border-radius:999px;margin-bottom:8px}
+.tag.now{background:color-mix(in srgb, var(--bad) 22%, transparent);color:var(--bad)}
+.tag.next{background:color-mix(in srgb, var(--good) 22%, transparent);color:var(--good)}
+.tag.same{background:color-mix(in srgb, var(--muted) 22%, transparent);color:var(--muted)}
+
+/* ---- タイル（トップ／デッキ構築の検索結果に相当） ---- */
+.tile{width:150px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;overflow:hidden;position:relative}
+.tile img{width:100%;display:block;aspect-ratio:.717;object-fit:cover;background:#0008}
+.badges-bl{position:absolute;left:6px;bottom:52px;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.bdg{font-size:.65rem;background:#000a;color:#fff;border:1px solid #fff4;border-radius:999px;padding:.12em .5em;backdrop-filter:blur(2px)}
+.tname{font-size:.72rem;padding:6px 8px;color:var(--muted)}
+.tname b{display:block;color:var(--text);font-size:.78rem;font-weight:600}
+
+/* ---- 詳細モーダル（#d-img / #d-arts / #d-back-img に相当） ---- */
+.modal{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px}
+.m-row{display:flex;gap:12px;align-items:flex-start}
+.m-main{width:170px;flex:0 0 auto}
+.m-main img{width:100%;display:block;border-radius:6px;background:#0008;aspect-ratio:.717;object-fit:cover}
+.m-lbl{font-size:.72rem;color:var(--muted);margin-top:4px}
+.arts{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.thumb{width:58px;border:2px solid var(--line);border-radius:6px;padding:2px;background:var(--panel);text-align:center}
+.thumb img{width:100%;display:block;border-radius:3px;aspect-ratio:.717;object-fit:cover;background:#0008}
+.thumb span{display:block;font-size:.52rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.thumb.active{border-color:var(--accent)}
+.thumb.active span{color:var(--text)}
+.backblk{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}
+.backblk h4{margin:0 0 6px;font-size:.82rem}
+.backblk .m-row{align-items:flex-start}
+.ok{color:var(--good);font-weight:700}
+.ng{color:var(--bad);font-weight:700}
+.note{font-size:.78rem;color:var(--muted);margin:6px 0 0}
+.warn{font-size:.8rem;color:var(--bad)}
+
+/* ---- 375px プレビュー ---- */
+.phones{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px}
+.phone{width:min(375px,100%);border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:10px;overflow:hidden}
+.phone .hdr{font-size:.72rem;color:var(--muted);margin-bottom:6px}
+.phone .m-main{width:140px}
+.phone .thumb{width:48px}
+.grid4{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.phone .tile{width:100%}
+.phone .badges-bl{bottom:46px}
+
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.82rem;table-layout:fixed}
+td,th{overflow-wrap:anywhere}
+.tile,.m-main,.thumb,.modal,.box{max-width:100%}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+th{background:var(--panel2)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>モック: 詳細モーダルの版追従（#126 / #127）</h1>
+<p class="lead">設計書 <code>docs/design/126-モーダルの版追従/モーダルの版追従_設計.md</code> の §9 の実測値をそのまま並べたもの。
+画像は公式API（<code>api.gatcg.com</code>）の実データ。</p>
+
+<div class="meta">
+  <p>測定日 <b>2026-10-02</b>／HEAD <b>9a4504cd</b>／スナップショット <b>fetched_at 2026-09-27T03:14:47.631Z・2,495枚</b></p>
+  <p><b>現状（赤枠）</b>＝ HEAD を 3400番で実測／<b>変更後（緑枠）</b>＝ 模擬実装ツリーを 3401番で実測（<code>app.js</code> md5: 3400 <code>35a0d401…</code> / 3401 <code>366a7e55…</code>）</p>
+  <p>⚠️ このファイルは説明用の静的HTMLで、アプリのCSSは読み込んでいない（寸法・余白は実物と一致しない）。見るのは<b>どの画像が出るか</b>。</p>
+</div>
+
+<!-- ========================= 1 ========================= -->
+<h2>1. #126 — トップページ：🎨 で切り替えてからタイルを押す</h2>
+<p class="lead"><code>/?q=Life+Essence+Amulet</code>（生命精気の護符・<b>17版</b>・両面でない）／🎨 を1回押した直後</p>
+
+<h3>タイル（変更前も変更後も同じ）</h3>
+<div class="box">
+  <span class="tag same">タイルは変わらない</span>
+  <div style="display:flex;gap:14px;flex-wrap:wrap">
+    <div class="tile">
+      <img src="https://api.gatcg.com/cards/images/JoSPXua5Bf.jpg" alt="">
+      <div class="badges-bl"><span class="bdg">🎨 17・PRDSD</span></div>
+      <p class="tname"><b>生命精気の護符</b>Life Essence Amulet</p>
+    </div>
+    <div style="align-self:center;color:var(--muted);font-size:1.4rem">→ 🎨 ×1 →</div>
+    <div class="tile">
+      <img src="https://api.gatcg.com/cards/images/gu74T6xW0Q.jpg" alt="">
+      <div class="badges-bl"><span class="bdg">🎨 17・ReC-BRV</span></div>
+      <p class="tname"><b>生命精気の護符</b>Life Essence Amulet</p>
+    </div>
+  </div>
+  <p class="note"><code>cardEl.dataset.artUrl</code> も <code>gu74T6xW0Q.jpg</code> に追従している（＝運ぶ値は既に揃っている）</p>
+</div>
+
+<h3>そのタイルを押して開いた詳細モーダル</h3>
+<div class="pair">
+  <div class="box now">
+    <span class="tag now">現状 ⚠ 切替前の版で開く</span>
+    <div class="modal">
+      <div class="m-row">
+        <div class="m-main">
+          <img src="https://api.gatcg.com/cards/images/JoSPXua5Bf.jpg" alt="">
+          <p class="m-lbl"><span class="ng">PRDSD #012</span>（サムネ 1/17）</p>
+        </div>
+        <div>
+          <b>生命精気の護符</b>
+          <p class="note">タイルは ReC-BRV を見せているのに、モーダルは PRDSD で開く</p>
+        </div>
+      </div>
+      <div class="arts">
+        <div class="thumb active"><img src="https://api.gatcg.com/cards/images/JoSPXua5Bf.jpg" alt=""><span>PRDSD #012</span></div>
+        <div class="thumb"><img src="https://api.gatcg.com/cards/images/gu74T6xW0Q.jpg" alt=""><span>ReC-BRV #006</span></div>
+        <div class="thumb"><img src="https://api.gatcg.com/cards/images/zY6KgQmQ04.jpg" alt=""><span>DTRSD #014</span></div>
+        <div class="thumb"><img src="https://api.gatcg.com/cards/images/2aringyntk.jpg" alt=""><span>ReC-HVF #006</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="box next">
+    <span class="tag next">変更後 ⭕ タイルと一致</span>
+    <div class="modal">
+      <div class="m-row">
+        <div class="m-main">
+          <img src="https://api.gatcg.com/cards/images/gu74T6xW0Q.jpg" alt="">
+          <p class="m-lbl"><span class="ok">ReC-BRV #006</span>（サムネ 2/17）</p>
+        </div>
+        <div>
+          <b>生命精気の護符</b>
+          <p class="note">タイルが見せている版で開く（🎨 の結果が落ちない）</p>
+        </div>
+      </div>
+      <div class="arts">
+        <div class="thumb"><img src="https://api.gatcg.com/cards/images/JoSPXua5Bf.jpg" alt=""><span>PRDSD #012</span></div>
+        <div class="thumb active"><img src="https://api.gatcg.com/cards/images/gu74T6xW0Q.jpg" alt=""><span>ReC-BRV #006</span></div>
+        <div class="thumb"><img src="https://api.gatcg.com/cards/images/zY6KgQmQ04.jpg" alt=""><span>DTRSD #014</span></div>
+        <div class="thumb"><img src="https://api.gatcg.com/cards/images/2aringyntk.jpg" alt=""><span>ReC-HVF #006</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================= 2 ========================= -->
+<h2>2. #126 — デッキ構築ツールの検索結果（ユーザーが #124 の実物確認②で踏んだ経路）</h2>
+<p class="lead">左ペインで エキスパンション <code>Dawn of Ashes Alter Ed.</code>・カード名 <code>Life Essence Amulet</code> → 🔍 検索／🎨 を <b>5回</b></p>
+<div class="pair">
+  <div class="box now">
+    <span class="tag now">現状 ⚠ タイル=PRDSD／モーダル=DOA Alter</span>
+    <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+      <div class="tile">
+        <img src="https://api.gatcg.com/cards/images/JoSPXua5Bf.jpg" alt="">
+        <div class="badges-bl"><span class="bdg">🎨 17・PRDSD</span></div>
+        <p class="tname"><b>生命精気の護符</b>検索結果タイル</p>
+      </div>
+      <div class="modal" style="flex:1;min-width:190px">
+        <div class="m-main"><img src="https://api.gatcg.com/cards/images/w9r9hcpdti.jpg" alt="">
+          <p class="m-lbl"><span class="ng">DOA Alter #040</span>（サムネ 13/17）</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="box next">
+    <span class="tag next">変更後 ⭕ どちらも PRDSD</span>
+    <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+      <div class="tile">
+        <img src="https://api.gatcg.com/cards/images/JoSPXua5Bf.jpg" alt="">
+        <div class="badges-bl"><span class="bdg">🎨 17・PRDSD</span></div>
+        <p class="tname"><b>生命精気の護符</b>検索結果タイル</p>
+      </div>
+      <div class="modal" style="flex:1;min-width:190px">
+        <div class="m-main"><img src="https://api.gatcg.com/cards/images/JoSPXua5Bf.jpg" alt="">
+          <p class="m-lbl"><span class="ok">PRDSD #012</span>（サムネ 1/17）</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="note">⭐ <b>🎨 を押さずに開いたときは変更後も <code>DOA Alter #040</code>（＝そのタブの絞り込み条件に追従・回帰項目 V2-d）。</b></p>
+
+<!-- ========================= 3 ========================= -->
+<h2>3. #127 — 両面カードの裏面（トップページ・絞り込みで版が動いている）</h2>
+<p class="lead"><code>/?q=Fabled+Azurite+Fatestone&amp;set=P25</code>（伝説の瑠璃運命石・<b>3版すべて両面</b>）</p>
+<div class="pair">
+  <div class="box now">
+    <span class="tag now">現状 ⚠ 表 P25 / 裏 HVN 1st</span>
+    <div class="modal">
+      <div class="m-row">
+        <div class="m-main"><img src="https://api.gatcg.com/cards/images/Wtx1yaLXi0.jpg" alt="">
+          <p class="m-lbl">表面 <span class="ok">P25 #044</span></p></div>
+        <div class="arts" style="margin:0">
+          <div class="thumb"><img src="https://api.gatcg.com/cards/images/6ce5rzrjd9.jpg" alt=""><span>HVN 1st #027</span></div>
+          <div class="thumb"><img src="https://api.gatcg.com/cards/images/o1yp6dnpyk.jpg" alt=""><span>ReC-HVF #011</span></div>
+          <div class="thumb active"><img src="https://api.gatcg.com/cards/images/Wtx1yaLXi0.jpg" alt=""><span>P25 #044</span></div>
+        </div>
+      </div>
+      <div class="backblk">
+        <h4>裏面</h4>
+        <div class="m-row">
+          <div class="m-main"><img src="https://api.gatcg.com/cards/images/fcfxhkqda6.jpg" alt="">
+            <p class="m-lbl"><span class="ng">HVN 1st の裏</span>（fcfxhkqda6）</p></div>
+          <div><b>青龍、蒼き龍</b>
+            <p class="warn">⚠ 同じモーダルの中で表と裏が別の版</p>
+            <p class="note">しかも 🖨️「裏面を印刷リストに追加」は <b>P25 の裏（GKKYGv6t3R）</b>を入れる＝表示と印刷も食い違っている</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="box next">
+    <span class="tag next">変更後 ⭕ 表も裏も P25</span>
+    <div class="modal">
+      <div class="m-row">
+        <div class="m-main"><img src="https://api.gatcg.com/cards/images/Wtx1yaLXi0.jpg" alt="">
+          <p class="m-lbl">表面 <span class="ok">P25 #044</span></p></div>
+        <div class="arts" style="margin:0">
+          <div class="thumb"><img src="https://api.gatcg.com/cards/images/6ce5rzrjd9.jpg" alt=""><span>HVN 1st #027</span></div>
+          <div class="thumb"><img src="https://api.gatcg.com/cards/images/o1yp6dnpyk.jpg" alt=""><span>ReC-HVF #011</span></div>
+          <div class="thumb active"><img src="https://api.gatcg.com/cards/images/Wtx1yaLXi0.jpg" alt=""><span>P25 #044</span></div>
+        </div>
+      </div>
+      <div class="backblk">
+        <h4>裏面</h4>
+        <div class="m-row">
+          <div class="m-main"><img src="https://api.gatcg.com/cards/images/GKKYGv6t3R.jpg" alt="">
+            <p class="m-lbl"><span class="ok">P25 の裏</span>（GKKYGv6t3R）</p></div>
+          <div><b>青龍、蒼き龍</b>
+            <p class="note">⭐ 画面に出る裏面と、🖨️ が入れる裏面が一致する</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================= 4 ========================= -->
+<h2>4. ⭐ #126 と #127 の重なり（<b>2件を1タスクにする理由</b>）</h2>
+<p class="lead"><code>/?q=Fabled+Azurite+Fatestone</code>（絞り込みなし）で 🎨 を1回押してから開く</p>
+<table>
+<thead><tr><th>ツリー</th><th>モーダル 表面</th><th>モーダル 裏面</th><th>結果</th></tr></thead>
+<tbody>
+<tr><td>HEAD（いま）</td><td class="mono">6ce5rzrjd9（HVN 1st）</td><td class="mono">fcfxhkqda6（HVN 1st）</td><td class="ok">⭕ 揃っている（表が追従しないので結果的に）</td></tr>
+<tr><td>⚠️ #126 だけ直した場合</td><td class="mono">o1yp6dnpyk（ReC-HVF）</td><td class="mono">fcfxhkqda6（<b>HVN 1st</b>）</td><td class="ng">⚠ 割れる（新しい食い違いを作る）</td></tr>
+<tr><td>⭐ E1〜E4（本設計）</td><td class="mono">o1yp6dnpyk（ReC-HVF）</td><td class="mono">tf5f2n38g0（ReC-HVF）</td><td class="ok">⭕ 揃う</td></tr>
+</tbody>
+</table>
+<div class="pair">
+  <div class="box now">
+    <span class="tag now">#126 だけ直した場合 ⚠</span>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div class="m-main" style="width:140px"><img src="https://api.gatcg.com/cards/images/o1yp6dnpyk.jpg" alt=""><p class="m-lbl">表 ReC-HVF</p></div>
+      <div class="m-main" style="width:140px"><img src="https://api.gatcg.com/cards/images/fcfxhkqda6.jpg" alt=""><p class="m-lbl"><span class="ng">裏 HVN 1st</span></p></div>
+    </div>
+  </div>
+  <div class="box next">
+    <span class="tag next">E1〜E4 ⭕</span>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div class="m-main" style="width:140px"><img src="https://api.gatcg.com/cards/images/o1yp6dnpyk.jpg" alt=""><p class="m-lbl">表 ReC-HVF</p></div>
+      <div class="m-main" style="width:140px"><img src="https://api.gatcg.com/cards/images/tf5f2n38g0.jpg" alt=""><p class="m-lbl"><span class="ok">裏 ReC-HVF</span></p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================= 5 ========================= -->
+<h2>5. #127 — デッキ構築のデッキゾーン（保存版 <code>art_image</code>）</h2>
+<p class="lead"><code>art_image = /cards/images/Wtx1yaLXi0.jpg</code>（P25 #044）の行。⚠️ 本番で該当する行は <b>0行</b>（#124 §1-2）＝まだ誰も踏んでいない</p>
+<div class="pair">
+  <div class="box now">
+    <span class="tag now">現状 ⚠ #124 の後は表裏が割れる</span>
+    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
+      <div class="tile" style="width:120px"><img src="https://api.gatcg.com/cards/images/Wtx1yaLXi0.jpg" alt=""><p class="tname"><b>デッキのタイル</b>P25</p></div>
+      <div class="m-main" style="width:130px"><img src="https://api.gatcg.com/cards/images/Wtx1yaLXi0.jpg" alt=""><p class="m-lbl">表 P25 ⭕</p></div>
+      <div class="m-main" style="width:130px"><img src="https://api.gatcg.com/cards/images/fcfxhkqda6.jpg" alt=""><p class="m-lbl"><span class="ng">裏 HVN 1st</span></p></div>
+    </div>
+  </div>
+  <div class="box next">
+    <span class="tag next">変更後 ⭕</span>
+    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
+      <div class="tile" style="width:120px"><img src="https://api.gatcg.com/cards/images/Wtx1yaLXi0.jpg" alt=""><p class="tname"><b>デッキのタイル</b>P25</p></div>
+      <div class="m-main" style="width:130px"><img src="https://api.gatcg.com/cards/images/Wtx1yaLXi0.jpg" alt=""><p class="m-lbl">表 P25 ⭕</p></div>
+      <div class="m-main" style="width:130px"><img src="https://api.gatcg.com/cards/images/GKKYGv6t3R.jpg" alt=""><p class="m-lbl"><span class="ok">裏 P25</span></p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================= 6 ========================= -->
+<h2>6. #127 — 静的なカード個別ページ（<code>/cards/&lt;slug&gt;/</code>）</h2>
+<p class="lead">サムネイルの3番目をクリック、または <code>/cards/fabled-azurite-fatestone/#art=p25</code> を新しく読み込む</p>
+<div class="pair">
+  <div class="box now">
+    <span class="tag now">現状 ⚠ 裏が追従しない</span>
+    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
+      <div class="m-main" style="width:140px"><img src="https://api.gatcg.com/cards/images/Wtx1yaLXi0.jpg" alt=""><p class="m-lbl">#cp-main-img ＝ P25 ⭕</p></div>
+      <div class="m-main" style="width:140px"><img src="https://api.gatcg.com/cards/images/fcfxhkqda6.jpg" alt=""><p class="m-lbl"><span class="ng">裏面 ＝ HVN 1st</span></p></div>
+    </div>
+    <p class="note">⚠️ <code>.cp-thumb</code> が <code>data-back</code> を持っていないので、裏面を更新する手段がそもそも無い</p>
+  </div>
+  <div class="box next">
+    <span class="tag next">変更後 ⭕</span>
+    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
+      <div class="m-main" style="width:140px"><img src="https://api.gatcg.com/cards/images/Wtx1yaLXi0.jpg" alt=""><p class="m-lbl">#cp-main-img ＝ P25 ⭕</p></div>
+      <div class="m-main" style="width:140px"><img src="https://api.gatcg.com/cards/images/GKKYGv6t3R.jpg" alt=""><p class="m-lbl"><span class="ok">#cp-back-img ＝ P25</span></p></div>
+    </div>
+    <p class="note">⭐ <b>初期表示（HVN 1st の表＋HVN 1st の裏）は1バイトも変わらない</b>／生成ファイルは <b>23件</b>（カードページ22＋<code>cards/cards.js</code>）</p>
+  </div>
+</div>
+
+<!-- ========================= 7 ========================= -->
+<h2>7. 最悪ケース</h2>
+
+<h3>7-1. 版が最多（17版）のサムネイル列 — トップ／デッキ構築のモーダル</h3>
+<div class="box next">
+  <span class="tag next">変更後：13番目（DOA Alter #040）が選択されている状態</span>
+  <div class="arts">
+    <div class="thumb"><img src="https://api.gatcg.com/cards/images/JoSPXua5Bf.jpg" alt=""><span>PRDSD #012</span></div>
+    <div class="thumb"><img src="https://api.gatcg.com/cards/images/gu74T6xW0Q.jpg" alt=""><span>ReC-BRV #006</span></div>
+    <div class="thumb"><img src="https://api.gatcg.com/cards/images/zY6KgQmQ04.jpg" alt=""><span>DTRSD #014</span></div>
+    <div class="thumb"><img src="https://api.gatcg.com/cards/images/2aringyntk.jpg" alt=""><span>ReC-HVF #006</span></div>
+    <div class="thumb"><img src="https://api.gatcg.com/cards/images/ZLmMJ83gtT.jpg" alt=""><span>P25 #112</span></div>
+    <div class="thumb"><img src="https://api.gatcg.com/cards/images/4g6kz00rl9.jpg" alt=""><span>AMBSD #012</span></div>
+    <div class="thumb"><img src="https://api.gatcg.com/cards/images/talg5su8sv.jpg" alt=""><span>ReC-SLM #009</span></div>
+    <div class="thumb"><img src="https://api.gatcg.com/cards/images/k2c7wjlzjm.jpg" alt=""><span>ReC-SHD #007</span></div>
+    <div class="thumb"><img src="https://api.gatcg.com/cards/images/31hwdhemoz.jpg" alt=""><span>ALCSD #020</span></div>
+    <div class="thumb"><img src="https://api.gatcg.com/cards/images/5m7sqe6kd7.jpg" alt=""><span>P24 #008</span></div>
+    <div class="thumb"><img src="https://api.gatcg.com/cards/images/o1cyvjd9kj.jpg" alt=""><span>P24 #135</span></div>
+    <div class="thumb"><img src="https://api.gatcg.com/cards/images/1er51ufmml.jpg" alt=""><span>DEMO23 #005</span></div>
+    <div class="thumb active"><img src="https://api.gatcg.com/cards/images/w9r9hcpdti.jpg" alt=""><span>DOA Alter #040</span></div>
+    <div class="thumb"><img src="https://api.gatcg.com/cards/images/95i6mbimks.jpg" alt=""><span>DOASD #023</span></div>
+    <div class="thumb"><img src="https://api.gatcg.com/cards/images/9nTBzOJBxt.jpg" alt=""><span>DOA 1st #040</span></div>
+    <div class="thumb"><img src="https://api.gatcg.com/cards/images/DegP154SpL.jpg" alt=""><span>DOAp #017</span></div>
+    <div class="thumb"><img src="https://api.gatcg.com/cards/images/XztBsVXFLP.jpg" alt=""><span>DEMO22 #005</span></div>
+  </div>
+  <p class="note">⭐ #124 の実物確認②で「17枚が折り返して並び、選択中に枠が付いて見えている」ことを確認済み（スクロールの手当ては不要）</p>
+</div>
+
+<h3>7-2. ⚠️ ラベルが同じ版が2つ並ぶカード（最長・最悪の見分けづらさ）</h3>
+<p class="lead"><code>fabled-emerald-fatestone</code>（伝説の翠玉運命石）は <b>2版とも <code>HVN 1st #025</code></b>。サムネイルの文字では区別が付かない。</p>
+<div class="pair">
+  <div class="box now">
+    <span class="tag now">現状：2番目を押しても裏は1番目の裏</span>
+    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
+      <div class="m-main" style="width:130px"><img src="https://api.gatcg.com/cards/images/d7lc8qjw0s.jpg" alt=""><p class="m-lbl">表 2番目</p></div>
+      <div class="m-main" style="width:130px"><img src="https://api.gatcg.com/cards/images/kkkcxq93ul.jpg" alt=""><p class="m-lbl"><span class="ng">裏 1番目の裏</span></p></div>
+    </div>
+  </div>
+  <div class="box next">
+    <span class="tag next">変更後 ⭕</span>
+    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
+      <div class="m-main" style="width:130px"><img src="https://api.gatcg.com/cards/images/d7lc8qjw0s.jpg" alt=""><p class="m-lbl">表 2番目</p></div>
+      <div class="m-main" style="width:130px"><img src="https://api.gatcg.com/cards/images/mhilppwfgx.jpg" alt=""><p class="m-lbl"><span class="ok">裏 2番目の裏</span></p></div>
+    </div>
+  </div>
+</div>
+<p class="note">⚠️ <code>#art=hvn-1st</code> は <b>必ず1番目に当たる</b>（<code>data-prefix</code> が両方 <code>hvn-1st</code>）。⭐ <b>既存の制約で本件では直さない</b>（設計書 §14 N3 で諮る）。</p>
+
+<!-- ========================= 8 ========================= -->
+<h2>8. 375px 幅（スマホ）での見え方</h2>
+<p class="lead">⭐ <b>本件はレイアウトを1つも変えない</b>（画像のURLと選択中の添字だけが変わる）。375px でも「どの画像が出るか」だけが違う。</p>
+<div class="phones">
+  <div class="phone">
+    <p class="hdr">375px ／ <b>現状</b>（トップ・🎨 ×1 のあとのモーダル）</p>
+    <div class="modal">
+      <div class="m-main" style="width:100%;max-width:200px;margin:0 auto">
+        <img src="https://api.gatcg.com/cards/images/JoSPXua5Bf.jpg" alt="">
+        <p class="m-lbl" style="text-align:center"><span class="ng">PRDSD #012</span></p>
+      </div>
+      <div class="arts">
+        <div class="thumb active"><img src="https://api.gatcg.com/cards/images/JoSPXua5Bf.jpg" alt=""><span>PRDSD #012</span></div>
+        <div class="thumb"><img src="https://api.gatcg.com/cards/images/gu74T6xW0Q.jpg" alt=""><span>ReC-BRV #006</span></div>
+        <div class="thumb"><img src="https://api.gatcg.com/cards/images/zY6KgQmQ04.jpg" alt=""><span>DTRSD #014</span></div>
+        <div class="thumb"><img src="https://api.gatcg.com/cards/images/2aringyntk.jpg" alt=""><span>ReC-HVF #006</span></div>
+        <div class="thumb"><img src="https://api.gatcg.com/cards/images/ZLmMJ83gtT.jpg" alt=""><span>P25 #112</span></div>
+        <div class="thumb"><img src="https://api.gatcg.com/cards/images/4g6kz00rl9.jpg" alt=""><span>AMBSD #012</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="phone">
+    <p class="hdr">375px ／ <b>変更後</b>（同じ操作）</p>
+    <div class="modal">
+      <div class="m-main" style="width:100%;max-width:200px;margin:0 auto">
+        <img src="https://api.gatcg.com/cards/images/gu74T6xW0Q.jpg" alt="">
+        <p class="m-lbl" style="text-align:center"><span class="ok">ReC-BRV #006</span></p>
+      </div>
+      <div class="arts">
+        <div class="thumb"><img src="https://api.gatcg.com/cards/images/JoSPXua5Bf.jpg" alt=""><span>PRDSD #012</span></div>
+        <div class="thumb active"><img src="https://api.gatcg.com/cards/images/gu74T6xW0Q.jpg" alt=""><span>ReC-BRV #006</span></div>
+        <div class="thumb"><img src="https://api.gatcg.com/cards/images/zY6KgQmQ04.jpg" alt=""><span>DTRSD #014</span></div>
+        <div class="thumb"><img src="https://api.gatcg.com/cards/images/2aringyntk.jpg" alt=""><span>ReC-HVF #006</span></div>
+        <div class="thumb"><img src="https://api.gatcg.com/cards/images/ZLmMJ83gtT.jpg" alt=""><span>P25 #112</span></div>
+        <div class="thumb"><img src="https://api.gatcg.com/cards/images/4g6kz00rl9.jpg" alt=""><span>AMBSD #012</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="phone">
+    <p class="hdr">375px ／ <b>両面カード（変更後）</b>：表と裏が同じ版になる</p>
+    <div class="modal">
+      <div class="m-main" style="width:100%;max-width:190px;margin:0 auto">
+        <img src="https://api.gatcg.com/cards/images/Wtx1yaLXi0.jpg" alt="">
+        <p class="m-lbl" style="text-align:center">表面 P25 #044</p>
+      </div>
+      <div class="backblk">
+        <h4>裏面</h4>
+        <div class="m-main" style="width:100%;max-width:190px;margin:0 auto">
+          <img src="https://api.gatcg.com/cards/images/GKKYGv6t3R.jpg" alt="">
+          <p class="m-lbl" style="text-align:center"><span class="ok">P25 の裏</span></p>
+        </div>
+        <p class="note">青龍、蒼き龍</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================= 9 ========================= -->
+<h2>9. 変わらないもの（回帰項目）</h2>
+<table>
+<thead><tr><th>経路</th><th>変更後の期待</th></tr></thead>
+<tbody>
+<tr><td>トップの共有リンク <code>#card/&lt;slug&gt;</code></td><td>⭐ <b>いまの絞り込みに追従したまま</b>（<code>&amp;set=DOA+Alter</code> なら <code>w9r9hcpdti</code>・サムネ13番目）</td></tr>
+<tr><td>トップ・絞り込みだけ（🎨 を押さない）</td><td>⭐ 変更前と同じ（絞り込みに一致する版）</td></tr>
+<tr><td>デッキ構築の検索結果・🎨 を押さない</td><td>⭐ そのタブの条件に追従（<code>w9r9hcpdti</code>）</td></tr>
+<tr><td>デッキゾーン・共有画面（#124）</td><td>⭐ 保存版（<code>art_image</code>）のまま。左ペインで絞り込んでも変わらない</td></tr>
+<tr><td>大会デッキページ（426ページ）</td><td>⭐ <b>1ピクセルも変わらない</b>（タイルもモーダルも <code>imgs[0]</code>）</td></tr>
+<tr><td>静的カードページの初期表示</td><td>⭐ 変更前と同じ（表 <code>6ce5rzrjd9</code> / 裏 <code>fcfxhkqda6</code>）</td></tr>
+<tr><td>印刷リスト（#42）</td><td>⭐ 入る画像は変わらない（元から <code>selection()</code> 由来で正しい）</td></tr>
+<tr><td>共有URL・バッジ・件数（M1-b）</td><td>⭐ before/after で同値（設計書 §9-7 に実測値）</td></tr>
+</tbody>
+</table>
+
+</div>
+</body>
+</html>
