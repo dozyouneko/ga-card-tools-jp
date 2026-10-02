@@ -428,9 +428,11 @@ function cardPage(rawCard) {
   );
 
   // イラスト/版の切り替えサムネイル(2枚以上のときのみ。#art=<set-slug> で初期選択)
+  // ⚠ data-back は「その版に裏面画像があるときだけ」出す(#127)。全サムネイルに空でも出すと
+  //   版が2つ以上のカード 1,248ページに差分が出る（裏面を持つカードは22枚しかない）
   const thumbs = imgs.length > 1
     ? `<div class="cp-arts">${imgs.map((im, i) =>
-        `<button class="cp-thumb${i === 0 ? " active" : ""}" type="button" data-url="${esc(im.url)}" data-prefix="${esc(setSlug(im.prefix === "?" ? "" : im.prefix))}" title="${esc(im.label)}"><img loading="lazy" src="${esc(im.url)}" alt=""><span>${esc(im.label)}</span></button>`
+        `<button class="cp-thumb${i === 0 ? " active" : ""}" type="button" data-url="${esc(im.url)}"${im.back ? ` data-back="${esc(im.back)}"` : ""} data-prefix="${esc(setSlug(im.prefix === "?" ? "" : im.prefix))}" title="${esc(im.label)}"><img loading="lazy" src="${esc(im.url)}" alt=""><span>${esc(im.label)}</span></button>`
       ).join("")}</div>`
     : "";
 
@@ -463,9 +465,13 @@ function cardPage(rawCard) {
   if (back) {
     backTerms = matchedTerms(back);
     const backJp = CI.jpName(back);
+    // 初期表示の裏面は「主画像と同じ版の裏面」に揃える(#127)。今日はどのカードでも
+    // backFace() の裏面と一致する（＝出力は変わらない）が、将来ずれた日に追従させるため式で書く。
+    // ⭐ サムネイル／#art= で版を変えたときの追従は cards.js の select() が行う
+    const backMainImg = (imgs[0] && imgs[0].back) || back.image;
     backBlock = `<section class="cp-block cp-back"><h2>裏面</h2>
   <article class="cp-card">
-    <div class="cp-media">${back.image ? `<img src="${esc(back.image)}" alt="${esc(backJp)} のカード画像" width="360" loading="lazy">` : ""}</div>
+    <div class="cp-media">${backMainImg ? `<img id="cp-back-img" src="${esc(backMainImg)}" alt="${esc(backJp)} のカード画像" width="360" loading="lazy">` : ""}</div>
     <div class="cp-body">
       <h3 class="cp-back-name">${esc(backJp)}${backJp !== back.name ? `<span class="cp-en-name">${esc(back.name || "")}</span>` : ""}</h3>
       ${translationBadge(back)}
@@ -810,10 +816,13 @@ const CARDS_JS = `// カード個別ページ・セット一覧(静的生成)用
 
   // ---- 3) イラスト切替: サムネクリックで主画像を差し替え。#art=<set-slug> で初期選択 ----
   const main = document.getElementById("cp-main-img");
+  const backMain = document.getElementById("cp-back-img");
   const thumbs = Array.from(document.querySelectorAll(".cp-thumb"));
   if (main && thumbs.length) {
     const select = (btn) => {
       main.src = btn.dataset.url;
+      // 両面カード: 裏面画像も選択した版に追従させる(#127)。その版に裏面が無ければ据え置く
+      if (backMain && btn.dataset.back) backMain.src = btn.dataset.back;
       thumbs.forEach((b) => b.classList.toggle("active", b === btn));
     };
     thumbs.forEach((btn) => btn.addEventListener("click", () => select(btn)));

@@ -249,6 +249,8 @@ window.GA_CARD_DETAIL = (() => {
     // イラスト/版の切り替えサムネイル
     const artsEl = $("d-arts");
     if (imgs.length > 1) {
+      // ⚠ data-back はサムネイル自身が持つ版の説明であって、描画の入力ではない(#127)。
+      //   裏面画像の決定は backImageUrl() 1箇所。外から読んでいる計測があるため属性は残す
       artsEl.innerHTML = imgs
         .map((im, i) => `<button class="art-thumb${i === initialAi ? " active" : ""}" type="button" data-url="${escapeHtml(im.url)}" data-back="${escapeHtml(im.back || "")}" title="${escapeHtml(im.label)}"><img loading="lazy" crossorigin="anonymous" src="${escapeHtml(im.url)}" alt=""><span>${escapeHtml(im.label)}</span></button>`)
         .join("");
@@ -424,6 +426,16 @@ window.GA_CARD_DETAIL = (() => {
       .join("");
   }
 
+  // 裏面画像のURL(#127)。選択中の版の裏面 → 無ければ既定版の裏面に倒す。
+  // ⭐ 初期描画とサムネイル切替の両方がここを通る＝規則を2箇所に書かない。
+  // ⭐ 倒す向きは backAction（🖨️ 裏面を印刷リストに追加）とまったく同じで、
+  //    「画面に出ている裏面」と「印刷リストに入る裏面」が1つの出所に揃う。
+  function backImageUrl(card) {
+    const sel = selection();
+    const bf = backFace(card);
+    return (sel && sel.back) || (bf && bf.image) || null;
+  }
+
   // 両面カードの裏面を詳細モーダル下部にスタック表示（表面と同じ体裁）。
   function renderBackFace(card) {
     const wrap = $("d-back-wrap");
@@ -433,8 +445,11 @@ window.GA_CARD_DETAIL = (() => {
 
     const translated = isTranslated(back);
     const terms = matchedTerms(back);
-    const imgHtml = back.image
-      ? `<img id="d-back-img" crossorigin="anonymous" src="${escapeHtml(back.image)}" alt="${escapeHtml(jpName(back))}">`
+    // ⚠ render() は currentAi を設定したあとに renderBackFace() を呼ぶ。この順序を入れ替えると
+    //   selection() が前のカード／前の版を返し、裏面だけが別の版で出る(#127)
+    const backUrl = backImageUrl(card);
+    const imgHtml = backUrl
+      ? `<img id="d-back-img" crossorigin="anonymous" src="${escapeHtml(backUrl)}" alt="${escapeHtml(jpName(back))}">`
       : `<div class="noimg">画像なし</div>`;
 
     const act = opts.backAction || null;
@@ -559,9 +574,16 @@ window.GA_CARD_DETAIL = (() => {
       // 選択中の版を保持する。サムネイルは render() の imgs と同じ順で並ぶ(#42)
       const idx = Array.prototype.indexOf.call($("d-arts").children, btn);
       if (idx >= 0) currentAi = idx;
-      // 両面カード：裏面画像も選択した版に追従させる
-      const backImg = $("d-back-img");
-      if (backImg && btn.dataset.back) backImg.src = btn.dataset.back;
+      // 両面カード：裏面画像も選択した版に追従させる。
+      // ⭐ 決定は backImageUrl() 1箇所に通す(#127)——ここでサムネイルの属性を読むと、
+      //   初期描画と規則が2つに割れる。
+      // ⚠ 裏面ブロックを作り直してはいけない（renderBackFace を呼び直さない）——
+      //   「英語原文を表示」の開閉がリセットされるため
+      const backEl = $("d-back-img");
+      if (backEl && currentCard) {
+        const backUrl = backImageUrl(currentCard);
+        if (backUrl) backEl.src = backUrl;
+      }
       $("d-arts").querySelectorAll(".art-thumb").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
     });

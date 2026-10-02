@@ -253,9 +253,12 @@ function appendGrid(cards, info) {
           ${elemChips ? `<span class="chip chip-elem">${escapeHtml(elemChips)}</span>` : ""}
         </p>
       </div>`;
-    cardEl.addEventListener("click", () => GA_CARD_DETAIL.open(card));
+    // ⭐ タイルが表示している版（🎨 の切り替え結果・絞り込みによる初期表示）でモーダルを開く(#126)。
+    // ⚠ img.src ではなく dataset.artUrl を渡す——🔄 で裏面を見せている間は img.src が
+    //   裏面URLなので、版の一覧のどれにも当たらない(#46)
+    cardEl.addEventListener("click", () => openDetail(card, cardEl.dataset.artUrl));
     cardEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); GA_CARD_DETAIL.open(card); }
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openDetail(card, cardEl.dataset.artUrl); }
     });
     // 表示中の「版」と「面」。⚠ ＋🖨️ も参照するため、切替バッジの if ブロックの外で宣言する（#47）。
     // ブロック内で let を再宣言すると内側が外側を隠し、画像は裏返るのに ＋🖨️ は表面のまま＝
@@ -321,7 +324,26 @@ function appendGrid(cards, info) {
 }
 
 // ---------- 詳細モーダル ----------
-// 本体は shared/js/card-detail.js (GA_CARD_DETAIL) に共通化。ここではハッシュ連動のみ扱う。
+// 本体は shared/js/card-detail.js (GA_CARD_DETAIL) に共通化。
+// ここではハッシュ連動と「どの版で開くか」の受け渡しを扱う。
+
+// 詳細モーダルを「どの版で開くか」の指定(#126)。⚠ このページでは次の2つのどちらか。
+//   null    … このページの「いまの絞り込み」から選ぶ（従来どおり。共有リンク #card/<slug> はこちら）
+//   { url } … そのタイルが表示している版のURL（🎨 の切り替え結果を含む）
+// ⚠ ⭐ GA_CARD_DETAIL.open / openBySlug をこの2つのラッパー以外から呼ばないこと——
+//    呼ぶと「前に開いたタイルの版が残る」経路ができる。
+// ⚠ 「読まれるのは1回だけなので消費して空にする」作りにしない（呼ばれる回数への依存を増やす）
+let detailArtPick = null;
+
+function openDetail(card, artUrl) {
+  detailArtPick = artUrl ? { url: artUrl } : null;
+  GA_CARD_DETAIL.open(card);
+}
+
+function openDetailBySlug(slug) {
+  detailArtPick = null;
+  GA_CARD_DETAIL.openBySlug(slug);
+}
 
 // URLハッシュに応じて詳細を開閉（共有リンク・戻る/進む対応）
 function handleHash() {
@@ -330,7 +352,7 @@ function handleHash() {
     const slug = decodeURIComponent(m[1]);
     const cur = GA_CARD_DETAIL.current();
     if (!GA_CARD_DETAIL.isOpen() || !cur || cur.slug !== slug) {
-      GA_CARD_DETAIL.openBySlug(slug);
+      openDetailBySlug(slug);
     }
   } else if (GA_CARD_DETAIL.isOpen()) {
     GA_CARD_DETAIL.close();
@@ -851,9 +873,17 @@ function init() {
 
   // カード詳細モーダル（共通コンポーネント）。印刷ボタンとハッシュ連動はこのページ固有
   GA_CARD_DETAIL.init({
-    // ⭐ 条件はこのページの「いまの絞り込み」から毎回作る（#97）。⚠ 規則そのものは
+    // ⭐ タイルから開いたときはそのタイルの版、共有リンク（#card/<slug>）からは
+    //    このページの「いまの絞り込み」から毎回作る（#97・#126）。⚠ 規則そのものは
     //    shared/js/card-search.js の1本だけ——ここに書き戻さないこと。
-    preferredArtIndex: artIndexOf,
+    // ⚠ ⭐ URL が解決できないときの落ち先は「いまの絞り込み」。デッキ構築のデッキゾーンとは
+    //    逆向きだが、トップはタイル自身も絞り込みの規則で描かれているため、同じ規則へ倒すのが
+    //    「変更前とまったく同じ」になる（先頭の版へ倒すと絞り込み中に劣化する）。
+    preferredArtIndex: (imgs) => {
+      const url = detailArtPick && detailArtPick.url;
+      const i = url ? (imgs || []).findIndex((im) => im.url === url) : -1;
+      return i >= 0 ? i : artIndexOf(imgs);
+    },
     namesUrl: TL_NAMES_URL,
     effectsUrl: TL_EFFECTS_URL, // 日本語の効果・フレーバーはダイアログを開くときに取得する(#22)
     seasonalUrl: SEASONAL_URL, // シーズン禁止(#34)。初期表示で取得済みのためここでは待たずに解決する

@@ -55,10 +55,13 @@
 
   // ---- 3) イラスト切替: サムネクリックで主画像を差し替え。#art=<set-slug> で初期選択 ----
   const main = document.getElementById("cp-main-img");
+  const backMain = document.getElementById("cp-back-img");
   const thumbs = Array.from(document.querySelectorAll(".cp-thumb"));
   if (main && thumbs.length) {
     const select = (btn) => {
       main.src = btn.dataset.url;
+      // 両面カード: 裏面画像も選択した版に追従させる(#127)。その版に裏面が無ければ据え置く
+      if (backMain && btn.dataset.back) backMain.src = btn.dataset.back;
       thumbs.forEach((b) => b.classList.toggle("active", b === btn));
     };
     thumbs.forEach((btn) => btn.addEventListener("click", () => select(btn)));
