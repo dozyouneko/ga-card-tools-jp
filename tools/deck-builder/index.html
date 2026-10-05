@@ -112,8 +112,11 @@
             実機でボタン行の描画だけがずれて、見えている🔍検索が押せなくなった（同 §4-3）。 -->
     <div class="pane-scroll">
       <div class="row">
-        <input type="search" id="s-name" placeholder="カード名で検索（英語 / 日本語）" autocomplete="off">
-        <input type="search" id="s-text" placeholder="効果テキストで部分検索（英語 / 日本語）" autocomplete="off">
+        <!-- ⭐ 検索欄は1つだけ（#111）。⚠️ #s-name から改名してある——1つだけ残すなら
+             「名前欄」という綴りは次に読む人を確実に誤らせるため（トップの #q と共有URLの q に揃えた）。
+             ⚠️ #s-text（効果テキスト欄）は撤去した。保存済みの検索タブ・旧 ?qtext= は
+                app.js が GA_CARD_SEARCH.mergeLegacyText() でここへ畳む。 -->
+        <input type="search" id="s-q" placeholder="カード名・効果をまとめて検索（英語 / 日本語）" autocomplete="off">
       </div>
       <button id="s-toggle" class="filter-toggle" type="button" aria-expanded="false" aria-controls="s-filter-row"><span id="s-toggle-label">絞り込み ▾</span><span id="s-filter-badge" class="fbadge" hidden></span></button>
       <!-- 選択中の絞り込み条件（左ペイン化_設計 §7-3）。アコーディオンで閉じたグループの

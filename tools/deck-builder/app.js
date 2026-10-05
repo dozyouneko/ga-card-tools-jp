@@ -83,8 +83,8 @@ const el = {
   edCopyLink: $("ed-copy-link"),
   edMemo: $("ed-memo"),
   memoStatus: $("memo-status"),
-  sName: $("s-name"),
-  sText: $("s-text"),
+  // ⭐ 検索欄は1つだけ（#111）。カード名と効果をまとめて検索する
+  sQ: $("s-q"),
   // 複数選択(AND/OR)の絞り込みグループ。<select> ではなく fillChips() が構築する <details>(#31)
   sGClass: $("s-g-class"),
   sGElement: $("s-g-element"),
@@ -652,8 +652,7 @@ function updateFilterBadge() {
 
 // 検索フォームを初期状態に戻す(リセットボタンとデッキ切替時の両方から使う)
 function resetSearchForm() {
-  el.sName.value = "";
-  el.sText.value = "";
+  el.sQ.value = "";
   // 選択チップ・AND/OR・開閉状態をまとめて戻す(#31)
   filterGroups().forEach((g) => g.reset());
   [el.sFormat, el.sSet].forEach((s) => { s.value = ""; });
@@ -1473,8 +1472,9 @@ let searchTabsDeckId = null;  // 保存キーのデッキ。⚠️ null の間�
 // ⚠️ 絞り込みグループの表（condGroups）は「デッキ編集」節の filterGroups と同じ1つの出所。
 function condFromForm() {
   const p = new URLSearchParams();
-  if (el.sName.value.trim()) p.set("q", el.sName.value.trim());
-  if (el.sText.value.trim()) p.set("qtext", el.sText.value.trim());
+  // ⭐ 書くのは q だけ（#111 §9-1）。qtext はもう書かない
+  //    （読むほうは applyCondToForm() / condEls() が旧 qtext も面倒を見る）
+  if (el.sQ.value.trim()) p.set("q", el.sQ.value.trim());
   condGroups().forEach(([name, g]) => {
     const list = g.getValues();
     if (!list.length) return;
@@ -1494,8 +1494,10 @@ function condFromForm() {
 function applyCondToForm(cond) {
   const p = new URLSearchParams(cond || "");
   resetSearchForm(); // 前のタブの条件を残さない（updateFilterBadge もここで走る）
-  el.sName.value = p.get("q") || "";
-  el.sText.value = p.get("qtext") || "";
+  // ⭐ q と旧 qtext の両方を読む（#111 §9-1）。⚠️ ⭐ localStorage に保存済みの検索タブは
+  //    qtext を持っているので、ここを q だけにすると保存タブのテキスト条件が黙って消える。
+  //    ⚠️ 変換の規則をここに書き写さないこと（共有側 mergeLegacyText が唯一の出所）。
+  el.sQ.value = GA_CARD_SEARCH.mergeLegacyText(p.get("q"), p.get("qtext"));
   condGroups().forEach(([name, g]) => {
     const list = p.getAll(name);
     if (list.length) g.setValues(list);
@@ -1524,8 +1526,8 @@ function condEls(cond) {
     getMode: () => (p.get(name + "_op") === "AND" ? "AND" : "OR"),
   });
   return {
-    name: { value: p.get("q") || "" },
-    text: { value: p.get("qtext") || "" },
+    // ⭐ 入力欄は1つ（#111 §5-0）。⚠️ 旧 qtext も読んで畳む（applyCondToForm と同じ規則）
+    q: { value: GA_CARD_SEARCH.mergeLegacyText(p.get("q"), p.get("qtext")) },
     cls: group("class"), element: group("element"), type: group("type"),
     subtype: group("subtype"), rarity: group("rarity"),
     format: { value: p.get("format") || "" },
@@ -1572,8 +1574,11 @@ function condSortText(cond) {
 function condRows(cond) {
   const p = new URLSearchParams(cond || "");
   const rows = [];
-  if (p.get("q")) rows.push(["カード名", `「${p.get("q")}」`]);
-  if (p.get("qtext")) rows.push(["効果", `「${p.get("qtext")}」`]);
+  // ⭐ 「カード名」でも「効果」でもないので「テキスト」の1行にする（#111 §10）。
+  //    ⚠️ どちらかを流用すると条件の箱が嘘をつく。入力欄の placeholder と語を揃えてある。
+  //    ⚠️ 旧 qtext を持つ保存タブも1行に畳む（mergeLegacyText）
+  const condText = GA_CARD_SEARCH.mergeLegacyText(p.get("q"), p.get("qtext"));
+  if (condText) rows.push(["テキスト", `「${condText}」`]);
   condGroups().forEach(([name, g]) => {
     const list = p.getAll(name);
     if (!list.length) return;
@@ -2284,9 +2289,7 @@ el.resultGrid.addEventListener("change", async (e) => {
 
 // ⭐ 新しいタブを作るのは 🔍検索 と Enter だけ（設計 §2-3）
 el.sSearch.addEventListener("click", runNewSearchTab);
-[el.sName, el.sText].forEach((input) => {
-  input.addEventListener("keydown", (e) => { if (e.key === "Enter") runNewSearchTab(); });
-});
+el.sQ.addEventListener("keydown", (e) => { if (e.key === "Enter") runNewSearchTab(); });
 // 「もっと見る」は表示中のタブのコントローラが続きを取る。
 // ⚠️ ⭐ そのコントローラは自分のタブの条件（スナップショット）だけを読むので、
 //    左ペインを書き換えても混ざらない（P1 の直し・設計 §7・V11）
