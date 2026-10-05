@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>モック: 検索欄の一本化（#111）</title>
+<link rel="stylesheet" href="モック_検索欄の一本化_2026-10-05.css">
+</head>
+<body>
+<header class="mk-head">
+  <h1>モック: カード名欄と効果テキスト欄の一本化（#111）</h1>
+  <p class="mk-lead">
+    左が<strong>現状（欄が2つ）</strong>、右が<strong>変更後（欄が1つ）</strong>です。
+    §3 は<strong>本物の公式APIを叩いて実際に検索します</strong>（経路・リクエスト数・所要時間も出ます）。
+  </p>
+</header>
+
+<!-- ============ §1 トップページの入力欄 ============ -->
+<section class="mk-sec">
+  <h2>§1 トップページ（PC幅）</h2>
+  <div class="mk-two">
+    <div class="mk-col">
+      <h3>現状</h3>
+      <div class="controls">
+        <div class="controls-row">
+          <input type="search" class="q" placeholder="カード名で検索（英語）… 例: lorraine">
+          <input type="search" class="q" placeholder="効果テキストで部分検索（英語 / 日本語）… 例: draw, 追放">
+        </div>
+      </div>
+      <p class="mk-note">欄が2つ。左は名前だけ・右は効果だけに当たり、両方入れると <code>name=A&amp;effect=B</code> のANDになる。</p>
+    </div>
+    <div class="mk-col">
+      <h3>変更後</h3>
+      <div class="controls">
+        <div class="controls-row">
+          <input type="search" class="q" placeholder="カード名・効果テキストをまとめて検索（英語 / 日本語）… 例: lorraine draw">
+        </div>
+      </div>
+      <p class="mk-note">欄は1つ。語ごとに「名前か効果のどこかに含まれる」を要求し、語をまたいでANDを取る。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ §2 375px ============ -->
+<section class="mk-sec">
+  <h2>§2 スマホ幅（375px）— 最悪ケース（最長入力）つき</h2>
+  <div class="mk-two">
+    <div class="mk-col">
+      <h3>現状</h3>
+      <div class="mk-phone">
+        <div class="controls narrow">
+          <div class="controls-row">
+            <input type="search" class="q" placeholder="カード名で検索（英語）… 例: lorraine">
+            <input type="search" class="q" placeholder="効果テキストで部分検索（英語 / 日本語）… 例: draw, 追放">
+          </div>
+          <button class="filter-toggle" type="button">絞り込み・並び替え ▾</button>
+        </div>
+      </div>
+      <h4>最長入力を入れた状態</h4>
+      <div class="mk-phone">
+        <div class="controls narrow">
+          <div class="controls-row">
+            <input type="search" class="q" value="Lorraine, Honed Operative">
+            <input type="search" class="q" value="put a buff counter on that ally">
+          </div>
+          <button class="filter-toggle" type="button">絞り込み・並び替え ▾</button>
+        </div>
+      </div>
+    </div>
+    <div class="mk-col">
+      <h3>変更後</h3>
+      <div class="mk-phone">
+        <div class="controls narrow">
+          <div class="controls-row">
+            <input type="search" class="q" placeholder="カード名・効果テキストをまとめて検索（英語 / 日本語）… 例: lorraine draw">
+          </div>
+          <button class="filter-toggle" type="button">絞り込み・並び替え ▾</button>
+        </div>
+      </div>
+      <h4>最長入力を入れた状態</h4>
+      <div class="mk-phone">
+        <div class="controls narrow">
+          <div class="controls-row">
+            <input type="search" class="q" value="&quot;Lorraine, Honed Operative&quot; &quot;buff counter&quot;">
+          </div>
+          <button class="filter-toggle" type="button">絞り込み・並び替え ▾</button>
+        </div>
+      </div>
+      <p class="mk-note">⭐ 1欄になるぶん、375px では<strong>縦が1段ぶん（約 48px）短くなる</strong>。
+        placeholder は 375px では途中で切れる（現状の効果欄も同じ）。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ §3 実動 ============ -->
+<section class="mk-sec">
+  <h2>§3 実際に検索してみる（公式APIを本当に叩きます）</h2>
+  <div class="controls">
+    <div class="controls-row">
+      <input type="search" id="live-q" placeholder="カード名・効果テキストをまとめて検索（英語 / 日本語）… 例: lorraine draw">
+      <button id="live-go" type="button">🔍 検索</button>
+    </div>
+  </div>
+  <p class="mk-presets">
+    プリセット:
+    <button class="mk-chip" data-q="lorraine">lorraine</button>
+    <button class="mk-chip" data-q="lorraine draw">lorraine draw</button>
+    <button class="mk-chip" data-q="&quot;buff counter&quot;">"buff counter"</button>
+    <button class="mk-chip" data-q="buff counter">buff counter（引用符なし）</button>
+    <button class="mk-chip" data-q="fire">fire</button>
+    <button class="mk-chip" data-q="draw">draw</button>
+    <button class="mk-chip" data-q="card">card（重い例）</button>
+    <button class="mk-chip" data-q="ab">ab（2文字＝検索しない）</button>
+    <button class="mk-chip" data-q="ロレイン">ロレイン（日本語）</button>
+  </p>
+  <div id="live-status" class="mk-status">まだ検索していません。</div>
+  <div id="live-meta" class="mk-meta"></div>
+  <ol id="live-list" class="mk-list"></ol>
+  <p class="mk-note">
+    ⚠️ 日本語のプリセットは、このモックでは<strong>訳データを読み込まない</strong>ので動きません
+    （本番は <code>data/tl-names.json</code> / <code>data/tl-effects.json</code> をローカル照合する＝0リクエスト）。
+    件数の見積りは §4 の表にあります。
+  </p>
+</section>
+
+<!-- ============ §4 件数の比較 ============ -->
+<section class="mk-sec">
+  <h2>§4 件数はどう変わるか（2026-10-05 実測）</h2>
+  <h3>英語</h3>
+  <table class="mk-table">
+    <thead><tr><th>入力</th><th>現状: 名前欄だけ</th><th>現状: 効果欄だけ</th><th>変更後（一本化）</th></tr></thead>
+    <tbody>
+      <tr><td>lorraine</td><td>7</td><td>12</td><td><strong>13</strong></td></tr>
+      <tr><td>fire</td><td>22</td><td>96</td><td><strong>111</strong></td></tr>
+      <tr><td>counter</td><td>5</td><td>579</td><td><strong>583</strong></td></tr>
+      <tr><td>champion</td><td>18</td><td>945</td><td><strong>945</strong></td></tr>
+      <tr><td>draw</td><td>3</td><td>564</td><td><strong>565</strong></td></tr>
+      <tr><td>lorraine draw</td><td>0</td><td>2</td><td><strong>2</strong></td></tr>
+      <tr><td>"buff counter"（句）</td><td>0</td><td>157</td><td><strong>157</strong></td></tr>
+      <tr><td>buff counter（語AND）</td><td>0</td><td>157</td><td><strong>157</strong></td></tr>
+      <tr><td>"end of turn"（句）</td><td>0</td><td>329</td><td><strong>329</strong></td></tr>
+      <tr><td>end of turn（語AND）</td><td>0</td><td>329</td><td><strong>407</strong></td></tr>
+    </tbody>
+  </table>
+  <h3>日本語</h3>
+  <table class="mk-table">
+    <thead><tr><th>入力</th><th>現状: 名前欄だけ</th><th>現状: 効果欄だけ</th><th>変更後</th></tr></thead>
+    <tbody>
+      <tr><td>ロレイン</td><td>7</td><td>12</td><td><strong>13</strong></td></tr>
+      <tr><td>炎</td><td>41</td><td>9</td><td><strong>41</strong></td></tr>
+      <tr><td>アリス</td><td>8</td><td>38</td><td><strong>41</strong></td></tr>
+      <tr><td>追放</td><td>1</td><td>626</td><td><strong>627</strong></td></tr>
+      <tr><td>ロレイン 剣</td><td>2</td><td>7</td><td><strong>7</strong></td></tr>
+    </tbody>
+  </table>
+  <h3>⚠️ 「名前で絞りたいのに増える」ケース（カード名の第1語 243語で実測）</h3>
+  <p class="mk-note">
+    <strong>206語（84.8%）は件数が1件も変わりません。</strong>増えるのは37語で、目立つのは次の通り。
+  </p>
+  <table class="mk-table">
+    <thead><tr><th>入力</th><th>現状（名前欄）</th><th>変更後</th><th>倍率</th></tr></thead>
+    <tbody>
+      <tr><td>powercell</td><td>1</td><td>46</td><td>×46</td></tr>
+      <tr><td>silvershine</td><td>1</td><td>19</td><td>×19</td></tr>
+      <tr><td>ciel</td><td>3</td><td>33</td><td>×11</td></tr>
+      <tr><td>alice</td><td>8</td><td>41</td><td>×5.1</td></tr>
+      <tr><td>merlin</td><td>6</td><td>31</td><td>×5.2</td></tr>
+      <tr><td>tor</td><td>62</td><td>91</td><td>×1.5</td></tr>
+      <tr><td>rai</td><td>33</td><td>52</td><td>×1.6</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ §5 用語解説リンク ============ -->
+<section class="mk-sec">
+  <h2>§5 「ひとくちキーワード解説」からのリンク</h2>
+  <p class="mk-note">
+    <code>tools/glossary/</code> の用語名は <code>index.html?qtext=On%20Attack</code> のように
+    <strong>句</strong>としてトップの効果欄へ渡している。134語のうち<strong>74語に空白が入っている</strong>ため、
+    空白を素直にANDにすると下表のように壊れる。→ <strong>引用符つきで渡す</strong>ことで回避する。
+  </p>
+  <table class="mk-table">
+    <thead><tr><th>用語リンク</th><th>現状（効果欄・句一致）</th><th>空白をANDにすると</th><th>引用符つきにすると</th></tr></thead>
+    <tbody>
+      <tr><td>On Banish</td><td>3</td><td class="bad">569</td><td class="good">3</td></tr>
+      <tr><td>On Attack</td><td>115</td><td class="bad">486</td><td class="good">115</td></tr>
+      <tr><td>On Enter</td><td>478</td><td class="bad">591</td><td class="good">478</td></tr>
+      <tr><td>age counter</td><td>64</td><td class="bad">182</td><td class="good">64</td></tr>
+      <tr><td>Damage Counter</td><td>52</td><td class="bad">143</td><td class="good">52</td></tr>
+      <tr><td>Fractal</td><td>22</td><td>35</td><td>35 <span class="mk-dim">（名前にも含むカードが加わる＝一本化の狙い）</span></td></tr>
+    </tbody>
+  </table>
+  <p class="mk-note">
+    引用符つきにすると <strong>134語のうち123語は件数が完全に不変</strong>、残り11語は +1〜+13（名前側のヒットが加わるぶん）。
+  </p>
+  <h3>リンクの新旧</h3>
+  <ul class="mk-note">
+    <li>現状: <code>../../index.html?qtext=On%20Attack</code></li>
+    <li>変更後: <code>../../index.html?q=%22On%20Attack%22</code>（欄には <code>"On Attack"</code> と入る）</li>
+    <li>⭐ 古いリンク・ブックマークの <code>?qtext=</code> も読み続ける（空白があれば引用符で包んで欄に入れる）</li>
+  </ul>
+</section>
+
+<!-- ============ §6 速さ ============ -->
+<section class="mk-sec">
+  <h2>§6 速さ（2026-10-05 node 実測・並列6）</h2>
+  <table class="mk-table">
+    <thead><tr><th>入力</th><th>経路</th><th>リクエスト</th><th>所要</th></tr></thead>
+    <tbody>
+      <tr><td>lorraine</td><td>union（2ページ）</td><td>2</td><td>0.76 秒</td></tr>
+      <tr><td>fire</td><td>union（3ページ）</td><td>3</td><td>1.37 秒</td></tr>
+      <tr><td>lorraine draw</td><td>union（2ページ）</td><td>4</td><td>1.17 秒</td></tr>
+      <tr><td>"buff counter"</td><td>union（5ページ）</td><td>7</td><td>1.64 秒</td></tr>
+      <tr><td>draw</td><td>union（13ページ）</td><td>13</td><td>3.35 秒</td></tr>
+      <tr><td>draw ＋ タイプ=チャンピオン</td><td>union（2ページ）</td><td>3</td><td>1.76 秒</td></tr>
+      <tr class="bad"><td>card / you など（1.6%）</td><td>全件（50ページ）</td><td>52</td><td><strong>約 40 秒</strong></td></tr>
+      <tr class="good"><td>↑ の2回目以降（絞り込みが同じなら何語でも）</td><td>全件（キャッシュ）</td><td>2</td><td>1.85 秒</td></tr>
+    </tbody>
+  </table>
+  <p class="mk-note">
+    ⚠️ 「全件（50ページ）」に落ちるのは短い語のときで、<strong>3文字以上なら795種中12種（1.5%）・4文字以上なら1318種中1種（0.1%）</strong>。
+    そのため<strong>英語は3文字未満では検索しない</strong>（案内だけ出す）設計にしている。日本語は全部ローカル照合なので制限なし。
+  </p>
+</section>
+
+<footer class="mk-foot">
+  設計書: <code>docs/design/111-検索欄の一本化/検索欄の一本化_設計.md</code>
+</footer>
+<script src="モック_検索欄の一本化_2026-10-05.js"></script>
+</body>
+</html>
