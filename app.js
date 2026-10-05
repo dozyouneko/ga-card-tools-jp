@@ -10,8 +10,8 @@ const IMG_BASE = "https://api.gatcg.com";
 const I18N = window.GA_I18N || { meta: {}, terms: {}, cards: {} };
 
 const el = {
+  // ⭐ 検索欄は1つだけ（#111）。カード名と効果テキストをまとめて検索する
   q: document.getElementById("q"),
-  qtext: document.getElementById("qtext"),
   // クラス/エレメント/タイプ/サブタイプ/レアリティは複数選択（AND/OR）のチップ群。
   // 中身は GA_CARD_SEARCH.fillChips() が構築し、getValues()/getMode()/setValues()/setMode()/reset() を持つ
   gClass: document.getElementById("g-class"),
@@ -102,7 +102,7 @@ const shownSlugs = new Set(); // 重複表示を防ぐ（appendGrid で使用）
 
 const searchCtl = GA_CARD_SEARCH.create({
   els: {
-    name: el.q, text: el.qtext,
+    q: el.q,
     cls: el.gClass, element: el.gElement, type: el.gType, subtype: el.gSubtype,
     rarity: el.gRarity,
     format: el.fFormat, set: el.fSet, sort: el.sort, order: el.order,
@@ -562,7 +562,6 @@ function debounce(fn, ms) {
 // すべての検索コントロールを既定値へ戻す（ブラウザのフォーム状態復元対策も兼ねる）
 function resetControls() {
   el.q.value = "";
-  el.qtext.value = "";
   filterGroups().forEach((g) => g.reset()); // 選択チップ・AND/OR・開閉状態をまとめて戻す
   el.fFormat.value = "";
   el.fSet.value = "";
@@ -595,8 +594,8 @@ const hasOption = (sel, v) => Array.from(sel.options).some((o) => o.value === v)
 // 現在の絞り込みをクエリ文字列にする
 function queryString() {
   const p = new URLSearchParams();
+  // ⭐ 書くのは q だけ（#111 §9-1）。qtext はもう書かない（読むほうは applyUrlQuery が面倒を見る）
   if (el.q.value.trim()) p.set("q", el.q.value.trim());
-  if (el.qtext.value.trim()) p.set("qtext", el.qtext.value.trim());
   urlGroups().forEach(([name, g]) => {
     const list = g.getValues();
     if (!list.length) return;
@@ -623,10 +622,12 @@ function saveQuery() {
 // 呼び出し側で updateFilterBadge() と runSearch(true) を1回だけ行う
 function applyUrlQuery() {
   const p = new URLSearchParams(location.search);
-  const q = p.get("q");
+  // ⭐ q と旧 qtext の両方を読む（#111 §9-1）。旧 qtext は「効果テキストの句」の意味だったので、
+  //   空白があれば " で囲んでから結合する。⚠️ ⭐ 変換は共有側 1か所（mergeLegacyText）。
+  //   ここに規則を書き写さないこと——デッキ構築の applyCondToForm() / condEls() も同じ関数を呼ぶ。
+  // ⚠️ この読み出しを消すと「ひとくちキーワード解説」の旧リンクで条件が無言で消える（#111 B8）。
+  const q = GA_CARD_SEARCH.mergeLegacyText(p.get("q"), p.get("qtext"));
   if (q) el.q.value = q;
-  const qtext = p.get("qtext"); // 「ひとくちキーワード解説」からのリンクで従来から使われている
-  if (qtext) el.qtext.value = qtext;
   urlGroups().forEach(([name, g]) => {
     const list = p.getAll(name);
     if (list.length) g.setValues(list);
@@ -837,7 +838,6 @@ function init() {
   updateFilterBadge();
 
   el.q.addEventListener("input", debounce(() => runSearch(true), 350));
-  el.qtext.addEventListener("input", debounce(() => runSearch(true), 350));
   [el.fFormat, el.fSet, el.sort].forEach((s) => s.addEventListener("change", () => runSearch(true)));
   filterGroups().forEach((g) => g.onChange(() => { updateFilterBadge(); runSearch(true); }));
   el.order.addEventListener("click", () => {

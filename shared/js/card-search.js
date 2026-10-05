@@ -6,10 +6,10 @@
  *
  * 使い方:
  *   const ctl = GA_CARD_SEARCH.create({
- *     els: { name, text, cls, element, type, subtype, set, sort, order }, // 使わない欄は省略可
+ *     els: { q, cls, element, type, subtype, set, sort, order }, // 使わない欄は省略可
  *     pageSize: 50, jpPageSize: 40,
  *     metaIndexUrl,      // JP検索の取得前フィルタ用メタ索引(#27)
- *     effectsUrl,        // 訳の効果JSON(#22)。効果欄に日本語が入ったときだけ取得する
+ *     effectsUrl,        // 訳の効果JSON(#22)。JPモードに入ったら取得する(#111 §5-7)
  *     fetchCard(slug),   // 日本語検索時のカード取得(省略時は公式APIをfetch)
  *     onStart(reset),
  *     onProgress({ done, total }),  // 数値ソートの全件取得中の進捗(ページ数)。省略可(#44)
@@ -23,6 +23,9 @@
  *   GA_CARD_SEARCH.createSelectedFilters({ container, list, groups, onChange, onRemoveOne }) → { render }
  *   GA_CARD_SEARCH.initAccordion({ groups, minWidth })
  *
+ * els.q は「カード名＋効果テキスト」をまとめて検索する入力欄1つ（#111）。
+ * ⚠ かつての els.name（名前欄）／els.text（効果欄）は無い。渡しても一切見ないので、
+ *   移行し忘れたページでは「入力しても1件も絞られない」という誰でも気づく壊れ方になる。
  * els.set の value は I18N.meta.sets のインデックス。els.order は dataset.dir に "ASC"/"DESC" を持つボタン。
  *
  * cls/element/type/subtype/rarity は fillChips() が作るチップ群(複数選択+AND/OR)を渡す。
@@ -460,6 +463,69 @@ window.GA_CARD_SEARCH = (() => {
   //    ⭐ 必ずこの関数から導くこと——別々にハードコードすると片方だけ直したときに静かにずれる。
   const isIndexBlind = (entry) => entry[2] === null;
 
+  // ---------- テキスト検索（カード名と効果テキストの一本化・#111）----------
+
+  // ⭐ トークン化の唯一の出所。JPモードとENモードが同じものを使う（#111 §5-1）。
+  //   - 空白（半角・全角）で語に分ける＝語ごとに AND・場所は問わない（ユーザー決定 D3）
+  //   - "…" で囲んだ部分は1トークン（句）として扱う。閉じ忘れも句として拾う
+  // ⭐ 引用符が要る理由: 空白を素直に AND にすると「ひとくちキーワード解説」の用語リンク
+  //   134本のうち 74本が壊れる（On Banish が 3件 → 569件・#111 N-j）。
+  // ⚠ 小文字化して返す。呼び出し側で toLowerCase しないこと（二重に書くと片方だけ直る）。
+  function textTokens(s) {
+    const out = [];
+    const src = String(s == null ? "" : s).replace(/　/g, " "); // 全角空白も区切りにする
+    const re = /"([^"]*)"?|([^\s"]+)/g;
+    let m;
+    while ((m = re.exec(src)) !== null) {
+      const t = (m[1] !== undefined ? m[1] : m[2]).trim().toLowerCase();
+      if (t) out.push(t);
+    }
+    return out;
+  }
+
+  // ⭐ 一致の述語の唯一の出所（#111 §3-1）。
+  //     nameTexts   = card.name ∪ 裏面（editions[].other_orientations[]）の name
+  //     effectTexts = card.effect_raw ∪ 版ごとの effect_raw ∪ 裏面の effect_raw
+  //     hit(card, t) = そのいずれかが t を部分文字列として含む（小文字化）
+  // ⭐ これで公式APIの name= / effect= と完全に同じ結果になることを 40語・2,495枚で実測した
+  //   （不一致 0。うち12語は slug 集合まで突き合わせて完全一致・#111 §3-2）。
+  // ⚠ effect ではなく effect_raw を見る。effect は **太字** マークを持ち、自カード名が
+  //   CARDNAME というプレースホルダになっているので、effect を見ると取りこぼす
+  //   （実測: "buff counter" が 157件 → 1件 ／ under-fire が fire に当たらなくなる・N-b）。
+  // ⚠ 裏面と版ごとの効果文を外すと APIより狭くなる（fire 111→110 ／ counter 583→582・N-c/N-d）。
+  // ⚠ result_editions は見ない（全件取得路で delete されるため・#44 §2.4）。
+  // ⚠ card.editions を破壊しない（card-cache.js が同じオブジェクトを持ち回る・#107）。読むだけ。
+  const lcText = (s) => String(s == null ? "" : s).toLowerCase();
+  function searchTextsOf(card) {
+    const out = [card.name, card.effect_raw || card.effect];
+    for (const e of card.editions || []) {
+      out.push(e.effect_raw || e.effect);
+      for (const o of e.other_orientations || []) out.push(o.name, o.effect_raw || o.effect);
+    }
+    return out;
+  }
+  function matchesText(card, tokens) {
+    if (!tokens || !tokens.length) return true;
+    if (!card) return false;
+    const texts = searchTextsOf(card).map(lcText);
+    return tokens.every((t) => texts.some((x) => x.includes(t)));
+  }
+
+  // ⭐ 旧 qtext（効果テキスト欄）を新しい1欄の文字列へ畳む（#111 §9-1）。
+  //   共有URL・「ひとくちキーワード解説」の旧リンク・デッキ構築の localStorage に保存済みの
+  //   検索タブが、いずれも qtext を持っている。
+  // ⚠ ⭐ 変換はここ1か所。2つの app.js にコピーしないこと
+  //   （0件文言・用語ハイライト・preferredArtIndex に続く二重定義を増やさない）。
+  // ⭐ 旧 qtext は「効果テキストの句」の意味だったので、空白があれば " で囲んで句にする。
+  // ⚠ すでに " を含むときは触らない（新しい形の値をそのまま尊重する）。
+  function mergeLegacyText(q, qtext) {
+    const a = String(q == null ? "" : q).trim();
+    const b = String(qtext == null ? "" : qtext).trim();
+    if (!b) return a;
+    const phrase = !b.includes('"') && /\s/.test(b) ? `"${b}"` : b;
+    return a ? `${a} ${phrase}` : phrase;
+  }
+
   // ---------- 数値項目の並び替え（#39 → #44 で全件取得に変更）----------
 
   // 公式APIは PostgreSQL 既定の null 順序で返すため、降順にすると
@@ -479,7 +545,20 @@ window.GA_CARD_SEARCH = (() => {
   const ALL_PAGE_SIZE = 50;               // 公式APIの page_size 上限
   const ALL_CONCURRENCY = 6;              // 並列度。12でも17.2秒→18.6秒とほぼ変わらない（実測2026-08-06・429なし）
   const MAX_PAGES = 60;                   // 暴走止め。2,240件÷50=45が現状の上限
-  const ALL_CACHE_MAX = 4;                // 絞り込みを変えるたび全件集合が積み上がるのを防ぐ
+  // 絞り込みを変えるたび全件集合が積み上がるのを防ぐ。
+  // ⚠ ⭐ 4 では足りない（#111 §5-3）。union 路は1回の検索で2キー使うので、FIFO 4 のままだと
+  //   全件路の集合がすぐ追い出される。⭐ ヒット時にキーを入れ直して LRU にしてある。
+  const ALL_CACHE_MAX = 6;
+
+  // ⭐ ENテキストモードで union 路（最安トークンの name= ∪ effect=）を使う上限ページ数（#111 §5-3）。
+  // ⭐ 定数でよい理由: name=t / effect=t はどちらも「絞り込みだけの集合」の部分集合なので、
+  //   union 路のページ数は全件路の2倍を超えない＝定数で切っても最適な路より最大2倍しか損しない。
+  const TEXT_UNION_MAX_PAGES = 20;
+  // ⭐ ENテキストモードで検索を始める最小のトークン長（#111 §5-6）。
+  //   実測（カード名の先頭N文字）: 全件路（50ページ・約40秒）に落ちる割合は
+  //   1文字 84.6% / 2文字 33.0% / 3文字 1.5% / 4文字 0.1% / 5文字 0%。
+  // ⚠ JPモードには適用しない（1文字でも全部ローカル照合＝0リクエスト）。
+  const TEXT_MIN_LEN = 3;
 
   // 件数表示の注記に使う項目名（並び替えプルダウンの表記に合わせる）
   const NUMERIC_SORT_LABELS = {
@@ -539,15 +618,24 @@ window.GA_CARD_SEARCH = (() => {
   //   ここ1箇所へ寄せた。⚠ 呼び出し側へ文言を書き戻さないこと——npm run validate が
   //   このマーカーの中の文言を2つの app.js から探し、見つかったら exit 1 にする（#101 §6）。
   // ⚠ shown は DOM 由来（タイルの枚数）なので呼び出し側が数えて渡す。この関数は DOM を触らない。
-  // ⚠ 分岐の順序を入れ替えないこと（element-and → shown === 0 → 件数行）。とくに element-and の
-  //   早期returnは shown を問わず先頭で判定するのが役割で、後ろへ動かすと前の検索のタイルが
-  //   残ったまま「N 件を表示」が出る。
+  // ⚠ 分岐の順序を入れ替えないこと（element-and → short-text → shown === 0 → 件数行）。とくに
+  //   element-and / short-text の早期returnは shown を問わず先頭で判定するのが役割で、後ろへ
+  //   動かすと前の検索のタイルが残ったまま「N 件を表示」が出る。
   // ⚠ 同じファイル内の注記関数は ?. を付けずに直接呼ぶ（消したときに無言で空文字にしないため）。
   // 戻り値の showLoadMore は今日の全経路で !!info.hasMore と一致するが、「文言は出すが
   // 『もっと見る』は隠す」分岐を片方の画面にだけ書く穴を塞ぐために2値で返す（#101 D2）。
   function searchStatus(info, shown) {
     if (info.blocked === "element-and") {
       return { text: ELEMENT_AND_MESSAGE, showLoadMore: false };
+    }
+    if (info.blocked === "short-text") {
+      // ⭐ ENテキストモードの3文字ガード（#111 §5-6）。公式APIを1回も叩いていない状態の案内。
+      // ⚠ これは「0件」ではなく「検索していない」である（#114 のユーザー決定A/B で
+      //   0件文言は増やさないと決まっているので、0件側の分岐には足さない）。
+      return {
+        text: "英語で検索するときは3文字以上入力してください。",
+        showLoadMore: false,
+      };
     }
     if (shown === 0) {
       // AND条件や取得後の判定は取得済みのページに対して適用するため、このページに1件も
@@ -788,18 +876,34 @@ window.GA_CARD_SEARCH = (() => {
       return true;
     }
 
-    // 名前欄・効果テキスト欄それぞれの日本語入力を返す（無ければ ""）
-    // サーバーは英語データのみのため、日本語はローカル訳（name/effect）から検索する。
-    function jpNameQuery() {
-      const n = trimmed(els.name);
-      return n && hasJapanese(n) ? n : "";
-    }
-    function jpEffectQuery() {
-      const t = trimmed(els.text);
-      return t && hasJapanese(t) ? t : "";
-    }
+    // ---------- テキスト欄（カード名＋効果の一本化・#111 §5-0 / §5-6 / §5-7）----------
+    // ⭐ 欄は els.q の1つだけ。⚠ els.name / els.text は見ない（上のモジュールコメント）。
+    const textQuery = () => trimmed(els.q);
+
+    // サーバーは英語データのみのため、日本語を含む入力はローカル訳（name/effect）から検索する。
+    // ⚠ ⭐ 混在入力（「ロレイン draw」）も JPモードになり、全トークンを訳に当てる＝
+    //   draw は訳文に無いので 0件になる。今日は英語が黙って無視されて 7件（既存の fail-open）で、
+    //   0件のほうが正直だが変化である（#111 §5-7・検証項目 V13）。
     function isJpTextMode() {
-      return jpNameQuery() !== "" || jpEffectQuery() !== "";
+      const s = textQuery();
+      return s !== "" && hasJapanese(s);
+    }
+
+    // ENテキストモードのトークン。日本語を含むときは空＝JPモードが担当する。
+    // ⚠ 入力が " や空白だけのときも空になる（＝テキスト条件なしとして既存の経路を通る）。
+    function enTokens() {
+      const s = textQuery();
+      if (!s || hasJapanese(s)) return [];
+      return textTokens(s);
+    }
+
+    // ⭐ ENテキストモードでは「TEXT_MIN_LEN 文字以上のトークンが1つも無い」とき検索しない
+    //   （公式APIを1回も叩かない・#111 §5-6）。
+    // ⚠ 短いトークンそのものは禁止しない——「a draw」は draw が種になり、a はローカルで当たる。
+    // ⚠ 今日できて明日できなくなるのは英語2文字の名前検索（ab → 70件）。D2 に伴う影響として受ける。
+    function shortTextBlocked() {
+      const toks = enTokens();
+      return toks.length > 0 && !toks.some((t) => t.length >= TEXT_MIN_LEN);
     }
 
     const sortField = () => (els.sort ? (els.sort.value || "name") : "name");
@@ -809,12 +913,13 @@ window.GA_CARD_SEARCH = (() => {
 
     // sort/order/page/page_size を除いた絞り込みだけのパラメータ。
     // N のキャッシュキーにも使うため、並び替えの指定はここに含めない
+    // ⚠ ⭐ テキスト欄（name= / effect=）はここに入れないこと（#111 §5-3・破壊試験 B7）。
+    //   これが鍵で、全件路のキャッシュキーが「絞り込みだけ」になる＝テキストを打ち換えても
+    //   再取得が起きない（実測: 2回目が 40秒 → 1.85秒）。
+    //   ⭐ テキストは enTextPool() が name= / effect= を自分で足して上位集合を取り、
+    //   最終的な一致は matchesText() がローカルで判定する。
     function filterParams() {
       const p = new URLSearchParams();
-      const q = trimmed(els.name);
-      if (q) p.set("name", q);
-      const text = trimmed(els.text);
-      if (text) p.set("effect", text); // 効果テキスト検索（英語）。日本語はJPモードで別処理
       // 複数値: ORは同名パラメータの繰り返しでAPIが処理する（エキスパンションの prefix と同じ方式）。
       // ANDはAPIが非対応のため1値だけ送り、残りは run() の後段フィルタで間引く。
       MULTI.forEach(([key, param]) => {
@@ -844,17 +949,21 @@ window.GA_CARD_SEARCH = (() => {
       return p.toString();
     }
 
-    // ローカル訳を検索して slug の配列を返す。
-    // 名前欄の日本語は name のみ、効果欄の日本語は effect のみに一致させる（両方あれば AND）。
+    // ローカル訳を検索して slug の配列を返す（#111 §5-7）。
+    // ⭐ トークンごとに「訳の name ∪ 訳の effect」・トークン間は AND。
+    //   ENモードの matchesText() と同じ規則を、カード本体の代わりに訳データへ適用している。
+    // ⚠ ⭐ 欄が1つなので「名前だけを探している」と知る術が無い＝ #22 フェーズ2 の
+    //   「名前だけの日本語検索では効果JSONを取らない」という方針は一本化で手放した
+    //   （run() の loadEffects の待ちが JPモードで常に入る・破壊試験 B9）。
     function localJpSlugs() {
-      const nq = jpNameQuery().toLowerCase();
-      const eq = jpEffectQuery().toLowerCase();
+      const toks = textTokens(textQuery());
       const cards = I18N.cards || {};
       const out = [];
       for (const slug in cards) {
         const c = cards[slug];
-        if (nq && !String(c.name || "").toLowerCase().includes(nq)) continue;
-        if (eq && !String(c.effect || "").toLowerCase().includes(eq)) continue;
+        const name = String(c.name || "").toLowerCase();
+        const eff = String(c.effect || "").toLowerCase();
+        if (!toks.every((t) => name.includes(t) || eff.includes(t))) continue;
         out.push(slug);
       }
       return out.sort();
@@ -992,9 +1101,18 @@ window.GA_CARD_SEARCH = (() => {
     // ⭐ そのため並び替えの項目・方向を変えても再取得は起きない（ローカルで並べ直すだけ＝0リクエスト）
     const allCache = new Map();
 
-    function fetchAll(key) {
-      if (allCache.has(key)) return allCache.get(key);
-      const p = fetchAllPages(key).catch((err) => {
+    // first を渡すと「1ページ目はもう取ってある」として再取得を省く（#111 §5-3 の
+    // プローブ兼1ページ目）。⚠ キャッシュにあるときは first を無視する（既にある集合が正）。
+    function fetchAll(key, first) {
+      if (allCache.has(key)) {
+        // ⚠ ⭐ ヒット時はキーを入れ直して LRU にする（#111 §5-3）。union 路は1回の検索で
+        //   2キー使うので、FIFO のままだと全件路の集合がすぐ追い出される。
+        const hit = allCache.get(key);
+        allCache.delete(key);
+        allCache.set(key, hit);
+        return hit;
+      }
+      const p = fetchAllPages(key, first).catch((err) => {
         allCache.delete(key); // 失敗を焼き付けない（再検索でやり直せるように）
         throw err;
       });
@@ -1009,15 +1127,29 @@ window.GA_CARD_SEARCH = (() => {
     // 進捗の購読先。取得中の run() が1つだけ受け取る。
     // ⚠ 進行中のPromiseを別の run() が使い回すことがあるため、購読者は「発火時」に引く
     //   （開始時に捕まえた callback を持ち回すと、古いシーケンス宛てに出続ける）
+    // ⭐ union 路は1回の検索で2キーを取るので、購読は複数キーを持てるようにして合算して出す
+    //   （#111 §5-4）。⚠ 1キーのとき（全件路・数値ソート）は done/total がそのまま出る。
     let progressSub = null;
+    function subscribeProgress(keys, fn) {
+      progressSub = { keys, fn, done: new Map(), total: new Map() };
+    }
     function emitProgress(key, done, total) {
-      if (progressSub && progressSub.key === key) progressSub.fn(done, total);
+      if (!progressSub || !progressSub.keys.includes(key)) return;
+      progressSub.done.set(key, done);
+      progressSub.total.set(key, total);
+      let d = 0;
+      let t = 0;
+      for (const k of progressSub.keys) {
+        d += progressSub.done.get(k) || 0;
+        t += progressSub.total.get(k) || 0;
+      }
+      progressSub.fn(d, t);
     }
 
     // 安定キー（collector_number）で絞り込み結果を全ページ取得する。
     // ⚠ base は呼び出し元が固定した絞り込み条件。ここで現在のUIを読み直してはいけない
     //   （読み直すと、取得中の絞り込み変更で誤った集合が「変更前のキー」で焼き付く）
-    async function fetchAllPages(base) {
+    async function fetchAllPages(base, first) {
       // ⚠ 1ページでも失敗したらこの検索全体を失敗させる（fail-fast）。
       //   部分集合で並べると「順位は正しいが歯抜け」という最も気づきにくい壊れ方になる
       const get = async (k) => {
@@ -1039,9 +1171,10 @@ window.GA_CARD_SEARCH = (() => {
           cards.push(c);
         }
       };
-      const first = await get(1);
-      const total = first.total_cards || 0;
-      push(first);
+      // ⭐ 1ページ目は呼び出し元が取っていることがある（#111 のプローブ）。あれば再取得しない
+      const head = first || await get(1);
+      const total = head.total_cards || 0;
+      push(head);
       const pages = Math.min(Math.ceil(total / ALL_PAGE_SIZE), MAX_PAGES); // MAX_PAGES は暴走止め
       if (pages > 0) emitProgress(base, 1, pages); // 0件のときは「0/0ページ」を出さない
       const nums = [];
@@ -1073,16 +1206,127 @@ window.GA_CARD_SEARCH = (() => {
       return list;
     }
 
+    // ---------- テキスト検索のローカル並べ替え（#111 §5-5）----------
+    // ⭐ 比較器は実測で確定した。⚠ 比較関数は必ず全順序にする（同点は slug）——
+    //   怠ると Array#sort の安定性に依存した順序になる。同点も slug で決めるので
+    //   降順は昇順の完全な逆順（sortNumeric / sortJpCand と同じ規則）。
+
+    // 名前順。⭐ このキー（小文字化 → 英数以外を除去）で公式APIの sort=name と
+    //   2,495件の隣接ペアの逆転 0（実測）。
+    // ⚠ localeCompare（105組ずれる）・素の <（119組ずれる）に替えないこと（N-g・破壊試験 B4）。
+    // ⚠ 非ASCIIのカード名は今日1件も無い（実測0件）。将来現れたら除去でその文字が消えたキーに
+    //   なるので、見つかった時点で測り直す。
+    // ⚠ 同キーになるのは Nameless Champion の18枚だけで、そこだけ APIの内部順序と並びが違う
+    //   （APIは slug 順でもない）。残り 2,477枚は API と完全に同順（#111 N1 で受けた）。
+    const localNameKey = (card) => String(card.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+    // レアリティ順。⭐ 公式APIの sort=rarity は「エキスパンション絞り込み後の版群の最小」。
+    // ⚠ 「全版の最小」にすると prefix=ALC で2組逆転する（N-h・破壊試験 B5）。
+    // ⭐ 規則は JPモードの sortKeyOf()（メタ索引の entry[7] の最小）と同じ。
+    //   ⚠ 一本化はしない——あちらは取得前に slug を並べるのでメタ索引の値を使い、こちらは
+    //   取得後にカードを並べるのでカード本体を使う＝入力が別物（#111 §5-5）。
+    function localRarityKey(card) {
+      const have = editionSetOf(card)
+        .map((e) => Number(e.rarity))
+        .filter((v) => Number.isFinite(v));
+      return have.length ? Math.min(...have) : Infinity; // 版が無い/値が無い → 末尾
+    }
+
+    function sortLocal(list) {
+      const field = sortField();
+      if (isNumericSort()) return sortNumeric(list, field);
+      const dir = orderDir() === "DESC" ? -1 : 1;
+      const keyOf = field === "rarity" ? localRarityKey : localNameKey;
+      list.sort((a, b) => {
+        const ka = keyOf(a);
+        const kb = keyOf(b);
+        if (ka !== kb) return (ka < kb ? -1 : 1) * dir;
+        const sa = a.slug || a.uuid || "";
+        const sb = b.slug || b.uuid || "";
+        return (sa < sb ? -1 : sa > sb ? 1 : 0) * dir;
+      });
+      return list;
+    }
+
+    // ---------- ENテキストモードの候補集合（上位集合）・#111 §5-3 ----------
+    // ⭐ #44 の数値ソートと同じ形: 安定キーで上位集合を全件取り、一致・除外・並び替え・
+    //   ページングはすべてローカルで行う。
+    // ⭐ 路は2つあり、どちらも必ず同じ答えを返す（#111 §3-2 の帰結・検証項目 V9）:
+    //     union 路 … 最安トークン t の name=t ∪ effect=t
+    //                （1語の答えは union と厳密に等しく、複数語の答えはどれか1語の union の部分集合）
+    //     全件路   … 絞り込みだけの全件（⭐ キーにテキストが入らないので、同じ絞り込みのまま
+    //                語を変えても 0リクエストになる）
+    // ⚠ ①のプローブは「1ページ目そのもの」なので、1語の検索は合計2リクエストで終わる。
+    // ⚠ page_size=1 を使わないこと——公式APIは page_size=1 のとき total_cards を 1 と返す（N-e）。
+    async function enTextPool(toks, base, onProg, isStale) {
+      const keyOf = (field, t) => {
+        const p = new URLSearchParams(base);
+        p.set(field, t); // ⚠ base にテキストは入っていないので必ず末尾に付く＝キーは決定的
+        return p.toString();
+      };
+      const probe = async (key) => {
+        const res = await fetch(`${API}/cards/search?${key}&sort=${STABLE_SORT}&order=ASC&page=1&page_size=${ALL_PAGE_SIZE}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      };
+      // ① プローブ兼1ページ目（2 × トークン数 のリクエストを並列で）
+      const keys = [];
+      toks.forEach((t) => keys.push(keyOf("name", t), keyOf("effect", t)));
+      const jsons = await Promise.all(keys.map(probe));
+      if (isStale()) return null;
+      const firsts = new Map();
+      keys.forEach((k, i) => firsts.set(k, jsons[i]));
+
+      // ② 路を決める（cost が最小のトークン。⚠ 同値なら先頭＝ < で比べる）
+      const pagesOf = (n) => Math.ceil(n / ALL_PAGE_SIZE);
+      let best = null;
+      for (const t of toks) {
+        const n = firsts.get(keyOf("name", t)).total_cards || 0;
+        const e = firsts.get(keyOf("effect", t)).total_cards || 0;
+        const cost = pagesOf(n) + pagesOf(e);
+        if (!best || cost < best.cost) best = { t, cost };
+      }
+
+      // ⚠ 突き合わせは #44 と同じ「APIの申告件数 vs 取得できたユニーク件数」を路の全辺で見る
+      //   （fail-open の注記＝出たら異常の信号。union 路でも突き合わせる・#111 §5-4）。
+      //   ⭐ ページングが健全なら辺ごとに等しいので、和も必ず等しい＝重なりでは点灯しない。
+      const gapOf = (parts) => {
+        const unique = parts.reduce((s, r) => s + r.cards.length, 0);
+        const total = parts.reduce((s, r) => s + r.total, 0);
+        return unique === total ? null : { unique, total };
+      };
+
+      // ③ 取得（どちらも既存の fetchAll / allCache を通す）
+      if (best.cost <= TEXT_UNION_MAX_PAGES) {
+        const kn = keyOf("name", best.t);
+        const ke = keyOf("effect", best.t);
+        subscribeProgress([kn, ke], onProg);
+        const [N, E] = await Promise.all([
+          fetchAll(kn, firsts.get(kn)),
+          fetchAll(ke, firsts.get(ke)),
+        ]);
+        const m = new Map();
+        for (const c of N.cards.concat(E.cards)) m.set(c.slug || c.uuid, c);
+        return { cards: Array.from(m.values()), gap: gapOf([N, E]), route: "union" };
+      }
+      subscribeProgress([base], onProg);
+      const all = await fetchAll(base);
+      return { cards: all.cards, gap: gapOf([all]), route: "all" };
+    }
+
     async function run(reset) {
       const mySeq = ++seq;
       // onStart は「検索中…」表示とグリッドのクリアを行うため、効果JSONの取得(下)より前に呼ぶ。
       // 初回の日本語効果検索はここで待ちが入るので、その間もユーザーには進行中と分かる(R1)
       if (opts.onStart) opts.onStart(reset);
       if (reset) {
-        // 日本語の効果検索は I18N.cards[].effect を走査する。効果は遅延読み込みなので
-        // 「効果欄に日本語が入っているときだけ」ここで取得を待つ(#22 フェーズ2)。
-        // 名前だけの日本語検索では取得しない — ここが緩むとフェーズ2の意味が消える
-        if (jpEffectQuery()) {
+        // 日本語検索は I18N.cards[].name と .effect を走査する。効果は遅延読み込みなので
+        // ここで取得を待つ。
+        // ⚠ ⭐ #111 で「JPモードに入ったら常に待つ」に変えた（#22 フェーズ2 の
+        //   「名前だけの日本語検索では取得しない」を一本化で手放した）。欄が1つになり
+        //   「名前だけを探している」と知る術が無いため。⭐ effectsPromise によりセッション中1回だけ。
+        //   ⚠ 「効果に日本語があるときだけ」に戻すと「ロレイン」が 13件 → 7件になる（破壊試験 B9）。
+        if (isJpTextMode()) {
           await loadEffects(opts.effectsUrl);
           if (mySeq !== seq) return;
         }
@@ -1105,6 +1349,9 @@ window.GA_CARD_SEARCH = (() => {
         //   検証・デバッグから観測できるように残してある（jpBlindDropped と同じ扱い）
         // ⚠ 非JPモードでは 0 のまま返す（jpMatched 等と同じ扱い）
         let jpChecked = 0;
+        // ENテキストモードのトークン（JPモード中は空＝あちらが担当する）。
+        // ⚠ reset で固定しないのは isNumericSort() と同じ扱い（els を毎回読む）。
+        const enToks = jpSlugs ? [] : enTokens();
         if (elementAndBlocked()) {
           // 検索するまでもなく0件が確定する組み合わせ。APIを叩かずに結果なしとして返す
           pager.total = 0;
@@ -1112,6 +1359,19 @@ window.GA_CARD_SEARCH = (() => {
           opts.onResults([], {
             reset, jpMode: false, total: 0, hasMore: false,
             andMode: true, approxTotal: false, blocked: "element-and", fetchGap: null,
+            numericSort: null, jpSortUnknown: 0, jpSortDropped: false, jpMatched: 0, jpDropped: 0,
+          });
+          return;
+        }
+        if (shortTextBlocked()) {
+          // ⭐ ENテキストモードの3文字ガード（#111 §5-6）。公式APIを1回も叩かずに返す。
+          // ⚠ これは「0件」ではない——searchStatus() の short-text 分岐が案内を出す。
+          // ⚠ 判定は element-and の後・取得の前。後ろへ動かすとAPIを叩いてしまう。
+          pager.total = 0;
+          pager.hasMore = false;
+          opts.onResults([], {
+            reset, jpMode: false, total: 0, hasMore: false,
+            andMode: anyAnd(), approxTotal: false, blocked: "short-text", fetchGap: null,
             numericSort: null, jpSortUnknown: 0, jpSortDropped: false, jpMatched: 0, jpDropped: 0,
           });
           return;
@@ -1182,14 +1442,37 @@ window.GA_CARD_SEARCH = (() => {
           // ⚠ 候補の件数は概算にならない。approxTotal が立つのは *結果* 件数が概算という意味で、
           //   ここで数えているのは jpCand（候補）そのものなので言い切ってよい
           jpChecked = Math.min(from + JP_PAGE_SIZE, jpCand.length);
+        } else if (enToks.length) {
+          // ⭐ ENテキストモード（#111 §5-3）。上位集合を全件取り、一致・除外・並び替え・
+          //   ページングはローカルで行う（#44 の数値ソートと同じ形）。
+          const base = filterParams().toString();
+          const got = await enTextPool(enToks, base, (done, pages) => {
+            if (mySeq !== seq || !opts.onProgress) return;
+            opts.onProgress({ done, total: pages });
+          }, () => mySeq !== seq);
+          if (mySeq !== seq || !got) return;
+          const field = sortField();
+          // ⭐ 一致の判定はここ1回だけ（matchesText が唯一の出所・#111 §5-2）
+          let pool = got.cards.filter((c) => matchesText(c, enToks));
+          // 数値項目で並べ替えるときは、その項目を持たないカードを除く（#39 の規則）
+          if (isNumericSort()) pool = pool.filter((c) => !isNullish(field, c));
+          // AND指定はAPIが上位集合しか返せないため客側で間引く。
+          // ⭐ 上位集合の全件に対して間引けるので総件数は概算にならない（approxTotal: false）
+          if (anyAnd()) pool = pool.filter(matchesAndFilters);
+          sortLocal(pool);
+          const from = (pager.page - 1) * PAGE_SIZE;
+          cards = pool.slice(from, from + PAGE_SIZE);
+          total = pool.length;
+          hasMore = from + PAGE_SIZE < pool.length;
+          fetchGap = got.gap;
         } else if (isNumericSort()) {
           // 安定キーで絞り込み結果を全件取り、除外・並び替え・ページングはローカルで行う（#44）。
           // ⚠ APIの数値ソートは同点行でページングが壊れるため使わない
           const key = filterParams().toString();
-          progressSub = { key, fn: (done, pages) => {
+          subscribeProgress([key], (done, pages) => {
             if (mySeq !== seq || !opts.onProgress) return;
             opts.onProgress({ done, total: pages });
-          } };
+          });
           const all = await fetchAll(key);
           if (mySeq !== seq) return;
           const field = sortField();
@@ -1226,7 +1509,8 @@ window.GA_CARD_SEARCH = (() => {
           // 数値ソート(ENモード)は全件に対してANDを間引けるため件数が正確になる（#44 §6）。
           // ⚠ 非数値ソートの挙動は変えない（取得済みページ内で間引くので概算のまま）
           andMode: anyAnd(),
-          approxTotal: jpSlugs ? jpApprox : (anyAnd() && !isNumericSort()),
+          // ⭐ ENテキストモードも上位集合の全件に対して間引くので概算にならない（#111 §5-4）
+          approxTotal: jpSlugs ? jpApprox : (anyAnd() && !isNumericSort() && !enToks.length),
           blocked: null,
           // 全件取得がAPIの申告件数と食い違ったとき（#44 §5）。出たら異常の信号（通常は null）
           fetchGap,
@@ -1402,6 +1686,9 @@ window.GA_CARD_SEARCH = (() => {
     fetchGapNote,
     // 件数欄の文言（#101）。⚠ 呼び出し側に書き戻さないこと（npm run validate が落とす）
     searchStatus,
+    // ⭐ テキスト検索の一本化（#111）。トークン化・一致の述語・旧 qtext の畳み込みは
+    //   どれもここ1か所に置く。⚠ 2つの app.js に書き戻さないこと（二重定義を増やさない）。
+    textTokens, matchesText, mergeLegacyText,
     SUBTYPE_TOP, ELEMENT_AND_MESSAGE,
     // ⭐ 版レベル項目（isIndexBlind）の一覧。npm run validate が読んで、第2段
     //    （rarityMatchesIn）が名指ししているキーとずれていないかを検査する（#93）。

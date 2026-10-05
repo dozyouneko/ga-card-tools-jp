@@ -86,7 +86,7 @@ a { color: var(--accent-2); }
   flex-wrap: wrap;
   align-items: center;
 }
-#q, #qtext {
+#q {
   flex: 1 1 280px;
   min-width: 200px;
 }
@@ -520,7 +520,7 @@ a { color: var(--accent-2); }
   .controls input, .controls select, .controls button { font-size: 16px; padding: 11px 12px; }
 
   /* 検索入力は全幅で縦積み */
-  #q, #qtext { flex: 1 1 100%; min-width: 0; }
+  #q { flex: 1 1 100%; min-width: 0; }
   #order, #reset { min-width: 0; }
   /* チップ側のスマホ調整（上の一括指定を戻す）は shared/css/filter-chips.css にある・#31 */
 
@@ -624,7 +624,7 @@ a { color: var(--accent-2); }
 
   /* ペインの中は縦1列。⭐ これで #q が画面幅に依存しない固定幅になる（G1） */
   .controls-row { flex-direction: column; align-items: stretch; }
-  #q, #qtext { flex: 0 0 auto; width: 100%; min-width: 0; }
+  #q { flex: 0 0 auto; width: 100%; min-width: 0; }
   .filter-row { grid-template-columns: minmax(0, 1fr); }
   .filter-rest { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .filter-rest select { grid-column: 1 / -1; }
