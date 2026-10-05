@@ -38,10 +38,16 @@
     list.innerHTML = shown
       .map((t) => {
         // 検索は英語キーワードで行う(英語原文には必ず含まれるため、和訳の言い回し差で取りこぼさない)
-        const href = `../../index.html?qtext=${encodeURIComponent(t.en)}`;
+        // ⭐ 検索欄が1つになったので q= に書く(#111 §4-3)。
+        // ⚠️ ⭐ 空白を含む英語名は " で囲んで「句」として渡す。囲まないと語ごとの AND になり、
+        //    134本のうち 74本が壊れる(実測: On Banish が 3件 → 569件)。
+        // ⚠️ 旧 ?qtext= のリンク(ブックマーク・外部から貼られたURL)もトップ側が読む。
+        //    変換は共有側 GA_CARD_SEARCH.mergeLegacyText() の1か所に置いてある。
+        const term = /\s/.test(t.en) ? `"${t.en}"` : t.en;
+        const href = `../../index.html?q=${encodeURIComponent(term)}`;
         return `<li>
           <div class="term-head">
-            <a class="term-jp" href="${escapeHtml(href)}" title="効果テキスト検索でこの用語を検索">${escapeHtml(t.jpCore)}</a>
+            <a class="term-jp" href="${escapeHtml(href)}" title="この用語でカードを検索">${escapeHtml(t.jpCore)}</a>
             <span class="term-en">${escapeHtml(t.en)}</span>
           </div>
           <span class="term-desc">${escapeHtml(t.desc)}</span>
