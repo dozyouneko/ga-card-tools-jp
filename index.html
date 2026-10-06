@@ -69,7 +69,7 @@
       <!-- ⭐ 検索欄は1つだけ（#111）。カード名と効果テキストをまとめて検索する。
            ⚠️ #qtext（効果テキスト欄）は撤去した。旧 ?qtext= のリンク・共有URLは
               app.js の applyUrlQuery() が GA_CARD_SEARCH.mergeLegacyText() でここへ畳む。 -->
-      <input type="search" id="q" placeholder="カード名・効果テキストをまとめて検索（英語 / 日本語）… 例: lorraine draw" autocomplete="off" />
+      <input type="search" id="q" placeholder="カード名・効果テキストで検索(英/日)" autocomplete="off" />
     </div>
     <!-- ⚠ aria-controls はシート全体(#filter-sheet)を指す。FAB(#filter-fab)と指し先を揃えてある -->
     <button id="filter-toggle" class="filter-toggle" type="button" aria-expanded="false" aria-controls="filter-sheet"><span id="filter-toggle-label">絞り込み・並び替え ▾</span><span id="filter-toggle-badge" class="fbadge" hidden></span></button>
