@@ -1467,6 +1467,192 @@ const INDEX_BLIND_FIXTURES = {
   }
 }
 
+// --- AND指定の答えが1画面目に出そろうことの検査（#102 単位1） ----------------
+// 公式APIはANDを解けないので、絞り込みのAND指定では上位集合（種1値）しか返らない。
+// かつては1ページだけ取って取得済みのページ内で間引いていたため、
+//   ・1画面目のタイルが答えより少ない（WIND∩EXALTED は 17枚の答えに対して 12枚）
+//   ・「もっと見る」が「まだ分からない」の意味で出る
+//   ・総件数を出せず「（AND条件などは…総件数は表示できません）」と言うしかない
+// という状態だった（#102 症状③）。いまは isNumericSort() || anyAnd() で全件路へ寄せ、
+// 上位集合の全件に対して間引く＝答えの件数 N を1画面目を描く前に確定させている。
+//
+// ⚠ ⭐ これを元に戻しても npm run validate は緑・生成物の差分も無く・画面も壊れない
+//   （件数が減って「もっと見る」が出るだけで、警告も注記も出ない無言の劣化）。だから行動で測る。
+// ⚠ 字句検査にしない。vm で本物のモジュールを読み、偽APIを置いて run() を実際に走らせる
+//   （#93 / #108 と同じ「実物を動かして測る」方針。整形で壊れない）。
+// ⚠ ネットワークは使わない（validate はオフライン前提）。
+// ⚠ ⭐ フィクスチャが0組なら exit 1（fail-closed）。表だけ消して黙らせる逃げ道を塞ぐ。
+//
+// ⭐ 識別力（dev が #102 の実装時に実測）: 分岐を isNumericSort() に戻すと
+//    AF1 は「答え 2件 → 1件・hasMore true・approxTotal true」、AF2 は「50件/全60件 → 25件」で落ちる。
+//    approxTotal を anyAnd() に戻すと AF2 の件数欄から「/ 全 60 件」が消えて落ちる。
+//    sortLocal を sortNumeric に戻すと AF1/AF2 の並びが崩れて落ちる（期待は name 順）。
+
+// 合成の上位集合。種（andSeed が送る1値）は "ACTION"、ANDのもう一方は "ALLY"。
+// ⚠ 上位集合は ALL_PAGE_SIZE(50) を必ず超えること——1ページに収まると
+//   「1ページだけ取る実装」でも答えが全部そろってしまい、このフィクスチャは何も守らなくなる。
+// ⚠ ⭐ 答えの1枚は必ず2ページ目（添字 50 以上）に置くこと。1ページ目だけに置くと同じく空回りする。
+const AF_DECK = (n, answers) =>
+  Array.from({ length: n }, (_, i) => {
+    const a = answers[i];
+    return {
+      slug: `af${String(i).padStart(3, "0")}`,
+      name: a ? a.name : `Af Filler ${String(i).padStart(3, "0")}`,
+      types: a ? ["ACTION", "ALLY"] : ["ACTION"],
+      editions: a && a.rarity != null ? [{ slug: `af${i}-1`, rarity: a.rarity }] : [],
+    };
+  });
+const afChip = (values, mode) => ({ getValues: () => values, getMode: () => mode });
+const AND_FIXTURES = [
+  // AF1: 答えは2枚で、片方は上位集合の2ページ目（56番目）にいる。
+  //      ⭐ 1ページしか取らない実装では答えが1枚しか出ず hasMore が立つ＝ここで落ちる（#102 B1）。
+  //      ⭐ 並びにも識別力を持たせてある: 名前順のキーは「小文字化 → 英数以外を除去」なので
+  //        astralseal < astrasight（7文字目 l < s）だが、素の文字列比較では
+  //        "Af Astra Sight" < "Af Astral Seal"（空白 0x20 < l）で逆になる。
+  //        ⚠ だから sortLocal を sortNumeric(pool, "name") に戻すとこの2枚が入れ替わる（#102 B2）。
+  {
+    label: "AF1（答え2枚・1枚は2ページ目・名前順）",
+    deck: AF_DECK(60, { 0: { name: "Af Astra Sight" }, 55: { name: "Af Astral Seal" } }),
+    els: {},
+    expect: {
+      shown: 2, total: 2, hasMore: false, approxTotal: false, text: "2 件を表示",
+      order: ["Af Astral Seal", "Af Astra Sight"],
+    },
+  },
+  // AF2: 答えが PAGE_SIZE(50) を超える（60枚）。⭐ 「もっと見る」が出るのは正しいが、
+  //      総件数を言い切れること（`/ 全 60 件`）が #102 §5-2 の「出そろう」の3番目の条件。
+  //      ⚠ approxTotal を anyAnd() に戻すと「/ 全 60 件」が消えて落ちる（#102 B4）。
+  {
+    label: "AF2（答え60枚・総件数を言い切る）",
+    deck: AF_DECK(120, Object.fromEntries(
+      Array.from({ length: 60 }, (_, k) => [k * 2, { name: `Af M${String(k * 2).padStart(3, "0")}` }])
+    )),
+    els: {},
+    expect: {
+      shown: 50, total: 60, hasMore: true, approxTotal: false, text: "50 件を表示 / 全 60 件",
+      head: ["Af M000", "Af M002", "Af M004", "Af M006"],
+    },
+  },
+  // AF3: レアリティ順（非数値ソート）。⭐ 2ページ目にいる低レアリティの1枚が先頭に来る。
+  //      ⚠ #39 の除外（その項目を持たないカードを落とす）を isNumericSort() の条件を外して
+  //        無条件にすると、card.rarity は undefined なので全部落ちて 0件になる（#102 B3）。
+  //      ⚠ sortNumeric(pool, "rarity") に戻しても card.rarity が undefined で同点になり、
+  //        slug 順（af000 → af055）に倒れて並びが逆になる（#102 B2）。
+  {
+    label: "AF3（答え2枚・レアリティ順）",
+    deck: AF_DECK(60, { 0: { name: "Af Rarity High", rarity: 8 }, 55: { name: "Af Rarity Low", rarity: 1 } }),
+    els: { sort: { value: "rarity" } },
+    expect: {
+      shown: 2, total: 2, hasMore: false, approxTotal: false, text: "2 件を表示",
+      order: ["Af Rarity Low", "Af Rarity High"],
+    },
+  },
+];
+
+{
+  const bad = [];
+  const AF_FILE = "shared/js/card-search.js";
+  let fixtureCount = 0;
+  if (!AND_FIXTURES.length) {
+    bad.push("行動フィクスチャがありません — ANDの答えが1画面目に出そろうかを検査できません（fail-closed）");
+  }
+  for (const f of AND_FIXTURES) {
+    fixtureCount++;
+    let search = null;
+    try {
+      const sb = { console, setTimeout, clearTimeout, URLSearchParams, Promise, Array, Math, Number, String, Set, Map };
+      sb.window = sb;
+      sb.GA_I18N = { meta: { sets: [] }, terms: {}, cards: {} };
+      sb.GA_CARD_I18N = {
+        hasJapanese: (s) => /[ぁ-んァ-ヶ一-龠ー]/.test(String(s || "")),
+        bannedFormats: () => [],
+        loadEffects: () => Promise.resolve(),
+      };
+      // 偽の公式API。実物と同じく type は解釈し（ORとして）、page / page_size でページングする。
+      // ⚠ sort は見ない——どの並びで要求されても同じ集合を返すので、
+      //   「全件取ってローカルで並べる」ことを前提にした判定になる
+      sb.fetch = (url) => {
+        const q = new URLSearchParams(String(url).split("?")[1] || "");
+        const want = q.getAll("type");
+        const pool = f.deck.filter((c) => !want.length || want.some((v) => c.types.includes(v)));
+        const size = Number(q.get("page_size")) || 50;
+        const page = Number(q.get("page")) || 1;
+        const from = (page - 1) * size;
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            // ⚠ 複製を返す（呼び出し側が result_editions を delete するため原本を汚さない）
+            data: pool.slice(from, from + size).map((c) => ({ ...c })),
+            total_cards: pool.length,
+            has_more: from + size < pool.length,
+          }),
+        });
+      };
+      vm.createContext(sb);
+      vm.runInContext(readFileSync(path.join(root, AF_FILE), "utf8"), sb, { filename: "card-search.js" });
+      search = sb.window.GA_CARD_SEARCH;
+      if (!search || typeof search.create !== "function") throw new Error("GA_CARD_SEARCH が組み立てられていません");
+      if (typeof search.searchStatus !== "function") throw new Error("searchStatus が公開されていません");
+    } catch (e) {
+      bad.push(`${f.label}: モジュールを読み込めません: ${e.message}`);
+      continue;
+    }
+    let got;
+    try {
+      got = await new Promise((resolve, reject) => {
+        const ctl = search.create({
+          els: { ...f.els, type: afChip(["ACTION", "ALLY"], "AND") },
+          metaIndexUrl: null,
+          onResults: (cards, info) => resolve({ cards, info }),
+          onError: (err) => reject(err),
+        });
+        ctl.run(true);
+      });
+    } catch (e) {
+      bad.push(`${f.label}: run() が失敗しました: ${e.message}`);
+      continue;
+    }
+    const names = got.cards.map((c) => c.name);
+    const actual = {
+      shown: got.cards.length,
+      total: got.info.total,
+      hasMore: !!got.info.hasMore,
+      approxTotal: !!got.info.approxTotal,
+      text: search.searchStatus(got.info, got.cards.length).text,
+    };
+    for (const k of ["shown", "total", "hasMore", "approxTotal", "text"]) {
+      if (actual[k] !== f.expect[k]) {
+        bad.push(`${f.label}: ${k} が ${JSON.stringify(f.expect[k])} ではなく ${JSON.stringify(actual[k])} です`);
+      }
+    }
+    // ⭐ 並びも見る。⚠ 期待値は「べた書きの列」にする——
+    //   「昇順に並んでいるか」を素の文字列比較で確かめると、それ自身が壊れた側の規則なので
+    //   sortNumeric に戻しても緑のまま通る（実測。#102 B2 の識別力はここが持っている）
+    const wantOrder = f.expect.order || f.expect.head;
+    if (wantOrder) {
+      const head = names.slice(0, wantOrder.length);
+      if (head.join("|") !== wantOrder.join("|")) {
+        bad.push(
+          `${f.label}: 1画面目の並びが期待と違います（期待 [${wantOrder.join(" / ")}]` +
+          ` / 実際 [${head.join(" / ")}]）`
+        );
+      }
+    } else {
+      bad.push(`${f.label}: 並びの期待値（order / head）がありません（fail-closed）`);
+    }
+  }
+
+  if (bad.length) {
+    problems++;
+    console.error(`\nAND FILTERS NOT RESOLVED BEFORE RENDER (${AF_FILE}):`);
+    bad.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → run() の全件路の条件は isNumericSort() || anyAnd() にしてください（#102 単位1）。`);
+    console.error(`    1ページだけ取って間引くと、答えが1画面目に出そろわず総件数も出せません`);
+  } else {
+    console.log(`and filters resolve before render — 行動フィクスチャ ${fixtureCount}組`);
+  }
+}
+
 // --- preferredArtIndex が1か所だけで定義されていることの検査（#97） ----------
 // 「版レベルの絞り込みに一致する版のイラストを初期表示にする」規則(#41)は、かつて
 // app.js と tools/deck-builder/app.js に同じ5行で二重定義されていた。片方だけ直すと
@@ -2063,18 +2249,20 @@ if (loaded) {
   const SS_START = "SEARCH-STATUS:START";
   const SS_END = "SEARCH-STATUS:END";
   // ⚠ 下限。関数を骨抜きにして（文言を消して）検査を黙らせる逃げ道を塞ぐ。
-  //   実測は6個（#114 で0件の7分岐を2つの1文にまとめて 11個 → 5個になり、#111 で
-  //   ENテキストモードの3文字ガードの案内が1つ増えて 5個 → 6個。#101 設計書 §6-3 の
-  //   11個は当時の記録で、現在の正は #114 設計書 §6-1）。6個はすべて画面に出る別々の文言。
-  //   ⚠ ⭐ 下限は 6（#111 1.1 の Q-F。1.2 の P5 で 5 → 6 に上げた）。⭐ 実測と同値にする——
-  //     5 に据え置くと「増えた1つ（3文字ガードの案内）だけを消すと 5個のまま exit 0」＝
-  //     ガードが案内なしで黙る経路が開いたままになる（#111 のレビューが実測した穴。
-  //     破壊試験は #111 設計書 §8-10 の B10）。⭐ ここは下限を締めると本当に握力が増える
-  //     場所で、見ているのは別ファイル（shared/js/card-search.js）の断片数なので、
+  //   実測は5個（#114 で0件の7分岐を2つの1文にまとめて 11個 → 5個になり、#111 で
+  //   ENテキストモードの3文字ガードの案内が1つ増えて 5個 → 6個、#102 単位1 で
+  //   非JPモードの概算の注記を撤去して 6個 → 5個。#101 設計書 §6-3 の 11個は当時の記録で、
+  //   現在の正は #102 設計書 §5-3）。5個はすべて画面に出る別々の文言。
+  //   ⚠ ⭐ 下限は実測と同値にする（#111 1.1 の Q-F。1.2 の P5 で 5 → 6 に上げ、
+  //     #102 単位1 で 6 → 5 に戻した）。⭐ 実測より緩めないことが握力の正体——
+  //     6 に据え置くと撤去したその日に exit 1 のまま塞がらず、7 以上にすると嘘になる。
+  //     ⭐ 5 のままでも「残る1文を消せば 4 < 5 で exit 1」＝守りの強さは変わらない
+  //     （#102 §5-3 の判断）。⭐ ここは下限を締めると本当に握力が増える場所で、
+  //     見ているのは別ファイル（shared/js/card-search.js）の断片数なので、
   //     #116 の「同じブロックの同源だから下限は守りにならない」型には当たらない。
   //     ⭐ 前例: #114 は 11個 → 5個に減らしたときに下限を 9 → 5 に直している。
-  //   ⚠ 書き方を変えて増減したら、成功行と #114 設計書 §6-1 を同じコミットで直す。
-  const SS_MIN = 6;
+  //   ⚠ 書き方を変えて増減したら、成功行と #102 設計書 §5-3 を同じコミットで直す。
+  const SS_MIN = 5;
   // 日本語を含む断片だけを見る（変数名・CSSクラス名などを拾わないため）
   const SS_JP = /[ぁ-んァ-ヶ一-龥々ー]/;
 

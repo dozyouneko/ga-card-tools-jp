@@ -661,7 +661,8 @@ window.GA_CARD_SEARCH = (() => {
         showLoadMore: false,
       };
     }
-    // 客側で後段フィルタが入る場合（AND指定・日本語モードでの絞り込み）は総件数を正確に出せない
+    // 客側で後段フィルタが入る場合（日本語モードでの絞り込み）は総件数を正確に出せない。
+    // ⭐ AND指定は #102 単位1 で上位集合の全件に対して間引くようになったので正確に出せる
     const totalPart = !info.approxTotal && info.total > shown ? ` / 全 ${info.total} 件` : "";
     let suffix = info.jpMode ? "（日本語テキスト一致・翻訳済みのみ）" : "";
     // 数値項目の並び替えは、その項目を持たないカードを除くので総件数が減る(#39)。理由を添える
@@ -674,10 +675,13 @@ window.GA_CARD_SEARCH = (() => {
     suffix += fetchGapNote(info);
     if (info.approxTotal) {
       // JPモードは索引で取得前に絞るためANDも件数を出せる。
-      // 概算になるのは索引が使えない/未収録slugが混じるときだけ(#27)
-      suffix += info.jpMode
-        ? "（一部のカードは取得後に判定するため総件数は概算です）"
-        : "（AND条件などは取得済みのページに適用するため、総件数は表示できません）";
+      // 概算になるのは索引が使えない/未収録slugが混じるときだけ(#27)。
+      // ⚠ ⭐ 非JPモード用の「（AND条件などは取得済みのページに適用するため、総件数は表示できません）」は
+      //   #102 単位1 で撤去した——AND も上位集合の全件路へ寄せたので、非JPモードで
+      //   approxTotal が立つ経路が1本も無くなった。⚠ 到達できない分岐は誰も試せないので
+      //   「守られている文言」として残さない（#101 の字面検査が数え続けるだけになる）。
+      //   ⚠ 戻すときは scripts/validate.mjs の SS_MIN も同じコミットで直す（5 → 6）
+      suffix += "（一部のカードは取得後に判定するため総件数は概算です）";
     }
     return { text: `${shown} 件を表示${totalPart}${suffix}`, showLoadMore: !!info.hasMore };
   }
@@ -816,7 +820,8 @@ window.GA_CARD_SEARCH = (() => {
     }
 
     // JPモードで class/element/type/subtype/rarity/format/set のいずれかを絞り込んでいるか。
-    // 総件数が概算になるか(jpApprox)の判定に使う。非JPモードの概算判定は anyAnd()。
+    // 総件数が概算になるか(jpApprox)の判定に使う。
+    // ⚠ ⭐ 非JPモードには概算になる経路が1本も無い（#102 単位1 で AND も全件路へ寄せた）。
     function hasJpFilters() {
       return MULTI.some(([key]) => vals(key).length > 0)
         || !!val(els.format)
@@ -1465,9 +1470,15 @@ window.GA_CARD_SEARCH = (() => {
           total = pool.length;
           hasMore = from + PAGE_SIZE < pool.length;
           fetchGap = got.gap;
-        } else if (isNumericSort()) {
+        } else if (isNumericSort() || anyAnd()) {
           // 安定キーで絞り込み結果を全件取り、除外・並び替え・ページングはローカルで行う（#44）。
           // ⚠ APIの数値ソートは同点行でページングが壊れるため使わない
+          // ⭐ AND指定もここを通す（#102 単位1）。公式APIはANDを解けないので上位集合しか返せず、
+          //   1ページだけ取って間引くと「答えが1画面目に出そろわない」（実測: WIND∩EXALTED は
+          //   17枚のうち12枚しか出ず、総件数も出せなかった）。上位集合の全件に対して間引けば
+          //   件数を言い切れる＝「もっと見る」が「まだ分からない」ではなく「本当に続きがある」になる。
+          // ⚠ ここを isNumericSort() だけに戻すと症状がそのまま戻る（警告も注記も出ない無言の劣化）。
+          //   npm run validate の `and filters resolve before render` が行動で止める（#102 §5-5）。
           const key = filterParams().toString();
           subscribeProgress([key], (done, pages) => {
             if (mySeq !== seq || !opts.onProgress) return;
@@ -1476,28 +1487,43 @@ window.GA_CARD_SEARCH = (() => {
           const all = await fetchAll(key);
           if (mySeq !== seq) return;
           const field = sortField();
-          // その項目を持たないカードを結果から除く（昇順・降順とも）。#39 の規則をそのまま使う
-          let pool = all.cards.filter((c) => !isNullish(field, c));
+          let pool = all.cards;
+          // 数値項目で並べ替えるときは、その項目を持たないカードを除く（昇順・降順とも）。#39 の規則。
+          // ⚠ ⭐ isNumericSort() の条件を外して無条件にしないこと（ENテキスト路と同じ形）。
+          //   ⚠ 無条件にすると「レアリティ順のAND」が必ず0件になる——card 直下に rarity は
+          //   無く（版ごとの editions[].rarity が正）、isNullish は undefined を nullish と
+          //   判定するので全部落ちる。実測: WIND∩EXALTED のレアリティ順が 17件 → 0件
+          //   （名前順は文字列なので落ちず 17件のまま＝名前順だけ見ていると気づけない）
+          if (isNumericSort()) pool = pool.filter((c) => !isNullish(field, c));
           // AND指定はAPIが上位集合しか返せないため客側で間引く。
-          // ⭐ 全件に対して間引けるので、数値ソートでは総件数が概算にならない（approxTotal: false）
+          // ⭐ 全件に対して間引けるので総件数が概算にならない（approxTotal: false）
           if (anyAnd()) pool = pool.filter(matchesAndFilters);
-          sortNumeric(pool, field);
+          // ⭐ 並べ替えは sortLocal に委ねる（#111 §5-5）。数値ソートなら sortNumeric、
+          //   rarity なら localRarityKey、それ以外（name）は localNameKey。
+          // ⚠ sortNumeric(pool, field) に戻さないこと——name 順のANDで並びが崩れる
+          //   （件数は変わらないので件数だけ見ていると気づけない）
+          sortLocal(pool);
           const from = (pager.page - 1) * PAGE_SIZE;
           cards = pool.slice(from, from + PAGE_SIZE);
           total = pool.length;
           hasMore = from + PAGE_SIZE < pool.length;
-          // ⚠ collector_number の安定性は実測でありAPIの保証ではない。必ず突き合わせる（fail-open）
+          // ⚠ collector_number の安定性は実測でありAPIの保証ではない。必ず突き合わせる（fail-open）。
+          //   ⚠ ⭐ 消さないこと（#102 §8-2）—— MAX_PAGES で切り落ちた場合もここに出る＝唯一の信号。
+          //   今日 gap は出ないので、消しても検証項目は1つも落ちない（守っているのは diff を読む人だけ）
           if (all.cards.length !== all.total) {
             fetchGap = { unique: all.cards.length, total: all.total };
           }
         } else {
+          // ⚠ ⭐ ここには anyAnd() が false のものしか来ない（上の分岐が拾う）。
+          //   そのため下の間引きは1件も起きず、total は API の申告値をそのまま言い切ってよい
+          //   （approxTotal が非JPモードで立つ経路は1本も無い＝#102 §5-3）。
           const res = await fetch(`${API}/cards/search?${buildQuery(pager.page)}`);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const json = await res.json();
           if (mySeq !== seq) return;
           cards = json.data || [];
-          // AND指定はAPIが上位集合しか返せないため、このページ分をここで間引く。
-          // 取得したページ内で間引くので、ページごとの表示件数は不揃いになる
+          // ⚠ 残してある安全弁。上の分岐の条件を狭めた日に「ANDを間引かずに全部出す」という
+          //   いちばん分かりにくい壊れ方へ倒れないため（今日の経路では常に no-op）
           if (anyAnd()) cards = cards.filter(matchesAndFilters);
           total = json.total_cards || 0;
           hasMore = !!json.has_more;
@@ -1506,11 +1532,14 @@ window.GA_CARD_SEARCH = (() => {
         pager.hasMore = hasMore;
         opts.onResults(cards, {
           reset, jpMode: !!jpSlugs, total, hasMore,
-          // 数値ソート(ENモード)は全件に対してANDを間引けるため件数が正確になる（#44 §6）。
-          // ⚠ 非数値ソートの挙動は変えない（取得済みページ内で間引くので概算のまま）
+          // ⭐ 全件路（数値ソート・ENテキスト・AND）は上位集合の全件に対して間引けるため
+          //   件数が正確になる（#44 §6 → #111 → #102 単位1 で AND まで広げた）。
           andMode: anyAnd(),
           // ⭐ ENテキストモードも上位集合の全件に対して間引くので概算にならない（#111 §5-4）
-          approxTotal: jpSlugs ? jpApprox : (anyAnd() && !isNumericSort() && !enToks.length),
+          // ⭐ #102 単位1 で AND も全件路へ寄せたので、非JPモードで概算になる経路は1本も残らない。
+          //   ⚠ anyAnd() に戻さないこと——戻すと「/ 全 N 件」が出なくなる（撤去した文言も無いので
+          //     件数だけの行になる＝症状③ が注記すら無い形で戻る）
+          approxTotal: jpSlugs ? jpApprox : false,
           blocked: null,
           // 全件取得がAPIの申告件数と食い違ったとき（#44 §5）。出たら異常の信号（通常は null）
           fetchGap,
