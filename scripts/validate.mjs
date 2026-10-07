@@ -317,20 +317,47 @@ if (loaded) {
     let rarityMismatch = 0;
     let numsLen = 0;
     let badRarity = 0;
+    let oldRarity = 0;
+    let unsortedRarity = 0;
+    let rarityExample = "";
     let flipCount = 0;
+    let raritySlots = 0;
     for (const [slug, e] of entries) {
       if (!Array.isArray(e) || e.length < 8) { shortEntry++; continue; }
       if (!Array.isArray(e[6]) || e[6].length !== 4) numsLen++;
       else e[6].forEach((v, i) => { if (v != null) nonNull[i]++; });
       // entry[7] は entry[4]（setPrefix）と同じ並びでなければ、レアリティ順が別のセットの値で並ぶ
       if (!Array.isArray(e[7]) || e[7].length !== (e[4] || []).length) rarityMismatch++;
-      else if (e[7].some((v) => v != null && !(Number.isInteger(v) && v >= 1 && v <= 9))) badRarity++;
+      else for (const slot of e[7]) {
+        // ⭐ #102 単位2: 各スロットは「そのセット内のレアリティ集合（昇順・重複なし）」の配列。
+        // ⚠ 旧形式（数値 / null）は exit 1 にする。索引を再生成せずにコードだけ入れ替えると
+        //   ブラウザ側は fail-open で degrade する（＝画面は壊れないが絞り込みが効かない）ので、
+        //   人を止めるのはここだけ。⚠ 緩める方向に直さないこと（#102 A4）。
+        if (!Array.isArray(slot)) {
+          oldRarity++;
+          if (!rarityExample) rarityExample = `${slug}: ${JSON.stringify(slot)}`;
+          continue;
+        }
+        raritySlots++;
+        if (slot.some((v) => !(Number.isInteger(v) && v >= 1 && v <= 9))) badRarity++;
+        // ⭐ 昇順・重複なしは決定性の根拠（破ると cron が毎日ノイズコミットを作る）。
+        // ⚠ 消費側（sortKeyOf）が「集合の最小＝先頭」を前提にしてよいのもこの不変条件があるため
+        else if (slot.some((v, i) => i > 0 && v <= slot[i - 1])) unsortedRarity++;
+      }
       if (rarityMismatch === 1 && bad.length === 0) bad.push(`entry[7] の要素数が entry[4] と一致しません（例: ${slug}）`);
     }
     if (shortEntry) bad.push(`8要素になっていないエントリが ${shortEntry}件（旧形式のまま？）`);
     if (numsLen) bad.push(`entry[6] が4要素でないエントリが ${numsLen}件`);
     if (rarityMismatch) bad.push(`entry[7] と entry[4] の要素数が違うエントリが ${rarityMismatch}件`);
-    if (badRarity) bad.push(`entry[7] に 1〜9 以外の値を持つエントリが ${badRarity}件`);
+    if (oldRarity) {
+      bad.push(
+        `entry[7] のスロットが配列でないものが ${oldRarity}件（旧形式＝レアリティの最小値のまま？ 例: ${rarityExample}）`
+        + ` — node scripts/gen-card-meta-index.mjs で再生成してください（#102 単位2）`
+      );
+    }
+    if (badRarity) bad.push(`entry[7] のスロットに 1〜9 以外の値を持つエントリが ${badRarity}件`);
+    if (unsortedRarity) bad.push(`entry[7] のスロットが昇順・重複なしになっていないものが ${unsortedRarity}件（決定性が壊れます）`);
+    if (entries.length && !raritySlots) bad.push("entry[7] に有効なレアリティ集合が1件もありません（生成デグレの疑い）");
     // 件数の固定値は新セットで動くので使わない。「全滅」だけを見る（生成デグレの現実的な形）
     NUM_FIELDS.forEach((f, i) => {
       if (nonNull[i] === 0) bad.push(`${f} を持つカードが索引に1件もありません（生成デグレの疑い）`);
@@ -1316,21 +1343,35 @@ const SCAN_READERS = ["①", "②③"];
 
 // --- 版レベルの絞り込み項目の配線検査（#93） -------------------------------
 // shared/js/card-search.js の MULTI は「第3要素が null ＝ 版レベル（editions[] を見る）」で、
-// 一般ループは isIndexBlind() で読み飛ばす。ところが第2段（rarityMatchesIn / matchesAndFilters）は
-// キー名 rarity を名指ししているので、版レベル項目を2つ目に足しても・rarity を改名しても、
+// 一般ループは isVersionLevel() で読み飛ばす。ところが第2段（rarityMatchesIn /
+// rarityMatchesInSlots / matchesAndFilters）はキー名 rarity を名指ししているので、
+// 版レベル項目を2つ目に足しても・rarity を改名しても、
 // 「選んでも1件も落ちないのに警告も注記も出ない」状態になる（実測済み・fail-open）。
+//
+// ⚠ ⭐ 2026-10-07（#102 単位2）に改名した: isIndexBlind → isVersionLevel /
+//   INDEX_BLIND_KEYS → VERSION_LEVEL_KEYS。⭐ 旧名は「版レベル」と「索引が判定できない」の
+//   2つを兼ねていたが、単位2 で索引がレアリティを判定できるようになり後者の該当が消えた。
+//   ⚠ 改名であって弱体化ではない（検査のロジックは1行も変えていない。F3/F4 を足しただけ）。
 //
 // ⚠ ブラウザ側では落とさない（throw すると window.GA_CARD_SEARCH が undefined になり、
 //   app.js 冒頭の分割代入が TypeError で落ちてトップもデッキ構築も丸ごと死ぬ＝実測）。
 //   落とすのはこの validate の中だけ。
-// ⚠ 字句検査にしない。vm で本物のモジュールを読み、MULTI から導いた INDEX_BLIND_KEYS を
+// ⚠ 字句検査にしない。vm で本物のモジュールを読み、MULTI から導いた VERSION_LEVEL_KEYS を
 //   そのまま読む（#108 と同じ「実物を動かして測る」方針。整形で壊れない）。
 // ⚠ 許可リストの照合だけでは空回りする。第2段の呼び出しを消しても MULTI は無傷なので
-//   照合は緑のまま絞り込みだけが死ぬ。だから「実際に絞れること」を行動で確かめる（下の F1/F2）。
+//   照合は緑のまま絞り込みだけが死ぬ。だから「実際に絞れること」を行動で確かめる（下の F1〜F4）。
 // ⚠ ネットワークは使わない。fetch はフィクスチャを返すスタブで塞ぐ。
+//
+// ⭐ 識別力（#102 単位2 の実装時に dev が実測）:
+//   F1/F2 … 第2段（rarityMatchesIn / matchesAndFilters）を消すと落ちる。
+//   F3/F4 … metaMatches() のレアリティ分岐（rarityMatchesInSlots）を消すと落ちる。
+//           ⚠ 消しても「結果の slug 列」は取得後フィルタが同じ答えを出すので変わらない。
+//           ⭐ 落ちるのは noFetch（＝レアリティで落ちたカードを fetchCard が引いていないこと）
+//           という1点だけ——取得前に絞れている証拠はここにしか出ない。
 
-// ⚠ 増やすときは第2段（rarityMatchesIn）の一般化とセット。表だけ増やすと無言で効かなくなる（#93）
-const INDEX_BLIND_ALLOW = ["rarity"];
+// ⚠ 増やすときは第2段（rarityMatchesIn / rarityMatchesInSlots）の一般化とセット。
+//   表だけ増やすと無言で効かなくなる（#93）
+const VERSION_LEVEL_ALLOW = ["rarity"];
 
 // 行動フィクスチャ用のカード3枚。a・b はレアリティ3、c は8。和名の「ー」で JPモードを作る。
 // ⚠ 許可リストにあるのにフィクスチャが無いキーは exit 1（fail-closed）。将来2つ目の版レベル
@@ -1342,7 +1383,29 @@ const IB_CARDS = {
 };
 const IB_JP = { a: { name: "アルファ" }, b: { name: "ブラボー" }, c: { name: "チャーリー" } };
 const ibChip = (values, mode) => ({ getValues: () => values, getMode: () => mode });
-const INDEX_BLIND_FIXTURES = {
+
+// ⭐ F3/F4（#102 単位2）用のカード。⚠ F1/F2 とは別の集合にする——混ぜると F2 の期待値が壊れる
+//   （2つのレアリティを持つカード r は、偽APIの rarity=3,8 に返り AND にも合致してしまう）。
+// ⭐ 和名を「テスト…」で揃えて JPモードの候補を3枚そろえる（F1 の「ー」とは当たらない）。
+const VL_IDX_CARDS = {
+  p: { slug: "p", name: "Papa", editions: [{ slug: "p-1", rarity: 3, set: { prefix: "AAA" } }] },
+  q: { slug: "q", name: "Quebec", editions: [{ slug: "q-1", rarity: 8, set: { prefix: "AAA" } }] },
+  r: {
+    slug: "r",
+    name: "Romeo",
+    editions: [
+      { slug: "r-1", rarity: 3, set: { prefix: "AAA" } },
+      { slug: "r-2", rarity: 8, set: { prefix: "AAA" } },
+    ],
+  },
+};
+const VL_IDX_JP = { p: { name: "テストパパ" }, q: { name: "テストケベック" }, r: { name: "テストロメオ" } };
+// 合成メタ索引。形は data/card-meta-index.json と同じ（#27 / #102 §6-0）。
+// entry = [classes, elements, types, subtypes, setPrefixes, bannedFormats, nums, rarities]
+// ⚠ entry[7] の各スロットは「そのセット内のレアリティ集合（昇順）」の配列（#102 単位2）
+const VL_IDX_ENTRY = (rarities) => [[], [], [], [], [0], [], [null, null, null, null], [rarities]];
+const VL_META_URL = "https://example.invalid/card-meta-index.json";
+const VERSION_LEVEL_FIXTURES = {
   rarity: [
     // F1: JPモード（matchesActiveFilters が判定する経路）。名前「ー」で候補は b・c の2枚。
     //     rarity=3（OR）なので c が落ちて b だけが残る。
@@ -1353,6 +1416,27 @@ const INDEX_BLIND_FIXTURES = {
     // F2: ENモード AND（matchesAndFilters が判定する経路）。偽APIは rarity を解釈して a・b を
     //     返すが、どのカードも3と8の両方では刷られていないので0件になる。
     { label: "F2（ENモード・AND）", expect: [], els: { rarity: ibChip(["3", "8"], "AND") } },
+    // ⭐ F3（#102 単位2）: 索引でレアリティが効くこと（OR）。候補はJPモードで p・q・r の3枚。
+    //   ⚠ ⭐ expect（結果の slug 列）には識別力が無い——metaMatches() のレアリティ分岐を消しても
+    //     取得後の matchesActiveFilters が同じ答えを出す。⭐ 識別力は noFetch の1点だけで、
+    //     「レアリティで落ちた q を fetchCard が1回も引いていないこと」＝取得前に落ちた証拠。
+    {
+      label: "F3（索引・JPモード・OR）",
+      cards: VL_IDX_CARDS, jp: VL_IDX_JP, metaIndexUrl: VL_META_URL,
+      index: { d: ["AAA"], m: { p: VL_IDX_ENTRY([3]), q: VL_IDX_ENTRY([8]), r: VL_IDX_ENTRY([3, 8]) }, f: {} },
+      els: { q: { value: "テスト" }, rarity: ibChip(["3"], "OR") },
+      expect: ["p", "r"], noFetch: ["q"],
+    },
+    // ⭐ F4（#102 単位2）: 索引でレアリティが効くこと（AND）。3と8の両方を持つ r だけが残る。
+    //   ⚠ 索引側の AND は「スロットの和集合が選択値を全部含むか」（実行時の rarityMatchesIn と
+    //     同じ規則）。⭐ noFetch が p・q の2枚なので、片側だけ効く壊し方も拾える。
+    {
+      label: "F4（索引・JPモード・AND）",
+      cards: VL_IDX_CARDS, jp: VL_IDX_JP, metaIndexUrl: VL_META_URL,
+      index: { d: ["AAA"], m: { p: VL_IDX_ENTRY([3]), q: VL_IDX_ENTRY([8]), r: VL_IDX_ENTRY([3, 8]) }, f: {} },
+      els: { q: { value: "テスト" }, rarity: ibChip(["3", "8"], "AND") },
+      expect: ["r"], noFetch: ["p", "q"],
+    },
   ],
 };
 
@@ -1360,6 +1444,9 @@ const INDEX_BLIND_FIXTURES = {
   const bad = [];
   const CS_FILE = "shared/js/card-search.js";
   let search = null;
+  // いま走らせているフィクスチャのカード集合・訳・合成索引（fetch スタブが読む）
+  let vlCur = { cards: IB_CARDS, jp: IB_JP, index: null, metaIndexUrl: null };
+  let sbRef = null;
   try {
     const sb = { console, setTimeout, clearTimeout, URLSearchParams };
     sb.window = sb;
@@ -1369,12 +1456,20 @@ const INDEX_BLIND_FIXTURES = {
       bannedFormats: () => [],
       loadEffects: () => Promise.resolve(),
     };
+    sbRef = sb;
     // 偽の公式API。実物と同じく rarity は解釈し、知らないパラメータは無視する。
-    // ⚠ 外へ出ない（validate はオフライン前提）
+    // ⚠ 外へ出ない（validate はオフライン前提）。
+    // ⚠ ⭐ カード集合と索引は「いま走らせているフィクスチャ」（vlCur）から読む。F3/F4 は
+    //   F1/F2 とは別のカード集合を使う必要があるため（混ぜると F2 の期待値が壊れる）。
     sb.fetch = (url) => {
-      const q = new URLSearchParams(String(url).split("?")[1] || "");
+      const u = String(url);
+      // 合成メタ索引（F3/F4）。⚠ URL が一致しないときは 404 相当＝索引なしに倒れる
+      if (vlCur.index && u === vlCur.metaIndexUrl) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(vlCur.index) });
+      }
+      const q = new URLSearchParams(u.split("?")[1] || "");
       const want = q.getAll("rarity");
-      const data = Object.values(IB_CARDS).filter(
+      const data = Object.values(vlCur.cards).filter(
         (c) => !want.length || c.editions.some((e) => want.includes(String(e.rarity)))
       );
       return Promise.resolve({
@@ -1395,22 +1490,22 @@ const INDEX_BLIND_FIXTURES = {
   // ⚠ 片方向にしない。「rarity を別名に改名した」（個数は1のまま）も落とすため
   let keys = null;
   if (search) {
-    keys = search.INDEX_BLIND_KEYS;
+    keys = search.VERSION_LEVEL_KEYS;
     if (!Array.isArray(keys)) {
-      bad.push("INDEX_BLIND_KEYS が配列ではありません（公開されていない／形が変わった）");
+      bad.push("VERSION_LEVEL_KEYS が配列ではありません（公開されていない／形が変わった）");
       keys = null;
     } else if (!keys.length) {
-      bad.push("INDEX_BLIND_KEYS が空です（MULTI から版レベル項目が消えた？）");
+      bad.push("VERSION_LEVEL_KEYS が空です（MULTI から版レベル項目が消えた？）");
       keys = null;
     }
   }
   if (keys) {
     for (const k of keys) {
-      if (!INDEX_BLIND_ALLOW.includes(k)) {
+      if (!VERSION_LEVEL_ALLOW.includes(k)) {
         bad.push(`許可リストに無い版レベル項目: ${k} — 第2段（rarityMatchesIn）は評価しないので無言で効かなくなります`);
       }
     }
-    for (const k of INDEX_BLIND_ALLOW) {
+    for (const k of VERSION_LEVEL_ALLOW) {
       if (!keys.includes(k)) {
         bad.push(`許可リストにあるのに MULTI の版レベル項目に無い: ${k} — 改名か削除の疑い（第2段は今もこの名前を名指ししています）`);
       }
@@ -1420,21 +1515,33 @@ const INDEX_BLIND_FIXTURES = {
   // (c) 行動フィクスチャ — 許可リストの各キーが「実際に絞れる」ことを本物の create()/run() で確かめる
   let fixtureCount = 0;
   if (search) {
-    for (const key of INDEX_BLIND_ALLOW) {
-      const fixtures = INDEX_BLIND_FIXTURES[key];
+    for (const key of VERSION_LEVEL_ALLOW) {
+      const fixtures = VERSION_LEVEL_FIXTURES[key];
       if (!Array.isArray(fixtures) || !fixtures.length) {
         bad.push(`${key} の行動フィクスチャがありません — この項目が実際に絞れるかを検査できません（fail-closed）`);
         continue;
       }
       for (const f of fixtures) {
         fixtureCount++;
+        // ⚠ ⭐ フィクスチャごとにカード集合・訳・合成索引を差し替える。I18N.cards は
+        //   card-search.js が呼び出しのたびに読むので、同じ GA_I18N を書き換えれば効く
+        vlCur = {
+          cards: f.cards || IB_CARDS,
+          jp: f.jp || IB_JP,
+          index: f.index || null,
+          metaIndexUrl: f.metaIndexUrl || null,
+        };
+        if (sbRef) sbRef.GA_I18N.cards = vlCur.jp;
+        // ⭐ fetchCard が引いた slug を記録する。F3/F4 の識別力はこの記録の1点だけが持つ
+        //   （結果の slug 列は取得後フィルタが同じ答えを出すので、取得前に絞れたかが分からない）
+        const fetched = [];
         let got;
         try {
           got = await new Promise((resolve, reject) => {
             const ctl = search.create({
               els: f.els,
-              metaIndexUrl: null,
-              fetchCard: (s) => Promise.resolve(IB_CARDS[s] || null),
+              metaIndexUrl: vlCur.metaIndexUrl,
+              fetchCard: (s) => { fetched.push(s); return Promise.resolve(vlCur.cards[s] || null); },
               onResults: (cards) => resolve(cards.map((c) => c.slug)),
               onError: (err) => reject(err),
             });
@@ -1452,18 +1559,36 @@ const INDEX_BLIND_FIXTURES = {
             ` — 第2段の判定が効いていません`
           );
         }
+        // ⭐ 索引で「取得前」に落ちたことの証拠。⚠ ここが唯一の識別力なので緩めないこと
+        //   （#102 §6-5。metaMatches() のレアリティ分岐を消すと、結果は同じままここだけが落ちる）
+        if (f.noFetch) {
+          const leaked = f.noFetch.filter((s) => fetched.includes(s));
+          if (leaked.length) {
+            bad.push(
+              `${key} の行動フィクスチャ ${f.label}: レアリティで落ちるはずの ${leaked.join(" / ")} を` +
+              ` fetchCard が引いています（引いた順: ${fetched.join(" / ") || "なし"}）` +
+              ` — 索引（metaMatches のレアリティ判定）が取得前に効いていません`
+            );
+          }
+          if (!fetched.length) {
+            bad.push(
+              `${key} の行動フィクスチャ ${f.label}: fetchCard が1回も呼ばれていません` +
+              ` — JPモードに入っていない疑い（noFetch の判定が空回りします）`
+            );
+          }
+        }
       }
     }
   }
 
   if (bad.length) {
     problems++;
-    console.error(`\nINDEX-BLIND FILTER WIRING (${CS_FILE}):`);
+    console.error(`\nVERSION-LEVEL FILTER WIRING (${CS_FILE}):`);
     bad.forEach((m) => console.error(`  - ${m}`));
     console.error(`  → 版レベル項目（MULTI の第3要素が null）を足すときは、第2段の判定も一般化してください。`);
     console.error(`    表だけ足すと「選んでも1件も落ちない」状態になり、警告も注記も出ません（#93）`);
   } else {
-    console.log(`index-blind filters in sync — ${keys.length}項目（${keys.join(" / ")}）／行動フィクスチャ ${fixtureCount}組`);
+    console.log(`version-level filters in sync — ${keys.length}項目（${keys.join(" / ")}）／行動フィクスチャ ${fixtureCount}組`);
   }
 }
 

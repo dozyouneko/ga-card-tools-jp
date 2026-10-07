@@ -18,7 +18,13 @@
 //   { d: [token,...], m: { slug: [[c],[e],[t],[s],[p],[b],[nums],[rarities]] }, f: { 裏面slug: 表面slug } }
 //   先頭6つは d のインデックス。順序は classes / elements / types / subtypes / setPrefixes / bannedFormats で固定。
 //   entry[6] = [level, power, life, cost_memory]（その項目を持たなければ null）… #43 の並び替え用
-//   entry[7] = entry[4]（setPrefix）と同じ並びの「そのセット内の最小レアリティ」… #43
+//   entry[7] = entry[4]（setPrefix）と同じ並びの「そのセット内のレアリティ集合（昇順・重複なし）」
+//              … #43（並び替え）＋ #102 単位2（取得前の絞り込み）
+//   ⚠ ⭐ entry[7] の各スロットは「配列」。レアリティを持つ版が無いセットは [] （空配列）。
+//     null にしないこと —— 非配列は消費側で「旧形式＝不明」と見なされ、レアリティ絞り込みを
+//     まるごと fail-open に倒す（shared/js/card-search.js の metaMatches()／sortKeyOf()）。
+//   ⚠ ⭐ 集合は数値として昇順にソートする（`[...new Set(v)].sort((a,b)=>a-b)`）。
+//     既定の辞書順にすると 10以上のレアリティが現れた日に [1,10,2] になり、決定性も並び替えも壊れる。
 //   ⚠ nums / rarities は辞書化しない（数値なのでトークン化してもサイズが減らない）。
 //   ⚠ entry[7] は entry[4] と要素数・順序が一致していること（消費側が添字で対応づける）。
 //   f = フリップ面（裏面）slug → 表面slug の対応表（#45）。消費側が候補列を表面へ畳んで
@@ -61,8 +67,16 @@ const sorted = (a) => [...a].sort();
 // （level 0・power 0・life 0・cost_memory 0 はいずれも実在する）。
 const NUM_FIELDS = ["level", "power", "life", "cost_memory"];
 
+// ⭐ #102 §8-1 の「残る穴」の唯一の検出経路。`e.set.prefix` を持たない版は索引の
+//   prefixスロットで表せないため、そのレアリティだけが選択値に一致するカードを
+//   取得前の絞り込みが落としうる（#27 の原則どおり取得後フィルタでは救えない向き）。
+// ⚠ 実測では 0件。0件のための分岐は誰も試せないので手当てはせず、完走サマリに数を出す。
+//   cron は npm run validate を実行しないので、これが唯一の痕跡になる。
+let noPrefixEditions = 0;
+
 function metaOf(card) {
   const eds = card.editions || card.result_editions || [];
+  noPrefixEditions += eds.filter((e) => !(e.set && e.set.prefix)).length;
   // ⚠ prefixes は先にソートしてから rarities を作る（entry[7] と並びを揃えるため）
   const prefixes = sorted([...new Set(eds.map((e) => e.set && e.set.prefix).filter(Boolean))]);
   const leg = card.legality || {};
@@ -76,13 +90,17 @@ function metaOf(card) {
     banned: sorted(banned),
     // #43: 並び替え用。null は「その項目を持たない」を意味し、消費側が #39 の規則で除外する
     nums: NUM_FIELDS.map((f) => (card[f] == null ? null : card[f])),
-    // #43: prefixes と同じ並びの「そのセット内の最小レアリティ」。
-    // 公式APIの sort=rarity が「絞り込み後のedition の min」で並ぶことに合わせる
-    // （設計 §4.3 で実測。1カード1値＝全editionのmin にすると、エキスパンション絞り込み中に
-    //  非JPモードと並びが食い違う）
+    // #43 + #102 単位2: prefixes と同じ並びの「そのセット内のレアリティ集合」（昇順・重複なし）。
+    // ⭐ 並び替え（#43）は消費側が集合の最小を取り直す。公式APIの sort=rarity が
+    //   「絞り込み後のedition の min」で並ぶことに合わせる（設計 §4.3 で実測。1カード1値＝
+    //   全editionのmin にすると、エキスパンション絞り込み中に非JPモードと並びが食い違う）。
+    // ⭐ 集合にするのは #102 単位2 のため。最小しか持たないと metaMatches() がレアリティを
+    //   読み飛ばすしかなく、「0件なのに もっと見る を押させる」「該当が1画面目に出ない」が起きる。
+    // ⚠ 空は [] にする（null にしない＝上のモジュールコメント）。実測で 0件。
+    // ⚠ ソートは数値比較で行う（辞書順にすると 10以上で [1,10,2] になる）。
     rarities: prefixes.map((p) => {
       const v = eds.filter((e) => e.set && e.set.prefix === p && e.rarity != null).map((e) => e.rarity);
-      return v.length ? Math.min(...v) : null;
+      return [...new Set(v)].sort((a, b) => a - b);
     }),
   };
 }
@@ -174,9 +192,16 @@ async function main() {
   // ⚠ ここで exit 1 にしてはいけない（cronの後段に到達しないとその日の大会データの取り込みごと
   //   失われる）。人を止めるのは npm run validate の役
   const nonNull = (i) => Object.values(m).filter((e) => e[6][i] != null).length;
-  const withRarity = Object.values(m).filter((e) => e[7].some((v) => v != null)).length;
+  // ⚠ entry[7] のスロットは配列（#102 単位2）。`v != null` では空配列も数えてしまう
+  const withRarity = Object.values(m).filter((e) => e[7].some((v) => Array.isArray(v) && v.length)).length;
+  const allSlots = Object.values(m).flatMap((e) => e[7]);
+  const multi = allSlots.filter((v) => v.length > 1).length;
+  const empty = allSlots.filter((v) => !v.length).length;
   log(`並び替えキー: ${NUM_FIELDS.map((x, i) => `${x} ${nonNull(i)}`).join(" / ")} / rarity ${withRarity}`);
+  log(`レアリティ集合: ${allSlots.length}スロット（2種以上 ${multi} / 空 ${empty}）`);
   log(`フリップ面: ${Object.keys(f).length}件を表面slugへ対応づけ`);
+  // ⭐ #102 §8-1 の検出経路。0件が正（上の noPrefixEditions のコメント）
+  log(`${noPrefixEditions ? "⚠ " : ""}prefix の無い版: ${noPrefixEditions}件`);
 }
 
 main().catch((e) => { console.error(e.message || e); process.exit(1); });

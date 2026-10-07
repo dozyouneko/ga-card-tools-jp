@@ -447,7 +447,9 @@ window.GA_CARD_SEARCH = (() => {
   // 複数選択できる絞り込み項目（els のキー / APIのクエリ名 / カードの配列プロパティ）
   // ⚠ 第3要素が null の項目は「カード直下に配列プロパティが無い」＝ 版（editions[]）を見る項目で、
   //   create() 内の editionSetOf()／rarityMatchesIn() が2段階で判定する（意味統一の設計書 §4）。
-  //   同時に「メタ索引に列挙値が無い」印でもあり、metaMatches() は候補を落とさない（fail-open）。
+  // ⭐ #102 単位2 以降は、メタ索引も同じ2段階を解ける（entry[7] がスロットごとの
+  //   レアリティ集合になった）。⚠ かつてここにあった「索引に列挙値が無いので
+  //   metaMatches() は候補を落とさない」という性質はもう無い——取得前に効く。
   const MULTI = [
     ["cls", "class", "classes"],
     ["element", "element", "elements"],
@@ -457,11 +459,16 @@ window.GA_CARD_SEARCH = (() => {
     ["rarity", "rarity", null],
   ];
 
-  // ⭐ 「メタ索引には見えない条件」の唯一の定義（設計書 §5 P4）。第3要素が null＝カード直下に
-  //    配列プロパティが無く、索引の列挙値にも入っていない項目のこと。
-  // ⚠ この判定を使う場所は3つある（metaMatches の読み飛ばし／D-1 の概算判定／D-2 の想定内除外）。
-  //    ⭐ 必ずこの関数から導くこと——別々にハードコードすると片方だけ直したときに静かにずれる。
-  const isIndexBlind = (entry) => entry[2] === null;
+  // ⭐ 「版レベルの条件」の唯一の定義。第3要素が null＝カード直下に配列プロパティが無く、
+  //    版の候補集合 E を先に作る2段階の評価が要る項目のこと（意味統一の設計書 §4）。
+  // ⚠ ⭐ 旧名は isIndexBlind で「索引が判定できない」も兼ねていたが、#102 単位2 で
+  //    索引がレアリティを判定できるようになったので、後者の意味は該当が1つも無くなった
+  //    （D-1 の概算判定 indexBlindActive()／D-2 の想定内除外 jpBlindDropped は撤去した）。
+  // ⚠ 使う場所は3つ（一般ループの読み飛ばし × matchesAndFilters / metaMatches /
+  //    matchesActiveFilters）。⭐ 必ずこの関数から導くこと——別々にハードコードすると
+  //    片方だけ直したときに静かにずれる（npm run validate の
+  //    `version-level filters in sync` が VERSION_LEVEL_KEYS を読んで双方向に照合する＝#93）。
+  const isVersionLevel = (entry) => entry[2] === null;
 
   // ---------- テキスト検索（カード名と効果テキストの一本化・#111）----------
 
@@ -730,8 +737,8 @@ window.GA_CARD_SEARCH = (() => {
     let jpCand = null;  // 上記を索引で「取得前」に絞った候補(#27)。新規検索ごとに作り直す
     let jpApprox = false; // JPモードの件数が概算か(索引が使えず/未収録slugが混じるとき)
     let jpDropped = 0;         // JPモードで取得後に落ちた件数(めくったページまでの累計・#45)
-    let jpBlindDropped = 0;    // うち「索引が見られない条件だけが理由」の想定内の除外(D-2)。
-                               // ⚠ 画面には出さない —— 新しい注記は増やさない(設計書 §5 P4)
+                               // ⭐ #102 単位2 で役割が増えた。レアリティも取得前に効くので、
+                               // レアリティが理由で取得後に落ちたら「索引が腐っている」＝異常
     let jpSeen = null;         // 取得できた表面slug(重複の検出用・#45)
     let jpSortUnknown = 0;     // JPモードで並び替えキーが不明だった件数(末尾へ回した数・#43)
     let jpSortDropped = false; // 索引が全く使えず並び替え自体を諦めたか(#43)
@@ -764,9 +771,9 @@ window.GA_CARD_SEARCH = (() => {
     }
 
     // カードの配列プロパティが選択値に合致するか（AND=すべて含む / OR=いずれかを含む）
-    // ⚠ 版レベルの項目（isIndexBlind＝第3要素が null）はここを通さない。版の候補集合 E を
+    // ⚠ 版レベルの項目（isVersionLevel＝第3要素が null）はここを通さない。版の候補集合 E を
     //   先に作る必要があるため、editionSetOf()／rarityMatchesIn() が判定する（意味統一 §4）。
-    //   呼び出し側は必ず isIndexBlind() で読み飛ばすが、万一通っても「絞らない」に倒す（fail-open）。
+    //   呼び出し側は必ず isVersionLevel() で読み飛ばすが、万一通っても「絞らない」に倒す（fail-open）。
     function matchesMulti(card, key, field) {
       const list = vals(key);
       if (!list.length) return true;
@@ -813,7 +820,7 @@ window.GA_CARD_SEARCH = (() => {
     //   新しい規則はAPIの絞り込みと整合する（APIの結果は必ず上位集合）ので取りこぼさない。
     function matchesAndFilters(card) {
       for (const m of MULTI) {
-        if (isIndexBlind(m)) continue; // 版レベルは下でまとめて判定
+        if (isVersionLevel(m)) continue; // 版レベルは下でまとめて判定
         if (isAnd(m[0]) && !matchesMulti(card, m[0], m[2])) return false;
       }
       return !isAnd("rarity") || rarityMatchesIn(editionSetOf(card));
@@ -828,12 +835,13 @@ window.GA_CARD_SEARCH = (() => {
         || setPrefixes(val(els.set)).length > 0;
     }
 
-    // ⭐ D-1（§5 P4）: 索引が判定できない絞り込み（レアリティ）が有効か。
-    //    有効なら候補数は実数より多くなるので、総件数を「概算」として扱う。
-    // ⚠ els にその項目が無いページ（デッキ構築ツール）では valuesOf(null)=[] で常に false＝no-op。
-    function indexBlindActive() {
-      return MULTI.filter(isIndexBlind).some(([key]) => vals(key).length > 0);
-    }
+    // ⚠ ⭐ かつてここに D-1（indexBlindActive()）があった。「索引が判定できない絞り込み
+    //    （レアリティ）が有効なら総件数を概算として扱う」ための判定だが、#102 単位2 で
+    //    索引がレアリティを判定できるようになり、該当する項目が1つも無くなった＝常に false を
+    //    返す死んだコードになったので撤去した（死んだ分岐は誰も試せない）。
+    // ⚠ ⭐ 将来2つ目の版レベル項目を MULTI に足す人は、npm run validate の
+    //    `version-level filters in sync` が双方向照合と fail-closed のフィクスチャで必ず止める
+    //    （#93）。⚠ 死んだ runtime コードを「安全網」として戻さないこと（#102 §6-2(d)）。
 
     // ---------- JPモードの取得前フィルタ用メタ索引（#27）----------
     // data/card-meta-index.json を「JPモードに初めて入ったとき」だけ fetch し、Promiseを保持して再利用する
@@ -861,11 +869,9 @@ window.GA_CARD_SEARCH = (() => {
         types: dec(entry[2]), subtypes: dec(entry[3]),
       };
       for (const m of MULTI) {
-        // ⚠ 索引に列挙値が無い項目でここを絞ってはいけない。レアリティは索引の entry[7] が
-        //   「prefix別の最小」しか持たないため、最小以外で刷られた版が候補から落ちる。
-        //   ⭐ 落ちた候補はそもそも取得されず、取得後フィルタでは救えない（#27 の原則）。
-        //   代償（件数が概算になる・想定内の除外が出る）は D-1 / D-2 で受け止める（§5 P4）。
-        if (isIndexBlind(m)) continue;
+        // ⚠ 版レベルの項目はここを通さない（matchesActiveFilters と同じ）。版の候補集合を
+        //   先に作る2段階の評価が要るため、下の rarityMatchesInSlots() が判定する。
+        if (isVersionLevel(m)) continue;
         if (!matchesMulti(pseudo, m[0], m[2])) return false;
       }
       if (val(els.format)) {
@@ -874,11 +880,41 @@ window.GA_CARD_SEARCH = (() => {
         if (state === "LEGAL" ? banned : !banned) return false;
       }
       const pre = setPrefixes(val(els.set));
+      const prefixes = dec(entry[4]);
+      // ① エキスパンションで版（スロット）の候補集合を作る（意味統一 §4 と同じ順序）
       if (pre.length) {
-        const prefixes = dec(entry[4]);
         if (!pre.some((x) => prefixes.includes(x))) return false;
       }
+      // ② その中でレアリティを判定する（#102 単位2）
+      if (!rarityMatchesInSlots(entry, prefixes, pre)) return false;
       return true;
+    }
+
+    // ⭐ #102 単位2: 索引でレアリティを判定する。実行時の rarityMatchesIn() と同じ規則・
+    //   同じ2段階の順序でなければならない（意味統一 §4。項目ごとに独立に判定すると
+    //   427通り中351通り＝82.2%で英語モードと食い違う）。
+    //     実行時: have = { String(e.rarity) | e ∈ E }、E = 選択prefixに属する版（無選択なら全版）
+    //     索引側: have = ∪ { entry[7][i] | entry[4][i] ∈ 選択prefix }（無選択なら全スロット）
+    //   ⭐ スロットは「そのprefixの版のレアリティ集合」なので両者は同じ集合になる。
+    // ⚠ ⭐ 旧形式（スロットが数値や null）の索引を読んだときは、このエントリのレアリティ判定を
+    //   まるごとやめて候補に残す（fail-open）。⚠ スロットごとに混ぜないこと——和集合が一部の
+    //   prefix しか見ていない状態で「合致しない」と断定すると、候補を落とす危険な向きになる
+    //   （#27 の原則どおり、落ちた候補は取得後フィルタでは救えない）。#102 §6-4。
+    // ⚠ els.rarity を持たないページでは valuesOf(null)=[] で常に true＝no-op。
+    function rarityMatchesInSlots(entry, prefixes, pre) {
+      const list = vals("rarity");
+      if (!list.length) return true;
+      const slots = entry[7];
+      if (!Array.isArray(slots) || slots.length !== prefixes.length) return true; // 旧形式＝不明
+      if (!slots.every((v) => Array.isArray(v))) return true;                     // 旧形式＝不明
+      const have = new Set();
+      prefixes.forEach((p, i) => {
+        if (pre.length && !pre.includes(p)) return;
+        slots[i].forEach((r) => have.add(String(r)));
+      });
+      return modeOf(els.rarity) === "AND"
+        ? list.every((v) => have.has(v))
+        : list.some((v) => have.has(v));
     }
 
     // ---------- テキスト欄（カード名＋効果の一本化・#111 §5-0 / §5-6 / §5-7）----------
@@ -1030,7 +1066,16 @@ window.GA_CARD_SEARCH = (() => {
         const pre = setPrefixes(val(els.set));
         // エキスパンション絞り込み中は、そのセット内の min で並べる
         // （公式APIの sort=rarity が「絞り込み後のedition の min」で並ぶため）
-        const use = names.map((p, i) => ((!pre.length || pre.includes(p)) ? rar[i] : null))
+        // ⭐ #102 単位2 でスロットは「レアリティ集合（昇順）」になった。並び替えは集合の最小を
+        //   取り直す＝変更前の値と必ず一致する（実測: 全4,791スロットで不一致 0件）。
+        // ⚠ ⭐ 旧形式（スロットが数値）の索引もそのまま読めること（fail-open・#102 §6-4）。
+        //   ⚠ Math.min(...slot) を slot[0] に簡略化してよい（昇順ソート済みなので等価）が、
+        //     旧形式の数値を同じ式で扱えなくなるのでこの形を保つ。
+        const slotMin = (v) => {
+          if (Array.isArray(v)) return v.length ? Math.min(...v) : null;
+          return typeof v === "number" ? v : null; // 旧形式の数値 ＝ 旧挙動のまま
+        };
+        const use = names.map((p, i) => ((!pre.length || pre.includes(p)) ? slotMin(rar[i]) : null))
           .filter((v) => v != null);
         return use.length ? Math.min(...use) : undefined;
       }
@@ -1067,16 +1112,16 @@ window.GA_CARD_SEARCH = (() => {
     }
 
     // class/element/type/subtype/rarity/set の絞り込みにカードが合致するか（JPモードの客側フィルタ用）
-    // ⚠ JPモードのレアリティはここだけが判定する（metaMatches は候補を落とさない＝上の fail-open）
-    // ⚠ skipIndexBlind: 索引が見られない条件（レアリティ）だけを外して判定し直すための旗（D-2）。
-    //   ⭐ 通常の呼び出しでは全条件を見る。旗を立てた判定と結果が食い違ったカードは
-    //     「索引の盲点だけが理由で落ちた＝想定内」であって、索引の腐りではない。
-    //   ⚠ 意味は「レアリティを完全に無視する」。E の絞り込み（エキスパンション）は残す——
-    //     ここで E まで外すと、エキスパンション違いで落ちたカードまで「想定内」に数えてしまう。
-    function matchesActiveFilters(card, o) {
-      const skipBlind = !!(o && o.skipIndexBlind);
+    // ⭐ #102 単位2 以降、レアリティは metaMatches() が取得前にも判定する。ここは索引が
+    //   古い・未収録・旧形式のときの最終判断として残る（二段構えは #27 の設計のまま）。
+    // ⚠ ⭐ かつてここに D-2（skipIndexBlind 旗）があった。「レアリティだけを外して判定し直し、
+    //   食い違ったカードは想定内の除外として jpDropped に数えない」ための旗だが、#102 単位2 で
+    //   取得前にレアリティが効くようになったため、レアリティが理由で取得後に落ちるのは
+    //   「索引が腐っている」ことを意味する＝まさに jpDropped（出たら異常の信号・#45）が
+    //   拾うべきものになった。⚠ 旗を戻すと、その異常検出の経路が1本死ぬ（#102 §6-2(d)）。
+    function matchesActiveFilters(card) {
       for (const m of MULTI) {
-        if (isIndexBlind(m)) continue; // 版レベルは下の2段階でまとめて判定する
+        if (isVersionLevel(m)) continue; // 版レベルは下の2段階でまとめて判定する
         if (!matchesMulti(card, m[0], m[2])) return false;
       }
       if (val(els.format)) {
@@ -1089,7 +1134,7 @@ window.GA_CARD_SEARCH = (() => {
       const eds = editionSetOf(card);
       if (setPrefixes(val(els.set)).length && !eds.length) return false;
       // ② その E の中でレアリティを判定する
-      if (!skipBlind && !rarityMatchesIn(eds)) return false;
+      if (!rarityMatchesIn(eds)) return false;
       return true;
     }
 
@@ -1343,7 +1388,6 @@ window.GA_CARD_SEARCH = (() => {
         jpSortDropped = false;
         jpBackHit = null;
         jpDropped = 0;
-        jpBlindDropped = 0;
         jpSeen = new Set();
       }
       try {
@@ -1351,7 +1395,7 @@ window.GA_CARD_SEARCH = (() => {
         let fetchGap = null; // 全件取得と total_cards の食い違い（#44 §5・fail-open の注記用）
         // JPモードで「候補のうち確認し終えた件数」（読み取り専用）。
         // ⚠ いまは表示に使っていない——#114 で0件文言から件数を落としたため消費側が無い。
-        //   検証・デバッグから観測できるように残してある（jpBlindDropped と同じ扱い）
+        //   検証・デバッグから観測できるように残してある（jpMatched と同じ扱い）
         // ⚠ 非JPモードでは 0 のまま返す（jpMatched 等と同じ扱い）
         let jpChecked = 0;
         // ENテキストモードのトークン（JPモード中は空＝あちらが担当する）。
@@ -1402,11 +1446,10 @@ window.GA_CARD_SEARCH = (() => {
               base = folded;
               jpApprox = hasJpFilters();
             }
-            // ⭐ D-1（§5 P4）: 索引が判定できない絞り込み（レアリティ）が有効なら、候補には
-            //    条件に合わないカードが必ず残っている＝ jpCand.length は実数より多い。
-            //    ⚠ 目的は「誤った『全N件』を出さない」こと。正確な総数を数え直すのではない
-            //    （数えるには全候補を取得するしかなく、JPモードの構造上それは高くつく）。
-            if (indexBlindActive()) jpApprox = true;
+            // ⚠ ⭐ かつてここに D-1 があった（索引が判定できない絞り込みが有効なら概算にする）。
+            //    #102 単位2 でレアリティも取得前に効くようになり、該当する項目が1つも
+            //    無くなったので撤去した。⭐ 以後、jpApprox が立つのは「索引が使えない」
+            //    「索引未収録slugが混じる」の2つだけ（上の2分岐）＝#102 §6-2(e)。
             // 並び替えは絞り込みの「後」に行う（除外で件数が減ってからのほうが比較回数が少ない）
             const s = sortJpCand(idx, base);
             jpCand = s.list;
@@ -1426,15 +1469,11 @@ window.GA_CARD_SEARCH = (() => {
           for (const c of fetched) {
             if (!c) { jpDropped += 1; continue; }                       // 取得失敗
             if (jpSeen.has(c.slug)) { jpDropped += 1; continue; }       // 畳み漏れ（表面が重複）
-            if (!matchesActiveFilters(c)) {
-              // ⭐ D-2（§5 P4）: 索引が見られない条件（レアリティ）だけが理由なら「想定内」。
-              //   ⚠ jpDropped に混ぜない —— この注記は「出たら異常」の信号で、レアリティを
-              //     使うたびに点灯させると異常検出の経路が1本死ぬ。
-              //   取得失敗・畳み漏れ・索引の腐りは上と下のとおり従来どおり jpDropped に数える。
-              if (matchesActiveFilters(c, { skipIndexBlind: true })) jpBlindDropped += 1;
-              else jpDropped += 1;
-              continue;
-            }
+            // ⚠ ⭐ かつてここに D-2 があった（レアリティだけが理由の除外は「想定内」として
+            //   jpDropped に数えない）。#102 単位2 でレアリティが取得前に効くようになったので、
+            //   レアリティが理由でここに来るのは索引の腐りであって想定内ではない＝
+            //   jpDropped（出たら異常の信号・#45）が拾うべきもの。⚠ 別勘定に戻さないこと。
+            if (!matchesActiveFilters(c)) { jpDropped += 1; continue; }
             jpSeen.add(c.slug);
             cards.push(c);
           }
@@ -1568,9 +1607,6 @@ window.GA_CARD_SEARCH = (() => {
           jpFiltered: jpSlugs ? hasJpFilters() : false,
           jpChecked,
           jpDropped: jpSlugs ? jpDropped : 0,
-          // ⚠ 表示には使わない（新しい注記は増やさない・設計書 §5 P4）。D-2 が正しく効いているかを
-          //   検証・デバッグから観測できるようにするためだけの値
-          jpBlindDropped: jpSlugs ? jpBlindDropped : 0,
           // 裏面だけが一致したカードの {表面slug: 裏面slug}（#46）。
           // ⚠ カードオブジェクトに印を付けてはいけない（fetchCard の結果はキャッシュされるため、
           //   前回の検索の印が次の検索に残る）。必ずこの info 経由で渡す
@@ -1723,10 +1759,10 @@ window.GA_CARD_SEARCH = (() => {
     //   どれもここ1か所に置く。⚠ 2つの app.js に書き戻さないこと（二重定義を増やさない）。
     textTokens, matchesText, mergeLegacyText,
     SUBTYPE_TOP, ELEMENT_AND_MESSAGE,
-    // ⭐ 版レベル項目（isIndexBlind）の一覧。npm run validate が読んで、第2段
+    // ⭐ 版レベル項目（isVersionLevel）の一覧。npm run validate が読んで、第2段
     //    （rarityMatchesIn）が名指ししているキーとずれていないかを検査する（#93）。
     // ⚠ ここに配列リテラルを書き写さないこと——MULTI から導くから検査が意味を持つ。
-    INDEX_BLIND_KEYS: MULTI.filter(isIndexBlind).map(([k]) => k),
+    VERSION_LEVEL_KEYS: MULTI.filter(isVersionLevel).map(([k]) => k),
     // ⭐ 版レベルの絞り込みに合わせた絵柄の選択（#97）。⚠ 呼び出し側に規則を書き戻さないこと
     //    （npm run validate が「定義は1ファイルだけ」を双方向に検査して落とす）。
     artCondOf, preferredArtIndex,
