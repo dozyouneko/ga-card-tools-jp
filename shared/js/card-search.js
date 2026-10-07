@@ -1514,17 +1514,21 @@ window.GA_CARD_SEARCH = (() => {
             fetchGap = { unique: all.cards.length, total: all.total };
           }
         } else {
-          // ⚠ ⭐ ここには anyAnd() が false のものしか来ない（上の分岐が拾う）。
-          //   そのため下の間引きは1件も起きず、total は API の申告値をそのまま言い切ってよい
+          // ⚠ ⭐ ここには「AND指定が1つも無いもの」しか来ない（上の分岐が全部拾う）。
+          //   そのため間引きは1件も起きず、total は API の申告値をそのまま言い切ってよい
           //   （approxTotal が非JPモードで立つ経路は1本も無い＝#102 §5-3）。
+          // ⚠ ⭐ ここに「念のため」のAND間引き（matchesAndFilters を通す安全弁）を書き戻さない
+          //   こと（#102 §5-6・追補 P1 で撤去した）。到達しない分岐は誰も試せないうえ、
+          //   上の分岐の条件を狭めた日の壊れ方が——安全弁ありなら
+          //   「行は正しいが足りず総件数が嘘」（＝症状③ そのもの＝誰も気づけない静かな側）、
+          //   撤去済みなら「ANDに一致しない行が混じる」（＝画面を見た人に即分かるうるさい側）。
+          //   うるさい側を選ぶ（#116 §12-1 と同じ流儀）。検出は安全弁の有無に依らない
+          //   （npm run validate の `and filters resolve before render` が3組とも落ちる）。
           const res = await fetch(`${API}/cards/search?${buildQuery(pager.page)}`);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const json = await res.json();
           if (mySeq !== seq) return;
           cards = json.data || [];
-          // ⚠ 残してある安全弁。上の分岐の条件を狭めた日に「ANDを間引かずに全部出す」という
-          //   いちばん分かりにくい壊れ方へ倒れないため（今日の経路では常に no-op）
-          if (anyAnd()) cards = cards.filter(matchesAndFilters);
           total = json.total_cards || 0;
           hasMore = !!json.has_more;
         }
