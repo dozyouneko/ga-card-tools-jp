@@ -95,6 +95,9 @@ const el = {
   sSet: $("s-set"),
   sSort: $("s-sort"),
   sOrder: $("s-order"),
+  // ⭐ #136: 結果が無い間の注記。文言はHTMLに書き、ここでは hidden を付け外しするだけ
+  //    （文言の出所を1つにする・設計 §3-5）。⚠️ textContent をJSで書き換えないこと。
+  sortHint: $("sort-hint"),
   sReset: $("s-reset"),
   sSearch: $("s-search"),
   searchTop: $("search-top"),
@@ -1809,6 +1812,25 @@ function syncSearchTabSelection() {
   //    タブの切り替え（selectSearchTab）・並び替えのその場更新（updateActiveSearchTab）の
   //    すべてが通る唯一の合流点なので、箱の描き直しを各所に散らさない。
   renderCondBox();
+  syncSortControls(); // ⭐ #136: 並び替え欄の有効・無効もここ1か所から（下のコメント参照）
+}
+
+// ⭐ #136: 並び替え欄は「結果があるときだけ」使える（原則2）。見せ方をここ1か所で決める。
+// ⚠️ ⭐ 呼ぶのは上の syncSearchTabSelection() の中の1箇所だけ。個々のハンドラに
+//    el.sSort.disabled = … を書かないこと——activeSearchTab への代入は5箇所
+//    （宣言・タブ追い出し・selectSearchTab・closeSearchTab・clearSearchTabs）あり、
+//    1つでも書き漏らすと「並び替えが永久に押せない」というより悪い壊れ方になる
+//    （しかも npm run validate は緑。#136 設計 §3-3・§12-3・V7）。
+// ⭐ 5箇所すべてが syncSearchTabSelection() を通る（直接、または renderSearchTabs() 経由）ので、
+//    状態（activeSearchTab）から毎回決めれば同期漏れが起きない
+//    ＝「aria-selected と見た目を1か所で書く」と同じ流儀。
+// ⚠️ ⭐ これは見せ方であって挙動の保証ではない。updateActiveSearchTab() のガードは必ず残す
+//    （#136 設計 §12-4・V3）。
+function syncSortControls() {
+  const on = !!activeSearchTab; // ⭐ 出所はこれだけ（selectedSearchTab も searchTabs も見ない）
+  el.sSort.disabled = !on;
+  el.sOrder.disabled = !on;
+  el.sortHint.hidden = on;
 }
 
 // 続きがある側の端をぼかす（設計 §4-3）
@@ -1981,16 +2003,31 @@ function closeSearchTab(tab) {
 }
 
 // 🔍検索 / Enter。⭐ タブを増やすのはこれだけ（設計 §2-3）
+// ⭐ #136 原則1: 検索は並び順を無視する——作るタブの条件に sort / order を含めない。
+// ⚠️ ⭐ この2つの delete を消すと「条件が空 × 数値ソート」で50ページの全件取得が戻る
+//    （#136 の症状そのもの）。⚠️ npm run validate は緑のままで生成物の差分も出ない
+//    ＝検査は無い（#136 設計 §7-3 で裁定済み。守っているのはこのコメントだけ）。
+// ⭐ 無視されたことは表示で見える: selectSearchTab() → applyCondToForm() の先頭の
+//    resetSearchForm() が並び替え欄を「名前順 ▲ 昇順」へ戻す（#136 設計 §3-2・V4）。
 function runNewSearchTab() {
-  const tab = addSearchTab(condFromForm());
+  const p = new URLSearchParams(condFromForm());
+  p.delete("sort"); p.delete("order");
+  const tab = addSearchTab(p.toString());
   selectSearchTab(tab); // U5: そのタブへ切り替える。loaded=false なので検索が走る
 }
 
 // 並び替え・昇降順。⭐ 表示中の検索タブをその場で更新する（タブは増やさない・設計 §2-3）。
-// ⚠️ 検索タブが1つも無い状態では新しいタブができる（＝今までの「空条件の検索が走る」を踏襲・V9）
+// ⭐ #136 原則2: 並び順が効くのは結果があるときだけ——結果パネルの持ち主がいなければ何もしない
+//    （デッキを開いた直後・持ち主のタブだけ × で閉じた直後・全部閉じた直後）。
+// ⚠️ ⭐ 「結果がある」の定義は activeSearchTab ただ1つ（#136 設計 §1-1・§12-2）。
+//    ⚠️ selectedSearchTab で書くと、検索後に 🃏デッキタブへ戻った状態（帯では選ばれていないが
+//       結果はある）まで止まる。⚠️ searchTabs.length で書くと、デッキを開いた直後
+//       （タブはあるが結果は無い）を止められない。
+// ⚠️ ⭐ このガードは「挙動の保証」で、syncSortControls() の disabled は「見せ方」にすぎない。
+//    disabled が外れても（同期漏れ・拡張機能・DevTools）ここで止まる（#136 設計 §12-4・V3）。
 function updateActiveSearchTab() {
   const tab = activeSearchTab;
-  if (!tab) { runNewSearchTab(); return; }
+  if (!tab) { return; }
   tab.cond = condFromForm();
   tab.ctl = makeSearchCtl(tab); // ⚠️ 条件が変わったので作り直す（els は作成時に固定される）
   tab.loaded = false;
@@ -2304,11 +2341,13 @@ el.sQ.addEventListener("keydown", (e) => { if (e.key === "Enter") runNewSearchTa
 el.resultMore.addEventListener("click", () => {
   if (activeSearchTab) activeSearchTab.ctl.loadMore();
 });
-// 並び替え(名前順など)は検索パネル(#search-top)の中にあり、常に触れる。
-// ⚠️ 「結果が表示されているときだけ並び替える」というガードを戻さないこと。結果が出ていないときに
-//    「並び替えを変えても何も起きない」＝無言の劣化になる（左ペイン化_設計 §5-2）。
+// 並び替え(名前順など)は検索パネル(#search-top)の中にある。
+// ⭐ #136: 結果があるときだけ効く（原則2）。結果が無い間は syncSortControls() が disabled にして
+//    「検索後に使えます」を出すので、無言の劣化にはならない
+//    （⚠️ 左ペイン化_設計 §5-2 の「常に再検索する」という決定は #136 で差し戻した）。
+// ⚠️ ⭐ 「結果があるときは必ず再検索する」のほうは生きている——画面にある分だけ並べ替えては
+//    いけない（lorraine の13枚はレベル順にすると7枚になる＝#39 の除外。#136 設計 §2）。
 //    ⭐ タブ化後は「表示中の検索タブをその場で更新する」（タブは増やさない・設計 §2-3）。
-//    まだ一度も検索していない状態で触ると空条件の検索で新しいタブができる（許容・V9）。
 el.sSort.addEventListener("change", updateActiveSearchTab);
 el.sOrder.addEventListener("click", () => {
   setSearchOrder((el.sOrder.dataset.dir || "ASC") === "ASC" ? "DESC" : "ASC");

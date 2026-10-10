@@ -139,9 +139,13 @@
         <select id="s-set"><option value="">エキスパンション（全て）</option></select>
       </div>
       <!-- 並び替え・昇降順（左ペイン化_設計 §5）。⚠️ 結果パネル側ではなくこの検索パネルに置く。
-           トップページの .filter-rest（#f-sort / #order）と同じ位置づけで、
            変更したら表示中の検索タブをその場で更新する
-           （app.js の updateActiveSearchTab()・検索結果のタブ化_設計 §2-3。タブは増やさない）。 -->
+           （app.js の updateActiveSearchTab()・検索結果のタブ化_設計 §2-3。タブは増やさない）。
+           ⭐ #136: 結果が無いときは何もしない（原則2）——結果パネルの持ち主がいない間は
+              app.js の syncSortControls() が disabled にし、下の #sort-hint を出す。
+           ⚠️ ⭐ 「トップページの .filter-rest（#f-sort / #order）と同じ位置づけ」は
+              もう当たらない。トップは読み込み時に必ず検索するので「結果が無い状態」が
+              存在せず、並び順を尊重する（#136 設計 §9。トップには適用しない）。 -->
       <div class="result-sort">
         <label for="s-sort">並び替え</label>
         <select id="s-sort" aria-label="並び替え">
@@ -154,6 +158,10 @@
         </select>
         <button id="s-order" class="btn btn-sm" type="button" data-dir="ASC" aria-label="昇順・降順を切替">▲ 昇順</button>
       </div>
+      <!-- ⭐ #136: 結果が無い間の理由（W5・ユーザー決定）。⚠️ 置き場は .result-sort の「外」。
+           中に入れると flex / grid の行に割り込んで <select> の幅が変わる（設計 §3-5）。
+           ⚠️ 上のラベル「並び替え」は1文字も変えない——375px で2行に割れる（設計 §3-5）。 -->
+      <p id="sort-hint" hidden>検索後に使えます</p>
     </div>
     <!-- ⚠️ row-actions クラスは必須。1200px以上でこの行だけ横並びに戻すために使う。
          ⚠️ #search-top > .row:last-of-type では書かないこと（末尾に div を1つ足した瞬間に

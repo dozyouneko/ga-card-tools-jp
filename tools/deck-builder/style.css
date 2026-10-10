@@ -1008,3 +1008,14 @@ footer.site-foot p { margin: 0; max-width: 72ch; }
      （結果ダイアログが左ペインを覆わないようにする左ペイン化_設計 §7-5 D-add-2 の手当て）は
      ⚠️ 器ごと不要になった（設計 §8-4）。⭐ 左ペインはもう何にも覆われない。 */
 }
+
+/* ⭐ #136: 結果が無い間の並び替え欄（原則2。app.js の syncSortControls() が disabled を付ける）。
+   ⚠️ ⭐ この2本を外すと、昇降順ボタンのカーソルが progress（読み込み中）になり
+      「待っていれば動く」と誤解させる——上の .btn:disabled { cursor: progress } のため
+      （#136 設計 §3-4・V2・破壊試験 B4）。⚠️ 整形目的でまとめたり消したりしないこと。
+   ⭐ 同ファイルに先例あり（.result .addrow button:disabled の cursor: not-allowed）。
+   ⚠️ :root を足さない・直値の色を書かない（npm run validate の検査(ii)(iii)）。 */
+.result-sort select:disabled, .result-sort button:disabled { cursor: not-allowed; opacity: .55; }
+/* ⚠️ 置き場は .result-sort の「外」・直後の兄弟（index.html）。中に入れると
+   flex（1199px以下）/ grid（1200px以上）の行に割り込んで <select> の幅が変わる（設計 §3-5）。 */
+#sort-hint { margin: -4px 0 8px; font-size: .72rem; color: var(--muted); }
