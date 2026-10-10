@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>並び替え欄 モック（枠）</title>
+<!-- ⭐ 本物のCSSを読む（手で描き写さない）。⚠️ npm run dev（リポジトリ直下を配信）で開くこと -->
+<link rel="stylesheet" href="/shared/css/tokens.css">
+<link rel="stylesheet" href="/tools/deck-builder/style.css">
+<style>
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans JP", sans-serif; }
+  /* ⭐ PC(1200px以上)では左ペインの実寸（約320px）を模す。⚠️ 本物は #view-editor のグリッドが決める */
+  .pane-mimic { padding: 10px; }
+  @media (min-width: 1200px) { .pane-mimic { width: 340px; } }
+  .frame-note { font-size: .68rem; color: var(--muted); margin: 0 0 6px; }
+
+  /* ===== 提案する専用規則（案a）=====
+     ⚠️ 既存の .btn:disabled は { opacity:.6; cursor: progress } なので、
+        昇降順ボタンが「読み込み中」に見える（実測）。<select> 側は site の規則が無く
+        ブラウザ既定の opacity 0.7 しか付かない＝信号が弱い。
+     ⭐ 両方を1本で揃える。*/
+  body.rule-on .result-sort select:disabled,
+  body.rule-on .result-sort button:disabled {
+    cursor: not-allowed; opacity: .55;
+  }
+  /* 案c の「別行の注記」。⭐ 無効のときだけ出す */
+  #sort-hint { margin: -4px 0 8px; font-size: .72rem; color: var(--muted); }
+  #sort-hint[hidden] { display: none; }
+</style>
+</head>
+<body>
+<div class="search-top" id="search-top">
+  <div class="pane-scroll pane-mimic">
+    <p class="frame-note" id="frame-note"></p>
+    <!-- ⭐ tools/deck-builder/index.html の 145〜155行をそのまま写した構造 -->
+    <div class="result-sort">
+      <label for="s-sort" id="s-sort-label">並び替え</label>
+      <select id="s-sort" aria-label="並び替え">
+        <option value="name">名前順</option>
+        <option value="cost_memory">コスト順</option>
+        <option value="level">レベル順</option>
+        <option value="power">パワー順</option>
+        <option value="life">ライフ順</option>
+        <option value="rarity">レアリティ順</option>
+      </select>
+      <button id="s-order" class="btn btn-sm" type="button" data-dir="ASC" aria-label="昇順・降順を切替">▲ 昇順</button>
+    </div>
+    <p id="sort-hint" hidden></p>
+  </div>
+</div>
+<script>
+  // 文言案。⭐ 長短を振ってある（375px でラベルの箱が 48px しかないため）
+  var W = {
+    W1: { label: "並び替え",                hint: null },
+    W2: { label: "並び替え（検索後）",       hint: null },
+    W3: { label: "並び替え（検索後に有効）", hint: null },
+    W4: { label: "並び替え",                hint: "検索するとここで並べ替えられます" },
+    W5: { label: "並び替え",                hint: "検索後に使えます" }
+  };
+  var el = {
+    label: document.getElementById("s-sort-label"),
+    sort: document.getElementById("s-sort"),
+    order: document.getElementById("s-order"),
+    hint: document.getElementById("sort-hint"),
+    note: document.getElementById("frame-note")
+  };
+  var cur = { state: "none", w: "W3", rule: "on" };
+
+  // ⭐ 「状態から毎回決める」1か所（設計 §5-2 の形をモックでも守る）
+  function sync() {
+    var hasResult = cur.state === "has";
+    var opt = W[cur.w] || W.W1;
+    el.sort.disabled = !hasResult;
+    el.order.disabled = !hasResult;
+    el.label.textContent = hasResult ? "並び替え" : opt.label;
+    var showHint = !hasResult && !!opt.hint;
+    el.hint.hidden = !showHint;
+    el.hint.textContent = showHint ? opt.hint : "";
+    document.body.classList.toggle("rule-on", cur.rule === "on");
+    el.note.textContent = hasResult ? "結果がある状態（いまと同じ・並び替えが効く）"
+                                    : "結果が無い状態（デッキを開いた直後など）";
+    report();
+  }
+  function box(e) { var r = e.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), cw: e.clientWidth }; }
+  // ⭐ 文字の「実描画位置」で測る（要素の矩形では折り返しが見えない・CLAUDE.md の位置測定の規約）
+  function textMetrics(e) {
+    var rg = document.createRange(); rg.selectNodeContents(e);
+    var rects = rg.getClientRects();
+    var wMax = 0; for (var i = 0; i < rects.length; i += 1) wMax = Math.max(wMax, rects[i].width);
+    var r = rg.getBoundingClientRect();
+    return { 行数: rects.length, 文字の幅: Math.round(wMax), 文字の箱: Math.round(r.width) + "x" + Math.round(r.height),
+      はみ出し: e.scrollWidth > e.clientWidth, scrollWidth: e.scrollWidth, clientWidth: e.clientWidth };
+  }
+  function report() {
+    var m = {
+      state: cur.state, wording: cur.w, 専用規則: cur.rule,
+      labelText: el.label.textContent,
+      hintText: el.hint.hidden ? null : el.hint.textContent,
+      disabled: { sort: el.sort.disabled, order: el.order.disabled },
+      cursor: { sort: getComputedStyle(el.sort).cursor, order: getComputedStyle(el.order).cursor },
+      opacity: { sort: getComputedStyle(el.sort).opacity, order: getComputedStyle(el.order).opacity },
+      rect: { label: box(el.label), sort: box(el.sort), order: box(el.order),
+              row: box(document.querySelector(".result-sort")) },
+      labelText計測: textMetrics(el.label),
+      hint計測: el.hint.hidden ? null : textMetrics(el.hint),
+      viewport: window.innerWidth
+    };
+    window.__mock = m;
+    try { parent.postMessage({ mock: m }, "*"); } catch (e) {}
+  }
+  window.addEventListener("message", function (ev) {
+    var d = ev.data || {};
+    if (d.state) cur.state = d.state;
+    if (d.w) cur.w = d.w;
+    if (d.rule) cur.rule = d.rule;
+    sync();
+  });
+  // URL からも初期値を受ける（枠を直接開けるように）
+  var q = new URLSearchParams(location.search);
+  if (q.get("state")) cur.state = q.get("state");
+  if (q.get("w")) cur.w = q.get("w");
+  if (q.get("rule")) cur.rule = q.get("rule");
+  sync();
+  window.addEventListener("resize", report);
+</script>
+</body>
+</html>

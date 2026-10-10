@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#136 並び替え欄の無効化 モック</title>
+<link rel="stylesheet" href="/shared/css/tokens.css">
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 18px; background: #0b0d11; color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans JP", sans-serif; }
+  h1 { font-size: 1.05rem; margin: 0 0 4px; }
+  h2 { font-size: .9rem; margin: 18px 0 8px; color: var(--muted); font-weight: 600; }
+  p.lead { font-size: .8rem; color: var(--muted); margin: 0 0 14px; line-height: 1.6; }
+  .ctl { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; }
+  .ctl fieldset { border: 0; margin: 0; padding: 0; }
+  .ctl legend { font-size: .72rem; color: var(--muted); padding: 0 0 4px; }
+  .ctl label { display: block; font-size: .8rem; line-height: 1.9; cursor: pointer; }
+  .ctl code { font-size: .74rem; color: var(--accent); }
+  .cols { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }
+  .col { border: 1px solid var(--border); border-radius: 10px; padding: 10px; background: #12151b; }
+  .col > h3 { font-size: .78rem; margin: 0 0 8px; color: var(--muted); font-weight: 600; }
+  iframe { border: 1px dashed var(--border); background: var(--bg); display: block; }
+  /* PC は 1400px の viewport が要る（@media min-width:1200px を踏ませるため）→ 縮小して載せる */
+  .pcwrap { width: 700px; height: 150px; overflow: hidden; }
+  .pcwrap iframe { width: 1400px; height: 300px; transform: scale(.5); transform-origin: 0 0; }
+  .spwrap iframe { width: 375px; height: 150px; }
+  table { border-collapse: collapse; font-size: .74rem; margin-top: 10px; }
+  th, td { border: 1px solid var(--border); padding: 3px 7px; text-align: left; }
+  th { color: var(--muted); font-weight: 600; }
+  .warn { color: #fca5a5; }
+  .ok { color: #86efac; }
+</style>
+</head>
+<body>
+<h1>#136 並び替え欄の無効化（案a + 案c）モック</h1>
+<p class="lead">
+  ⭐ <b>本物のCSS（<code>/shared/css/tokens.css</code> と <code>/tools/deck-builder/style.css</code>）を読み込んでいます</b>——見た目は手で描いたものではありません。<br>
+  ⚠️ <b>左が PC（viewport 1400px・1/2 に縮小表示）、右が 375px（実寸）</b>です。⭐ <b>375px が判断の本番</b>です。<br>
+  ⭐ 下の読み取り値は <b>iframe の中で実測した値</b>（<code>getBoundingClientRect()</code>・計算後の <code>cursor</code> / <code>opacity</code>）です。
+</p>
+
+<div class="ctl">
+  <fieldset>
+    <legend>① 状態</legend>
+    <label><input type="radio" name="state" value="none" checked> 結果が<b>無い</b>（デッキを開いた直後）</label>
+    <label><input type="radio" name="state" value="has"> 結果が<b>ある</b>（いまと同じ）</label>
+  </fieldset>
+  <fieldset>
+    <legend>② 文言案（⭐ 長短を振ってあります）</legend>
+    <label><input type="radio" name="w" value="W1"> <b>W1</b> 文言なし（無効化だけ）</label>
+    <label><input type="radio" name="w" value="W2"> <b>W2</b> 「並び替え（検索後）」</label>
+    <label><input type="radio" name="w" value="W3" checked> <b>W3</b> 「並び替え（検索後に有効）」</label>
+    <label><input type="radio" name="w" value="W4"> <b>W4</b> 別行「検索するとここで並べ替えられます」</label>
+    <label><input type="radio" name="w" value="W5"> <b>W5</b> 別行「検索後に使えます」</label>
+  </fieldset>
+  <fieldset>
+    <legend>③ 無効の見た目</legend>
+    <label><input type="radio" name="rule" value="on" checked> <b>専用規則あり</b>（<code>cursor: not-allowed</code> / <code>opacity .55</code>）</label>
+    <label><input type="radio" name="rule" value="off"> <b>既存CSSのまま</b>（⚠️ ボタンが <code>progress</code>＝読み込み中に見える）</label>
+  </fieldset>
+</div>
+
+<div class="cols">
+  <div class="col">
+    <h3>PC（viewport 1400px・1/2 縮小）— 左ペインの中</h3>
+    <div class="pcwrap"><iframe id="f-pc" src="mock_並び替え欄_frame.html?state=none&w=W3&rule=on"></iframe></div>
+    <table id="t-pc"></table>
+  </div>
+  <div class="col">
+    <h3>375px（実寸）— ⭐ こちらが本番</h3>
+    <div class="spwrap"><iframe id="f-sp" src="mock_並び替え欄_frame.html?state=none&w=W3&rule=on"></iframe></div>
+    <table id="t-sp"></table>
+  </div>
+</div>
+
+<h2>読み取り値の見かた</h2>
+<p class="lead">
+  ⚠️ <b><code>clientWidth</code> が 0 でないこと</b>を併記しています（<code>hidden</code> な領域の中だと寸法が 0/0 になり「収まっている」と誤読できるため）。<br>
+  ⭐ <b>判断材料は「ラベル文字の実描画」の行数</b>です。⚠️ <b>実測で分かったこと: 375px でも <code>&lt;select&gt;</code> は縮みません（どの案でも 146px）。</b>
+  代わりに <b>W2 / W3 はラベルが 2行に折り返します</b>（「並び替え（検索／後に有効）」のように<b>括弧の途中で割れます</b>）。
+  <b>W4 / W5 はラベル 1行のまま、注記が下に 1行増えます</b>（行の高さ 43px は変わりません）。
+</p>
+
+<script>
+  var frames = { pc: document.getElementById("f-pc"), sp: document.getElementById("f-sp") };
+  var tables = { pc: document.getElementById("t-pc"), sp: document.getElementById("t-sp") };
+  var cur = { state: "none", w: "W3", rule: "on" };
+  function send() {
+    Object.keys(frames).forEach(function (k) {
+      try { frames[k].contentWindow.postMessage(cur, "*"); } catch (e) {}
+    });
+  }
+  document.querySelectorAll('.ctl input[type=radio]').forEach(function (r) {
+    r.addEventListener("change", function () { cur[r.name] = r.value; send(); });
+  });
+  Object.keys(frames).forEach(function (k) { frames[k].addEventListener("load", send); });
+
+  function row(k, v, cls) { return "<tr><th>" + k + "</th><td" + (cls ? ' class="' + cls + '"' : "") + ">" + v + "</td></tr>"; }
+  window.addEventListener("message", function (ev) {
+    var m = ev.data && ev.data.mock;
+    if (!m) return;
+    var which = m.viewport >= 1200 ? "pc" : "sp";
+    var curWarn = (m.cursor.order === "progress") ? "warn" : "ok";
+    var selWarn = (which === "sp" && m.rect.sort.w < 140) ? "warn" : "";
+    tables[which].innerHTML =
+      row("viewport", m.viewport + "px") +
+      row("ラベルの文言", m.labelText) +
+      row("別行の注記", m.hintText === null ? "（無し）" : m.hintText) +
+      row("disabled", "並び替え " + m.disabled.sort + " / 昇降順 " + m.disabled.order) +
+      row("cursor", "並び替え " + m.cursor.sort + " / 昇降順 <b>" + m.cursor.order + "</b>", curWarn) +
+      row("opacity", "並び替え " + m.opacity.sort + " / 昇降順 " + m.opacity.order) +
+      row("ラベルの箱", m.rect.label.w + "×" + m.rect.label.h + " (clientWidth " + m.rect.label.cw + ")") +
+      row("ラベル文字の実描画", "<b>" + m.labelText計測.行数 + "行</b>・文字幅 " + m.labelText計測.文字の幅 + "px・はみ出し " + m.labelText計測.はみ出し,
+          (m.labelText計測.行数 > 1 || m.labelText計測.はみ出し) ? "warn" : "ok") +
+      (m.hint計測 ? row("注記の実描画", m.hint計測.行数 + "行・文字幅 " + m.hint計測.文字の幅 + "px") : "") +
+      row("&lt;select&gt; の箱", "<b>" + m.rect.sort.w + "</b>×" + m.rect.sort.h + " (clientWidth " + m.rect.sort.cw + ")", selWarn) +
+      row("昇降順ボタンの箱", m.rect.order.w + "×" + m.rect.order.h + " (clientWidth " + m.rect.order.cw + ")") +
+      row("行の箱", m.rect.row.w + "×" + m.rect.row.h);
+  });
+</script>
+</body>
+</html>
