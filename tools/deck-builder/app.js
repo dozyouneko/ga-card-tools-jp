@@ -699,6 +699,10 @@ async function openEditor(id) {
   const seq = ++deckSeq;
   if (!me) { showView(el.viewLogin); return; }
   clearEditor();
+  // ⭐ デッキタブに戻すのは fetch より前（#135・R1＝開く経路を問わず常にデッキタブ）。
+  // ⚠️ 読み込み完了後に呼ぶと、読み込み中にユーザーが押した 📊 を巻き戻してしまう
+  //    （openDeckView() の viewTabs.reset() と同じ流儀に揃えてある）
+  if (editorTabs) editorTabs.reset();
   showView(el.viewEditor);
   setStatus("デッキを読み込み中…");
   try {
@@ -709,11 +713,11 @@ async function openEditor(id) {
     el.bootStatus.hidden = true;
     el.edMemo.value = data.deck.description || "";
     el.memoStatus.textContent = "";
-    if (editorTabs) editorTabs.reset(); // デッキ切替時は常にデッキタブから
     renderEditorBar();
     renderZones();
-    // 保存してある検索タブを復元する（①B・U4）。⚠️ renderZones の後に呼ぶ——
-    // 復元した最後のタブは再検索するので、結果タイルが deckData（枚数バッジ）を読む
+    // 保存してある検索タブを復元する（①B）。⭐ 復元では1つも選ばない（#135）。
+    // ⚠️ renderZones の後に呼ぶ——押されたときに検索するタブの結果タイルが
+    //    deckData（枚数バッジ）を読むので、理由は #135 の後も消えていない
     loadSearchTabs(id);
   } catch (err) {
     if (seq !== deckSeq) return;
@@ -1611,7 +1615,17 @@ const condSummary = (cond) => condRows(cond).map(([k, v]) => `${k}: ${v}`).join(
 function renderCondBox() {
   const tab = activeSearchTab;
   el.resultCond.hidden = !tab;
-  if (!tab) return;
+  if (!tab) {
+    // ⚠️ ⭐ 持ち主がいないときは中身も持たせない（#135・§3-4）。hidden の裏に
+    //    前のタブの条件が残るのを防ぐ（#85 §8-4-2 の2＝V17-b と同じ型）
+    el.resultCondTitle.textContent = "";
+    el.resultCondList.textContent = "";
+    el.resultCondMore.textContent = "";
+    el.resultCondMore.hidden = true;
+    el.resultCondMore.setAttribute("aria-expanded", "false");
+    el.resultCond.classList.remove("is-folded");
+    return;
+  }
   el.resultCondTitle.textContent = `検索${tab.n} の条件`;
   const rows = condRows(tab.cond);
   const foldable = rows.length > COND_FOLD_AT;
@@ -2013,12 +2027,12 @@ function saveSearchTabs() {
   try {
     const key = searchTabsKeyOf(searchTabsDeckId);
     if (!searchTabs.length) { localStorage.removeItem(key); return; }
-    // ⭐ 保存するのは「条件」と「連番」と「最後に見ていたタブ」だけ。カードの配列は保存しない
+    // ⭐ 保存するのは「条件」と「連番」だけ（#135: どのタブを見ていたかは保存しない）。
+    //    カードの配列は保存しない
     //    （禁止改定・新セットで古くなる／容量を食う・設計 §1 やらないこと4）
     localStorage.setItem(key, JSON.stringify({
       at: Date.now(),
       nextN: nextSearchN,
-      active: selectedSearchTab ? selectedSearchTab.n : (editorTabs && editorTabs.isStats() ? "stats" : "deck"),
       tabs: searchTabs.map((t) => ({ n: t.n, cond: t.cond, open: !!t.open })),
     }));
     pruneSearchTabsStore();
@@ -2038,8 +2052,8 @@ function clearSearchTabs() {
   renderSearchTabs(); // ⭐ この中の syncSearchTabSelection() がパネルを hidden に戻す
 }
 
-// リロード後（U4）: 保存からタブを復元し、最後に見ていたタブを開いてそのタブだけ再検索する。
-// ほかのタブは押したときに検索する（それまでリクエストを投げない・§5-3）
+// リロード後: 保存からタブを復元する。⭐ タブを並べるだけで、どれも選ばない（#135・R1）。
+// ⭐ どのタブも押したときに初めて検索する（それまでリクエストを投げない）
 function loadSearchTabs(deckId) {
   clearSearchTabs();
   searchTabsDeckId = deckId;
@@ -2060,12 +2074,6 @@ function loadSearchTabs(deckId) {
   const maxN = searchTabs.reduce((m, t) => Math.max(m, t.n), 0);
   nextSearchN = Number.isFinite(savedNext) && savedNext > maxN ? savedNext : maxN + 1;
   renderSearchTabs();
-  const active = data ? data.active : null;
-  if (typeof active === "number") {
-    const tab = searchTabs.find((t) => t.n === active);
-    if (tab) { selectSearchTab(tab); return; } // ⭐ このタブだけ再検索する
-  }
-  if (active === "stats" && editorTabs) editorTabs.select(true);
 }
 
 // エレメントANDで0件が確定する組み合わせの注意書き(#31)。
