@@ -3361,6 +3361,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/sets/dtr-alter/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/prd/</loc>
     <lastmod>2026-08-28</lastmod>
     <changefreq>monthly</changefreq>
@@ -3410,7 +3416,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/rdo/</loc>
-    <lastmod>2026-09-04</lastmod>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -3434,7 +3440,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/rdopd/</loc>
-    <lastmod>2026-08-24</lastmod>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -3572,7 +3578,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/amb/</loc>
-    <lastmod>2026-08-20</lastmod>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -3596,7 +3602,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/mrc/</loc>
-    <lastmod>2026-09-04</lastmod>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -3644,7 +3650,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/p24/</loc>
-    <lastmod>2026-08-22</lastmod>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -3735,6 +3741,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/sets/demo22/</loc>
     <lastmod>2025-03-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/abiding-figures/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -4201,6 +4213,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/annealing-flame/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/annihilation/</loc>
     <lastmod>2025-03-07</lastmod>
     <changefreq>monthly</changefreq>
@@ -4561,6 +4579,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/astute-tracker/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/atmos-armor-type-ares/</loc>
     <lastmod>2025-01-19</lastmod>
     <changefreq>monthly</changefreq>
@@ -4599,6 +4623,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/auravolt-current/</loc>
     <lastmod>2026-04-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/auric-persecution/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -5449,6 +5479,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/briny-polliwog/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/brisk-windtrotter/</loc>
     <lastmod>2025-01-20</lastmod>
     <changefreq>monthly</changefreq>
@@ -6049,6 +6085,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/ciel-astral-projection/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/ciel-loyal-valet/</loc>
     <lastmod>2025-07-24</lastmod>
     <changefreq>monthly</changefreq>
@@ -6177,6 +6219,18 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/cloudstone-orb/</loc>
     <lastmod>2025-01-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/clover-treehouse/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/club-house/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -6493,6 +6547,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/coruscation/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/cosmic-alignment/</loc>
     <lastmod>2025-07-24</lastmod>
     <changefreq>monthly</changefreq>
@@ -6519,6 +6579,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/counter-interference/</loc>
     <lastmod>2025-05-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/countercurrent-raider/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -7179,6 +7245,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/diffusive-block/</loc>
     <lastmod>2025-01-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/diligent-garde/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -7850,7 +7922,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/epochal-conqueror/</loc>
-    <lastmod>2026-04-02</lastmod>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -7899,6 +7971,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/escharotomy/</loc>
     <lastmod>2026-08-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/escort-the-pawns/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -8156,7 +8234,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/extraction-incision/</loc>
-    <lastmod>2025-01-21</lastmod>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -8487,6 +8565,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/fishing-accident/</loc>
     <lastmod>2025-01-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/five-of-clubs/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -8907,6 +8991,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/fountain-bladehand/</loc>
     <lastmod>2026-08-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/four-of-clubs/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -9387,6 +9477,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/genuflecting-execution/</loc>
     <lastmod>2025-12-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/ghastfire-tormentor/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -10221,6 +10317,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/hunt-weiss-king/</loc>
     <lastmod>2025-12-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/hunters-mark/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -11719,6 +11821,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/macabre-subornation/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/machined-monstrosity/</loc>
     <lastmod>2025-01-19</lastmod>
     <changefreq>monthly</changefreq>
@@ -12237,6 +12345,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/mistsworn-magister/</loc>
     <lastmod>2025-03-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/misty-the-joker/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -13003,6 +13117,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/pallid-arsonist/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/palvor-sword/</loc>
     <lastmod>2025-12-05</lastmod>
     <changefreq>monthly</changefreq>
@@ -13321,6 +13441,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/poitier-afterlifes-conductor/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/polaris-twinkling-cauldron/</loc>
     <lastmod>2025-12-05</lastmod>
     <changefreq>monthly</changefreq>
@@ -13622,7 +13748,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/proof-of-life/</loc>
-    <lastmod>2025-01-21</lastmod>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -13887,6 +14013,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/radiant-vega/</loc>
     <lastmod>2025-07-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/radiating-assault/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -14335,6 +14467,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/render-turbid/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/rending-flames/</loc>
     <lastmod>2025-01-19</lastmod>
     <changefreq>monthly</changefreq>
@@ -14354,7 +14492,7 @@
   </url>
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/reprogram/</loc>
-    <lastmod>2025-05-16</lastmod>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -14887,6 +15025,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/scalding-aethercharge/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/scale-of-souls/</loc>
     <lastmod>2025-01-20</lastmod>
     <changefreq>monthly</changefreq>
@@ -14949,6 +15093,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/scepter-of-lumina/</loc>
     <lastmod>2025-03-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/scholarly-nettle/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -15277,6 +15427,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/shamrock-forest/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/shangxiang-fierce-princess/</loc>
     <lastmod>2025-03-07</lastmod>
     <changefreq>monthly</changefreq>
@@ -15511,8 +15667,20 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/silence-the-soul/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/silent-firebrand/</loc>
     <lastmod>2025-03-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/silent-trade/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -15645,6 +15813,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/sirocco-operative/</loc>
     <lastmod>2025-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/six-of-clubs/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -17047,6 +17221,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/three-of-clubs/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/three-of-diamonds/</loc>
     <lastmod>2026-04-02</lastmod>
     <changefreq>monthly</changefreq>
@@ -17157,6 +17337,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/tidewall-sentinel/</loc>
     <lastmod>2026-08-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/time-dilation/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -17359,6 +17545,24 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/trefle-queen-of-clubs/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/trefoil-tower/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/trefoliate-anointment/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/triboelectric-fortification/</loc>
     <lastmod>2026-08-21</lastmod>
     <changefreq>monthly</changefreq>
@@ -17539,6 +17743,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/two-of-clubs/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/two-of-diamonds/</loc>
     <lastmod>2026-04-02</lastmod>
     <changefreq>monthly</changefreq>
@@ -17695,6 +17905,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/unwound-timepiece/</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/unyielding-wraithguard/</loc>
     <lastmod>2025-07-24</lastmod>
     <changefreq>monthly</changefreq>
@@ -17703,6 +17919,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/updraft-slice/</loc>
     <lastmod>2026-08-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/uplifting-rogation/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -17733,6 +17955,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/vainglory-retribution/</loc>
     <lastmod>2025-01-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/valet-jack-of-hearts/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -17967,6 +18195,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/vernal-talisman/</loc>
     <lastmod>2026-04-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/verte-ace-of-clubs/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -18243,6 +18477,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/weiss-knight/</loc>
     <lastmod>2026-08-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/weiss-pawn/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -18579,6 +18819,12 @@
   <url>
     <loc>https://ga-card-tools-jp.pages.dev/cards/xukong-shifted-fates/</loc>
     <lastmod>2026-04-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ga-card-tools-jp.pages.dev/cards/yonder-aetherseeker/</loc>
+    <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

@@ -15,6 +15,7 @@ window.GA_I18N = {
     // エキスパンション（セット／版ごとに分割。発売日の新しい順。label 末尾に略語を付す）
     // prefixes は API の prefix パラメータ。1エントリ＝1prefix。新セットは先頭付近に追記。
     sets: [
+      { label: "Distorted Reflections Alter Ed.（DTR Alter）", prefixes: ["DTR Alter"] },
       { label: ".asphodel/paradise（PRD）", prefixes: ["PRD"] },
       { label: ".asphodel/paradise 1st Ed.（PRD 1st）", prefixes: ["PRD 1st"] },
       { label: ".asphodel/paradise Grimoire（PRDG）", prefixes: ["PRDG"] },
@@ -110,10 +111,10 @@ window.GA_I18N = {
       DAGGER: "短剣", DEER: "鹿", DEVICE: "装置", DISCORP: "ディスコープ", DISTORTION: "歪み", DOG: "犬", DRAGON: "ドラゴン",
       DRYAD: "ドライアド", ELEMENTAL: "エレメンタル", ELYSIAN: "エリュシオン", FACTORY: "工場", FAIRY: "妖精", FAN: "扇", FARM: "農場",
       FATEBOUND: "運命縛り", FATESTONE: "運命石", FISH: "魚", FIST: "拳", FLOWER: "花", FLOWERBUD: "つぼみ",
-      FLUTE: "フルート", FOOD: "食料", FOX: "狐", FRACTAL: "フラクタル", FROG: "蛙", GATE: "門",
+      FLUTE: "フルート", FOOD: "食料", FOREST: "森", FOX: "狐", FRACTAL: "フラクタル", FROG: "蛙", GATE: "門",
       GLOVES: "グローブ", GOLEM: "ゴーレム", GUARDIAN: "ガーディアン", GUN: "銃", HAMMER: "鎚",
       HARMONY: "ハーモニー", HERB: "薬草", HORSE: "馬", HUMAN: "人間", INSTRUMENT: "楽器", ISLE: "島",
-      KING: "キング", KINGDOM: "王国", KITCHEN: "キッチン", KNIGHT: "ナイト", LABORATORY: "研究所", LASH: "ラッシュ", LEAF: "葉", LION: "獅子",
+      JELLYFISH: "クラゲ", KING: "キング", KINGDOM: "王国", KITCHEN: "キッチン", KNIGHT: "ナイト", LABORATORY: "研究所", LASH: "ラッシュ", LEAF: "葉", LION: "獅子",
       LIZARD: "トカゲ", MAGE: "メイジ", MAP: "地図", MARKET: "市場", MAUL: "大槌", MELODY: "旋律",
       MEMORITE: "メモライト", MONKEY: "猿", MOUSE: "鼠", MUSHROOM: "キノコ", OBELISK: "オベリスク",
       OCEAN: "大海", PARTY: "パーティ", PAWN: "ポーン", PHOENIX: "不死鳥", PHONE: "フォン", POLEARM: "長柄武器",
