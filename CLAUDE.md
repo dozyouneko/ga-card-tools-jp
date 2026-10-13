@@ -1330,6 +1330,27 @@ CONFIRM=publish npm run deploy:prod     # ⚠️ 本番公開。ユーザーの�
   - ⚠️ **翻訳データを実行時に読むページは無くなった。** トップ・デッキ構築・大会詳細ページ(426件)は
     生成JSONを `fetch` する。カード個別ページ・セットページは**ビルド時に訳を埋め込み済み**
     (`/cards/<slug>/` `/sets/<set>/` は訳データを一切読み込まない)
+  - ⚠️ ⭐ **訳を足したら回す生成器は3本ではなく4本**(2026-10-13・#139 で数え落として現実化)。
+    ⭐ **`gen-tl-json.mjs` → `build:cards` → `gen-card-meta-index.mjs` → ⭐ `build-tournament-pages.mjs --no-scan`**。
+    ⚠️ ⭐ **1つ上の行を「大会ページは実行時に読む側」と読まないこと**——**実行時にも読むが、
+    ビルド時にも焼いている**(`build-tournament-pages.mjs` は `loadPageI18n()` で `data/tl/*.js` を直接読む):
+
+    | 焼き込み先 | 何に出るか | 回し忘れたときの症状 |
+    |---|---|---|
+    | `tournaments/<id>/decks.html` | `cardTile()` が `aria-label` / `alt` / `title` に `英語名（日本語名）` | ⭐ **属性だけなので画面の見た目は変わらない**。ツールチップ・スクリーンリーダー・代替テキストが英語のまま(**fail-open**) |
+    | ⭐ **`tournaments/index.html`(大会一覧)・`tournaments/<id>/index.html`(順位表)** | `championLabel()` が **可視テキスト**に `Lorraine（ロレイン）` | ⚠️ ⭐ **チャンピオンを訳した場合は一覧と順位表の可視テキストが古いまま残る**(実測: 一覧だけで日本語名 **512箇所**) |
+
+    - ⚠️ ⭐ **回し忘れても `npm run validate` は緑**(この検査群は大会ページを見ていない)。
+      ⭐ **気づく経路は「次に誰かが `build:tournaments` を回したときの説明できない差分」だけ**——
+      ⚠️ **それは週1更新の回に来るので、CLAUDE.md の「一緒に出るものを必ず提示する」が破れる**
+      (実例: #139 バッチ0 の1枚が **73ファイル・157行**ぶん取り残された)
+    - ⚠️ ⭐ **4本目は `data/tournaments/index.json` の `updatedAt` だけを毎回書き換える**
+      (上の `build:tournaments` の節)。⭐ **差分が `updatedAt` の1行だけであることを確認してから
+      `git checkout -- data/tournaments/index.json` で戻し、コミットに含めない**
+      (⚠️ **確認せずに戻すと本物の変更を捨てる**／⭐ **`--no-scan` では `scan`・`events` は動かない**＝実測)
+    - ⭐ **出力は決定的**(2026-10-13 実測: 別ツリー2本で独立に回して `diff -rq` 完全一致)＝
+      **「もう一度回して差分0」は片付いたことの証明になる**
+    - 記録は `docs/design/139-DTR Alterの和訳/DTR Alterの和訳_設計.md` §6-A・§6-3
 - `node scripts/gen-card-meta-index.mjs` — 日本語検索(JPモード)の**メタ索引**(#27・#43・#45)
   `data/card-meta-index.json` を生成(引数なし・**ネットワーク必須**・生成物はコミットする)。
   `tmp/api-cache/cards-snapshot.json` があれば再利用し、スナップショット未収録のフリップ面22件は
