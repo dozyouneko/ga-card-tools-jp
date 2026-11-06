@@ -122,6 +122,69 @@ if (loaded) {
   }
 }
 
+// 和訳の効果文に英語カード名が残っていないか（#141）
+// 「…」の中身が ASCII だけで、かつ ASCII 英字を1文字以上含むものを違反とする。
+// 既訳名があるのに英語のまま書くと、同じカードの呼び方が画面によって日英で割れる。
+// ⚠ 英語名の一覧（スナップショット）には依存しない＝オフラインでも同じ判定になる。
+// ⚠ 「日本語（English）」の併記形は中身に非ASCIIが混ざるので当たらない（TRANSLATION.md の形）。
+// ⚠ フレーバー（f）は見ない（地の文なので英語の引用が正当にありうる）。
+{
+  const EN_QUOTE_RE = /「([^」]*)」/g;
+  const isEnglishOnly = (s) => /^[\x20-\x7E]+$/.test(s) && /[A-Za-z]/.test(s);
+  const enQuotesIn = (text) => {
+    const hits = [];
+    let count = 0;
+    for (const m of String(text).matchAll(EN_QUOTE_RE)) {
+      count++;
+      if (isEnglishOnly(m[1])) hits.push(m[1]);
+    }
+    return { hits, count };
+  };
+  // G1: 走査数の下限（走査対象は data/tl-effects.json・下限はここのリテラル＝別ファイルとの照合）
+  const EN_QUOTE_MIN = 1000;
+  // G2: 被覆フィクスチャ（判別規則そのものを合成入力で測る。1組でも食い違えば exit 1）
+  const EN_QUOTE_FIXTURES = [
+    ["本体（ASCIIのみ → 違反）", "あなたがコントロールする「Fabled Emerald Fatestone」という名前のカード。", 1],
+    ["日本語名は当たらない", "あなたがコントロールする「伝説の翠玉運命石」という名前のカード。", 0],
+    ["併記形は当たらない", "「スーテッド（Suited）」のオブジェクト。", 0],
+    ["文字数の下限を置かない", "それは「ETB」を持つ。", 1],
+    ["英字を要求する", "この能力は「(2)」少なくなる。", 0],
+    ["全角英字はASCIIではない", "「Ｆａｂｌｅｄ」", 0],
+  ];
+  const bad = [];
+  for (const [label, input, expect] of EN_QUOTE_FIXTURES) {
+    const got = enQuotesIn(input).hits.length;
+    if (got !== expect) bad.push(`被覆フィクスチャ「${label}」: 期待 ${expect}件 / 実際 ${got}件`);
+  }
+  const violations = [];
+  let scanned = 0;
+  try {
+    const json = JSON.parse(readFileSync(path.join(root, EFFECTS_FILE), "utf8"));
+    const e = json && typeof json.e === "object" && json.e ? json.e : {};
+    for (const [slug, text] of Object.entries(e)) {
+      const { hits, count } = enQuotesIn(text);
+      scanned += count;
+      for (const h of hits) violations.push(`${slug}（${h}）`);
+    }
+    if (scanned < EN_QUOTE_MIN)
+      bad.push(`${EFFECTS_FILE} の効果文から拾えた「…」が ${scanned}個しかありません（下限 ${EN_QUOTE_MIN}）。ファイルの構造が変わっていないか確認してください`);
+  } catch (err) {
+    bad.push(`${EFFECTS_FILE} の読み込みに失敗: ${err.message}`);
+  }
+  if (violations.length) {
+    bad.push(`和訳の効果文に英語のまま「…」で括られた名前があります: ${violations.length}件`);
+    violations.forEach((v) => bad.push(`  ${v}`));
+  }
+  if (bad.length) {
+    problems++;
+    console.error(`\nENGLISH CARD NAMES IN JP EFFECTS (${EFFECTS_FILE}):`);
+    bad.forEach((m) => console.error(`  - ${m}`));
+    console.error(`  → 既訳名（data/tl-names.json）に直して data/tl/*.js を修正し、node scripts/gen-tl-json.mjs を実行してください`);
+  } else {
+    console.log(`no English card names in JP effects — 0件（${scanned}括り / 被覆フィクスチャ ${EN_QUOTE_FIXTURES.length}組）`);
+  }
+}
+
 // トップの静的セットリンクの陳腐化チェック（#37）
 // ⚠️ マーカー方式は「失敗が差分に出ない形」で壊れうる:
 //   - マーカーが消えている → 何も差し込まれないまま index.html は正常なHTMLとして出続ける
