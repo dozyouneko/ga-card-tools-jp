@@ -6,19 +6,19 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https://api.gatcg.com; script-src 'self' https://static.cloudflareinsights.com; connect-src 'self' https://api.gatcg.com https://cloudflareinsights.com; style-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>大会デッキ検索 - Grand Archive 日本語カードDB</title>
-<meta name="description" content="Grand Archive の主要大会(Store Championship・Regionals・Nationals・Ascent)780件の提出デッキを日本語訳付きで検索・閲覧できます。">
+<meta name="description" content="Grand Archive の主要大会(Store Championship・Regionals・Nationals・Ascent)872件の提出デッキを日本語訳付きで検索・閲覧できます。">
 <link rel="canonical" href="https://ga-card-tools-jp.pages.dev/tournaments/">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Grand Archive 日本語カードDB">
 <meta property="og:title" content="大会デッキ検索 - Grand Archive 日本語カードDB">
-<meta property="og:description" content="Grand Archive の主要大会(Store Championship・Regionals・Nationals・Ascent)780件の提出デッキを日本語訳付きで検索・閲覧できます。">
+<meta property="og:description" content="Grand Archive の主要大会(Store Championship・Regionals・Nationals・Ascent)872件の提出デッキを日本語訳付きで検索・閲覧できます。">
 <meta property="og:url" content="https://ga-card-tools-jp.pages.dev/tournaments/">
 <meta property="og:image" content="https://ga-card-tools-jp.pages.dev/ogp.png">
 <meta property="og:locale" content="ja_JP">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="大会デッキ検索 - Grand Archive 日本語カードDB">
-<meta name="twitter:description" content="Grand Archive の主要大会(Store Championship・Regionals・Nationals・Ascent)780件の提出デッキを日本語訳付きで検索・閲覧できます。">
+<meta name="twitter:description" content="Grand Archive の主要大会(Store Championship・Regionals・Nationals・Ascent)872件の提出デッキを日本語訳付きで検索・閲覧できます。">
 <meta name="twitter:image" content="https://ga-card-tools-jp.pages.dev/ogp.png">
 <link rel="stylesheet" href="/tournaments/tournaments.css">
 <!-- Cloudflare Web Analytics -->
@@ -40,7 +40,7 @@
   <details class="filter-box" id="filter-box" open>
     <summary>絞り込み<span class="filter-count" id="f-count" hidden></span></summary>
     <div class="filter-row">
-      <select id="f-cat" aria-label="カテゴリで絞り込み"><option value="">カテゴリ（全て）</option><option value="store-championships">Store Championship</option><option value="ascent">Ascent</option><option value="regionals">Regionals</option><option value="nationals">Nationals</option></select>
+      <select id="f-cat" aria-label="カテゴリで絞り込み"><option value="">カテゴリ（全て）</option><option value="store-championships">Store Championship</option><option value="regionals">Regionals</option><option value="ascent">Ascent</option><option value="nationals">Nationals</option></select>
       <select id="f-country" aria-label="開催国で絞り込み"><option value="">開催国（全て）</option><option value="AE">UAE</option><option value="AT">AT</option><option value="AU">オーストラリア</option><option value="BE">ベルギー</option><option value="BN">ブルネイ</option><option value="BR">BR</option><option value="CA">カナダ</option><option value="CL">チリ</option><option value="CZ">チェコ</option><option value="DE">ドイツ</option><option value="DK">デンマーク</option><option value="ES">スペイン</option><option value="GB">イギリス</option><option value="GR">GR</option><option value="HK">香港</option><option value="HR">クロアチア</option><option value="HU">ハンガリー</option><option value="ID">インドネシア</option><option value="IT">イタリア</option><option value="JP">日本</option><option value="KR">韓国</option><option value="KW">クウェート</option><option value="LB">レバノン</option><option value="LV">LV</option><option value="MY">マレーシア</option><option value="NL">オランダ</option><option value="NO">ノルウェー</option><option value="NZ">ニュージーランド</option><option value="PH">フィリピン</option><option value="PL">ポーランド</option><option value="PR">プエルトリコ</option><option value="PT">PT</option><option value="SG">シンガポール</option><option value="SI">スロベニア</option><option value="TH">TH</option><option value="TW">台湾</option><option value="US">アメリカ</option></select>
       <select id="f-format" aria-label="フォーマットで絞り込み"><option value="">フォーマット（全て）</option><option value="standard">スタンダード</option><option value="team-standard-3v3">チーム戦スタンダード（3v3）</option></select>
       <select id="f-season" aria-label="シーズンで絞り込み"><option value="">シーズン（全て）</option><option value="OTHER">その他</option><option value="RDO">Radiant Origins（RDO）</option></select>
@@ -58,7 +58,7 @@
   <!-- 件数は絞り込み枠の外・表の直上に置く(枠を畳むスマホでも見えるように)。
        初期値を書き出しておく: JS無効でも件数が読め、読み込み直後のちらつきも避けられる
        (JS有効時は apply() が同じ文字列で上書きするため挙動は変わらない) -->
-  <p class="filter-hits" id="f-hits" role="status">全 780 件</p>
+  <p class="filter-hits" id="f-hits" role="status">全 872 件</p>
 
   <!-- スマホは thead を隠すため見出しクリックが使えない。件数の近く(絞り込み枠の外)に並べ替えselectを置く(#16) -->
   <div class="sort-mobile">
@@ -83,6 +83,1018 @@
       <th data-sort="players"><button type="button" class="th-sort">参加</button></th>
     </tr></thead>
     <tbody>
+<tr class="tr-link" data-href="/tournaments/67920/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-15" data-search="67920 GFM - Set Store Championship  Games for Meeple US アメリカ スタンダード Store Championship AnnaxElsa69 amekuru StardustSariel Conkwe Itrius LzyLotus Jofacha oceanprince556 Blink Sabermythic Gyumge Ailang AngelTCG curlpixels NathanWarren Crevasse Sakabato MEGA0 Guo Jia（グオ・ジア） / Mordred（モードレッド） Lorraine（ロレイン） Guo Jia（グオ・ジア） Diao Chan（ダオ・チャン） Ciel（シエル） Zander（ザンダー） Arisanna（アリサナ） Diana（ダイアナ） Silvie（シルヴィ）" data-name="GFM - Set Store Championship " data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="18">
+        <td class="date">2026-11-15</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/67920/">GFM - Set Store Championship </a></div>
+          <div class="ev-host">Games for Meeple</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">18名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68533/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-15" data-search="68533 Cardart Store Champs PRD CardArt US アメリカ スタンダード Store Championship DuckHats Sakomi Zorrolicious mDuo13 JimTheEternal LongN Kitsumiya ChunandRice RayneeDay Mechsniper orpheusmercer SapphicSnake AnE Jayz Taikun Melarki kinuryu Gerdo Shards Ciel（シエル） Lorraine（ロレイン） Dante（ダンテ） Arisanna（アリサナ） Guo Jia（グオ・ジア） Alice（アリス） Tristan（トリスタン） Zander（ザンダー） Merlin（マーリン） Diana（ダイアナ）" data-name="Cardart Store Champs PRD" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="19">
+        <td class="date">2026-11-15</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68533/">Cardart Store Champs PRD</a></div>
+          <div class="ev-host">CardArt</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">19名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/65092/" data-cat="store-championships" data-country="CA" data-format="standard" data-season="OTHER" data-date="2026-11-15" data-search="65092 MSG .asphodel/paradise Store Championship Nov 15th Magic Stronghold Games CA カナダ スタンダード Store Championship Seiyuku Eries 0xAn1ma Wavayto ArchivistJ Hanbe RealEyez shizubro Hinagikufan Resole TrungyWungy TG01 RHYNE song LewisFishman Cyferous xcstasyy Zander（ザンダー） Arisanna（アリサナ） Diao Chan（ダオ・チャン） Alice（アリス） Tonoris（トノリス） Guo Jia（グオ・ジア） Jin（ジン） Dante（ダンテ） Ciel（シエル） Silvie（シルヴィ）" data-name="MSG .asphodel/paradise Store Championship Nov 15th" data-country-sort="カナダ" data-format-sort="スタンダード" data-cat-sort="0" data-players="17">
+        <td class="date">2026-11-15</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/65092/">MSG .asphodel/paradise Store Championship Nov 15th</a></div>
+          <div class="ev-host">Magic Stronghold Games</div>
+        </td>
+        <td class="country">カナダ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">17名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/69068/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-15" data-search="69068 Pink Elephant Store Champs Pink Elephant Games and Cafe US アメリカ スタンダード Store Championship McPotter waffles KingKaroII Skittles Bird Diana（ダイアナ） Guo Jia（グオ・ジア） Tonoris（トノリス） Ciel（シエル）" data-name="Pink Elephant Store Champs" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="5">
+        <td class="date">2026-11-15</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/69068/">Pink Elephant Store Champs</a></div>
+          <div class="ev-host">Pink Elephant Games and Cafe</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">5名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/66434/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-15" data-search="66434 TCB Games Store Championship TCB Games US アメリカ スタンダード Store Championship SirCuke Blazeburning Hazkura DonPanda BigHungry MWitte DouuggUwU fr0stAce Lorraine（ロレイン） / Merlin（マーリン） Alice（アリス） Lorraine（ロレイン） Rai（ライ） / Lorraine（ロレイン） Nico（ニコ） Arisanna（アリサナ） Diao Chan（ダオ・チャン） Jin（ジン）" data-name="TCB Games Store Championship" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="8">
+        <td class="date">2026-11-15</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/66434/">TCB Games Store Championship</a></div>
+          <div class="ev-host">TCB Games</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">8名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/62270/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-15" data-search="62270 PRD Season - Store Championship Evergreen Games Shoppe US アメリカ スタンダード Store Championship KingOkaze SlyTherin Alzy BunnyPunchGaming TeraNova Dom Jacob skykingYRC SasquatchSenpai GoblinFungus Ecaroh Volume Sphreez DoobyDoo GrayWins ProjectVX Sancalvo Diana（ダイアナ） / Lorraine（ロレイン） Dante（ダンテ） / Merlin（マーリン） Diao Chan（ダオ・チャン） Guo Jia（グオ・ジア） Silvie（シルヴィ） Lorraine（ロレイン） Ciel（シエル） Jin（ジン） Alice（アリス） Dante（ダンテ） Nico（ニコ）" data-name="PRD Season - Store Championship" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="17">
+        <td class="date">2026-11-15</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/62270/">PRD Season - Store Championship</a></div>
+          <div class="ev-host">Evergreen Games Shoppe</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">17名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/67239/" data-cat="store-championships" data-country="CA" data-format="standard" data-season="OTHER" data-date="2026-11-15" data-search="67239 GA .asphodel/paradise Store Champs Gobelin d&#39;Argent - Silver Goblin CA カナダ スタンダード Store Championship baniRien Linken SteveDuford Espeon Twao Deathscythe666 JeepTheReal nxtsquare Lorraine（ロレイン） Ciel（シエル） Guo Jia（グオ・ジア） Kongming（コンミン） Alice（アリス） Alice（アリス） / Lorraine（ロレイン） Merlin（マーリン）" data-name="GA .asphodel/paradise Store Champs" data-country-sort="カナダ" data-format-sort="スタンダード" data-cat-sort="0" data-players="8">
+        <td class="date">2026-11-15</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/67239/">GA .asphodel/paradise Store Champs</a></div>
+          <div class="ev-host">Gobelin d&#39;Argent - Silver Goblin</div>
+        </td>
+        <td class="country">カナダ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">8名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/62529/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-15" data-search="62529 PRD Store Championship AFK Games US アメリカ スタンダード Store Championship TeamTrueCaban Ceothas DadSmoocher Spinach Tang ThatFeastJason rexaren Tman34693 AmazingZee Diao Chan（ダオ・チャン） Silvie（シルヴィ） Guo Jia（グオ・ジア） Ciel（シエル） Tonoris（トノリス） / Tristan（トリスタン） Rai（ライ）" data-name="PRD Store Championship" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="9">
+        <td class="date">2026-11-15</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/62529/">PRD Store Championship</a></div>
+          <div class="ev-host">AFK Games</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">9名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/65661/" data-cat="store-championships" data-country="BR" data-format="standard" data-season="OTHER" data-date="2026-11-15" data-search="65661 GeekShop Brasil - TORNEIO STORE CHAMPIONSHIP PRD GeekShop Brasil BR BR スタンダード Store Championship Anthonyyy Togakure77 Hakkou Greenbow DaniSimoni WanderTCG Dante（ダンテ） Zander（ザンダー） Silvie（シルヴィ） Merlin（マーリン） Jin（ジン） Lorraine（ロレイン）" data-name="GeekShop Brasil - TORNEIO STORE CHAMPIONSHIP PRD" data-country-sort="BR" data-format-sort="スタンダード" data-cat-sort="0" data-players="6">
+        <td class="date">2026-11-15</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/65661/">GeekShop Brasil - TORNEIO STORE CHAMPIONSHIP PRD</a></div>
+          <div class="ev-host">GeekShop Brasil</div>
+        </td>
+        <td class="country">BR</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">6名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68276/" data-cat="store-championships" data-country="GB" data-format="standard" data-season="OTHER" data-date="2026-11-15" data-search="68276 Excelsior Store Championship Excelsior Comics GB イギリス スタンダード Store Championship Zangoon PanicFTW FelixGame Harpyblue Nezoah HuntedSouls razwastaken Frostybolty Guo Jia（グオ・ジア） Lorraine（ロレイン） Alice（アリス） Diao Chan（ダオ・チャン） Arisanna（アリサナ）" data-name="Excelsior Store Championship" data-country-sort="イギリス" data-format-sort="スタンダード" data-cat-sort="0" data-players="8">
+        <td class="date">2026-11-15</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68276/">Excelsior Store Championship</a></div>
+          <div class="ev-host">Excelsior Comics</div>
+        </td>
+        <td class="country">イギリス</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">8名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68488/" data-cat="store-championships" data-country="TW" data-format="standard" data-season="OTHER" data-date="2026-11-15" data-search="68488 星空街PRD店冠賽 星空街Hoshimachi TW 台湾 スタンダード Store Championship Tora Summoner Tsuki0170 Freedom0212 Jayden MeyruAoba Foease WarCha yosora earthpeople Schwarzer Walter0483 Jpo Qunna1127 QADWQR Watermelon7 Ciel（シエル） Tristan（トリスタン） Guo Jia（グオ・ジア） Arisanna（アリサナ） / Mordred（モードレッド） Diao Chan（ダオ・チャン） Tonoris（トノリス） Lorraine（ロレイン） Rai（ライ） Jin（ジン） Diana（ダイアナ）" data-name="星空街PRD店冠賽" data-country-sort="台湾" data-format-sort="スタンダード" data-cat-sort="0" data-players="16">
+        <td class="date">2026-11-15</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68488/">星空街PRD店冠賽</a></div>
+          <div class="ev-host">星空街Hoshimachi</div>
+        </td>
+        <td class="country">台湾</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">16名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68536/" data-cat="store-championships" data-country="PH" data-format="standard" data-season="OTHER" data-date="2026-11-15" data-search="68536 Grand Archive Store Championship The Archive PH フィリピン スタンダード Store Championship TrueSightFugative Panrad lancelim0210 Raphius Medboi Kags Hirumi Lorraine（ロレイン） Jin（ジン） Guo Jia（グオ・ジア） Arisanna（アリサナ） Diana（ダイアナ） Vanitas（ヴァニタス）" data-name="Grand Archive Store Championship" data-country-sort="フィリピン" data-format-sort="スタンダード" data-cat-sort="0" data-players="7">
+        <td class="date">2026-11-15</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68536/">Grand Archive Store Championship</a></div>
+          <div class="ev-host">The Archive</div>
+        </td>
+        <td class="country">フィリピン</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">7名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/69011/" data-cat="store-championships" data-country="ID" data-format="standard" data-season="OTHER" data-date="2026-11-15" data-search="69011 Raku Store Champ Raku Hobby Shop ID インドネシア スタンダード Store Championship Axzel chandrasatria DEVILEViL Kurossu clsc Feito Uryu Diao Chan（ダオ・チャン） Ciel（シエル） Lorraine（ロレイン） / Merlin（マーリン） Alice（アリス） Lorraine（ロレイン）" data-name="Raku Store Champ" data-country-sort="インドネシア" data-format-sort="スタンダード" data-cat-sort="0" data-players="7">
+        <td class="date">2026-11-15</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/69011/">Raku Store Champ</a></div>
+          <div class="ev-host">Raku Hobby Shop</div>
+        </td>
+        <td class="country">インドネシア</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">7名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68537/" data-cat="store-championships" data-country="SG" data-format="standard" data-season="OTHER" data-date="2026-11-15" data-search="68537 TripleTactics TCG PRD Store Championship TripleTactics TCG SG シンガポール スタンダード Store Championship Zetdivx HiroShishou Tyson Ameke RubyZura93 CWSeulrene Zsui Dexter Nickie JuiceL GreyBex Weihaoo Jaymk2 Liekkii DeRealDeal MagikarpEX Chuwubs Miaotato TalonRaven WinterVul ShinKD rvlk Jin（ジン） Vanitas（ヴァニタス） Tristan（トリスタン） Alice（アリス） Arisanna（アリサナ） Tonoris（トノリス） Diao Chan（ダオ・チャン） Guo Jia（グオ・ジア） Diana（ダイアナ） Lorraine（ロレイン）" data-name="TripleTactics TCG PRD Store Championship" data-country-sort="シンガポール" data-format-sort="スタンダード" data-cat-sort="0" data-players="22">
+        <td class="date">2026-11-15</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68537/">TripleTactics TCG PRD Store Championship</a></div>
+          <div class="ev-host">TripleTactics TCG</div>
+        </td>
+        <td class="country">シンガポール</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">22名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/69009/" data-cat="store-championships" data-country="PH" data-format="standard" data-season="OTHER" data-date="2026-11-15" data-search="69009 HP Wolves Den PRD SC HP Wolves Den PH フィリピン スタンダード Store Championship PlayForFun Reiku DatSkyph Migz ShamanHalaman ahuinan Naru Emps Miggy ALTimore Psychrosis ASMODEUS Ciel（シエル） Diana（ダイアナ） Lorraine（ロレイン） Lorraine（ロレイン） / Merlin（マーリン） Jin（ジン） Diao Chan（ダオ・チャン） Guo Jia（グオ・ジア） Tonoris（トノリス） Merlin（マーリン）" data-name="HP Wolves Den PRD SC" data-country-sort="フィリピン" data-format-sort="スタンダード" data-cat-sort="0" data-players="12">
+        <td class="date">2026-11-15</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/69009/">HP Wolves Den PRD SC</a></div>
+          <div class="ev-host">HP Wolves Den</div>
+        </td>
+        <td class="country">フィリピン</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">12名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68711/" data-cat="store-championships" data-country="MY" data-format="standard" data-season="OTHER" data-date="2026-11-15" data-search="68711  Grand Archive PRD Store Champion Ship DeckOutDen MY マレーシア スタンダード Store Championship Muck1234 Kushalos Rennerussia Uzeep KwekKwek joyyuan Yorus J0ka Lip Senza23 Jeraz Maelstrom saikocyko Nick69 Apalol LCH Virgilgil Lorraine（ロレイン） Tonoris（トノリス） Merlin（マーリン） Diao Chan（ダオ・チャン） Ciel（シエル） Alice（アリス） Tristan（トリスタン） Diana（ダイアナ） Zander（ザンダー） Guo Jia（グオ・ジア） Arisanna（アリサナ） Guo Jia（グオ・ジア） / Lorraine（ロレイン）" data-name=" Grand Archive PRD Store Champion Ship" data-country-sort="マレーシア" data-format-sort="スタンダード" data-cat-sort="0" data-players="17">
+        <td class="date">2026-11-15</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68711/"> Grand Archive PRD Store Champion Ship</a></div>
+          <div class="ev-host">DeckOutDen</div>
+        </td>
+        <td class="country">マレーシア</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">17名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/63263/" data-cat="regionals" data-country="AU" data-format="standard" data-season="OTHER" data-date="2026-11-15" data-search="63263 Heretics Haven .asphodel/paradise Regionals Heretics Haven AU オーストラリア スタンダード Regionals Aberinkula Maverickarrow Smasher Terror Myukiora DianaEnjoyer88 ThePuggyTree SilvieHeartsong Madmar Enivid Tisnas Svartalf Gravitas BladeHail xFrostyFrostyx Lugas GeiAsianBoi Darkghost500 Graverobber Sequence BeatRihanna Spellthief Sax Vinylicious Teddy7 Lorraine（ロレイン） Zander（ザンダー） Jin（ジン） Lorraine（ロレイン） / Merlin（マーリン） Guo Jia（グオ・ジア） Alice（アリス） Merlin（マーリン） Tonoris（トノリス） Ciel（シエル） Dante（ダンテ） Alice（アリス） / Merlin（マーリン） Arisanna（アリサナ） Diao Chan（ダオ・チャン） Silvie（シルヴィ）" data-name="Heretics Haven .asphodel/paradise Regionals" data-country-sort="オーストラリア" data-format-sort="スタンダード" data-cat-sort="1" data-players="25">
+        <td class="date">2026-11-15</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/63263/">Heretics Haven .asphodel/paradise Regionals</a></div>
+          <div class="ev-host">Heretics Haven</div>
+        </td>
+        <td class="country">オーストラリア</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-regional"><span class="cat-short">Regionals</span><span class="cat-full">Regionals</span></span></td>
+        <td class="num">25名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/67151/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="67151 Gold Star PRD Store Championship  Card Shop Sacramento X Gold Star Collectibles US アメリカ スタンダード Store Championship Nishi FretTheCapo Jozay RayneeDay SapphicSnake chaoticRampage AgniAlex Coya Dian Melkor Ciel（シエル） Guo Jia（グオ・ジア） Arisanna（アリサナ） Lorraine（ロレイン） Mordred（モードレッド） Vanitas（ヴァニタス） Diao Chan（ダオ・チャン） Silvie（シルヴィ） Nico（ニコ）" data-name="Gold Star PRD Store Championship " data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="10">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/67151/">Gold Star PRD Store Championship </a></div>
+          <div class="ev-host">Card Shop Sacramento X Gold Star Collectibles</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">10名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/66334/" data-cat="store-championships" data-country="NZ" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="66334 CM Pukekohe PRD Store Championship Card Merchant Head Office NZ ニュージーランド スタンダード Store Championship Dragowil Corgis Liam KitKat Salazaar Realaz AnTi Lorraine（ロレイン） / Merlin（マーリン） Zander（ザンダー） Lorraine（ロレイン） / Tristan（トリスタン） Arisanna（アリサナ） Diao Chan（ダオ・チャン） Ciel（シエル） Silvie（シルヴィ）" data-name="CM Pukekohe PRD Store Championship" data-country-sort="ニュージーランド" data-format-sort="スタンダード" data-cat-sort="0" data-players="7">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/66334/">CM Pukekohe PRD Store Championship</a></div>
+          <div class="ev-host">Card Merchant Head Office</div>
+        </td>
+        <td class="country">ニュージーランド</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">7名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/64917/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="64917 Zulu&#39;s (Lynnwood) Store Championship PRD Season Zulu&#39;s Board Game Cafe Lynnwood US アメリカ スタンダード Store Championship Anthony0313 WildShiba T0fu JRK Phillip Vipirius Macaron 4CE ronjohnalpha Goosemasu rosie CharlesLeGreat envelopes choidan1 Renaylria Alice（アリス） Guo Jia（グオ・ジア） Merlin（マーリン） Nico（ニコ） Zander（ザンダー） Ciel（シエル） Lorraine（ロレイン） Diana（ダイアナ） Diao Chan（ダオ・チャン） Silvie（シルヴィ） Lorraine（ロレイン） / Merlin（マーリン） Lorraine（ロレイン） / Tonoris（トノリス）" data-name="Zulu&#39;s (Lynnwood) Store Championship PRD Season" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="15">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/64917/">Zulu&#39;s (Lynnwood) Store Championship PRD Season</a></div>
+          <div class="ev-host">Zulu&#39;s Board Game Cafe Lynnwood</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">15名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/63623/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="63623 Sealed Relics - PRD Store Championship Sealed Relics US アメリカ スタンダード Store Championship Greg TheBlessedRest Pweb sckfkr EnderBearer BladeStarsinger Fossil Ciel（シエル） Alice（アリス） Lorraine（ロレイン） / Merlin（マーリン） Vanitas（ヴァニタス） Diana（ダイアナ） Tonoris（トノリス） Silvie（シルヴィ）" data-name="Sealed Relics - PRD Store Championship" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="7">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/63623/">Sealed Relics - PRD Store Championship</a></div>
+          <div class="ev-host">Sealed Relics</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">7名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/65883/" data-cat="store-championships" data-country="CA" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="65883 Hard Brick Games PRD Store Champs Hard Brick Games LTD. CA カナダ スタンダード Store Championship Memo BluGX GallantTigger fysloc kira9051 KaBoon Daddy whitedoves39 LadyLabrynth Hellwalker FubukiKaito brningpyre Ilovesnowbunnies Nico（ニコ） Arisanna（アリサナ） Alice（アリス） Guo Jia（グオ・ジア） Kongming（コンミン） Polkhawk（ポークホーク） Diao Chan（ダオ・チャン） Diana（ダイアナ） Ciel（シエル） Lorraine（ロレイン） Tristan（トリスタン）" data-name="Hard Brick Games PRD Store Champs" data-country-sort="カナダ" data-format-sort="スタンダード" data-cat-sort="0" data-players="13">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/65883/">Hard Brick Games PRD Store Champs</a></div>
+          <div class="ev-host">Hard Brick Games LTD.</div>
+        </td>
+        <td class="country">カナダ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">13名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68828/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="68828 Chronos Games .asphodel/paradise Store Championship Chronos Games &amp; Gifts US アメリカ スタンダード Store Championship Zorr HxCPhil Mrfifths Heho Lorraine（ロレイン） Alice（アリス） Tristan（トリスタン） / Merlin（マーリン）" data-name="Chronos Games .asphodel/paradise Store Championship" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="4">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68828/">Chronos Games .asphodel/paradise Store Championship</a></div>
+          <div class="ev-host">Chronos Games &amp; Gifts</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">4名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/66189/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="66189 The Armoury PRD Store Champs  The Armoury Wargames and Hobbies US アメリカ スタンダード Store Championship Johndertale Plaxeron JimmyP MFDoomblade Soupy ChemCollapse Lorraine（ロレイン） / Merlin（マーリン） Alice（アリス） Dante（ダンテ） Tristan（トリスタン） Jin（ジン）" data-name="The Armoury PRD Store Champs " data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="6">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/66189/">The Armoury PRD Store Champs </a></div>
+          <div class="ev-host">The Armoury Wargames and Hobbies</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">6名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/66122/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="66122 GA Store Championship The Hub Collectibles US アメリカ スタンダード Store Championship Ludidimus Pasta Bunui Semperignotus tamia SlyTherin Alzy Kitsumeow Dom quicklookout Ciel（シエル） Merlin（マーリン） Diana（ダイアナ） Diao Chan（ダオ・チャン） Lorraine（ロレイン） Nico（ニコ） Tristan（トリスタン） Guo Jia（グオ・ジア）" data-name="GA Store Championship" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="10">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/66122/">GA Store Championship</a></div>
+          <div class="ev-host">The Hub Collectibles</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">10名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/65658/" data-cat="store-championships" data-country="BR" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="65658 PRD Store Championship na Tabletop Tabletop Games BR BR スタンダード Store Championship RenSama Veditafri NandoKRN Faraujo Vinitcg tetel Fefoo Silvie（シルヴィ） Alice（アリス） Diao Chan（ダオ・チャン） Rai（ライ） Guo Jia（グオ・ジア） Merlin（マーリン）" data-name="PRD Store Championship na Tabletop" data-country-sort="BR" data-format-sort="スタンダード" data-cat-sort="0" data-players="7">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/65658/">PRD Store Championship na Tabletop</a></div>
+          <div class="ev-host">Tabletop Games</div>
+        </td>
+        <td class="country">BR</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">7名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/65156/" data-cat="regionals" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="65156 Maindeck/JWW PRD 3K Regional JWW Sports Cards &amp; Gaming US アメリカ スタンダード Regionals BlankGinger Birdseye boeboe Kinship Eemkeks MasterPiper lineshawn Vascellum TLux Ztrgod Vargot Lux HappyJack Cyan JBowen273 Sidday Burnly Kiani Sarleeg Spiin2U Kaleb Bratus CLiedahl Haseritt Hytek Cubman Puddle MalikS Stan Magg Pink RatToken Valiantzerg Dair KiLaWhip Nite Diao Chan（ダオ・チャン） Silvie（シルヴィ） Lorraine（ロレイン） Arisanna（アリサナ） Ciel（シエル） Vanitas（ヴァニタス） Lorraine（ロレイン） / Merlin（マーリン） Zander（ザンダー） Alice（アリス） Diana（ダイアナ） Rai（ライ） Tonoris（トノリス） Nico（ニコ） / Diana（ダイアナ） Alice（アリス） / Lorraine（ロレイン） Tristan（トリスタン） Rai（ライ） / Tristan（トリスタン） Guo Jia（グオ・ジア） Polkhawk（ポークホーク） Nico（ニコ） Jin（ジン）" data-name="Maindeck/JWW PRD 3K Regional" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="1" data-players="36">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/65156/">Maindeck/JWW PRD 3K Regional</a></div>
+          <div class="ev-host">JWW Sports Cards &amp; Gaming</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-regional"><span class="cat-short">Regionals</span><span class="cat-full">Regionals</span></span></td>
+        <td class="num">36名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/65162/" data-cat="regionals" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="65162 Grand Archive PRD Regionals at Gamers Guild North Phoenix Gamers Guild North Phoenix US アメリカ スタンダード Regionals BigNickleEye Ver AVX KBDestro Drxomb874 Socks Nacho MojoLoco Varindran Matthew iMoxx A702zero Setra DestinyClownFish Soos Phantisea SteelReign foodtrain Quixote ShaoChien Yinyx ArcticBunny Ayo Gelu Whatsupimbear Bxbby Zalp Ceri majyabeiz Guinn ozotojc GrandLevi GrandMarkus Kathilgax ToastyMonarch Sagajin83 Scythriel Imnoteric Toomanycartoons Diana（ダイアナ） Vanitas（ヴァニタス） Nico（ニコ） Alice（アリス） Diao Chan（ダオ・チャン） Ciel（シエル） Tonoris（トノリス） Guo Jia（グオ・ジア） Lorraine（ロレイン） Mordred（モードレッド） Rai（ライ） Jin（ジン） Tristan（トリスタン） Arisanna（アリサナ） Dante（ダンテ） Merlin（マーリン）" data-name="Grand Archive PRD Regionals at Gamers Guild North Phoenix" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="1" data-players="39">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/65162/">Grand Archive PRD Regionals at Gamers Guild North Phoenix</a></div>
+          <div class="ev-host">Gamers Guild North Phoenix</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-regional"><span class="cat-short">Regionals</span><span class="cat-full">Regionals</span></span></td>
+        <td class="num">39名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/65709/" data-cat="store-championships" data-country="BR" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="65709 Bolsa do Infinito Store Championship Bolsa do Infinito BR BR スタンダード Store Championship Pluvia Sephi MalaMalaJong AbysmalBR SKRick Maxgon tdsantos Arisanna（アリサナ） Lorraine（ロレイン） Tristan（トリスタン） Ciel（シエル） Jin（ジン）" data-name="Bolsa do Infinito Store Championship" data-country-sort="BR" data-format-sort="スタンダード" data-cat-sort="0" data-players="7">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/65709/">Bolsa do Infinito Store Championship</a></div>
+          <div class="ev-host">Bolsa do Infinito</div>
+        </td>
+        <td class="country">BR</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">7名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/65726/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="65726 .asphodel/paradise Store Championship Lazarus Games US アメリカ スタンダード Store Championship stevo7653 tinyturtle supersand24 ThunderPunch tomochao SlightlyMetal Alice（アリス） Vanitas（ヴァニタス） Rai（ライ） / Tristan（トリスタン） Diana（ダイアナ） Lorraine（ロレイン） Arisanna（アリサナ）" data-name=".asphodel/paradise Store Championship" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="6">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/65726/">.asphodel/paradise Store Championship</a></div>
+          <div class="ev-host">Lazarus Games</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">6名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/64896/" data-cat="regionals" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="64896 11-14 Haven Games PRD Regional The Haven Games US アメリカ スタンダード Regionals Floof Snugglinrum RobinPugh Burdy Jimmyle Flexmaster RossBox sqKweglord Amanx27 Ryeb Atto Xman Suzu Ryer Corbett PopKat Ramshackle GeauxDew SovietMethod Zem WOLF 1wisp LeoFierte AChiari97 trueassassin August 120m30 Kaze Wan KamiProject Kongming（コンミン） / Merlin（マーリン） Dante（ダンテ） Guo Jia（グオ・ジア） Ciel（シエル） Lorraine（ロレイン） Rai（ライ） Diana（ダイアナ） Jin（ジン） Vanitas（ヴァニタス） Zander（ザンダー） Diao Chan（ダオ・チャン） Silvie（シルヴィ） Arisanna（アリサナ） Alice（アリス）" data-name="11-14 Haven Games PRD Regional" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="1" data-players="30">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/64896/">11-14 Haven Games PRD Regional</a></div>
+          <div class="ev-host">The Haven Games</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-regional"><span class="cat-short">Regionals</span><span class="cat-full">Regionals</span></span></td>
+        <td class="num">30名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/63752/" data-cat="regionals" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="63752 Michigan Regional RDO True Champion Gaming US アメリカ スタンダード Regionals Guruthos NumberFour Ceothas Stavinill Walkingtall1821 TanMan1 DadSmoocher mkluis714 Eizanide Chibison Waterman09 Spinach Steve2012 FoolsGambit Tang ThatFeastJason Knight57316 Slayer13x WeRrsome RoldyHan Slinkyfox12 Figwahm Firerhino HypnoticHeart1 HeroX BigHungry MWitte Judgement Jas rexaren Osoui Tman34693 ZeroHugs Misting Calamity340 Knack DouuggUwU TshakdaddyMAC Birdbrain46 AmazingZee Lorraine（ロレイン） Diao Chan（ダオ・チャン） Silvie（シルヴィ） Jin（ジン） Diana（ダイアナ） Guo Jia（グオ・ジア） Alice（アリス） Arisanna（アリサナ） Rai（ライ） Nico（ニコ） / Tonoris（トノリス） Ciel（シエル） Tonoris（トノリス） Merlin（マーリン） Nico（ニコ） Tristan（トリスタン） Dante（ダンテ） Kongming（コンミン）" data-name="Michigan Regional RDO" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="1" data-players="40">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/63752/">Michigan Regional RDO</a></div>
+          <div class="ev-host">True Champion Gaming</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-regional"><span class="cat-short">Regionals</span><span class="cat-full">Regionals</span></span></td>
+        <td class="num">40名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/66407/" data-cat="store-championships" data-country="GB" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="66407 Store Championship @ Trintiy Trinity Card Capital LTD GB イギリス スタンダード Store Championship Mallard1096 JamieMoore Ronin lulose flix234 SkyLyra Silvie（シルヴィ） Diao Chan（ダオ・チャン） Lorraine（ロレイン） Tristan（トリスタン） Guo Jia（グオ・ジア）" data-name="Store Championship @ Trintiy" data-country-sort="イギリス" data-format-sort="スタンダード" data-cat-sort="0" data-players="6">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/66407/">Store Championship @ Trintiy</a></div>
+          <div class="ev-host">Trinity Card Capital LTD</div>
+        </td>
+        <td class="country">イギリス</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">6名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/67439/" data-cat="store-championships" data-country="HR" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="67439 Skupi sve - Store Championship Skupi sve HR クロアチア スタンダード Store Championship EasiestMaple318 LightningGeneral Valera BalkanNinja VLKMN vicko Josip01337 Valder FiliaLunacy Merl Diao Chan（ダオ・チャン） Alice（アリス） Tonoris（トノリス） Ciel（シエル） Merlin（マーリン） Guo Jia（グオ・ジア） Lorraine（ロレイン） Rai（ライ）" data-name="Skupi sve - Store Championship" data-country-sort="クロアチア" data-format-sort="スタンダード" data-cat-sort="0" data-players="10">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/67439/">Skupi sve - Store Championship</a></div>
+          <div class="ev-host">Skupi sve</div>
+        </td>
+        <td class="country">クロアチア</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">10名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/67699/" data-cat="store-championships" data-country="SG" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="67699 DX STORE CHAMP DXCOLLECTION SG シンガポール スタンダード Store Championship UBVOLA Legilus Dexter Xhorty65 MiraiD JjimmyZ Yue25 Guo Jia（グオ・ジア） Ciel（シエル） Jin（ジン） Diana（ダイアナ） Dante（ダンテ） Diao Chan（ダオ・チャン）" data-name="DX STORE CHAMP" data-country-sort="シンガポール" data-format-sort="スタンダード" data-cat-sort="0" data-players="7">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/67699/">DX STORE CHAMP</a></div>
+          <div class="ev-host">DXCOLLECTION</div>
+        </td>
+        <td class="country">シンガポール</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">7名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/67296/" data-cat="store-championships" data-country="ID" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="67296 Store Championship PRD NEXUS TABLETOP GAMES ID インドネシア スタンダード Store Championship Axzel DEBIRU LontongBalap chandrasatria Diao Chan（ダオ・チャン） Guo Jia（グオ・ジア） Arisanna（アリサナ） Ciel（シエル）" data-name="Store Championship PRD" data-country-sort="インドネシア" data-format-sort="スタンダード" data-cat-sort="0" data-players="4">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/67296/">Store Championship PRD</a></div>
+          <div class="ev-host">NEXUS TABLETOP GAMES</div>
+        </td>
+        <td class="country">インドネシア</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">4名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/62742/" data-cat="regionals" data-country="PL" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="62742 Wilczek - .asphodel/paradise - Regionals Wilczek Sklep PL ポーランド スタンダード Regionals sungorio Illidan Kropivc SWAZII Silver trmpkv1 biszkoptg Asmo Lukasz45 Zidwa mac73 V41N Horinti silverfox ThePennitentOne Elbem Rogal Murthamis Muchasz morfinek Ninjakeks Cloud DJacob Predator9993 pej Urshi Nikarrami Zefra DuDu YamatoEdge Ashtoreth maniek Dev ShireiK4nn DanDer Twix Quarampa0 Panda102 Thorontir Gilgam3sh Ar7ekin Nagiecu Hamsterdamex Tymona Atael Koritsu nieb Busza Silvie（シルヴィ） Diana（ダイアナ） Arisanna（アリサナ） Diao Chan（ダオ・チャン） Tonoris（トノリス） Jin（ジン） Alice（アリス） Ciel（シエル） Tristan（トリスタン） Lorraine（ロレイン） Vanitas（ヴァニタス） Guo Jia（グオ・ジア） Rai（ライ） Mordred（モードレッド） Dante（ダンテ） Kongming（コンミン）" data-name="Wilczek - .asphodel/paradise - Regionals" data-country-sort="ポーランド" data-format-sort="スタンダード" data-cat-sort="1" data-players="48">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/62742/">Wilczek - .asphodel/paradise - Regionals</a></div>
+          <div class="ev-host">Wilczek Sklep</div>
+        </td>
+        <td class="country">ポーランド</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-regional"><span class="cat-short">Regionals</span><span class="cat-full">Regionals</span></span></td>
+        <td class="num">48名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/67138/" data-cat="store-championships" data-country="MY" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="67138 Shuffle .asphodel/paradise Store Championship Shuffle by Snacks &amp; Ladders MY マレーシア スタンダード Store Championship Wilson Goodboy Ken bryan16 Angkuku6322 jjong ETOoi Moo E92Y Eren Anan Zenatius TK95 PengYi Sumea YANG070129 utopia37 Golden05 SPARTACVS SHIMATTAA Zivhoe Rinun JoeyLoh HayamiYuuya Jin（ジン） Diao Chan（ダオ・チャン） Guo Jia（グオ・ジア） Ciel（シエル） Tristan（トリスタン） Silvie（シルヴィ） Arisanna（アリサナ） Zander（ザンダー） Lorraine（ロレイン） Alice（アリス） Merlin（マーリン） Kongming（コンミン） Mordred（モードレッド）" data-name="Shuffle .asphodel/paradise Store Championship" data-country-sort="マレーシア" data-format-sort="スタンダード" data-cat-sort="0" data-players="24">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/67138/">Shuffle .asphodel/paradise Store Championship</a></div>
+          <div class="ev-host">Shuffle by Snacks &amp; Ladders</div>
+        </td>
+        <td class="country">マレーシア</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">24名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/67691/" data-cat="store-championships" data-country="TW" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="67691 20261114 貓腳印-桃園店 店家冠軍賽 Cat Footprints Amusement Park TW 台湾 スタンダード Store Championship SpIn Summoner Suigetsu Chiufu garbageduo Freedom0212 DEFT MeyruAoba boblaaaaa Silverock z255162 Jaron Yueh WarCha yosora earthpeople The84th Yehethan Near Walter0483 Kafit5566 david685117 tortoise DuckSushi Bulande9233 Avocado2251 Moonfat sumoonmoon Yaoxian Tristan（トリスタン） Ciel（シエル） Diao Chan（ダオ・チャン） Arisanna（アリサナ） / Mordred（モードレッド） Jin（ジン） Diana（ダイアナ） Lorraine（ロレイン） Zander（ザンダー） Alice（アリス） Tonoris（トノリス） Rai（ライ） Silvie（シルヴィ） Merlin（マーリン） Guo Jia（グオ・ジア） / Mordred（モードレッド）" data-name="20261114 貓腳印-桃園店 店家冠軍賽" data-country-sort="台湾" data-format-sort="スタンダード" data-cat-sort="0" data-players="29">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/67691/">20261114 貓腳印-桃園店 店家冠軍賽</a></div>
+          <div class="ev-host">Cat Footprints Amusement Park</div>
+        </td>
+        <td class="country">台湾</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">29名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/66593/" data-cat="store-championships" data-country="TW" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="66593 1114PRD店冠賽 CFP Changhua TW 台湾 スタンダード Store Championship mao Taunes tom DragonJG Niokax Nirvash blackchicken YueX2 Mushroom MINZE Jie TNIG Silent ZhongYou XiaoXuan Yadon NIKEchen Tako 77thunder Snowflake Together froggyyiiiii QAQNEP Edison wenchuan1111 Hsun57 ALSylm cheng04 Rater Lorraine（ロレイン） Zander（ザンダー） Rai（ライ） Arisanna（アリサナ） Tristan（トリスタン） Diao Chan（ダオ・チャン） Merlin（マーリン） Guo Jia（グオ・ジア） Vanitas（ヴァニタス） Diana（ダイアナ） Rai（ライ） / Lorraine（ロレイン） Silvie（シルヴィ） Flawless Spirit of Mordred（無欠なるモードレッドの精霊） Ciel（シエル） Jin（ジン） Alice（アリス）" data-name="1114PRD店冠賽" data-country-sort="台湾" data-format-sort="スタンダード" data-cat-sort="0" data-players="29">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/66593/">1114PRD店冠賽</a></div>
+          <div class="ev-host">CFP Changhua</div>
+        </td>
+        <td class="country">台湾</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">29名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/67322/" data-cat="store-championships" data-country="PH" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="67322 MainPhase Asphodel Store Champs Main Phase Hobbies Cafe PH フィリピン スタンダード Store Championship snackz TrueSightLeocroix Itsatrapmen WOLFRAM GamingSiopao Reiku Suru ahuinan Naru Emps Eisenciel Meonji Hirumi Diana（ダイアナ） Tonoris（トノリス） Guo Jia（グオ・ジア） Lorraine（ロレイン） Merlin（マーリン） Jin（ジン） Diao Chan（ダオ・チャン） Alice（アリス）" data-name="MainPhase Asphodel Store Champs" data-country-sort="フィリピン" data-format-sort="スタンダード" data-cat-sort="0" data-players="13">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/67322/">MainPhase Asphodel Store Champs</a></div>
+          <div class="ev-host">Main Phase Hobbies Cafe</div>
+        </td>
+        <td class="country">フィリピン</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">13名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68652/" data-cat="store-championships" data-country="SG" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="68652 Capybara Cards Store Championship Capybara Cards SG シンガポール スタンダード Store Championship Zetdivx Aqua xferous Mono Rin YingJie Ayuayu Moko Drakoitzu Zefier Legilus Dexter imKL Nickie Terpe Dantalion pipirupi ImCryingAgain Whitedash DeRealDeal Yeet1016 ShinKD Jiunlin Yuiell Jin（ジン） Alice（アリス） Dante（ダンテ） Guo Jia（グオ・ジア） Tonoris（トノリス） Lorraine（ロレイン） Ciel（シエル） Diao Chan（ダオ・チャン） Arisanna（アリサナ） Rai（ライ）" data-name="Capybara Cards Store Championship" data-country-sort="シンガポール" data-format-sort="スタンダード" data-cat-sort="0" data-players="24">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68652/">Capybara Cards Store Championship</a></div>
+          <div class="ev-host">Capybara Cards</div>
+        </td>
+        <td class="country">シンガポール</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">24名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68857/" data-cat="store-championships" data-country="SG" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="68857 CCG PRD season store champs Cardboard Crack Games SG シンガポール スタンダード Store Championship Veiden IcyZ therarely Replagas JuiceL LokeWaiJian Liekkii HtH Accrion Hellaxile Yue25 DarkuSouls UrRequiem Cyritz Alice（アリス） Jin（ジン） Diana（ダイアナ） Guo Jia（グオ・ジア） Arisanna（アリサナ） Arisanna（アリサナ） / Mordred（モードレッド） Ciel（シエル） Diao Chan（ダオ・チャン） Lorraine（ロレイン） Silvie（シルヴィ）" data-name="CCG PRD season store champs" data-country-sort="シンガポール" data-format-sort="スタンダード" data-cat-sort="0" data-players="14">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68857/">CCG PRD season store champs</a></div>
+          <div class="ev-host">Cardboard Crack Games</div>
+        </td>
+        <td class="country">シンガポール</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">14名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68337/" data-cat="store-championships" data-country="ID" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="68337 Invaders Store Champ Invaders Board Game Station ID インドネシア スタンダード Store Championship Avena DanielYanto regularguy99 Elulu ALEXANDERDWN Shaline Windray Rukito OriGeL Seraph Crouston Dremdorah Lorraine（ロレイン） Lorraine（ロレイン） / Merlin（マーリン） Guo Jia（グオ・ジア） Diao Chan（ダオ・チャン） Ciel（シエル） Kongming（コンミン） Diana（ダイアナ） Tonoris（トノリス） Alice（アリス） Merlin（マーリン） Alice（アリス） / Lorraine（ロレイン）" data-name="Invaders Store Champ" data-country-sort="インドネシア" data-format-sort="スタンダード" data-cat-sort="0" data-players="12">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68337/">Invaders Store Champ</a></div>
+          <div class="ev-host">Invaders Board Game Station</div>
+        </td>
+        <td class="country">インドネシア</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">12名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68761/" data-cat="store-championships" data-country="AU" data-format="standard" data-season="OTHER" data-date="2026-11-14" data-search="68761 GG GA Store Champs Good Games Greensborough AU オーストラリア スタンダード Store Championship Tien WhatDoYouMinh Hedgehoge Shilu Launtial Curtilious kuJ0 Ciel（シエル） Guo Jia（グオ・ジア） Diao Chan（ダオ・チャン） Alice（アリス） Arisanna（アリサナ） Silvie（シルヴィ）" data-name="GG GA Store Champs" data-country-sort="オーストラリア" data-format-sort="スタンダード" data-cat-sort="0" data-players="7">
+        <td class="date">2026-11-14</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68761/">GG GA Store Champs</a></div>
+          <div class="ev-host">Good Games Greensborough</div>
+        </td>
+        <td class="country">オーストラリア</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">7名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/65599/" data-cat="store-championships" data-country="BR" data-format="standard" data-season="OTHER" data-date="2026-11-13" data-search="65599 PRD Store Championship - Gruta Gruta BSB BR BR スタンダード Store Championship Viniusus leonardoC DPeruca alphyssh Rafabrown98 Tonoris Fabrino Solon Montana Ciel（シエル） Silvie（シルヴィ） Lorraine（ロレイン） Tonoris（トノリス） Tonoris（トノリス） / Lorraine（ロレイン） Merlin（マーリン） Diana（ダイアナ）" data-name="PRD Store Championship - Gruta" data-country-sort="BR" data-format-sort="スタンダード" data-cat-sort="0" data-players="9">
+        <td class="date">2026-11-13</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/65599/">PRD Store Championship - Gruta</a></div>
+          <div class="ev-host">Gruta BSB</div>
+        </td>
+        <td class="country">BR</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">9名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/65012/" data-cat="store-championships" data-country="NZ" data-format="standard" data-season="OTHER" data-date="2026-11-13" data-search="65012 Hobby Lords Hamilton Asphodel/Paradise Store Champs Hobby Lords Hamilton NZ ニュージーランド スタンダード Store Championship XVTiamat Russell Kym Goku Realaz Muntz Jin（ジン） Lorraine（ロレイン） Nico（ニコ） / Lorraine（ロレイン） Ciel（シエル）" data-name="Hobby Lords Hamilton Asphodel/Paradise Store Champs" data-country-sort="ニュージーランド" data-format-sort="スタンダード" data-cat-sort="0" data-players="6">
+        <td class="date">2026-11-13</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/65012/">Hobby Lords Hamilton Asphodel/Paradise Store Champs</a></div>
+          <div class="ev-host">Hobby Lords Hamilton</div>
+        </td>
+        <td class="country">ニュージーランド</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">6名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68826/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-13" data-search="68826 the coffer Champion PRD The Coffer US アメリカ スタンダード Store Championship mist666999 LetThemEatCakeDX RakishRaven Shankapotamus AstralAlchemist ShaneF Elyy redRocket80785 campbellsupe HRNinja Slimeless Guo Jia（グオ・ジア） Alice（アリス） Diana（ダイアナ） Rai（ライ） Arisanna（アリサナ） Lorraine（ロレイン） Vanitas（ヴァニタス） Tonoris（トノリス） Diao Chan（ダオ・チャン） Silvie（シルヴィ）" data-name="the coffer Champion PRD" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="11">
+        <td class="date">2026-11-13</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68826/">the coffer Champion PRD</a></div>
+          <div class="ev-host">The Coffer</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">11名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68690/" data-cat="store-championships" data-country="PH" data-format="standard" data-season="OTHER" data-date="2026-11-11" data-search="68690 Scry Games PRD Storechampionship Scry Games Ciannat PH フィリピン スタンダード Store Championship PlayForFun iamMaru Juwe Corvisha Migz Yonab Juls Natz Lucci Elpie Dom24 Dos25 jeffHarmlesz SP69 Fredskie GrandDuke Alice（アリス） Arisanna（アリサナ） Diana（ダイアナ） Guo Jia（グオ・ジア） Lorraine（ロレイン） / Merlin（マーリン） Lorraine（ロレイン） Diao Chan（ダオ・チャン） Silvie（シルヴィ） Tonoris（トノリス） Tristan（トリスタン） Merlin（マーリン）" data-name="Scry Games PRD Storechampionship" data-country-sort="フィリピン" data-format-sort="スタンダード" data-cat-sort="0" data-players="16">
+        <td class="date">2026-11-11</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68690/">Scry Games PRD Storechampionship</a></div>
+          <div class="ev-host">Scry Games Ciannat</div>
+        </td>
+        <td class="country">フィリピン</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">16名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/63959/" data-cat="store-championships" data-country="PH" data-format="standard" data-season="OTHER" data-date="2026-11-11" data-search="63959 Store Championship GO! Hobby and Toy Shop PH フィリピン スタンダード Store Championship Hansuuu Reanbell Chunkie MVeritor Rolex Linkdelete BalerionX11 Lacri Rebellion Nexie Trihexa Kirbs Yumiko Evangelo Diao Chan（ダオ・チャン） Zander（ザンダー） Kongming（コンミン） Tristan（トリスタン） Lorraine（ロレイン） Guo Jia（グオ・ジア） Arisanna（アリサナ） Ciel（シエル） Alice（アリス） Nico（ニコ） Diana（ダイアナ）" data-name="Store Championship" data-country-sort="フィリピン" data-format-sort="スタンダード" data-cat-sort="0" data-players="14">
+        <td class="date">2026-11-11</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/63959/">Store Championship</a></div>
+          <div class="ev-host">GO! Hobby and Toy Shop</div>
+        </td>
+        <td class="country">フィリピン</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">14名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68490/" data-cat="store-championships" data-country="SG" data-format="standard" data-season="OTHER" data-date="2026-11-11" data-search="68490 Black label TCG&#39;s Store Championship Black Label TCG SG シンガポール スタンダード Store Championship Zetdivx Replagas Dexter KuroNeko Liekkii DeRealDeal WinterVul Jin（ジン） Alice（アリス） Guo Jia（グオ・ジア） Diana（ダイアナ）" data-name="Black label TCG&#39;s Store Championship" data-country-sort="シンガポール" data-format-sort="スタンダード" data-cat-sort="0" data-players="7">
+        <td class="date">2026-11-11</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68490/">Black label TCG&#39;s Store Championship</a></div>
+          <div class="ev-host">Black Label TCG</div>
+        </td>
+        <td class="country">シンガポール</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">7名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/67369/" data-cat="store-championships" data-country="SG" data-format="standard" data-season="OTHER" data-date="2026-11-09" data-search="67369 GA@AGC .asphodel/paradise Store Championship Active Game Collections SG シンガポール スタンダード Store Championship Zetdivx Aqua ProAnnn UBVOLA JCee Telracs Denzi CWSeulrene Legilus Replagas Dexter ZQZQ Scarion ArthurTee CleonC Dracostaz Desffy Kenderkind37 0416ronin Kanoics klvr Liekkii Dazla Chuwubs TwistedKaito JoeyWheeler Dr9am0r Grimro WinterVul Rookie115 ShinKD Jiunlin Reina Xukel Jin（ジン） Alice（アリス） Zander（ザンダー） Guo Jia（グオ・ジア） Diao Chan（ダオ・チャン） Ciel（シエル） Kongming（コンミン） Arisanna（アリサナ） Tonoris（トノリス） Diana（ダイアナ） Lorraine（ロレイン） Lorraine（ロレイン） / Merlin（マーリン） Tristan（トリスタン）" data-name="GA@AGC .asphodel/paradise Store Championship" data-country-sort="シンガポール" data-format-sort="スタンダード" data-cat-sort="0" data-players="34">
+        <td class="date">2026-11-09</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/67369/">GA@AGC .asphodel/paradise Store Championship</a></div>
+          <div class="ev-host">Active Game Collections</div>
+        </td>
+        <td class="country">シンガポール</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">34名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/65055/" data-cat="store-championships" data-country="MY" data-format="standard" data-season="OTHER" data-date="2026-11-09" data-search="65055 MY Hobby &amp; Collectibles PRD Store Championship MY Hobby &amp; Collectibles MY マレーシア スタンダード Store Championship Se7en MingYee HsiangYunn Bagataro Conman BeaverKnight Nickson Esperino Yim steve124tan Sun Moo 317 J0ka Maelstrom SWu lululuqman Apalol Guo Jia（グオ・ジア） Lorraine（ロレイン） Ciel（シエル） Jin（ジン） Diao Chan（ダオ・チャン） Diana（ダイアナ） Tristan（トリスタン） Zander（ザンダー） Arisanna（アリサナ） Guo Jia（グオ・ジア） / Diana（ダイアナ）" data-name="MY Hobby &amp; Collectibles PRD Store Championship" data-country-sort="マレーシア" data-format-sort="スタンダード" data-cat-sort="0" data-players="18">
+        <td class="date">2026-11-09</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/65055/">MY Hobby &amp; Collectibles PRD Store Championship</a></div>
+          <div class="ev-host">MY Hobby &amp; Collectibles</div>
+        </td>
+        <td class="country">マレーシア</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">18名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/67514/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-08" data-search="67514 The Shop Collectiblies Grand Archive Store Championship The Shop Collectibles LLC US アメリカ スタンダード Store Championship MillLord Tang Firerhino Misting Nero17 Calamity340 Lyranith Knack Birdbrain46 Ciel（シエル） Silvie（シルヴィ） Merlin（マーリン） Diao Chan（ダオ・チャン） Lorraine（ロレイン） Guo Jia（グオ・ジア） Arisanna（アリサナ） Polkhawk（ポークホーク） Kongming（コンミン）" data-name="The Shop Collectiblies Grand Archive Store Championship" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="9">
+        <td class="date">2026-11-08</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/67514/">The Shop Collectiblies Grand Archive Store Championship</a></div>
+          <div class="ev-host">The Shop Collectibles LLC</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">9名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/63073/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-08" data-search="63073 Curio Store Championship PRD Season Curio Mountlake US アメリカ スタンダード Store Championship Aya WildShiba T0fu Melon420 EnderZone Phillip Vipirius Fruitcake 4CE Aero ronjohnalpha FitzChivalry Lychee Goosemasu rosie breadbun Mah envelopes Cyferous Renaylria Vanitas（ヴァニタス） Guo Jia（グオ・ジア） Alice（アリス） Diao Chan（ダオ・チャン） Lorraine（ロレイン） / Merlin（マーリン） Nico（ニコ） Lorraine（ロレイン） Arisanna（アリサナ） Tonoris（トノリス） Ciel（シエル） Diana（ダイアナ） Silvie（シルヴィ） Lorraine（ロレイン） / Tonoris（トノリス）" data-name="Curio Store Championship PRD Season" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="20">
+        <td class="date">2026-11-08</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/63073/">Curio Store Championship PRD Season</a></div>
+          <div class="ev-host">Curio Mountlake</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">20名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/66278/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-08" data-search="66278 PRD Store Championship The Eldritch Bastion Co US アメリカ スタンダード Store Championship Guruthos TanMan1 mkluis714 Chibison FoolsGambit Knight57316 Slayer13x GuruYouKnew HypnoticHeart1 Jas KAckert RetroRecharged TshakdaddyMAC Diao Chan（ダオ・チャン） Guo Jia（グオ・ジア） Alice（アリス） Silvie（シルヴィ） Ciel（シエル） Lorraine（ロレイン） Diana（ダイアナ） Dante（ダンテ）" data-name="PRD Store Championship" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="13">
+        <td class="date">2026-11-08</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/66278/">PRD Store Championship</a></div>
+          <div class="ev-host">The Eldritch Bastion Co</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">13名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68466/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-08" data-search="68466 Store champs  Counterspell Games US アメリカ スタンダード Store Championship Snugglinrum RobinPugh Corbett Roberto trueassassin Alyssa YoumuKonpaku Alice（アリス） Guo Jia（グオ・ジア） Jin（ジン） Diana（ダイアナ） Ciel（シエル） Zander（ザンダー） Diao Chan（ダオ・チャン）" data-name="Store champs " data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="7">
+        <td class="date">2026-11-08</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68466/">Store champs </a></div>
+          <div class="ev-host">Counterspell Games</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">7名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/66929/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-08" data-search="66929 Grand Archive at Xepher (Store Championship) Xepher Arcade US アメリカ スタンダード Store Championship Soulcraft Atto Xman 404Bassics Wikky Epedicus ThatOne phoscent Silvology Neoaltmint Gethann Gaom Boozer Tonoris（トノリス） Diao Chan（ダオ・チャン） Zander（ザンダー） Rai（ライ） Guo Jia（グオ・ジア） Tristan（トリスタン） Lorraine（ロレイン） Arisanna（アリサナ） / Lorraine（ロレイン） Kongming（コンミン） Diana（ダイアナ） Vanitas（ヴァニタス）" data-name="Grand Archive at Xepher (Store Championship)" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="13">
+        <td class="date">2026-11-08</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/66929/">Grand Archive at Xepher (Store Championship)</a></div>
+          <div class="ev-host">Xepher Arcade</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">13名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68508/" data-cat="store-championships" data-country="CA" data-format="standard" data-season="OTHER" data-date="2026-11-08" data-search="68508 PRD Store Champs @ IWTS I Want That Stuff CA カナダ スタンダード Store Championship Phostan Pennystocks Elvaeyn BroDIO DespotPrime Shandelier Sheogorath399 CoatSeason Lorraine（ロレイン） / Silvie（シルヴィ） Diana（ダイアナ） Ciel（シエル） Arisanna（アリサナ） Tonoris（トノリス） Vanitas（ヴァニタス） Diao Chan（ダオ・チャン） Jin（ジン）" data-name="PRD Store Champs @ IWTS" data-country-sort="カナダ" data-format-sort="スタンダード" data-cat-sort="0" data-players="8">
+        <td class="date">2026-11-08</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68508/">PRD Store Champs @ IWTS</a></div>
+          <div class="ev-host">I Want That Stuff</div>
+        </td>
+        <td class="country">カナダ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">8名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68481/" data-cat="store-championships" data-country="MY" data-format="standard" data-season="OTHER" data-date="2026-11-08" data-search="68481 Gentoshi PRD Grand Archive Store Championship Gentoshi MY マレーシア スタンダード Store Championship Xenon Xandolf XVII KeVyn Xian BrennerZero3 Capyray Jaygmomanometer Arisanna（アリサナ） Jin（ジン） Silvie（シルヴィ） Guo Jia（グオ・ジア） Diao Chan（ダオ・チャン） Diana（ダイアナ） Zander（ザンダー）" data-name="Gentoshi PRD Grand Archive Store Championship" data-country-sort="マレーシア" data-format-sort="スタンダード" data-cat-sort="0" data-players="8">
+        <td class="date">2026-11-08</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68481/">Gentoshi PRD Grand Archive Store Championship</a></div>
+          <div class="ev-host">Gentoshi</div>
+        </td>
+        <td class="country">マレーシア</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">8名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68249/" data-cat="store-championships" data-country="MY" data-format="standard" data-season="OTHER" data-date="2026-11-08" data-search="68249 SideDeck PRD Store ChampionShip  SideDeck MY マレーシア スタンダード Store Championship Bagataro BeaverKnight Nickson Daedaene Kushalos HowHau steve124tan Yorus Moo Rhetoryx Lam Itzchy NovBandit Kyockcho Kurapika Nabs555 Ciel（シエル） Zander（ザンダー） Guo Jia（グオ・ジア） Lorraine（ロレイン） Arisanna（アリサナ） Alice（アリス） Diao Chan（ダオ・チャン） Tristan（トリスタン） Mordred（モードレッド）" data-name="SideDeck PRD Store ChampionShip " data-country-sort="マレーシア" data-format-sort="スタンダード" data-cat-sort="0" data-players="16">
+        <td class="date">2026-11-08</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68249/">SideDeck PRD Store ChampionShip </a></div>
+          <div class="ev-host">SideDeck</div>
+        </td>
+        <td class="country">マレーシア</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">16名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/63802/" data-cat="store-championships" data-country="SG" data-format="standard" data-season="OTHER" data-date="2026-11-08" data-search="63802 KouritenSG 8th Nov Store Championship KouritenSG SG シンガポール スタンダード Store Championship Aqua JCee myamya Drakoitzu Legilus Replagas Dexter Nickie Snowwolf hachibeans Kukujiao JuiceL Crazar Dantalion StiLL HoneyOrange Whitedash DouZhandom klvr meteostriker22 Chuwubs Escandor Koyuntepe Tunner Yue25 Tenryo Arov Fafner Endroll Pinkcloudsss Cyritz Jin（ジン） Diao Chan（ダオ・チャン） Ciel（シエル） Guo Jia（グオ・ジア） / Merlin（マーリン） Arisanna（アリサナ） Guo Jia（グオ・ジア） Silvie（シルヴィ） Merlin（マーリン） Tonoris（トノリス） Lorraine（ロレイン） Alice（アリス） Diana（ダイアナ） Spirit of Fire（火の精霊） Nico（ニコ） Dante（ダンテ）" data-name="KouritenSG 8th Nov Store Championship" data-country-sort="シンガポール" data-format-sort="スタンダード" data-cat-sort="0" data-players="31">
+        <td class="date">2026-11-08</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/63802/">KouritenSG 8th Nov Store Championship</a></div>
+          <div class="ev-host">KouritenSG</div>
+        </td>
+        <td class="country">シンガポール</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">31名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/62472/" data-cat="store-championships" data-country="TW" data-format="standard" data-season="OTHER" data-date="2026-11-08" data-search="62472 GA PRD商店錦標賽 Catfootprint Miaoli TW 台湾 スタンダード Store Championship blackchicken Freedom0212 Foease Snowflake QianyeLu Diao Chan（ダオ・チャン） Arisanna（アリサナ） / Mordred（モードレッド） Lorraine（ロレイン） Guo Jia（グオ・ジア）" data-name="GA PRD商店錦標賽" data-country-sort="台湾" data-format-sort="スタンダード" data-cat-sort="0" data-players="5">
+        <td class="date">2026-11-08</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/62472/">GA PRD商店錦標賽</a></div>
+          <div class="ev-host">Catfootprint Miaoli</div>
+        </td>
+        <td class="country">台湾</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">5名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68329/" data-cat="store-championships" data-country="BN" data-format="standard" data-season="OTHER" data-date="2026-11-08" data-search="68329 LabyrinthGames PRD Store Championship Labyrinth Games &amp; Collectibles BN ブルネイ スタンダード Store Championship KnightVnox VexedBlue Dane BrannW Enjaye GASPERSHYAM1010 LeoYong Kel Ahtong125 AhSeng Mrbruh Sting88 Bon ChronoXiphos Lorraine（ロレイン） Diana（ダイアナ） Rai（ライ） Jin（ジン） Guo Jia（グオ・ジア） Zander（ザンダー） Diao Chan（ダオ・チャン） Alice（アリス） Ciel（シエル）" data-name="LabyrinthGames PRD Store Championship" data-country-sort="ブルネイ" data-format-sort="スタンダード" data-cat-sort="0" data-players="14">
+        <td class="date">2026-11-08</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68329/">LabyrinthGames PRD Store Championship</a></div>
+          <div class="ev-host">Labyrinth Games &amp; Collectibles</div>
+        </td>
+        <td class="country">ブルネイ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">14名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/67360/" data-cat="store-championships" data-country="TW" data-format="standard" data-season="OTHER" data-date="2026-11-08" data-search="67360 新竹放肆趣PRD店冠賽 Fun4放肆趣-桌遊x卡牌 TW 台湾 スタンダード Store Championship Taunes Niokax Ikuri Jaron ZhongYou Together Ianleeeee suis david685117 Leoway WaiPuXiuSi rising88 s0890002 LastWinterxxx JayNH Dindinba Zander（ザンダー） Tristan（トリスタン） Lorraine（ロレイン） Rai（ライ） Diana（ダイアナ） Alice（アリス） Guo Jia（グオ・ジア） / Mordred（モードレッド） Guo Jia（グオ・ジア） Diao Chan（ダオ・チャン） Silvie（シルヴィ） Nico（ニコ） / Mordred（モードレッド）" data-name="新竹放肆趣PRD店冠賽" data-country-sort="台湾" data-format-sort="スタンダード" data-cat-sort="0" data-players="16">
+        <td class="date">2026-11-08</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/67360/">新竹放肆趣PRD店冠賽</a></div>
+          <div class="ev-host">Fun4放肆趣-桌遊x卡牌</div>
+        </td>
+        <td class="country">台湾</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">16名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68246/" data-cat="store-championships" data-country="MY" data-format="standard" data-season="OTHER" data-date="2026-11-08" data-search="68246 Shuffle duel field PRD STORE CHAMPION  Shuffle the duel field MY マレーシア スタンダード Store Championship DeAn3 Tdkhoo Breakerz MenBao ASpeepoKlown69 ChrisL Yiming LimP Yuki00 Guan5539 Qwer CardSlayer Taylor Tc0630 Guo Jia（グオ・ジア） Zander（ザンダー） Diao Chan（ダオ・チャン） Jin（ジン） Ciel（シエル） Diana（ダイアナ）" data-name="Shuffle duel field PRD STORE CHAMPION " data-country-sort="マレーシア" data-format-sort="スタンダード" data-cat-sort="0" data-players="14">
+        <td class="date">2026-11-08</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68246/">Shuffle duel field PRD STORE CHAMPION </a></div>
+          <div class="ev-host">Shuffle the duel field</div>
+        </td>
+        <td class="country">マレーシア</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">14名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/62950/" data-cat="store-championships" data-country="AU" data-format="standard" data-season="OTHER" data-date="2026-11-08" data-search="62950 GGCP PRDP Store Championship General Games Chirnside Park AU オーストラリア スタンダード Store Championship Tien LMarkham WishToad DunBeats Brett Ciel（シエル） Diana（ダイアナ） Lorraine（ロレイン） Alice（アリス）" data-name="GGCP PRDP Store Championship" data-country-sort="オーストラリア" data-format-sort="スタンダード" data-cat-sort="0" data-players="5">
+        <td class="date">2026-11-08</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/62950/">GGCP PRDP Store Championship</a></div>
+          <div class="ev-host">General Games Chirnside Park</div>
+        </td>
+        <td class="country">オーストラリア</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">5名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68233/" data-cat="store-championships" data-country="NZ" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="68233 Mountain Games Store Champs Mountain Games NZ ニュージーランド スタンダード Store Championship Johnbed Corgis SteveO Realaz SLeece Mufasa Lorraine（ロレイン） Ciel（シエル） Silvie（シルヴィ）" data-name="Mountain Games Store Champs" data-country-sort="ニュージーランド" data-format-sort="スタンダード" data-cat-sort="0" data-players="6">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68233/">Mountain Games Store Champs</a></div>
+          <div class="ev-host">Mountain Games</div>
+        </td>
+        <td class="country">ニュージーランド</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">6名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/64151/" data-cat="store-championships" data-country="NZ" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="64151 Collectors Guild Mt Roskill Store Champs Collectors Guild Mt Roskill NZ ニュージーランド スタンダード Store Championship Yamikin Liam KitKat ShingTsang Salazaar ShanaCon Last970 AnTi Ciel（シエル） Lorraine（ロレイン） / Tristan（トリスタン） Arisanna（アリサナ） Lorraine（ロレイン） Diao Chan（ダオ・チャン） Guo Jia（グオ・ジア） Alice（アリス） Silvie（シルヴィ）" data-name="Collectors Guild Mt Roskill Store Champs" data-country-sort="ニュージーランド" data-format-sort="スタンダード" data-cat-sort="0" data-players="8">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/64151/">Collectors Guild Mt Roskill Store Champs</a></div>
+          <div class="ev-host">Collectors Guild Mt Roskill</div>
+        </td>
+        <td class="country">ニュージーランド</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">8名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68212/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="68212 Store Championship Underworld TCG &amp; Collectibles US アメリカ スタンダード Store Championship PuppetSoul Picklesword Modestmewtwo Chuunibyou Benchy Tonoris（トノリス） Vanitas（ヴァニタス） Zander（ザンダー） Guo Jia（グオ・ジア）" data-name="Store Championship" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="5">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68212/">Store Championship</a></div>
+          <div class="ev-host">Underworld TCG &amp; Collectibles</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">5名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/65962/" data-cat="regionals" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="65962 Nor Cal Santa Clara Convention Center Regional by Final Cut TCG Final Cut TCG US アメリカ スタンダード Regionals Lee Mewkiss JSON DuckHats Eva Anthony0313 LucidMarauder ChromatiK Jozay Panda Sakomi Fallinbuu14 Ayakagenshin Srlqulongtard Weiyee Miyuki Zorrolicious thegodlee Heartbeat Sano Colten FluffyBunny3 LongN Rickrage Kitsumiya ChunandRice Kotae VZM Shoku Axelia Sabermythic RayneeDay Excalibur BarrettCreative Harunda Nishtu orpheusmercer SapphicSnake LoringStar Reminee AnE Jayz ElTeddyOso Taikun Melarki Nyda Coya Dit Resdra Iluru Doen LadyGildaSimp Butterdog Dian Codesze Gavzz Shards Melkor Seiko Guo Jia（グオ・ジア） Alice（アリス） Diao Chan（ダオ・チャン） Lorraine（ロレイン） Arisanna（アリサナ） Ciel（シエル） Merlin（マーリン） Nico（ニコ） Tonoris（トノリス） Diana（ダイアナ） Lorraine（ロレイン） / Merlin（マーリン） Jin（ジン） Lorraine（ロレイン） / Mordred（モードレッド） Tristan（トリスタン） Zander（ザンダー） Kongming（コンミン） Vanitas（ヴァニタス） Silvie（シルヴィ） Mordred（モードレッド）" data-name="Nor Cal Santa Clara Convention Center Regional by Final Cut TCG" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="1" data-players="59">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/65962/">Nor Cal Santa Clara Convention Center Regional by Final Cut TCG</a></div>
+          <div class="ev-host">Final Cut TCG</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-regional"><span class="cat-short">Regionals</span><span class="cat-full">Regionals</span></span></td>
+        <td class="num">59名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/65462/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="65462 PRD Store Championship Andyseous Odyssey US アメリカ スタンダード Store Championship Murgledoo DoDoBird Glass NEETfull Hyouka LegendofMari0 viewtifulkye ClassyBadger Hessu MrMishida Hyubushu SoloSekai Iliad Szared Ty91 ZooZuu Happycat JustWill Bieu LunarWing Arisanna（アリサナ） Lorraine（ロレイン） Lorraine（ロレイン） / Merlin（マーリン） Silvie（シルヴィ） Rai（ライ） Ciel（シエル） Guo Jia（グオ・ジア） Kongming（コンミン） Diao Chan（ダオ・チャン） Tonoris（トノリス） Diana（ダイアナ）" data-name="PRD Store Championship" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="20">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/65462/">PRD Store Championship</a></div>
+          <div class="ev-host">Andyseous Odyssey</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">20名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/63779/" data-cat="store-championships" data-country="CA" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="63779 CMBGames - PRD Store Championship Claw Me Baby Games CA カナダ スタンダード Store Championship SevenBricks Xenadrael Steve Asura RNg Superior Tulky Felix lolb Hackett Baowow Nico（ニコ） Ciel（シエル） Tonoris（トノリス） Lorraine（ロレイン） Diao Chan（ダオ・チャン） Guo Jia（グオ・ジア） Jin（ジン） Alice（アリス）" data-name="CMBGames - PRD Store Championship" data-country-sort="カナダ" data-format-sort="スタンダード" data-cat-sort="0" data-players="11">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/63779/">CMBGames - PRD Store Championship</a></div>
+          <div class="ev-host">Claw Me Baby Games</div>
+        </td>
+        <td class="country">カナダ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">11名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/65600/" data-cat="store-championships" data-country="BR" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="65600 Store Championship de Rívia Filhos de Rívia BR BR スタンダード Store Championship DrakeKondo Aggie Baldman Nickfcolla GabrielGrand Ccout GSena Zugruul Lilypad Onurya BlindFrog Diana（ダイアナ） Merlin（マーリン） Tonoris（トノリス） Diao Chan（ダオ・チャン） Ciel（シエル） Silvie（シルヴィ） Lorraine（ロレイン）" data-name="Store Championship de Rívia" data-country-sort="BR" data-format-sort="スタンダード" data-cat-sort="0" data-players="11">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/65600/">Store Championship de Rívia</a></div>
+          <div class="ev-host">Filhos de Rívia</div>
+        </td>
+        <td class="country">BR</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">11名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68262/" data-cat="store-championships" data-country="KR" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="68262 Hobby gamemall jong-no Store Championship Hobby Game Mall Jong-no KR 韓国 スタンダード Store Championship lapi Solegnis pyosu0822 Saebook Cookey Nyadim NRAR Hound testID Mistrain Venusaur Goguma YouHead Claphyr Diana（ダイアナ） Ciel（シエル） Dante（ダンテ） / Merlin（マーリン） Lorraine（ロレイン） Arisanna（アリサナ） Mordred（モードレッド） Tonoris（トノリス） Guo Jia（グオ・ジア） Kongming（コンミン） Dante（ダンテ） Silvie（シルヴィ） Diao Chan（ダオ・チャン）" data-name="Hobby gamemall jong-no Store Championship" data-country-sort="韓国" data-format-sort="スタンダード" data-cat-sort="0" data-players="14">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68262/">Hobby gamemall jong-no Store Championship</a></div>
+          <div class="ev-host">Hobby Game Mall Jong-no</div>
+        </td>
+        <td class="country">韓国</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">14名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/63518/" data-cat="regionals" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="63518 The Banish Zone&#39;s Regional! The Banish Zone US アメリカ スタンダード Regionals stevo7653 Quakems leoblade tinyturtle JCcalonge Frostbind SpKBallpit PntBlnk Netto Luikazooie Jesse ChatterB0X Jschmitt481 ThunderPunch Impastamon Mumbles Laekri Whoareyou AstarohKing Mistel Inpacchi Kisae Mik3B tomochao Nibster perfectpurple Jumpshootmac BigShrimp Dumas Tnatchie Moog SlightlyMetal Alltears RIRU JackintheBox CHIAtos swiftea Kitterfox TSTAT Wink Mrothird SteamingCoffee GaianTonic ctandyh Alice（アリス） Diana（ダイアナ） Diao Chan（ダオ・チャン） Vanitas（ヴァニタス） Lorraine（ロレイン） Tonoris（トノリス） Ciel（シエル） Lorraine（ロレイン） / Merlin（マーリン） Tristan（トリスタン） Jin（ジン） Mordred（モードレッド） Dante（ダンテ） Kongming（コンミン） Guo Jia（グオ・ジア） Zander（ザンダー） Rai（ライ） Arisanna（アリサナ）" data-name="The Banish Zone&#39;s Regional!" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="1" data-players="44">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/63518/">The Banish Zone&#39;s Regional!</a></div>
+          <div class="ev-host">The Banish Zone</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-regional"><span class="cat-short">Regionals</span><span class="cat-full">Regionals</span></span></td>
+        <td class="num">44名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/66659/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="66659 Gaming Giant PRD Store Champs Gaming Giant US アメリカ スタンダード Store Championship Efferus Wolfgang 404Bassics Diamond50 ChibiArc AliceSavor Ciel（シエル） Guo Jia（グオ・ジア） Silvie（シルヴィ） Lorraine（ロレイン） Arisanna（アリサナ） Tristan（トリスタン）" data-name="Gaming Giant PRD Store Champs" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="6">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/66659/">Gaming Giant PRD Store Champs</a></div>
+          <div class="ev-host">Gaming Giant</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">6名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/67016/" data-cat="store-championships" data-country="DE" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="67016 HeldenTaverne Jena - Store Championship HeldenTaverne Spielwaren DE ドイツ スタンダード Store Championship Wasted Arohn PapageiGruss338 Hupfein LordLightflame Guo Jia（グオ・ジア） Ciel（シエル） Arisanna（アリサナ）" data-name="HeldenTaverne Jena - Store Championship" data-country-sort="ドイツ" data-format-sort="スタンダード" data-cat-sort="0" data-players="5">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/67016/">HeldenTaverne Jena - Store Championship</a></div>
+          <div class="ev-host">HeldenTaverne Spielwaren</div>
+        </td>
+        <td class="country">ドイツ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">5名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/66006/" data-cat="store-championships" data-country="BR" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="66006 .asphodel/paradise Store Championship - Brandao Card Game Brandao Card Game BR BR スタンダード Store Championship Pluvia Helquer BrandaoTCG Lilipe AbysmalBR fefernandes Messina RafaelLam SKRick QueroCafeTh Tatha UndeadGirl Maxgon Ratatouille SirLancelot10 Arisanna（アリサナ） Dante（ダンテ） Ciel（シエル） Guo Jia（グオ・ジア） Silvie（シルヴィ） Lorraine（ロレイン） Diao Chan（ダオ・チャン） Tristan（トリスタン） Alice（アリス） / Lorraine（ロレイン） Jin（ジン） Diana（ダイアナ） Zander（ザンダー）" data-name=".asphodel/paradise Store Championship - Brandao Card Game" data-country-sort="BR" data-format-sort="スタンダード" data-cat-sort="0" data-players="15">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/66006/">.asphodel/paradise Store Championship - Brandao Card Game</a></div>
+          <div class="ev-host">Brandao Card Game</div>
+        </td>
+        <td class="country">BR</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">15名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/62611/" data-cat="store-championships" data-country="MY" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="62611 GOB Grand Archive Store Championship Game On Boardgame Cafe MY マレーシア スタンダード Store Championship Wilson Goodboy Ken Trelderanx TK95 PengYi AlterFumes Sumea YANG070129 Leo0111 2244 cow playmaker0630 SHIMATTAA Ming04 JamesJC Kingoffighters Jin（ジン） Diao Chan（ダオ・チャン） Guo Jia（グオ・ジア） Lorraine（ロレイン） Ciel（シエル） Merlin（マーリン） Diana（ダイアナ） Silvie（シルヴィ） Alice（アリス）" data-name="GOB Grand Archive Store Championship" data-country-sort="マレーシア" data-format-sort="スタンダード" data-cat-sort="0" data-players="17">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/62611/">GOB Grand Archive Store Championship</a></div>
+          <div class="ev-host">Game On Boardgame Cafe</div>
+        </td>
+        <td class="country">マレーシア</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">17名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/66012/" data-cat="regionals" data-country="DE" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="66012 White Rabbit Essen - PRD Regionals White Rabbit Community Game Store (Essen) DE ドイツ スタンダード Regionals PogoTama Rayray Tobi Yoroi Ceddy theodorelu primodus Cormag RazzaR Horinti Swaffelaar Stefan6444 DjieDjoen KiD Kurryeis Caduko BlackyV SiveX Ninjakeks TryAndError Elecy Darkmove99 ktaersidon Kivu kingGB shokoouo Sohan Huayra Sigdal Thundiii Bonkos Moonerius Nico（ニコ） Lorraine（ロレイン） / Merlin（マーリン） Zander（ザンダー） Arisanna（アリサナ） Diao Chan（ダオ・チャン） Guo Jia（グオ・ジア） Lorraine（ロレイン） Diana（ダイアナ） Ciel（シエル） Alice（アリス） Jin（ジン） Silvie（シルヴィ） Tonoris（トノリス） Dante（ダンテ）" data-name="White Rabbit Essen - PRD Regionals" data-country-sort="ドイツ" data-format-sort="スタンダード" data-cat-sort="1" data-players="32">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/66012/">White Rabbit Essen - PRD Regionals</a></div>
+          <div class="ev-host">White Rabbit Community Game Store (Essen)</div>
+        </td>
+        <td class="country">ドイツ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-regional"><span class="cat-short">Regionals</span><span class="cat-full">Regionals</span></span></td>
+        <td class="num">32名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/63051/" data-cat="store-championships" data-country="PL" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="63051 Store Championship w Xjoy.pl Xjoy.pl PL ポーランド スタンダード Store Championship sungorio Silver Ludwis mac73 Muchasz Ashtoreth Hamsterdamex Atael Silvie（シルヴィ） Tristan（トリスタン） Diao Chan（ダオ・チャン） Diana（ダイアナ） Jin（ジン） Guo Jia（グオ・ジア） Dante（ダンテ）" data-name="Store Championship w Xjoy.pl" data-country-sort="ポーランド" data-format-sort="スタンダード" data-cat-sort="0" data-players="8">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/63051/">Store Championship w Xjoy.pl</a></div>
+          <div class="ev-host">Xjoy.pl</div>
+        </td>
+        <td class="country">ポーランド</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">8名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/67060/" data-cat="regionals" data-country="AE" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="67060 Tabletop.me Special Event Nexus Event Middle East AE UAE スタンダード Regionals Khalifa Tverde ChipironRojo19 Chihuahua MystoganZero AllanPrickly Mohammad Snakeye Rez Aquairen RPGgamerPH DSAINT13 Hamid montaur27 Bluclair Refat HoshikoKim CaramelKingDude IxD INCuBuS RAv Mal Mort SaeedStamina Val MarshyNoodlezz MAlshamsi Raisa Khi Merci NullVox Tatsumawi Escur Roguedoll Ace342 Lorraine（ロレイン） Lorraine（ロレイン） / Merlin（マーリン） Silvie（シルヴィ） Alice（アリス） Guo Jia（グオ・ジア） Diao Chan（ダオ・チャン） Tristan（トリスタン） Ciel（シエル） / Lorraine（ロレイン） Jin（ジン） Ciel（シエル） Rai（ライ） Zander（ザンダー） Tonoris（トノリス） Vanitas（ヴァニタス）" data-name="Tabletop.me Special Event" data-country-sort="UAE" data-format-sort="スタンダード" data-cat-sort="1" data-players="35">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/67060/">Tabletop.me Special Event</a></div>
+          <div class="ev-host">Nexus Event Middle East</div>
+        </td>
+        <td class="country">UAE</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-regional"><span class="cat-short">Regionals</span><span class="cat-full">Regionals</span></span></td>
+        <td class="num">35名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68392/" data-cat="store-championships" data-country="MY" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="68392 Guildhall PRD StoreChampionship  GUILDHALL PLT MY マレーシア スタンダード Store Championship Tyran LunaMagnarm Bagataro Manju Daedaene Esperino IshiChaco Yim steve124tan KwekKwek SoyaCincau Moo MP997 hong9119 J0ka Lip SkyPreyer Fluffybuns bryty boobasaur Lyuzaki sugarsoap Ciel（シエル） Alice（アリス） Arisanna（アリサナ） Silvie（シルヴィ） Guo Jia（グオ・ジア） Lorraine（ロレイン） Diana（ダイアナ） Diao Chan（ダオ・チャン） Tristan（トリスタン） Lorraine（ロレイン） / Merlin（マーリン） Jin（ジン）" data-name="Guildhall PRD StoreChampionship " data-country-sort="マレーシア" data-format-sort="スタンダード" data-cat-sort="0" data-players="22">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68392/">Guildhall PRD StoreChampionship </a></div>
+          <div class="ev-host">GUILDHALL PLT</div>
+        </td>
+        <td class="country">マレーシア</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">22名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/67278/" data-cat="store-championships" data-country="TW" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="67278 牌塔PRD店冠賽 Tower of TCG 牌塔 TW 台湾 スタンダード Store Championship SpIn Davis Summoner KevinZhao Sheng kakkou garbageduo Tsuki0170 Freedom0212 Jayden MeyruAoba Dogewwwww LeoLee0817 Enki Alex0916 ZhongYou Whiteare123 KuanJu Apaul JimmyHuang Yungcheng Schwarzer Walter0483 Maomao0309 eoe Tommmm FrancisJ QADWQR TWLien Avocado2251 ShiroFox liao423 rising88 richie8565 Tristan（トリスタン） Zander（ザンダー） / Mordred（モードレッド） Tonoris（トノリス） Arisanna（アリサナ） Lorraine（ロレイン） Diao Chan（ダオ・チャン） Arisanna（アリサナ） / Mordred（モードレッド） Zander（ザンダー） Jin（ジン） Rai（ライ） Nico（ニコ） Diana（ダイアナ） Guo Jia（グオ・ジア） Merlin（マーリン） Ciel（シエル） Lorraine（ロレイン） / Merlin（マーリン）" data-name="牌塔PRD店冠賽" data-country-sort="台湾" data-format-sort="スタンダード" data-cat-sort="0" data-players="34">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/67278/">牌塔PRD店冠賽</a></div>
+          <div class="ev-host">Tower of TCG 牌塔</div>
+        </td>
+        <td class="country">台湾</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">34名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68407/" data-cat="store-championships" data-country="TW" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="68407 店冠 ShinChiToys TW 台湾 スタンダード Store Championship Weiweimywife yuki123 Gua Xarliend Haimao ExcitedCat Wayne0723 Lorraine（ロレイン） Guo Jia（グオ・ジア） Arisanna（アリサナ） Diao Chan（ダオ・チャン） Alice（アリス）" data-name="店冠" data-country-sort="台湾" data-format-sort="スタンダード" data-cat-sort="0" data-players="7">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68407/">店冠</a></div>
+          <div class="ev-host">ShinChiToys</div>
+        </td>
+        <td class="country">台湾</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">7名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/63201/" data-cat="regionals" data-country="PH" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="63201 Questing Grounds Regionals Nov.7,2026 Questing Grounds PH フィリピン スタンダード Regionals TrueSightFugative tko snackz TrueSightLeocroix Otoro snapdensing Itsatrapmen PlayForFun TheDon Eon18 Nine Elowyl Corazon SkyKing Polarcub Zeke CeresFauna GamingSiopao Timo Hansuuu lancelim0210 IvanKlaric Suru Reanbell Chunkie elothere ShamanHalaman Hephaestus Whizzery Rolex Linkdelete BalerionX11 ahuinan Naru N1X Emps ezinne Sangry Vesper Myharuph Hanrann dox Meonji CKYLN Oatside KingLoser QGAL Wrench Xirobi Hirumi Pelliogre Jinski ALTimore Psychrosis Scarifar Suferikusu Kenmatched awegust ASMODEUS Dom08 Cielly Jaexel Dihh Zander（ザンダー） Guo Jia（グオ・ジア） Arisanna（アリサナ） Jin（ジン） Alice（アリス） Ciel（シエル） Tonoris（トノリス） Lorraine（ロレイン） / Merlin（マーリン） Lorraine（ロレイン） Diao Chan（ダオ・チャン） Merlin（マーリン） Kongming（コンミン） Lorraine（ロレイン） / Merlin（マーリン） / Zander（ザンダー） Vanitas（ヴァニタス） Silvie（シルヴィ） Diana（ダイアナ） Dante（ダンテ） / Merlin（マーリン） Lorraine（ロレイン） / Tonoris（トノリス） Dante（ダンテ）" data-name="Questing Grounds Regionals Nov.7,2026" data-country-sort="フィリピン" data-format-sort="スタンダード" data-cat-sort="1" data-players="63">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/63201/">Questing Grounds Regionals Nov.7,2026</a></div>
+          <div class="ev-host">Questing Grounds</div>
+        </td>
+        <td class="country">フィリピン</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-regional"><span class="cat-short">Regionals</span><span class="cat-full">Regionals</span></span></td>
+        <td class="num">63名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/63678/" data-cat="regionals" data-country="AU" data-format="standard" data-season="OTHER" data-date="2026-11-07" data-search="63678 TFB Regionals The Final Boss Collectables AU オーストラリア スタンダード Regionals Geo TheOnlyDang Nathan Gunrun Tien Chocofelicy Bopss WhatDoYouMinh Hedgehoge MathastixX Edmond gearfour Wyrowood Stretch Arod DunBeats Jayare Shilu Launtial Curtilious IvoryRaine gamecube08 StardustNova ppp Azdares Galahad foxinsox kuJ0 Fenz Vanitas（ヴァニタス） Ciel（シエル） Zander（ザンダー） Nico（ニコ） / Tristan（トリスタン） Arisanna（アリサナ） Guo Jia（グオ・ジア） Diao Chan（ダオ・チャン） Silvie（シルヴィ） Jin（ジン） Diana（ダイアナ） Lorraine（ロレイン） Alice（アリス） Lorraine（ロレイン） / Merlin（マーリン） Lorraine（ロレイン） / Rai（ライ）" data-name="TFB Regionals" data-country-sort="オーストラリア" data-format-sort="スタンダード" data-cat-sort="1" data-players="29">
+        <td class="date">2026-11-07</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/63678/">TFB Regionals</a></div>
+          <div class="ev-host">The Final Boss Collectables</div>
+        </td>
+        <td class="country">オーストラリア</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-regional"><span class="cat-short">Regionals</span><span class="cat-full">Regionals</span></span></td>
+        <td class="num">29名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/68231/" data-cat="store-championships" data-country="NZ" data-format="standard" data-season="OTHER" data-date="2026-11-06" data-search="68231 Card Merchant New Plymouth Store Champs Card Merchant New Plymouth NZ ニュージーランド スタンダード Store Championship Johnbed Corgis SteveO Isaac Kaneo Colab193 Realaz SLeece Mufasa Zuki Rooster1 MrUpright Lorraine（ロレイン） Guo Jia（グオ・ジア） Diao Chan（ダオ・チャン） Diana（ダイアナ） Tonoris（トノリス） Ciel（シエル） Silvie（シルヴィ）" data-name="Card Merchant New Plymouth Store Champs" data-country-sort="ニュージーランド" data-format-sort="スタンダード" data-cat-sort="0" data-players="12">
+        <td class="date">2026-11-06</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/68231/">Card Merchant New Plymouth Store Champs</a></div>
+          <div class="ev-host">Card Merchant New Plymouth</div>
+        </td>
+        <td class="country">ニュージーランド</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">12名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/63657/" data-cat="store-championships" data-country="NZ" data-format="standard" data-season="OTHER" data-date="2026-11-06" data-search="63657 Asphodel Paradise Store Championship Card Merchant Christchurch NZ ニュージーランド スタンダード Store Championship lucasis JoshH Froginahat AlexNul Pierce OneEyedOwl Suzuya Kietuko Eldge Bucket Ciel（シエル） Arisanna（アリサナ） Tonoris（トノリス） Lorraine（ロレイン） Diana（ダイアナ） Guo Jia（グオ・ジア） Alice（アリス） / Lorraine（ロレイン） Alice（アリス）" data-name="Asphodel Paradise Store Championship" data-country-sort="ニュージーランド" data-format-sort="スタンダード" data-cat-sort="0" data-players="10">
+        <td class="date">2026-11-06</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/63657/">Asphodel Paradise Store Championship</a></div>
+          <div class="ev-host">Card Merchant Christchurch</div>
+        </td>
+        <td class="country">ニュージーランド</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">10名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/63658/" data-cat="store-championships" data-country="NZ" data-format="standard" data-season="OTHER" data-date="2026-11-06" data-search="63658 Asphodel Paradise Store Championship Card Merchant Wellington NZ ニュージーランド スタンダード Store Championship Rawrasaur Zeon Ankier63 Clashking DEIFY Esker Try7Souls Neopolitician Mystiox Kingogan Nerokino CHRlS Cryocriptic xMoonCx Euclase11 Ritsuno Alice（アリス） Diao Chan（ダオ・チャン） Nico（ニコ） Rai（ライ） Diana（ダイアナ） Tristan（トリスタン） Arisanna（アリサナ） Guo Jia（グオ・ジア） Tonoris（トノリス） Silvie（シルヴィ） Ciel（シエル） Lorraine（ロレイン）" data-name="Asphodel Paradise Store Championship" data-country-sort="ニュージーランド" data-format-sort="スタンダード" data-cat-sort="0" data-players="16">
+        <td class="date">2026-11-06</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/63658/">Asphodel Paradise Store Championship</a></div>
+          <div class="ev-host">Card Merchant Wellington</div>
+        </td>
+        <td class="country">ニュージーランド</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">16名</td>
+      </tr>
+<tr class="tr-link" data-href="/tournaments/67330/" data-cat="store-championships" data-country="US" data-format="standard" data-season="OTHER" data-date="2026-11-06" data-search="67330 Curio Springfield PRD Store Championships Curio - Springfield Mall US アメリカ スタンダード Store Championship ChatterB0X Efferus Wolfgang Diamond50 CHIAtos ChibiArc Jin（ジン） Ciel（シエル） Guo Jia（グオ・ジア） Lorraine（ロレイン）" data-name="Curio Springfield PRD Store Championships" data-country-sort="アメリカ" data-format-sort="スタンダード" data-cat-sort="0" data-players="6">
+        <td class="date">2026-11-06</td>
+        <td>
+          <div class="ev-name"><a href="/tournaments/67330/">Curio Springfield PRD Store Championships</a></div>
+          <div class="ev-host">Curio - Springfield Mall</div>
+        </td>
+        <td class="country">アメリカ</td>
+        <td class="format">スタンダード</td>
+        <td class="cat"><span class="cat-badge cat-store"><span class="cat-short">Store Champs</span><span class="cat-full">Store Championship</span></span></td>
+        <td class="num">6名</td>
+      </tr>
 <tr class="tr-link" data-href="/tournaments/62307/" data-cat="store-championships" data-country="AU" data-format="standard" data-season="OTHER" data-date="2026-11-02" data-search="62307 Grand Archive - .asphodel/paradise - Store Championship! Unplugged Games AU オーストラリア スタンダード Store Championship ColonelCustard ThePuggyTree Nation Gravitas xFrostyFrostyx Lugas GeiAsianBoi Darkghost500 J75726c Smortkitty Silvie（シルヴィ） / Allen（アレン） Alice（アリス） Tristan（トリスタン） Alice（アリス） / Merlin（マーリン） Guo Jia（グオ・ジア） Ciel（シエル） Diao Chan（ダオ・チャン） Jin（ジン） Dante（ダンテ） Arisanna（アリサナ）" data-name="Grand Archive - .asphodel/paradise - Store Championship!" data-country-sort="オーストラリア" data-format-sort="スタンダード" data-cat-sort="0" data-players="10">
         <td class="date">2026-11-02</td>
         <td>
