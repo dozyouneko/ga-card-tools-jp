@@ -11,6 +11,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { writeJsonAtomic, readJsonSafe } from "./api-cache.mjs";
+import { API_FETCH_INIT } from "./user-agent.mjs";
 
 const API = "https://api.gatcg.com";
 const CONCURRENCY = 4;
@@ -58,7 +59,7 @@ export function lastFetchedIso() {
 export async function fetchJson(url, tries = 3) {
   for (let i = 1; ; i++) {
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, API_FETCH_INIT); // User-Agent を名乗る(#147)
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     } catch (e) {

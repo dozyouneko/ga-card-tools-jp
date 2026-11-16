@@ -18,6 +18,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadCards } from "./lib/cards-snapshot.mjs";
+import { API_FETCH_INIT } from "./lib/user-agent.mjs";
 import { loadPageI18n } from "./lib/page-i18n.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -115,7 +116,7 @@ const ELEMENT_ORBS = JSON.parse(readFileSync(path.join(ROOT, "scripts", "lib", "
 async function fetchJson(url, tries = 3) {
   for (let i = 1; ; i++) {
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, API_FETCH_INIT); // User-Agent を名乗る(#147)
       if (res.status === 404) return null;
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
