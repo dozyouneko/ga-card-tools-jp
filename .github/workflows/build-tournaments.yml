@@ -103,5 +103,10 @@ jobs:
       #   その日の大会データの取り込みごと止まる。
       # ⚠ continue-on-error は付けない。落ちたらジョブが赤くなり、所有者へメールで知らせる。
       #   赤を見たら、どのステップが落ちたかを開くこと(IndexNow か validate か)。
+      # ⚠ if: は必須(#147 1.1)。無いと Actions が暗黙に success() を補い、生成・コミット・IndexNow の
+      #   どれかが落ちた日に validate が走らず、辞書の抜けの知らせを失う。always() にしないのは、
+      #   キャンセル・タイムアウトの日まで走らせないため。${{ }} で囲むこと(! で始まる素の値は YAML のタグになる)。
+      #   赤が二重に出た日は「最初に落ちたステップ」が原因。
       - name: データ検証(npm run validate)
+        if: ${{ !cancelled() }}
         run: npm run validate

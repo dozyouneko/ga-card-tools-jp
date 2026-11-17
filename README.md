@@ -168,7 +168,7 @@ npm run build:tournaments # 大会データをスキャンして大会ページ�
 
 - 動作確認・障害時は GitHub の Actions 画面から `workflow_dispatch` で手動実行できます
 - 差分が `data/tournaments/index.json` のスキャン位置（`updatedAt`・`scan`）だけの日はコミットしません（7日に1回だけ位置を保存します。判定は `scripts/cron-commit-decision.mjs`・#147）
-- 公開の後、ジョブの最後に `npm run validate` を実行します（落ちるとジョブが赤くなりますが、公開は止まりません）
+- 公開の後、ジョブの最後に `npm run validate` を実行します（落ちるとジョブが赤くなりますが、公開は止まりません。前段のステップが失敗した日も実行し、キャンセル時だけは実行しません）
 - コミット対象は <!-- CRON-ADD:START -->`data/tournaments` / `tournaments` / `sitemap.xml` / `cards` / `sets` /
   `data/card-meta-index.json` / `data/featured-sets.json` / `index.html`<!-- CRON-ADD:END -->
   （⚠️ #30 以降、**カードページ・セットページ・トップページも含みます**。新セットが出た日は
